@@ -34,13 +34,22 @@ export interface ClientPayment {
   installmentsCount: number;
   type: 'income' | 'expense';
   customerName?: string;
+  paymentHistory?: string; // JSON string of { amount: number, date: string }[]
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  type: 'income' | 'expense';
 }
 
 export interface AppSettings {
   appName: string;
   fiscalYear: string;
   primaryColor: string;
-  categories: string; // Comma separated
+  categories: string; // Comma separated (legacy)
+  incomeCategories: string; // Comma separated
+  expenseCategories: string; // Comma separated
   profileName: string;
   profileAvatar: string;
   appVersion: string;
@@ -48,6 +57,8 @@ export interface AppSettings {
   showWarnings: boolean;
   hiddenColumns: string[];
   settingsPassword?: string;
+  receiptLayout: 'simple' | 'a4';
+  receiptLogo?: string;
 }
 
 export type Screen = 'dashboard' | 'transactions' | 'reports' | 'settings' | 'customers' | 'client-payments';
