@@ -12,6 +12,8 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Calendar,
   Filter,
   MoreVertical,
@@ -34,7 +36,9 @@ import {
   ImageIcon,
   Edit,
   Copy,
-  CheckCircle2
+  CheckCircle2,
+  LayoutGrid,
+  List as ListIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -55,7 +59,7 @@ import {
 import { format, parseISO, isSameMonth, isSameDay, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn, formatCurrency } from './lib/utils';
-import { Transaction, Screen, AppSettings, Customer, ClientPayment } from './types';
+import { Transaction, Screen, AppSettings, Customer, ClientPayment, Category } from './types';
 
 // --- Componentes Reutilizáveis ---
 
@@ -255,6 +259,13 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [expandedPayments, setExpandedPayments] = useState<number[]>([]);
+  const [paymentFilterStatus, setPaymentFilterStatus] = useState<string>('all');
+  const [paymentSearchTerm, setPaymentSearchTerm] = useState<string>('');
+
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [customerPaymentsWarning, setCustomerPaymentsWarning] = useState<any[]>([]);
   const [transactionToDelete, setTransactionToDelete] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [dateFilterMode, setDateFilterMode] = useState<'day' | 'month' | 'range' | 'all'>('day');
@@ -281,19 +292,29 @@ export default function App() {
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [warningType, setWarningType] = useState<'category' | 'description' | 'both'>('both');
 
+  const [newIncomeCategory, setNewIncomeCategory] = useState('');
+  const [newExpenseCategory, setNewExpenseCategory] = useState('');
+  const [categoryTab, setCategoryTab] = useState<'income' | 'expense'>('income');
+  const [showCustomerWarningModal, setShowCustomerWarningModal] = useState(false);
+  const [customerWarningType, setCustomerWarningType] = useState<'cpf' | 'phone' | 'both'>('both');
+
   // Configurações do App
   const [settings, setSettings] = useState<AppSettings>({
     appName: 'Financeiro Pro',
     fiscalYear: '2024',
     primaryColor: '#1152d4',
     categories: 'Alimentação,Trabalho,Utilidades,Viagem,Lazer,Outros',
+    incomeCategories: 'Salário,Vendas,Serviços,Investimentos,Outros',
+    expenseCategories: 'Alimentação,Trabalho,Utilidades,Viagem,Lazer,Outros',
     profileName: 'Inova Informática',
     profileAvatar: 'https://picsum.photos/seed/inova/100/100',
     appVersion: 'Versão Empresarial',
     initialBalance: 0,
     showWarnings: true,
     hiddenColumns: [],
-    settingsPassword: '1234'
+    settingsPassword: '1234',
+    receiptLayout: 'a4',
+    receiptLogo: ''
   });
 
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -312,11 +333,14 @@ export default function App() {
   // Clientes e Pagamentos
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [clientPayments, setClientPayments] = useState<ClientPayment[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [isAddingClientPayment, setIsAddingClientPayment] = useState(false);
   const [isRecordingPayment, setIsRecordingPayment] = useState<ClientPayment | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
+  const [customerViewMode, setCustomerViewMode] = useState<'grid' | 'list'>('grid');
+  const [customerFilterDebt, setCustomerFilterDebt] = useState<boolean>(false);
   const [showCustomerFilters, setShowCustomerFilters] = useState(false);
   
   const [newCustomer, setNewCustomer] = useState({
@@ -342,11 +366,66 @@ export default function App() {
     type: 'income' as 'income' | 'expense'
   });
 
+  const togglePaymentExpansion = (id: number) => {
+    setExpandedPayments(prev => 
+      prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]
+    );
+  };
+
+  const handlePrevMonth = () => {
+    const [year, month] = dashboardMonth.split('-');
+    const d = new Date(parseInt(year), parseInt(month) - 1, 1);
+    d.setMonth(d.getMonth() - 1);
+    setDashboardMonth(format(d, 'yyyy-MM'));
+  };
+
+  const handleNextMonth = () => {
+    const [year, month] = dashboardMonth.split('-');
+    const d = new Date(parseInt(year), parseInt(month) - 1, 1);
+    d.setMonth(d.getMonth() + 1);
+    setDashboardMonth(format(d, 'yyyy-MM'));
+  };
+
+  const formatMonthYear = (dateStr: string) => {
+    const [year, month] = dateStr.split('-');
+    const d = new Date(parseInt(year), parseInt(month) - 1, 1);
+    return format(d, 'MMMM yyyy', { locale: ptBR });
+  };
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const upcomingDebts = clientPayments.filter(p => {
+    if (p.status === 'paid') return false;
+    const dueDate = parseISO(p.dueDate);
+    dueDate.setHours(0, 0, 0, 0);
+    const diffTime = dueDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 && diffDays <= 3;
+  });
+
+  const dueTodayDebts = clientPayments.filter(p => {
+    if (p.status === 'paid') return false;
+    const dueDate = parseISO(p.dueDate);
+    dueDate.setHours(0, 0, 0, 0);
+    return dueDate.getTime() === today.getTime();
+  });
+
+  const overdueDebts = clientPayments.filter(p => {
+    if (p.status === 'paid') return false;
+    const dueDate = parseISO(p.dueDate);
+    dueDate.setHours(0, 0, 0, 0);
+    return dueDate.getTime() < today.getTime();
+  });
+
+  const totalNotifications = upcomingDebts.length + dueTodayDebts.length + overdueDebts.length;
+
   useEffect(() => {
     fetchTransactions();
     fetchSettings();
     fetchCustomers();
     fetchClientPayments();
+    fetchCategories();
   }, []);
 
   const fetchCustomers = async () => {
@@ -369,10 +448,21 @@ export default function App() {
     }
   };
 
-  const handleAddCustomer = async () => {
-    if (!newCustomer.firstName || !newCustomer.phone) {
-      alert("Por favor, preencha pelo menos o nome e o telefone.");
+  const handleAddCustomer = async (force: boolean = false) => {
+    if (!newCustomer.firstName) {
+      alert("Por favor, preencha o nome do cliente.");
       return;
+    }
+
+    if (!force && settings.showWarnings) {
+      const missingCpf = !newCustomer.cpf;
+      const missingPhone = !newCustomer.phone;
+
+      if (missingCpf || missingPhone) {
+        setCustomerWarningType(missingCpf && missingPhone ? 'both' : missingCpf ? 'cpf' : 'phone');
+        setShowCustomerWarningModal(true);
+        return;
+      }
     }
 
     // Verificar similaridade
@@ -410,6 +500,7 @@ export default function App() {
       const data = await res.json();
       
       setIsAddingCustomer(false);
+      setShowCustomerWarningModal(false);
       setEditingCustomer(null);
       setNewCustomer({
         firstName: '',
@@ -481,13 +572,26 @@ export default function App() {
     const newPaidAmount = isRecordingPayment.paidAmount + amount;
     const newStatus = newPaidAmount >= isRecordingPayment.totalAmount ? 'paid' : 'partial';
 
+    let currentHistory = [];
+    try {
+      if (isRecordingPayment.paymentHistory) {
+        currentHistory = JSON.parse(isRecordingPayment.paymentHistory);
+      }
+    } catch (e) {}
+
+    const newHistory = [...currentHistory, {
+      amount: amount,
+      date: new Date().toISOString()
+    }];
+
     try {
       await fetch(`/api/client-payments/${isRecordingPayment.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           paidAmount: newPaidAmount,
-          status: newStatus
+          status: newStatus,
+          paymentHistory: newHistory
         })
       });
       setIsRecordingPayment(null);
@@ -502,18 +606,23 @@ export default function App() {
     const customer = customers.find(c => c.id === payment.customerId);
     if (!customer) return;
     
-    const message = `*COMPROVANTE DE PAGAMENTO / LEMBRETE* 📄\n\n` +
-      `*Cliente:* ${customer.firstName} ${customer.lastName}\n` +
-      `*Empresa:* ${customer.companyName || 'N/A'}\n` +
-      `*Descrição:* ${payment.description}\n` +
+    const isPaid = payment.status === 'paid';
+    const balance = payment.totalAmount - payment.paidAmount;
+    
+    const message = 
+      `*${isPaid ? '✅ COMPROVANTE DE PAGAMENTO' : '⏳ LEMBRETE DE COBRANÇA'}*\n\n` +
+      `Olá, *${customer.firstName}*! 👋\n\n` +
+      `Segue o resumo da sua conta em *${settings.appName}*:\n\n` +
+      `📝 *Descrição:* ${payment.description}\n` +
+      `📅 *Data da Compra:* ${format(parseISO(payment.purchaseDate), 'dd/MM/yyyy')}\n` +
+      `📌 *Status:* ${payment.status === 'paid' ? 'PAGO' : payment.status === 'partial' ? 'PARCIAL' : 'PENDENTE'}\n\n` +
       `----------------------------------\n` +
-      `*Valor Total:* ${formatCurrency(payment.totalAmount)}\n` +
-      `*Valor Pago:* ${formatCurrency(payment.paidAmount)}\n` +
-      `*Saldo Devedor:* ${formatCurrency(payment.totalAmount - payment.paidAmount)}\n` +
-      `*Vencimento:* ${format(parseISO(payment.dueDate), 'dd/MM/yyyy')}\n` +
-      `*Status:* ${payment.status === 'paid' ? '✅ PAGO' : '⏳ PENDENTE'}\n` +
-      `----------------------------------\n` +
-      `Agradecemos a preferência! 🙏`;
+      `💰 *Valor Total:* ${formatCurrency(payment.totalAmount)}\n` +
+      `💵 *Valor Pago:* ${formatCurrency(payment.paidAmount)}\n` +
+      `${balance > 0 ? `🛑 *Saldo Devedor:* ${formatCurrency(balance)}\n` : ''}` +
+      `----------------------------------\n\n` +
+      `${balance > 0 ? `👉 *Vencimento:* ${format(parseISO(payment.dueDate), 'dd/MM/yyyy')}\n\n` : ''}` +
+      `*${isPaid ? 'Agradecemos pela preferência! 🙏' : 'Ficamos no aguardo do seu pagamento. Qualquer dúvida, estamos à disposição! 😊'}*`;
       
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodedMessage}`;
@@ -525,153 +634,415 @@ export default function App() {
       const res = await fetch(`/api/customers/${customer.id}/payments`);
       const payments = await res.json();
       
-      if (payments.length > 0) {
-        const descriptions = payments.map((p: any) => p.description).join(', ');
-        const confirmDelete = window.confirm(
-          `Este cliente possui lançamentos vinculados: ${descriptions}.\n\n` +
-          `Para excluir o cliente, você deve primeiro excluir ou alterar esses lançamentos.\n` +
-          `Deseja ir para a tela de pagamentos agora?`
-        );
-        if (confirmDelete) {
-          setActiveScreen('client-payments');
-        }
-        return;
-      }
-
-      if (confirm('Deseja excluir este cliente?')) {
-        await fetch(`/api/customers/${customer.id}`, { method: 'DELETE' });
-        fetchCustomers();
-      }
+      setCustomerToDelete(customer);
+      setCustomerPaymentsWarning(payments);
     } catch (err) {
       console.error("Failed to delete customer", err);
     }
   };
 
-  const printThermalReceipt = (payment: ClientPayment) => {
+  const confirmDeleteCustomerWithPayments = async () => {
+    if (!customerToDelete) return;
+    try {
+      await fetch(`/api/customers/${customerToDelete.id}`, { method: 'DELETE' });
+      fetchCustomers();
+      fetchClientPayments();
+      setCustomerToDelete(null);
+      setCustomerPaymentsWarning([]);
+    } catch (err) {
+      console.error("Failed to delete customer", err);
+    }
+  };
+
+  const generateReceipt = async (payment: ClientPayment, layoutOverride?: 'simple' | 'a4') => {
     const customer = customers.find(c => c.id === payment.customerId);
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const content = `
+    const layout = layoutOverride || settings.receiptLayout;
+
+    let historyHtml = '';
+    try {
+      if (payment.paymentHistory) {
+        const history = JSON.parse(payment.paymentHistory);
+        if (history.length > 0) {
+          historyHtml = layout === 'a4' ? `
+            <div class="section" style="margin-top: 30px;">
+              <div class="section-title">Histórico de Pagamentos</div>
+              <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <thead>
+                  <tr style="border-bottom: 1px solid #eee; text-align: left;">
+                    <th style="padding: 8px 0; color: #666;">Data/Hora</th>
+                    <th style="padding: 8px 0; color: #666; text-align: right;">Valor Pago</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${history.map((h: any) => `
+                    <tr style="border-bottom: 1px solid #f5f5f5;">
+                      <td style="padding: 8px 0;">${format(parseISO(h.date), 'dd/MM/yyyy HH:mm')}</td>
+                      <td style="padding: 8px 0; text-align: right; font-weight: bold;">${formatCurrency(h.amount)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : `
+            <div class="divider"></div>
+            <p class="center bold">HISTÓRICO DE PAGAMENTOS</p>
+            ${history.map((h: any) => `
+              <div style="display: flex; justify-content: space-between; font-size: 10px;">
+                <span>${format(parseISO(h.date), 'dd/MM/yyyy HH:mm')}</span>
+                <span>${formatCurrency(h.amount)}</span>
+              </div>
+            `).join('')}
+          `;
+        }
+      }
+    } catch (e) {}
+
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`Recibo #${payment.id} - ${customer?.firstName} - ${formatCurrency(payment.totalAmount)}`)}`;
+
+    const content = layout === 'a4' ? `
+      <html>
+        <head>
+          <title>Recibo - ${settings.appName}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
+            body { 
+              font-family: 'Inter', sans-serif; 
+              padding: 0; 
+              margin: 0; 
+              color: #1e293b; 
+              background: #f8fafc;
+              -webkit-print-color-adjust: exact;
+            }
+            .page {
+              width: 210mm;
+              min-height: 297mm;
+              padding: 20mm;
+              margin: 10mm auto;
+              background: white;
+              box-shadow: 0 0 20px rgba(0,0,0,0.05);
+              position: relative;
+            }
+            .header { 
+              display: flex; 
+              justify-content: space-between; 
+              align-items: flex-start;
+              border-bottom: 4px solid ${settings.primaryColor}; 
+              padding-bottom: 30px; 
+              margin-bottom: 40px; 
+            }
+            .company-info { display: flex; align-items: center; gap: 20px; }
+            .logo { width: 60px; height: 60px; object-fit: contain; border-radius: 12px; }
+            .company-info h1 { 
+              margin: 0; 
+              font-size: 32px;
+              color: ${settings.primaryColor}; 
+              text-transform: uppercase;
+              letter-spacing: -1px;
+            }
+            .company-info p { margin: 5px 0 0 0; color: #64748b; font-weight: 500; }
+            .receipt-badge {
+              background: ${settings.primaryColor};
+              color: white;
+              padding: 8px 16px;
+              border-radius: 8px;
+              font-weight: bold;
+              font-size: 14px;
+              text-transform: uppercase;
+              margin-bottom: 10px;
+              display: inline-block;
+            }
+            .receipt-no { font-size: 12px; color: #94a3b8; font-weight: bold; }
+            
+            .main-title { 
+              text-align: center; 
+              font-size: 24px;
+              font-weight: 800;
+              text-transform: uppercase; 
+              letter-spacing: 4px; 
+              margin-bottom: 50px; 
+              color: #0f172a;
+            }
+            
+            .section { margin-bottom: 40px; }
+            .section-title { 
+              font-size: 12px;
+              font-weight: 800; 
+              text-transform: uppercase;
+              letter-spacing: 1px;
+              color: #94a3b8;
+              border-bottom: 1px solid #e2e8f0; 
+              margin-bottom: 20px; 
+              padding-bottom: 8px; 
+            }
+            
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+            .info-item { margin-bottom: 15px; }
+            .label { display: block; color: #64748b; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; }
+            .value { display: block; font-weight: 700; font-size: 15px; color: #1e293b; }
+            
+            .table-container { margin-top: 30px; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
+            table { width: 100%; border-collapse: collapse; }
+            th { background: #f1f5f9; padding: 12px 15px; text-align: left; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #475569; }
+            td { padding: 12px 15px; border-top: 1px solid #e2e8f0; font-size: 13px; }
+            
+            .summary-card { 
+              background: #f8fafc; 
+              padding: 30px; 
+              border-radius: 20px; 
+              margin-top: 50px; 
+              border: 1px solid #e2e8f0;
+              position: relative;
+            }
+            .summary-row { display: flex; justify-content: space-between; margin-bottom: 15px; }
+            .summary-label { font-weight: 600; color: #64748b; }
+            .summary-value { font-weight: 700; color: #1e293b; }
+            .grand-total { 
+              margin-top: 20px;
+              padding-top: 20px;
+              border-top: 2px dashed #cbd5e1;
+              font-size: 24px; 
+              color: ${settings.primaryColor};
+            }
+            
+            .qr-code-container {
+              position: absolute;
+              right: 30px;
+              top: 30px;
+              text-align: center;
+            }
+            .qr-code { width: 80px; height: 80px; border: 4px solid white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+            .qr-label { font-size: 8px; font-weight: bold; color: #94a3b8; margin-top: 5px; text-transform: uppercase; }
+
+            .footer { 
+              margin-top: 80px; 
+              text-align: center; 
+              font-size: 11px; 
+              color: #94a3b8; 
+              border-top: 1px solid #e2e8f0;
+              padding-top: 30px;
+            }
+            .signature {
+              margin-top: 100px;
+              display: flex;
+              justify-content: space-around;
+            }
+            .sig-line {
+              width: 200px;
+              border-top: 1px solid #1e293b;
+              text-align: center;
+              padding-top: 10px;
+              font-size: 12px;
+              font-weight: bold;
+            }
+            @media print {
+              body { background: white; padding: 0; }
+              .page { margin: 0; box-shadow: none; width: 100%; height: auto; min-height: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="page">
+            <div class="header">
+              <div class="company-info">
+                ${settings.receiptLogo ? `<img src="${settings.receiptLogo}" class="logo" />` : ''}
+                <div>
+                  <h1>${settings.appName}</h1>
+                  <p>${settings.profileName}</p>
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <div class="receipt-badge">Recibo de Pagamento</div>
+                <div class="receipt-no">Nº #${payment.id.toString().padStart(6, '0')}</div>
+                <div class="receipt-no" style="margin-top: 5px;">Data: ${format(new Date(), 'dd/MM/yyyy')}</div>
+              </div>
+            </div>
+            
+            <h2 class="main-title">Comprovante de Transação</h2>
+            
+            <div class="section">
+              <div class="section-title">Informações do Cliente</div>
+              <div class="grid">
+                <div class="info-item">
+                  <span class="label">Cliente</span>
+                  <span class="value">${customer?.firstName} ${customer?.lastName}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">CPF / CNPJ</span>
+                  <span class="value">${customer?.cpf || '---'}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Empresa</span>
+                  <span class="value">${customer?.companyName || '---'}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Contato</span>
+                  <span class="value">${customer?.phone}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="section">
+              <div class="section-title">Detalhes do Lançamento</div>
+              <div class="grid">
+                <div class="info-item">
+                  <span class="label">Descrição</span>
+                  <span class="value">${payment.description}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Data da Compra</span>
+                  <span class="value">${format(parseISO(payment.purchaseDate), 'dd/MM/yyyy')}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Vencimento Original</span>
+                  <span class="value">${format(parseISO(payment.dueDate), 'dd/MM/yyyy')}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Meio de Pagamento</span>
+                  <span class="value">${payment.paymentMethod}</span>
+                </div>
+              </div>
+            </div>
+            
+            ${historyHtml ? `
+              <div class="section">
+                <div class="section-title">Histórico de Amortização</div>
+                <div class="table-container">
+                  ${historyHtml}
+                </div>
+              </div>
+            ` : ''}
+            
+            <div class="summary-card">
+              <div class="qr-code-container">
+                <img src="${qrCodeUrl}" class="qr-code" />
+                <div class="qr-label">Validar Recibo</div>
+              </div>
+              <div class="summary-row" style="width: 70%;">
+                <span class="summary-label">Valor Total do Débito</span>
+                <span class="summary-value">${formatCurrency(payment.totalAmount)}</span>
+              </div>
+              <div class="summary-row" style="width: 70%;">
+                <span class="summary-label">Total Amortizado</span>
+                <span class="summary-value" style="color: #10b981;">- ${formatCurrency(payment.paidAmount)}</span>
+              </div>
+              <div class="summary-row grand-total" style="width: 70%;">
+                <span class="summary-label" style="color: #1e293b;">Saldo Devedor Atual</span>
+                <span class="summary-value">${formatCurrency(payment.totalAmount - payment.paidAmount)}</span>
+              </div>
+            </div>
+            
+            <div class="signature">
+              <div class="sig-line">Assinatura do Responsável</div>
+              <div class="sig-line">Assinatura do Cliente</div>
+            </div>
+            
+            <div class="footer">
+              <p>Este documento é um comprovante oficial de transação financeira.</p>
+              <p>Gerado eletronicamente por <strong>${settings.appName}</strong> em ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
+            </div>
+          </div>
+          <script>window.print();</script>
+        </body>
+      </html>
+    ` : `
       <html>
         <head>
           <title>Recibo Térmico</title>
           <style>
-            body { font-family: 'Courier New', Courier, monospace; width: 80mm; padding: 5mm; font-size: 12px; }
+            body { 
+              font-family: 'Courier New', Courier, monospace; 
+              width: 80mm; 
+              margin: 0; 
+              padding: 5mm; 
+              font-size: 12px;
+              color: #000;
+            }
             .center { text-align: center; }
             .bold { font-weight: bold; }
-            .divider { border-top: 1px dashed #000; margin: 5px 0; }
-            .footer { margin-top: 20px; text-align: center; }
-            .signature { margin-top: 30px; border-top: 1px solid #000; text-align: center; padding-top: 5px; }
+            .divider { border-top: 1px dashed #000; margin: 5mm 0; }
+            .logo { width: 40mm; height: auto; margin-bottom: 3mm; }
+            .row { display: flex; justify-content: space-between; margin-bottom: 1mm; }
+            .qr-code { width: 30mm; height: 30mm; margin: 5mm auto; display: block; }
+            @media print {
+              body { width: 80mm; }
+            }
           </style>
         </head>
         <body>
           <div class="center">
-            <h2 class="bold">${settings.appName}</h2>
-            <p>${settings.profileName}</p>
+            ${settings.receiptLogo ? `<img src="${settings.receiptLogo}" class="logo" />` : ''}
+            <div class="bold" style="font-size: 16px;">${settings.appName}</div>
+            <div>${settings.profileName}</div>
+            <div class="divider"></div>
+            <div class="bold">RECIBO DE PAGAMENTO</div>
+            <div>Nº #${payment.id.toString().padStart(6, '0')}</div>
+            <div>Data: ${format(new Date(), 'dd/MM/yyyy HH:mm')}</div>
           </div>
+          
           <div class="divider"></div>
-          <p><span class="bold">CLIENTE:</span> ${customer?.firstName} ${customer?.lastName}</p>
-          <p><span class="bold">DATA:</span> ${format(parseISO(payment.purchaseDate), 'dd/MM/yyyy')}</p>
+          
+          <div class="bold">CLIENTE:</div>
+          <div>${customer?.firstName} ${customer?.lastName}</div>
+          ${customer?.cpf ? `<div>CPF: ${customer?.cpf}</div>` : ''}
+          
           <div class="divider"></div>
-          <p><span class="bold">DESC:</span> ${payment.description}</p>
-          <p><span class="bold">TOTAL:</span> ${formatCurrency(payment.totalAmount)}</p>
-          <p><span class="bold">PAGO:</span> ${formatCurrency(payment.paidAmount)}</p>
-          <p><span class="bold">SALDO:</span> ${formatCurrency(payment.totalAmount - payment.paidAmount)}</p>
+          
+          <div class="bold">DESCRIÇÃO:</div>
+          <div>${payment.description}</div>
+          <div class="row" style="margin-top: 2mm;">
+            <span>Data Compra:</span>
+            <span>${format(parseISO(payment.purchaseDate), 'dd/MM/yyyy')}</span>
+          </div>
+          <div class="row">
+            <span>Vencimento:</span>
+            <span>${format(parseISO(payment.dueDate), 'dd/MM/yyyy')}</span>
+          </div>
+          
           <div class="divider"></div>
-          <div class="signature">
-            Assinatura do Cliente
+          
+          <div class="row bold">
+            <span>VALOR TOTAL:</span>
+            <span>${formatCurrency(payment.totalAmount)}</span>
           </div>
-          <div class="footer">
-            Obrigado pela preferência!
+          <div class="row">
+            <span>VALOR PAGO:</span>
+            <span>${formatCurrency(payment.paidAmount)}</span>
           </div>
-          <script>window.print(); window.close();</script>
-        </body>
-      </html>
-    `;
-    printWindow.document.write(content);
-    printWindow.document.close();
-  };
-
-  const printA4Receipt = (payment: ClientPayment) => {
-    const customer = customers.find(c => c.id === payment.customerId);
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    const content = `
-      <html>
-        <head>
-          <title>Recibo A4 Completo</title>
-          <style>
-            body { font-family: sans-serif; padding: 40px; color: #333; line-height: 1.6; }
-            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
-            .company-info h1 { margin: 0; color: ${settings.primaryColor}; }
-            .receipt-title { text-align: center; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 40px; }
-            .section { margin-bottom: 30px; }
-            .section-title { font-weight: bold; border-bottom: 1px solid #eee; margin-bottom: 10px; padding-bottom: 5px; }
-            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-            .label { color: #666; font-size: 0.9em; }
-            .value { font-weight: bold; }
-            .totals { background: #f9f9f9; padding: 20px; border-radius: 8px; margin-top: 40px; }
-            .total-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
-            .grand-total { font-size: 1.4em; border-top: 2px solid #333; padding-top: 10px; margin-top: 10px; }
-            .footer { margin-top: 60px; text-align: center; font-size: 0.8em; color: #999; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="company-info">
-              <h1>${settings.appName}</h1>
-              <p>${settings.profileName}</p>
-            </div>
-            <div class="date-info">
-              <p>Data: ${format(new Date(), 'dd/MM/yyyy')}</p>
-              <p>Recibo Nº: ${payment.id}</p>
-            </div>
+          <div class="row bold" style="font-size: 14px; margin-top: 2mm;">
+            <span>SALDO DEVEDOR:</span>
+            <span>${formatCurrency(payment.totalAmount - payment.paidAmount)}</span>
           </div>
           
-          <h2 class="receipt-title">Comprovante de Pagamento Detalhado</h2>
+          <div class="divider"></div>
           
-          <div class="section">
-            <div class="section-title">Dados do Cliente</div>
-            <div class="grid">
-              <div><span class="label">Nome:</span> <span class="value">${customer?.firstName} ${customer?.lastName}</span></div>
-              <div><span class="label">CPF:</span> <span class="value">${customer?.cpf || 'N/A'}</span></div>
-              <div><span class="label">Empresa:</span> <span class="value">${customer?.companyName || 'N/A'}</span></div>
-              <div><span class="label">Telefone:</span> <span class="value">${customer?.phone}</span></div>
-            </div>
-          </div>
-          
-          <div class="section">
-            <div class="section-title">Informações da Venda</div>
-            <div class="grid">
-              <div><span class="label">Descrição:</span> <span class="value">${payment.description}</span></div>
-              <div><span class="label">Data da Compra:</span> <span class="value">${format(parseISO(payment.purchaseDate), 'dd/MM/yyyy')}</span></div>
-              <div><span class="label">Vencimento:</span> <span class="value">${format(parseISO(payment.dueDate), 'dd/MM/yyyy')}</span></div>
-              <div><span class="label">Forma de Pagamento:</span> <span class="value">${payment.paymentMethod}</span></div>
-            </div>
-          </div>
-          
-          <div class="totals">
-            <div class="total-row"><span>Valor Total da Venda:</span> <span>${formatCurrency(payment.totalAmount)}</span></div>
-            <div class="total-row"><span>Valor Pago até o momento:</span> <span>${formatCurrency(payment.paidAmount)}</span></div>
-            <div class="total-row grand-total"><span>Saldo Devedor:</span> <span>${formatCurrency(payment.totalAmount - payment.paidAmount)}</span></div>
-          </div>
-          
-          <div class="section" style="margin-top: 50px;">
-            <div class="section-title">Observações</div>
-            <p style="font-style: italic; color: #666;">${customer?.observation || 'Sem observações adicionais.'}</p>
-          </div>
-          
-          <div class="footer">
-            <p>Este documento é um comprovante de transação financeira entre as partes citadas.</p>
-            <p>Gerado por ${settings.appName} em ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
+          <div class="center">
+            <img src="${qrCodeUrl}" class="qr-code" />
+            <div style="font-size: 10px;">Obrigado pela preferência!</div>
+            <div style="font-size: 8px; margin-top: 2mm;">Gerado por ${settings.appName}</div>
           </div>
           
           <script>window.print();</script>
         </body>
       </html>
     `;
+
+    // Salvar recibo no banco de dados
+    try {
+      await fetch('/api/receipts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentId: payment.id,
+          content: content
+        })
+      });
+    } catch (err) {
+      console.error("Failed to save receipt", err);
+    }
+
     printWindow.document.write(content);
     printWindow.document.close();
   };
@@ -686,6 +1057,38 @@ export default function App() {
       console.error("Failed to fetch transactions", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/categories');
+      const data = await res.json();
+      setCategories(data);
+    } catch (err) {
+      console.error("Failed to fetch categories", err);
+    }
+  };
+
+  const addCategory = async (name: string, type: 'income' | 'expense') => {
+    try {
+      await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, type })
+      });
+      fetchCategories();
+    } catch (err) {
+      console.error("Failed to add category", err);
+    }
+  };
+
+  const deleteCategory = async (id: number) => {
+    try {
+      await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+      fetchCategories();
+    } catch (err) {
+      console.error("Failed to delete category", err);
     }
   };
 
@@ -902,14 +1305,40 @@ export default function App() {
     return matchesSearch && matchesType && matchesCategory && matchesMin && matchesMax && matchesDate;
   });
 
-  const filteredCustomers = customers.filter(c => 
-    c.firstName.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    c.lastName.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    c.nickname?.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    c.companyName?.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    c.phone.includes(customerSearch) ||
-    c.cpf?.includes(customerSearch)
-  );
+  const filteredCustomers = customers.filter(c => {
+    const matchesSearch = c.firstName.toLowerCase().includes(customerSearch.toLowerCase()) ||
+      c.lastName.toLowerCase().includes(customerSearch.toLowerCase()) ||
+      c.nickname?.toLowerCase().includes(customerSearch.toLowerCase()) ||
+      c.companyName?.toLowerCase().includes(customerSearch.toLowerCase()) ||
+      c.phone.includes(customerSearch) ||
+      c.cpf?.includes(customerSearch);
+    
+    if (!matchesSearch) return false;
+
+    if (customerFilterDebt) {
+      const hasDebt = clientPayments.some(p => p.customerId === c.id && p.status !== 'paid');
+      if (!hasDebt) return false;
+    }
+
+    return true;
+  });
+
+  const filteredClientPayments = clientPayments.filter(payment => {
+    const matchesSearch = payment.customerName.toLowerCase().includes(paymentSearchTerm.toLowerCase()) || 
+                          payment.description.toLowerCase().includes(paymentSearchTerm.toLowerCase());
+    
+    if (!matchesSearch) return false;
+
+    const isOverdue = new Date(payment.dueDate) < new Date() && payment.status !== 'paid';
+
+    switch (paymentFilterStatus) {
+      case 'paid': return payment.status === 'paid';
+      case 'partial': return payment.status === 'partial';
+      case 'pending': return payment.status === 'pending' && !isOverdue;
+      case 'overdue': return isOverdue;
+      default: return true;
+    }
+  });
 
   // Gerar dados dinâmicos para o gráfico com base nos últimos 6 meses
   const last6Months = eachMonthOfInterval({
@@ -941,6 +1370,19 @@ export default function App() {
             exit={{ opacity: 0 }}
             onClick={() => setIsSidebarOpen(false)}
             className="fixed inset-0 z-40 bg-bg-dark/80 backdrop-blur-sm lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Global Notification Overlay */}
+      <AnimatePresence>
+        {showNotifications && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-bg-dark/40 backdrop-blur-sm" 
+            onClick={() => setShowNotifications(false)}
           />
         )}
       </AnimatePresence>
@@ -1064,10 +1506,89 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-4">
-            <button className="p-2.5 text-slate-400 hover:bg-white/5 rounded-xl transition-colors relative">
-              <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-bg-dark"></span>
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2.5 text-slate-400 hover:bg-white/5 rounded-xl transition-colors relative"
+              >
+                <Bell size={20} />
+                {totalNotifications > 0 && (
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-bg-dark"></span>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 mt-2 w-80 glass-card border border-white/10 shadow-2xl z-50 overflow-hidden"
+                  >
+                      <div className="p-4 border-b border-white/5 bg-white/5">
+                        <h3 className="font-bold text-sm tracking-tight">Notificações</h3>
+                      </div>
+                      <div className="max-h-96 overflow-y-auto p-2 space-y-1">
+                        {totalNotifications === 0 ? (
+                          <div className="p-8 text-center flex flex-col items-center justify-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-slate-500">
+                              <Bell size={20} />
+                            </div>
+                            <p className="text-slate-500 text-sm font-medium">Nenhuma notificação</p>
+                            <p className="text-[10px] text-slate-600 uppercase tracking-widest">Tudo em dia!</p>
+                          </div>
+                        ) : (
+                          <>
+                            {overdueDebts.map(p => (
+                              <div key={p.id} className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex flex-col gap-1 cursor-pointer hover:bg-rose-500/20 transition-colors" onClick={() => { setActiveScreen('client-payments'); setShowNotifications(false); }}>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs font-bold text-rose-500 uppercase tracking-widest">Vencido</span>
+                                  <span className="text-[10px] text-slate-400">{format(parseISO(p.dueDate), 'dd/MM')}</span>
+                                </div>
+                                <p className="text-sm font-bold truncate">{p.customerName}</p>
+                                <p className="text-xs text-slate-300 truncate">{p.description}</p>
+                                <p className="text-sm font-black text-rose-500">{formatCurrency(p.totalAmount - p.paidAmount)}</p>
+                              </div>
+                            ))}
+                            {dueTodayDebts.map(p => (
+                              <div key={p.id} className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col gap-1 cursor-pointer hover:bg-amber-500/20 transition-colors" onClick={() => { setActiveScreen('client-payments'); setShowNotifications(false); }}>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Vence Hoje</span>
+                                  <span className="text-[10px] text-slate-400">{format(parseISO(p.dueDate), 'dd/MM')}</span>
+                                </div>
+                                <p className="text-sm font-bold truncate">{p.customerName}</p>
+                                <p className="text-xs text-slate-300 truncate">{p.description}</p>
+                                <p className="text-sm font-black text-amber-500">{formatCurrency(p.totalAmount - p.paidAmount)}</p>
+                              </div>
+                            ))}
+                            {upcomingDebts.map(p => (
+                              <div key={p.id} className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex flex-col gap-1 cursor-pointer hover:bg-yellow-500/20 transition-colors" onClick={() => { setActiveScreen('client-payments'); setShowNotifications(false); }}>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs font-bold text-yellow-500 uppercase tracking-widest">Vence em Breve</span>
+                                  <span className="text-[10px] text-slate-400">{format(parseISO(p.dueDate), 'dd/MM')}</span>
+                                </div>
+                                <p className="text-sm font-bold truncate">{p.customerName}</p>
+                                <p className="text-xs text-slate-300 truncate">{p.description}</p>
+                                <p className="text-sm font-black text-yellow-500">{formatCurrency(p.totalAmount - p.paidAmount)}</p>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                      {totalNotifications > 0 && (
+                        <div className="p-3 border-t border-white/5 bg-white/5">
+                          <button 
+                            onClick={() => { setActiveScreen('client-payments'); setShowNotifications(false); }}
+                            className="w-full py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-colors"
+                          >
+                            Ver Todos os Pagamentos
+                          </button>
+                        </div>
+                      )}
+                    </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <div className="h-8 w-[1px] bg-white/10 mx-2 hidden sm:block"></div>
             <div className="flex gap-2">
                <button 
@@ -1139,9 +1660,9 @@ export default function App() {
                       <h4 className="text-lg font-bold">Tendência de Fluxo de Caixa</h4>
                       <p className="text-xs text-slate-500 font-medium">Desempenho de flutuação mensal</p>
                     </div>
-                    <select className="bg-slate-800 border border-white/10 rounded-xl text-[10px] font-bold uppercase tracking-widest py-2 px-4 focus:ring-1 focus:ring-primary outline-none text-slate-200">
-                      <option className="bg-slate-900">Últimos 12 Meses</option>
-                      <option className="bg-slate-900">Últimos 6 Meses</option>
+                    <select className="bg-slate-800 border border-white/10 rounded-xl text-[10px] font-bold uppercase tracking-widest py-2 px-4 focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900">
+                      <option>Últimos 12 Meses</option>
+                      <option>Últimos 6 Meses</option>
                     </select>
                   </div>
                   <div className="h-72 w-full">
@@ -1236,12 +1757,17 @@ export default function App() {
                       <h4 className="text-lg font-bold">Ranking de Entradas</h4>
                       <p className="text-xs text-slate-500 font-medium">Categorias mais rentáveis</p>
                     </div>
-                    <input 
-                      type="month"
-                      value={dashboardMonth}
-                      onChange={(e) => setDashboardMonth(e.target.value)}
-                      className="bg-slate-800 border border-white/10 rounded-xl text-[10px] font-bold uppercase tracking-widest py-2 px-4 focus:ring-1 focus:ring-primary outline-none text-slate-200 [color-scheme:dark]"
-                    />
+                    <div className="flex items-center gap-2 bg-white/5 rounded-xl border border-white/10 p-1">
+                      <button onClick={handlePrevMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
+                        <ChevronLeft size={16} />
+                      </button>
+                      <span className="text-xs font-bold uppercase tracking-widest min-w-[100px] text-center">
+                        {formatMonthYear(dashboardMonth)}
+                      </span>
+                      <button onClick={handleNextMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-6">
                     {sortedIncomeRanking.map(([category, amount], index) => (
@@ -1280,12 +1806,17 @@ export default function App() {
                       <h4 className="text-lg font-bold">Ranking de Saídas</h4>
                       <p className="text-xs text-slate-500 font-medium">Maiores despesas por categoria</p>
                     </div>
-                    <input 
-                      type="month"
-                      value={dashboardMonth}
-                      onChange={(e) => setDashboardMonth(e.target.value)}
-                      className="bg-slate-800 border border-white/10 rounded-xl text-[10px] font-bold uppercase tracking-widest py-2 px-4 focus:ring-1 focus:ring-primary outline-none text-slate-200 [color-scheme:dark]"
-                    />
+                    <div className="flex items-center gap-2 bg-white/5 rounded-xl border border-white/10 p-1">
+                      <button onClick={handlePrevMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
+                        <ChevronLeft size={16} />
+                      </button>
+                      <span className="text-xs font-bold uppercase tracking-widest min-w-[100px] text-center">
+                        {formatMonthYear(dashboardMonth)}
+                      </span>
+                      <button onClick={handleNextMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-6">
                     {sortedExpenseRanking.map(([category, amount], index) => (
@@ -1476,7 +2007,7 @@ export default function App() {
                         <select 
                           value={filterType}
                           onChange={(e: any) => setFilterType(e.target.value)}
-                          className="w-full bg-slate-800 border border-white/10 rounded-xl py-2 px-4 text-sm outline-none focus:ring-1 focus:ring-primary"
+                          className="w-full bg-slate-800 border border-white/10 rounded-xl py-2 px-4 text-sm outline-none focus:ring-1 focus:ring-primary [&>option]:bg-slate-900"
                         >
                           <option value="all">Todos</option>
                           <option value="income">Entradas</option>
@@ -1488,12 +2019,19 @@ export default function App() {
                         <select 
                           value={filterCategory}
                           onChange={(e) => setFilterCategory(e.target.value)}
-                          className="w-full bg-slate-800 border border-white/10 rounded-xl py-2 px-4 text-sm outline-none focus:ring-1 focus:ring-primary"
+                          className="w-full bg-slate-800 border border-white/10 rounded-xl py-2 px-4 text-sm outline-none focus:ring-1 focus:ring-primary [&>option]:bg-slate-900"
                         >
                           <option value="all">Todas</option>
-                          {settings.categories.split(',').map(cat => (
-                            <option key={cat} value={cat}>{cat}</option>
-                          ))}
+                          <optgroup label="Entradas">
+                            {categories.filter(c => c.type === 'income').map(cat => (
+                              <option key={`inc-${cat.id}`} value={cat.name}>{cat.name}</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Saídas">
+                            {categories.filter(c => c.type === 'expense').map(cat => (
+                              <option key={`exp-${cat.id}`} value={cat.name}>{cat.name}</option>
+                            ))}
+                          </optgroup>
                         </select>
                       </div>
                       <div className="space-y-2">
@@ -1777,9 +2315,9 @@ export default function App() {
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
                             <Pie
-                              data={settings.categories.split(',').map(cat => ({
-                                name: cat,
-                                value: transactions.filter(t => t.category === cat && t.type === 'expense').reduce((acc, t) => acc + t.amount, 0)
+                              data={categories.filter(c => c.type === 'expense').map(cat => ({
+                                name: cat.name,
+                                value: transactions.filter(t => t.category === cat.name && t.type === 'expense').reduce((acc, t) => acc + t.amount, 0)
                               })).filter(d => d.value > 0)}
                               cx="50%"
                               cy="50%"
@@ -1788,7 +2326,7 @@ export default function App() {
                               paddingAngle={8}
                               dataKey="value"
                             >
-                              {settings.categories.split(',').map((entry, index) => (
+                              {categories.filter(c => c.type === 'expense').map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={['#1152d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'][index % 6]} />
                               ))}
                             </Pie>
@@ -1895,7 +2433,7 @@ export default function App() {
                   <div className="flex items-center justify-between mb-8">
                     <h4 className="text-lg font-bold">Resumo Mensal por Dia</h4>
                     <select 
-                      className="bg-slate-800 border border-white/10 rounded-xl text-[10px] font-bold uppercase tracking-widest py-2 px-4 focus:ring-1 focus:ring-primary outline-none text-slate-200"
+                      className="bg-slate-800 border border-white/10 rounded-xl text-[10px] font-bold uppercase tracking-widest py-2 px-4 focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
                       value={reportMonth || ''}
                       onChange={(e) => setReportMonth(e.target.value)}
                     >
@@ -1980,15 +2518,48 @@ export default function App() {
                   <h3 className="text-2xl font-bold tracking-tight">Gestão de Clientes</h3>
                   <p className="text-sm text-slate-500 font-medium mt-1">Cadastre e gerencie seus clientes para cobranças rápidas</p>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="relative">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="relative w-full sm:w-64">
                     <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input 
                       value={customerSearch}
                       onChange={(e) => setCustomerSearch(e.target.value)}
                       placeholder="Pesquisar clientes..."
-                      className="h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none w-64"
+                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
                     />
+                  </div>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <button 
+                      onClick={() => setCustomerFilterDebt(!customerFilterDebt)}
+                      className={cn(
+                        "flex-1 sm:flex-none h-12 px-4 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all flex items-center justify-center gap-2",
+                        customerFilterDebt ? "bg-rose-500/10 border-rose-500/20 text-rose-500" : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10"
+                      )}
+                      title="Filtrar clientes com dívidas"
+                    >
+                      <AlertTriangle size={14} />
+                      Com Dívida
+                    </button>
+                    <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 shrink-0">
+                      <button 
+                        onClick={() => setCustomerViewMode('grid')}
+                        className={cn(
+                          "p-2 rounded-lg transition-all",
+                          customerViewMode === 'grid' ? "bg-primary text-white shadow-md" : "text-slate-400 hover:text-slate-200"
+                        )}
+                      >
+                        <LayoutGrid size={18} />
+                      </button>
+                      <button 
+                        onClick={() => setCustomerViewMode('list')}
+                        className={cn(
+                          "p-2 rounded-lg transition-all",
+                          customerViewMode === 'list' ? "bg-primary text-white shadow-md" : "text-slate-400 hover:text-slate-200"
+                        )}
+                      >
+                        <ListIcon size={18} />
+                      </button>
+                    </div>
                   </div>
                   <button 
                     onClick={() => {
@@ -2005,7 +2576,7 @@ export default function App() {
                       });
                       setIsAddingCustomer(true);
                     }}
-                    className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-95"
+                    className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 h-12"
                   >
                     <Plus size={20} />
                     Novo Cliente
@@ -2013,7 +2584,10 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className={cn(
+                "gap-6",
+                customerViewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "flex flex-col"
+              )}>
                 {filteredCustomers.map(customer => (
                   <motion.div 
                     key={customer.id}
@@ -2164,11 +2738,14 @@ export default function App() {
                       <div className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Nome *</label>
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex justify-between">
+                              <span>Nome *</span>
+                              <span className="text-[8px] text-primary/60 italic">Obrigatório</span>
+                            </label>
                             <input 
                               value={newCustomer.firstName}
                               onChange={(e) => setNewCustomer({...newCustomer, firstName: e.target.value})}
-                              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
+                              className="w-full h-12 bg-white/5 border-2 border-primary/30 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
                               placeholder="João"
                             />
                           </div>
@@ -2209,11 +2786,14 @@ export default function App() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Telefone (WhatsApp) *</label>
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex justify-between">
+                              <span>Telefone (WhatsApp) *</span>
+                              <span className="text-[8px] text-primary/60 italic">Obrigatório</span>
+                            </label>
                             <input 
                               value={newCustomer.phone}
                               onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
-                              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
+                              className="w-full h-12 bg-white/5 border-2 border-primary/30 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
                               placeholder="5511999999999"
                             />
                           </div>
@@ -2251,13 +2831,144 @@ export default function App() {
                             Cancelar
                           </button>
                           <button 
-                            onClick={handleAddCustomer}
+                            onClick={() => handleAddCustomer(false)}
                             className="flex-1 bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
                           >
                             {editingCustomer ? 'Atualizar Cliente' : 'Salvar Cliente'}
                           </button>
                         </div>
                       </div>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
+              {/* Customer Warning Modal */}
+              <AnimatePresence>
+                {showCustomerWarningModal && (
+                  <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-bg-dark/80 backdrop-blur-sm"
+                      onClick={() => setShowCustomerWarningModal(false)}
+                    />
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                      className="relative w-full max-w-md glass-modal p-8 text-center"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto mb-6">
+                        <AlertTriangle size={32} />
+                      </div>
+                      <h3 className="text-xl font-bold mb-2">Informações Incompletas</h3>
+                      <p className="text-slate-400 text-sm mb-8">
+                        {customerWarningType === 'both' && "Você não preencheu o CPF e o Telefone do cliente."}
+                        {customerWarningType === 'cpf' && "Você não preencheu o CPF do cliente."}
+                        {customerWarningType === 'phone' && "Você não preencheu o Telefone do cliente."}
+                        <br/><br/>
+                        Deseja salvar assim mesmo?
+                      </p>
+                      <div className="flex gap-4">
+                        <button 
+                          onClick={() => setShowCustomerWarningModal(false)}
+                          className="flex-1 py-4 rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all"
+                        >
+                          Voltar e Preencher
+                        </button>
+                        <button 
+                          onClick={() => handleAddCustomer(true)}
+                          className="flex-1 py-4 rounded-2xl font-bold bg-amber-500 text-white shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02]"
+                        >
+                          Salvar Assim Mesmo
+                        </button>
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
+
+              {/* Customer Delete Warning Modal */}
+              <AnimatePresence>
+                {customerToDelete && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-bg-dark/80 backdrop-blur-sm"
+                      onClick={() => setCustomerToDelete(null)}
+                    />
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                      className="relative w-full max-w-md glass-modal p-8 text-center"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto mb-6">
+                        <AlertTriangle size={32} />
+                      </div>
+                      <h3 className="text-xl font-bold mb-2">Atenção!</h3>
+                      
+                      {customerPaymentsWarning.length > 0 ? (
+                        <>
+                          <p className="text-slate-400 text-sm mb-6">
+                            O cliente <strong className="text-slate-200">{customerToDelete.firstName} {customerToDelete.lastName}</strong> possui <strong>{customerPaymentsWarning.length}</strong> lançamento(s) vinculado(s).
+                          </p>
+                          <div className="bg-white/5 rounded-xl p-4 mb-8 max-h-40 overflow-y-auto text-left space-y-2">
+                            {customerPaymentsWarning.map((p, i) => (
+                              <div key={i} className="text-xs text-slate-300 flex justify-between">
+                                <span className="truncate pr-4">{p.description}</span>
+                                <span className="font-bold text-slate-400">{formatCurrency(p.totalAmount - p.paidAmount)}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex flex-col gap-3">
+                            <button 
+                              onClick={() => {
+                                setCustomerToDelete(null);
+                                setActiveScreen('client-payments');
+                              }}
+                              className="w-full py-4 rounded-2xl font-bold bg-primary text-white shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
+                            >
+                              Ir para Pagamentos
+                            </button>
+                            <button 
+                              onClick={confirmDeleteCustomerWithPayments}
+                              className="w-full py-4 rounded-2xl font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
+                            >
+                              Excluir Cliente e Pagamentos
+                            </button>
+                            <button 
+                              onClick={() => setCustomerToDelete(null)}
+                              className="w-full py-4 rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-slate-400 text-sm mb-8">
+                            Tem certeza que deseja excluir o cliente <strong className="text-slate-200">{customerToDelete.firstName} {customerToDelete.lastName}</strong>? Esta ação não pode ser desfeita.
+                          </p>
+                          <div className="flex gap-4">
+                            <button 
+                              onClick={() => setCustomerToDelete(null)}
+                              className="flex-1 py-4 rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all"
+                            >
+                              Cancelar
+                            </button>
+                            <button 
+                              onClick={confirmDeleteCustomerWithPayments}
+                              className="flex-1 py-4 rounded-2xl font-bold bg-rose-500 text-white shadow-lg shadow-rose-500/20 transition-all hover:scale-[1.02]"
+                            >
+                              Excluir Cliente
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </motion.div>
                   </div>
                 )}
@@ -2281,6 +2992,29 @@ export default function App() {
               </div>
 
               <div className="glass-card overflow-hidden">
+                <div className="p-4 border-b border-white/5 flex flex-col sm:flex-row gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                    <input 
+                      type="text"
+                      placeholder="Buscar por cliente ou descrição..."
+                      value={paymentSearchTerm}
+                      onChange={(e) => setPaymentSearchTerm(e.target.value)}
+                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
+                    />
+                  </div>
+                  <select
+                    value={paymentFilterStatus}
+                    onChange={(e) => setPaymentFilterStatus(e.target.value)}
+                    className="h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
+                  >
+                    <option value="all">Todos os Status</option>
+                    <option value="paid">Pagos</option>
+                    <option value="partial">Parciais</option>
+                    <option value="pending">Pendentes</option>
+                    <option value="overdue">Vencidos</option>
+                  </select>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
@@ -2294,91 +3028,139 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {clientPayments.map(payment => (
-                        <tr key={payment.id} className="hover:bg-white/[0.02] transition-colors">
-                          <td className="px-6 py-4">
-                            <p className="text-sm font-bold">{payment.customerName}</p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className="text-sm font-medium text-slate-300">{payment.description}</p>
-                            <p className="text-[10px] text-slate-500 uppercase tracking-widest">{payment.paymentMethod} • {payment.installmentsCount}x</p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className={cn(
-                              "text-sm font-bold",
-                              new Date(payment.dueDate) < new Date() && payment.status !== 'paid' ? "text-rose-500" : "text-slate-300"
-                            )}>
-                              {format(parseISO(payment.dueDate), 'dd/MM/yyyy')}
-                            </p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className="text-sm font-black">{formatCurrency(payment.totalAmount)}</p>
-                            <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Pago: {formatCurrency(payment.paidAmount)}</p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={cn(
-                              "px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border",
-                              payment.status === 'paid' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" :
-                              payment.status === 'partial' ? "bg-amber-500/10 border-amber-500/20 text-amber-500" :
-                              "bg-rose-500/10 border-rose-500/20 text-rose-500"
-                            )}>
-                              {payment.status === 'paid' ? 'Pago' : payment.status === 'partial' ? 'Parcial' : 'Pendente'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              {payment.status !== 'paid' && (
+                      {filteredClientPayments.map(payment => (
+                        <React.Fragment key={payment.id}>
+                          <tr className="hover:bg-white/[0.02] transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
                                 <button 
-                                  onClick={() => setIsRecordingPayment(payment)}
-                                  className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all"
-                                  title="Registrar Pagamento"
+                                  onClick={() => togglePaymentExpansion(payment.id)}
+                                  className="p-1 rounded-md hover:bg-white/10 text-slate-400 transition-colors"
                                 >
-                                  <CheckCircle2 size={14} />
+                                  {expandedPayments.includes(payment.id) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                                 </button>
-                              )}
-                              <div className="flex gap-1">
+                                <p className="text-sm font-bold">{payment.customerName}</p>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <p className="text-sm font-medium text-slate-300">{payment.description}</p>
+                              <p className="text-[10px] text-slate-500 uppercase tracking-widest">{payment.paymentMethod} • {payment.installmentsCount}x</p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <p className={cn(
+                                "text-sm font-bold",
+                                new Date(payment.dueDate) < new Date() && payment.status !== 'paid' ? "text-rose-500" : "text-slate-300"
+                              )}>
+                                {format(parseISO(payment.dueDate), 'dd/MM/yyyy')}
+                              </p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <p className="text-sm font-black">{formatCurrency(payment.totalAmount)}</p>
+                              <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Pago: {formatCurrency(payment.paidAmount)}</p>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={cn(
+                                "px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border",
+                                payment.status === 'paid' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" :
+                                payment.status === 'partial' ? "bg-amber-500/10 border-amber-500/20 text-amber-500" :
+                                "bg-rose-500/10 border-rose-500/20 text-rose-500"
+                              )}>
+                                {payment.status === 'paid' ? 'Pago' : payment.status === 'partial' ? 'Parcial' : 'Pendente'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                {payment.status !== 'paid' && (
+                                  <button 
+                                    onClick={() => setIsRecordingPayment(payment)}
+                                    className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all"
+                                    title="Registrar Pagamento"
+                                  >
+                                    <CheckCircle2 size={14} />
+                                  </button>
+                                )}
+                                <div className="flex gap-1">
+                                  <button 
+                                    onClick={() => generateReceipt(payment, 'simple')}
+                                    className="p-2 rounded-lg bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all"
+                                    title="Recibo Térmico (80mm)"
+                                  >
+                                    <Zap size={14} />
+                                  </button>
+                                  <button 
+                                    onClick={() => generateReceipt(payment, 'a4')}
+                                    className="p-2 rounded-lg bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all"
+                                    title="Recibo A4 Completo"
+                                  >
+                                    <Printer size={14} />
+                                  </button>
+                                </div>
                                 <button 
-                                  onClick={() => printThermalReceipt(payment)}
-                                  className="p-2 rounded-lg bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all"
-                                  title="Recibo Térmico (80mm)"
+                                  onClick={() => sendWhatsAppReminder(payment)}
+                                  className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
+                                  title="Enviar WhatsApp"
                                 >
-                                  <Zap size={14} />
+                                  <MessageCircle size={14} />
                                 </button>
                                 <button 
-                                  onClick={() => printA4Receipt(payment)}
-                                  className="p-2 rounded-lg bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all"
-                                  title="Recibo A4 Completo"
+                                  onClick={async () => {
+                                    if (confirm('Deseja excluir este registro?')) {
+                                      await fetch(`/api/client-payments/${payment.id}`, { method: 'DELETE' });
+                                      fetchClientPayments();
+                                    }
+                                  }}
+                                  className="p-2 rounded-lg bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
+                                  title="Excluir"
                                 >
-                                  <Printer size={14} />
+                                  <Trash2 size={14} />
                                 </button>
                               </div>
-                              <button 
-                                onClick={() => sendWhatsAppReminder(payment)}
-                                className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
-                                title="Enviar WhatsApp"
+                            </td>
+                          </tr>
+                          <AnimatePresence>
+                            {expandedPayments.includes(payment.id) && (
+                              <motion.tr
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="bg-white/[0.01] border-b border-white/5"
                               >
-                                <MessageCircle size={14} />
-                              </button>
-                              <button 
-                                onClick={async () => {
-                                  if (confirm('Deseja excluir este registro?')) {
-                                    await fetch(`/api/client-payments/${payment.id}`, { method: 'DELETE' });
-                                    fetchClientPayments();
-                                  }
-                                }}
-                                className="p-2 rounded-lg bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
-                                title="Excluir"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
+                                <td colSpan={6} className="px-6 py-4">
+                                  <div className="pl-10">
+                                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Histórico de Pagamentos</h4>
+                                    {payment.paymentHistory && JSON.parse(payment.paymentHistory).length > 0 ? (
+                                      <div className="space-y-2">
+                                        {JSON.parse(payment.paymentHistory).map((h: any, i: number) => (
+                                          <div key={i} className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/5 max-w-md">
+                                            <div className="flex items-center gap-3">
+                                              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                                                <CheckCircle2 size={14} />
+                                              </div>
+                                              <div>
+                                                <p className="text-sm font-bold">{formatCurrency(h.amount)}</p>
+                                                <p className="text-[10px] text-slate-500">{format(parseISO(h.date), 'dd/MM/yyyy HH:mm')}</p>
+                                              </div>
+                                            </div>
+                                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                              Parcela {i + 1}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-sm text-slate-500 italic">Nenhum pagamento registrado ainda.</p>
+                                    )}
+                                  </div>
+                                </td>
+                              </motion.tr>
+                            )}
+                          </AnimatePresence>
+                        </React.Fragment>
                       ))}
-                      {clientPayments.length === 0 && (
+                      {filteredClientPayments.length === 0 && (
                         <tr>
                           <td colSpan={6} className="px-6 py-20 text-center text-slate-500 italic">
-                            Nenhum pagamento registrado.
+                            Nenhum pagamento encontrado com os filtros atuais.
                           </td>
                         </tr>
                       )}
@@ -2411,7 +3193,7 @@ export default function App() {
                           <select 
                             value={newClientPayment.customerId}
                             onChange={(e) => setNewClientPayment({...newClientPayment, customerId: parseInt(e.target.value)})}
-                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200"
+                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
                           >
                             <option value={0}>Selecionar Cliente</option>
                             {customers.map(c => (
@@ -2471,7 +3253,7 @@ export default function App() {
                           <select 
                             value={newClientPayment.paymentMethod}
                             onChange={(e) => setNewClientPayment({...newClientPayment, paymentMethod: e.target.value})}
-                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200"
+                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
                           >
                             <option value="Dinheiro">Dinheiro</option>
                             <option value="PIX">PIX</option>
@@ -2718,16 +3500,154 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Categorias (Separadas por vírgula)</label>
-                      <div className="relative">
-                        <Tag size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                        <input 
-                          value={settings.categories}
-                          onChange={(e) => updateSettings({...settings, categories: e.target.value})}
-                          className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
-                        />
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Configurações de Impressão</label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Layout do Recibo</label>
+                          <div className="flex bg-white/5 border border-white/10 rounded-xl p-1">
+                            <button 
+                              onClick={() => updateSettings({...settings, receiptLayout: 'simple'})}
+                              className={cn(
+                                "flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all",
+                                settings.receiptLayout === 'simple' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:text-slate-300"
+                              )}
+                            >
+                              Simples (Térmico)
+                            </button>
+                            <button 
+                              onClick={() => updateSettings({...settings, receiptLayout: 'a4'})}
+                              className={cn(
+                                "flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all",
+                                settings.receiptLayout === 'a4' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:text-slate-300"
+                              )}
+                            >
+                              Completo (A4)
+                            </button>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">URL da Logo (Recibo)</label>
+                          <div className="relative">
+                            <ImageIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                            <input 
+                              value={settings.receiptLogo || ''}
+                              onChange={(e) => updateSettings({...settings, receiptLogo: e.target.value})}
+                              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
+                              placeholder="https://exemplo.com/logo.png"
+                            />
+                          </div>
+                        </div>
                       </div>
+                    </div>
+
+                    <div className="space-y-4 col-span-full">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Categorias de Lançamentos</label>
+                      
+                      <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 mb-4">
+                        <button 
+                          onClick={() => setCategoryTab('income')}
+                          className={cn(
+                            "flex-1 py-2 rounded-lg text-sm font-bold transition-all",
+                            categoryTab === 'income' ? "bg-emerald-500/20 text-emerald-500" : "text-slate-400 hover:text-slate-200"
+                          )}
+                        >
+                          Entradas
+                        </button>
+                        <button 
+                          onClick={() => setCategoryTab('expense')}
+                          className={cn(
+                            "flex-1 py-2 rounded-lg text-sm font-bold transition-all",
+                            categoryTab === 'expense' ? "bg-rose-500/20 text-rose-500" : "text-slate-400 hover:text-slate-200"
+                          )}
+                        >
+                          Saídas
+                        </button>
+                      </div>
+
+                      {categoryTab === 'income' ? (
+                        <div className="space-y-4">
+                          <div className="flex gap-2">
+                            <input 
+                              value={newIncomeCategory}
+                              onChange={(e) => setNewIncomeCategory(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && newIncomeCategory.trim()) {
+                                  addCategory(newIncomeCategory.trim(), 'income');
+                                  setNewIncomeCategory('');
+                                }
+                              }}
+                              placeholder="Nova categoria de entrada..."
+                              className="flex-1 h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
+                            />
+                            <button 
+                              onClick={() => {
+                                if (newIncomeCategory.trim()) {
+                                  addCategory(newIncomeCategory.trim(), 'income');
+                                  setNewIncomeCategory('');
+                                }
+                              }}
+                              className="h-12 px-6 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-xl font-bold hover:bg-emerald-500/20 transition-all"
+                            >
+                              Adicionar
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {categories.filter(c => c.type === 'income').map(cat => (
+                              <div key={cat.id} className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg text-sm text-slate-300">
+                                {cat.name}
+                                <button 
+                                  onClick={() => deleteCategory(cat.id)}
+                                  className="text-slate-500 hover:text-rose-500 transition-colors"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="flex gap-2">
+                            <input 
+                              value={newExpenseCategory}
+                              onChange={(e) => setNewExpenseCategory(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && newExpenseCategory.trim()) {
+                                  addCategory(newExpenseCategory.trim(), 'expense');
+                                  setNewExpenseCategory('');
+                                }
+                              }}
+                              placeholder="Nova categoria de saída..."
+                              className="flex-1 h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-rose-500 outline-none transition-all"
+                            />
+                            <button 
+                              onClick={() => {
+                                if (newExpenseCategory.trim()) {
+                                  addCategory(newExpenseCategory.trim(), 'expense');
+                                  setNewExpenseCategory('');
+                                }
+                              }}
+                              className="h-12 px-6 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-xl font-bold hover:bg-rose-500/20 transition-all"
+                            >
+                              Adicionar
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {categories.filter(c => c.type === 'expense').map(cat => (
+                              <div key={cat.id} className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg text-sm text-slate-300">
+                                {cat.name}
+                                <button 
+                                  onClick={() => deleteCategory(cat.id)}
+                                  className="text-slate-500 hover:text-rose-500 transition-colors"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2811,8 +3731,8 @@ export default function App() {
                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Tipo de Fluxo</label>
                     <select 
                       value={newTx.type}
-                      onChange={(e) => setNewTx({...newTx, type: e.target.value as any})}
-                      className="w-full h-16 bg-white/[0.03] border border-white/10 rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary/40 outline-none transition-all text-slate-200 appearance-none cursor-pointer"
+                      onChange={(e) => setNewTx({...newTx, type: e.target.value as any, category: ''})}
+                      className="w-full h-16 bg-white/[0.03] border border-white/10 rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary/40 outline-none transition-all text-slate-200 appearance-none cursor-pointer [&>option]:bg-slate-900"
                     >
                       <option value="expense" className="bg-slate-900">Despesa (Saída)</option>
                       <option value="income" className="bg-slate-900">Renda (Entrada)</option>
@@ -2823,13 +3743,19 @@ export default function App() {
                     <select 
                       value={newTx.category}
                       onChange={(e) => setNewTx({...newTx, category: e.target.value})}
-                      className="w-full h-16 bg-white/[0.03] border border-white/10 rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary/40 outline-none transition-all text-slate-200 appearance-none cursor-pointer"
+                      className="w-full h-16 bg-white/[0.03] border border-white/10 rounded-2xl px-6 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary/40 outline-none transition-all text-slate-200 appearance-none cursor-pointer [&>option]:bg-slate-900"
                       required
                     >
                       <option value="" disabled className="bg-slate-900">Selecionar categoria</option>
-                      {settings.categories.split(',').map(cat => (
-                        <option key={cat} value={cat} className="bg-slate-900">{cat}</option>
-                      ))}
+                      {newTx.type === 'income' ? (
+                        categories.filter(c => c.type === 'income').map(cat => (
+                          <option key={cat.id} value={cat.name} className="bg-slate-900">{cat.name}</option>
+                        ))
+                      ) : (
+                        categories.filter(c => c.type === 'expense').map(cat => (
+                          <option key={cat.id} value={cat.name} className="bg-slate-900">{cat.name}</option>
+                        ))
+                      )}
                     </select>
                   </div>
                 </div>
