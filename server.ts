@@ -37,7 +37,11 @@ db.exec(`
     hiddenColumns TEXT DEFAULT '[]',
     settingsPassword TEXT DEFAULT '1234',
     receiptLayout TEXT DEFAULT 'a4',
-    receiptLogo TEXT
+    receiptLogo TEXT,
+    companyCnpj TEXT,
+    companyAddress TEXT,
+    pixKey TEXT,
+    pixQrCode TEXT
   );
 
   CREATE TABLE IF NOT EXISTS customers (
@@ -93,6 +97,10 @@ const migrations = [
   { name: 'settingsPassword', table: 'settings', type: "TEXT DEFAULT '1234'" },
   { name: 'receiptLayout', table: 'settings', type: "TEXT DEFAULT 'a4'" },
   { name: 'receiptLogo', table: 'settings', type: "TEXT" },
+  { name: 'companyCnpj', table: 'settings', type: "TEXT" },
+  { name: 'companyAddress', table: 'settings', type: "TEXT" },
+  { name: 'pixKey', table: 'settings', type: "TEXT" },
+  { name: 'pixQrCode', table: 'settings', type: "TEXT" },
   { name: 'nickname', table: 'customers', type: "TEXT" },
   { name: 'cpf', table: 'customers', type: "TEXT" },
   { name: 'companyName', table: 'customers', type: "TEXT" },

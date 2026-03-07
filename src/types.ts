@@ -59,6 +59,10 @@ export interface AppSettings {
   settingsPassword?: string;
   receiptLayout: 'simple' | 'a4';
   receiptLogo?: string;
+  receiptCnpj?: string;
+  receiptAddress?: string;
+  receiptPixKey?: string;
+  receiptQrCode?: string;
 }
 
 export type Screen = 'dashboard' | 'transactions' | 'reports' | 'settings' | 'customers' | 'client-payments';

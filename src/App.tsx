@@ -258,6 +258,7 @@ export default function App() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [expandedPayments, setExpandedPayments] = useState<number[]>([]);
@@ -314,7 +315,11 @@ export default function App() {
     hiddenColumns: [],
     settingsPassword: '1234',
     receiptLayout: 'a4',
-    receiptLogo: ''
+    receiptLogo: '',
+    receiptCnpj: '',
+    receiptAddress: '',
+    receiptPixKey: '',
+    receiptQrCode: ''
   });
 
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -340,6 +345,7 @@ export default function App() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerViewMode, setCustomerViewMode] = useState<'grid' | 'list'>('grid');
+  const [customerSort, setCustomerSort] = useState<'name' | 'debt'>('name');
   const [customerFilterDebt, setCustomerFilterDebt] = useState<boolean>(false);
   const [showCustomerFilters, setShowCustomerFilters] = useState(false);
   
@@ -449,6 +455,7 @@ export default function App() {
   };
 
   const handleAddCustomer = async (force: boolean = false) => {
+    if (isSaving) return;
     if (!newCustomer.firstName) {
       alert("Por favor, preencha o nome do cliente.");
       return;
@@ -477,6 +484,7 @@ export default function App() {
       if (!confirmAdd) return;
     }
 
+    setIsSaving(true);
     try {
       const url = editingCustomer ? `/api/customers/${editingCustomer.id}` : '/api/customers';
       const method = editingCustomer ? 'PUT' : 'POST';
@@ -485,7 +493,10 @@ export default function App() {
         const nameChanged = editingCustomer.firstName !== newCustomer.firstName || editingCustomer.lastName !== newCustomer.lastName;
         if (nameChanged) {
           const confirmNameChange = window.confirm("Você alterou o nome do cliente. Isso será refletido em todos os lançamentos vinculados. Deseja continuar?");
-          if (!confirmNameChange) return;
+          if (!confirmNameChange) {
+            setIsSaving(false);
+            return;
+          }
         }
       }
 
@@ -527,6 +538,8 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to add customer", err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -652,6 +665,83 @@ export default function App() {
     } catch (err) {
       console.error("Failed to delete customer", err);
     }
+  };
+
+  const printCustomerStatement = (customer: Customer) => {
+    const customerPayments = clientPayments.filter(p => p.customerId === customer.id);
+    const totalDebt = customerPayments.reduce((acc, p) => acc + (p.totalAmount - p.paidAmount), 0);
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const content = `
+      <html>
+        <head>
+          <title>Extrato - ${customer.firstName}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
+            body { font-family: 'Inter', sans-serif; padding: 20mm; color: #1e293b; }
+            .header { border-bottom: 2px solid ${settings.primaryColor}; padding-bottom: 20px; margin-bottom: 30px; }
+            .title { font-size: 24px; font-weight: 800; text-transform: uppercase; color: ${settings.primaryColor}; }
+            .info { margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { text-align: left; padding: 10px; background: #f1f5f9; font-size: 12px; text-transform: uppercase; font-weight: 800; }
+            td { padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+            .total { margin-top: 30px; text-align: right; font-size: 18px; font-weight: bold; }
+            @media print { body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">${settings.appName}</div>
+            <div>${settings.profileName}</div>
+            ${settings.receiptCnpj ? `<div>CNPJ: ${settings.receiptCnpj}</div>` : ''}
+            ${settings.receiptAddress ? `<div>${settings.receiptAddress}</div>` : ''}
+          </div>
+          
+          <div class="info">
+            <h2 style="margin: 0 0 10px 0;">Extrato do Cliente</h2>
+            <div><strong>Cliente:</strong> ${customer.firstName} ${customer.lastName}</div>
+            ${customer.cpf ? `<div><strong>CPF:</strong> ${customer.cpf}</div>` : ''}
+            <div><strong>Data:</strong> ${format(new Date(), 'dd/MM/yyyy HH:mm')}</div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Descrição</th>
+                <th style="text-align: right;">Valor Total</th>
+                <th style="text-align: right;">Pago</th>
+                <th style="text-align: right;">Saldo</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${customerPayments.map(p => `
+                <tr>
+                  <td>${format(parseISO(p.purchaseDate), 'dd/MM/yyyy')}</td>
+                  <td>${p.description}</td>
+                  <td style="text-align: right;">${formatCurrency(p.totalAmount)}</td>
+                  <td style="text-align: right;">${formatCurrency(p.paidAmount)}</td>
+                  <td style="text-align: right;">${formatCurrency(p.totalAmount - p.paidAmount)}</td>
+                  <td>${p.status === 'paid' ? 'PAGO' : p.status === 'partial' ? 'PARCIAL' : 'PENDENTE'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="total">
+            Saldo Devedor Total: <span style="color: ${totalDebt > 0 ? '#ef4444' : '#10b981'};">${formatCurrency(totalDebt)}</span>
+          </div>
+          
+          <script>window.print();</script>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(content);
+    printWindow.document.close();
   };
 
   const generateReceipt = async (payment: ClientPayment, layoutOverride?: 'simple' | 'a4') => {
@@ -851,6 +941,8 @@ export default function App() {
                 <div>
                   <h1>${settings.appName}</h1>
                   <p>${settings.profileName}</p>
+                  ${settings.receiptCnpj ? `<p style="font-size: 12px; margin-top: 2px;">CNPJ: ${settings.receiptCnpj}</p>` : ''}
+                  ${settings.receiptAddress ? `<p style="font-size: 12px; margin-top: 2px;">${settings.receiptAddress}</p>` : ''}
                 </div>
               </div>
               <div style="text-align: right;">
@@ -917,7 +1009,7 @@ export default function App() {
             
             <div class="summary-card">
               <div class="qr-code-container">
-                <img src="${qrCodeUrl}" class="qr-code" />
+                <img src="${settings.receiptQrCode || qrCodeUrl}" class="qr-code" />
                 <div class="qr-label">Validar Recibo</div>
               </div>
               <div class="summary-row" style="width: 70%;">
@@ -932,6 +1024,12 @@ export default function App() {
                 <span class="summary-label" style="color: #1e293b;">Saldo Devedor Atual</span>
                 <span class="summary-value">${formatCurrency(payment.totalAmount - payment.paidAmount)}</span>
               </div>
+              ${settings.receiptPixKey ? `
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #cbd5e1; width: 70%;">
+                  <span class="summary-label" style="font-size: 10px; display: block;">CHAVE PIX PARA PAGAMENTO</span>
+                  <span style="font-weight: bold; color: #1e293b; font-size: 14px;">${settings.receiptPixKey}</span>
+                </div>
+              ` : ''}
             </div>
             
             <div class="signature">
@@ -976,6 +1074,8 @@ export default function App() {
             ${settings.receiptLogo ? `<img src="${settings.receiptLogo}" class="logo" />` : ''}
             <div class="bold" style="font-size: 16px;">${settings.appName}</div>
             <div>${settings.profileName}</div>
+            ${settings.receiptCnpj ? `<div>CNPJ: ${settings.receiptCnpj}</div>` : ''}
+            ${settings.receiptAddress ? `<div>${settings.receiptAddress}</div>` : ''}
             <div class="divider"></div>
             <div class="bold">RECIBO DE PAGAMENTO</div>
             <div>Nº #${payment.id.toString().padStart(6, '0')}</div>
@@ -1019,7 +1119,11 @@ export default function App() {
           <div class="divider"></div>
           
           <div class="center">
-            <img src="${qrCodeUrl}" class="qr-code" />
+            ${settings.receiptPixKey ? `
+              <div class="bold" style="margin-bottom: 2mm;">CHAVE PIX:</div>
+              <div style="margin-bottom: 3mm; word-break: break-all;">${settings.receiptPixKey}</div>
+            ` : ''}
+            <img src="${settings.receiptQrCode || qrCodeUrl}" class="qr-code" />
             <div style="font-size: 10px;">Obrigado pela preferência!</div>
             <div style="font-size: 8px; margin-top: 2mm;">Gerado por ${settings.appName}</div>
           </div>
@@ -1121,6 +1225,35 @@ export default function App() {
       console.error("Failed to update settings", err);
     }
   };
+
+  const getAllMovements = () => {
+    const movements: any[] = [...transactions.map(t => ({...t, source: 'transaction', clientName: '-'}))];
+    
+    clientPayments.forEach(cp => {
+      if (cp.paymentHistory) {
+        try {
+          const history = JSON.parse(cp.paymentHistory);
+          history.forEach((h: any) => {
+            movements.push({
+              id: `cp-${cp.id}-${h.date}`,
+              date: h.date,
+              description: `Pagamento - ${cp.description}`,
+              category: 'Recebimento',
+              type: 'income',
+              amount: h.amount,
+              status: 'Concluído',
+              clientName: cp.customerName || 'Cliente',
+              source: 'client_payment'
+            });
+          });
+        } catch (e) {}
+      }
+    });
+    
+    return movements.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  };
+
+  const allMovements = getAllMovements();
 
   const handleDeleteTransaction = async (id: number) => {
     try {
@@ -1321,6 +1454,14 @@ export default function App() {
     }
 
     return true;
+  }).sort((a, b) => {
+    if (customerSort === 'name') {
+      return a.firstName.localeCompare(b.firstName);
+    } else {
+      const debtA = clientPayments.filter(p => p.customerId === a.id && p.status !== 'paid').reduce((acc, p) => acc + (p.totalAmount - p.paidAmount), 0);
+      const debtB = clientPayments.filter(p => p.customerId === b.id && p.status !== 'paid').reduce((acc, p) => acc + (p.totalAmount - p.paidAmount), 0);
+      return debtB - debtA;
+    }
   });
 
   const filteredClientPayments = clientPayments.filter(payment => {
@@ -1369,7 +1510,7 @@ export default function App() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 z-40 bg-bg-dark/80 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-50 bg-bg-dark/80 backdrop-blur-sm lg:hidden"
           />
         )}
       </AnimatePresence>
@@ -1484,7 +1625,10 @@ export default function App() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="h-20 border-b border-white/5 flex items-center justify-between px-6 lg:px-10 bg-bg-dark/80 backdrop-blur-md sticky top-0 z-30">
+        <header className={cn(
+          "h-20 border-b border-white/5 flex items-center justify-between px-6 lg:px-10 bg-bg-dark/80 backdrop-blur-md sticky top-0 transition-all",
+          showNotifications ? "z-40" : "z-30"
+        )}>
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setIsSidebarOpen(true)}
@@ -1509,7 +1653,7 @@ export default function App() {
             <div className="relative">
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2.5 text-slate-400 hover:bg-white/5 rounded-xl transition-colors relative"
+                className="p-2.5 text-slate-400 hover:bg-white/5 rounded-xl transition-colors relative z-50"
               >
                 <Bell size={20} />
                 {totalNotifications > 0 && (
@@ -2331,7 +2475,8 @@ export default function App() {
                               ))}
                             </Pie>
                             <Tooltip 
-                              contentStyle={{ backgroundColor: '#1a2235', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                              contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', color: '#f1f5f9' }}
+                              itemStyle={{ color: '#f1f5f9' }}
                             />
                             <Legend verticalAlign="bottom" height={36}/>
                           </PieChart>
@@ -2450,6 +2595,7 @@ export default function App() {
                       <thead>
                         <tr className="border-b border-white/5">
                           <th className="py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Data</th>
+                          <th className="py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Cliente</th>
                           <th className="py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Descrição</th>
                           <th className="py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Categoria</th>
                           <th className="py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Tipo</th>
@@ -2457,16 +2603,16 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
-                        {transactions
+                        {allMovements
                           .filter(t => !reportMonth || format(parseISO(t.date), 'MMMM yyyy', { locale: ptBR }) === reportMonth)
-                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                           .map(t => (
                             <tr 
                               key={t.id} 
                               className="hover:bg-white/[0.05] transition-colors cursor-pointer group"
-                              onClick={() => handleTransactionClick(t)}
+                              onClick={() => t.source === 'transaction' && handleTransactionClick(t)}
                             >
                               <td className="py-4 text-xs font-medium text-slate-400 group-hover:text-primary transition-colors">{format(parseISO(t.date), 'dd/MM/yyyy')}</td>
+                              <td className="py-4 text-xs font-bold text-slate-300">{t.clientName || '-'}</td>
                               <td className="py-4 text-sm font-bold">{t.description}</td>
                               <td className="py-4">
                                 <span className="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
@@ -2540,6 +2686,28 @@ export default function App() {
                       <AlertTriangle size={14} />
                       Com Dívida
                     </button>
+                    <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 shrink-0">
+                      <button 
+                        onClick={() => setCustomerSort('name')}
+                        className={cn(
+                          "p-2 rounded-lg transition-all text-[10px] font-bold uppercase tracking-widest",
+                          customerSort === 'name' ? "bg-primary text-white shadow-md" : "text-slate-400 hover:text-slate-200"
+                        )}
+                        title="Ordenar por Nome"
+                      >
+                        A-Z
+                      </button>
+                      <button 
+                        onClick={() => setCustomerSort('debt')}
+                        className={cn(
+                          "p-2 rounded-lg transition-all text-[10px] font-bold uppercase tracking-widest",
+                          customerSort === 'debt' ? "bg-primary text-white shadow-md" : "text-slate-400 hover:text-slate-200"
+                        )}
+                        title="Ordenar por Dívida"
+                      >
+                        $$$
+                      </button>
+                    </div>
                     <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 shrink-0">
                       <button 
                         onClick={() => setCustomerViewMode('grid')}
@@ -2647,6 +2815,13 @@ export default function App() {
                     )}
 
                     <div className="flex gap-2 pt-2">
+                      <button 
+                        onClick={() => printCustomerStatement(customer)}
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-500/10 text-slate-500 text-[10px] font-black uppercase tracking-widest border border-slate-500/20 hover:bg-slate-500/20 transition-all"
+                      >
+                        <Printer size={14} />
+                        Extrato
+                      </button>
                       <button 
                         onClick={() => {
                           const whatsappUrl = `https://wa.me/${customer.phone.replace(/\D/g, '')}`;
@@ -3537,6 +3712,42 @@ export default function App() {
                               placeholder="https://exemplo.com/logo.png"
                             />
                           </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">CNPJ / CPF</label>
+                          <input 
+                            value={settings.receiptCnpj || ''}
+                            onChange={(e) => updateSettings({...settings, receiptCnpj: e.target.value})}
+                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
+                            placeholder="00.000.000/0000-00"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Endereço Completo</label>
+                          <input 
+                            value={settings.receiptAddress || ''}
+                            onChange={(e) => updateSettings({...settings, receiptAddress: e.target.value})}
+                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
+                            placeholder="Rua Exemplo, 123 - Cidade/UF"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Chave PIX</label>
+                          <input 
+                            value={settings.receiptPixKey || ''}
+                            onChange={(e) => updateSettings({...settings, receiptPixKey: e.target.value})}
+                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
+                            placeholder="Chave PIX (CPF, Email, etc)"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">URL QR Code (Opcional)</label>
+                          <input 
+                            value={settings.receiptQrCode || ''}
+                            onChange={(e) => updateSettings({...settings, receiptQrCode: e.target.value})}
+                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
+                            placeholder="URL da imagem do QR Code"
+                          />
                         </div>
                       </div>
                     </div>
