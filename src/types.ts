@@ -1,3 +1,22 @@
+export interface User {
+  id: number;
+  username: string;
+  name: string;
+  role: 'owner' | 'manager' | 'employee';
+  createdAt: string;
+}
+
+export interface AuditLog {
+  id: number;
+  userId: number;
+  userName?: string;
+  action: string;
+  entity: string;
+  entityId?: number;
+  details?: string;
+  timestamp: string;
+}
+
 export interface Transaction {
   id: number;
   description: string;
@@ -6,6 +25,8 @@ export interface Transaction {
   amount: number;
   date: string;
   status: string;
+  createdBy?: number;
+  updatedBy?: number;
 }
 
 export interface Customer {
@@ -19,6 +40,8 @@ export interface Customer {
   observation?: string;
   creditLimit?: number;
   createdAt: string;
+  createdBy?: number;
+  updatedBy?: number;
 }
 
 export interface ClientPayment {
@@ -35,6 +58,8 @@ export interface ClientPayment {
   type: 'income' | 'expense';
   customerName?: string;
   paymentHistory?: string; // JSON string of { amount: number, date: string }[]
+  createdBy?: number;
+  updatedBy?: number;
 }
 
 export interface Category {

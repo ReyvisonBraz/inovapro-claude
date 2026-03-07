@@ -84,6 +84,26 @@ db.exec(`
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (paymentId) REFERENCES client_payments(id)
   );
+
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    role TEXT CHECK(role IN ('owner', 'manager', 'employee')) NOT NULL DEFAULT 'employee',
+    name TEXT NOT NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS audit_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    userId INTEGER,
+    action TEXT NOT NULL,
+    entity TEXT NOT NULL,
+    entityId INTEGER,
+    details TEXT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (userId) REFERENCES users(id)
+  );
 `);
 
 // Garantir que as colunas novas existem (migrações simples)
@@ -106,7 +126,13 @@ const migrations = [
   { name: 'companyName', table: 'customers', type: "TEXT" },
   { name: 'observation', table: 'customers', type: "TEXT" },
   { name: 'creditLimit', table: 'customers', type: "REAL DEFAULT 0" },
-  { name: 'paymentHistory', table: 'client_payments', type: "TEXT DEFAULT '[]'" }
+  { name: 'paymentHistory', table: 'client_payments', type: "TEXT DEFAULT '[]'" },
+  { name: 'createdBy', table: 'transactions', type: "INTEGER" },
+  { name: 'updatedBy', table: 'transactions', type: "INTEGER" },
+  { name: 'createdBy', table: 'client_payments', type: "INTEGER" },
+  { name: 'updatedBy', table: 'client_payments', type: "INTEGER" },
+  { name: 'createdBy', table: 'customers', type: "INTEGER" },
+  { name: 'updatedBy', table: 'customers', type: "INTEGER" }
 ];
 
 migrations.forEach(m => {
@@ -116,6 +142,12 @@ migrations.forEach(m => {
     // Coluna já existe ou outro erro
   }
 });
+
+// Inserir usuário Admin padrão se não existir
+const usersCount = db.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
+if (usersCount.count === 0) {
+  db.prepare("INSERT INTO users (username, password, role, name) VALUES (?, ?, ?, ?)").run('admin', 'admin', 'owner', 'Administrador');
+}
 
 // Inserir configurações padrão se não existirem
 const settingsCount = db.prepare("SELECT COUNT(*) as count FROM settings").get() as { count: number };
@@ -161,27 +193,43 @@ async function startServer() {
 
   // Adicionar uma nova transação
   app.post("/api/transactions", (req, res) => {
-    const { description, category, type, amount, date } = req.body;
+    const { description, category, type, amount, date, createdBy } = req.body;
     const info = db.prepare(
-      "INSERT INTO transactions (description, category, type, amount, date) VALUES (?, ?, ?, ?, ?)"
-    ).run(description, category, type, amount, date);
+      "INSERT INTO transactions (description, category, type, amount, date, createdBy) VALUES (?, ?, ?, ?, ?, ?)"
+    ).run(description, category, type, amount, date, createdBy || 1);
+    
+    // Audit Log
+    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'transaction', info.lastInsertRowid, `Created transaction: ${description}`);
+    
     res.json({ id: info.lastInsertRowid });
   });
 
   // Deletar uma transação
   app.delete("/api/transactions/:id", (req, res) => {
+    const { userId } = req.body; // Pass userId in body or query if possible, but delete usually doesn't have body in some clients. 
+    // For simplicity, we might miss the user here unless we change how delete is called.
+    // Let's assume userId 1 for now if not provided.
+    const tx = db.prepare("SELECT * FROM transactions WHERE id = ?").get(req.params.id) as any;
     db.prepare("DELETE FROM transactions WHERE id = ?").run(req.params.id);
+    
+    if (tx) {
+       db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'transaction', req.params.id, `Deleted transaction: ${tx.description}`);
+    }
+    
     res.json({ success: true });
   });
 
   // Atualizar uma transação
   app.put("/api/transactions/:id", (req, res) => {
-    const { description, category, type, amount, date } = req.body;
+    const { description, category, type, amount, date, updatedBy } = req.body;
     db.prepare(`
       UPDATE transactions 
-      SET description = ?, category = ?, type = ?, amount = ?, date = ?
+      SET description = ?, category = ?, type = ?, amount = ?, date = ?, updatedBy = ?
       WHERE id = ?
-    `).run(description, category, type, amount, date, req.params.id);
+    `).run(description, category, type, amount, date, updatedBy || 1, req.params.id);
+    
+    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'transaction', req.params.id, `Updated transaction: ${description}`);
+
     res.json({ success: true });
   });
 
@@ -231,21 +279,27 @@ async function startServer() {
   });
 
   app.post("/api/customers", (req, res) => {
-    const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit } = req.body;
+    const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, createdBy } = req.body;
     const result = db.prepare(`
-      INSERT INTO customers (firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit || 0);
+      INSERT INTO customers (firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, createdBy) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit || 0, createdBy || 1);
+    
+    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'customer', result.lastInsertRowid, `Created customer: ${firstName} ${lastName}`);
+
     res.json({ id: result.lastInsertRowid });
   });
 
   app.put("/api/customers/:id", (req, res) => {
-    const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit } = req.body;
+    const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, updatedBy } = req.body;
     db.prepare(`
       UPDATE customers 
-      SET firstName = ?, lastName = ?, nickname = ?, cpf = ?, companyName = ?, phone = ?, observation = ?, creditLimit = ?
+      SET firstName = ?, lastName = ?, nickname = ?, cpf = ?, companyName = ?, phone = ?, observation = ?, creditLimit = ?, updatedBy = ?
       WHERE id = ?
-    `).run(firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit || 0, req.params.id);
+    `).run(firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit || 0, updatedBy || 1, req.params.id);
+    
+    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'customer', req.params.id, `Updated customer: ${firstName} ${lastName}`);
+
     res.json({ success: true });
   });
 
@@ -274,7 +328,7 @@ async function startServer() {
   app.post("/api/client-payments", (req, res) => {
     const { 
       customerId, description, totalAmount, paidAmount, 
-      purchaseDate, dueDate, paymentMethod, status, installmentsCount, type 
+      purchaseDate, dueDate, paymentMethod, status, installmentsCount, type, createdBy 
     } = req.body;
     
     // Initialize payment history if there's an initial payment
@@ -285,24 +339,30 @@ async function startServer() {
 
     const result = db.prepare(`
       INSERT INTO client_payments 
-      (customerId, description, totalAmount, paidAmount, purchaseDate, dueDate, paymentMethod, status, installmentsCount, type, paymentHistory)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (customerId, description, totalAmount, paidAmount, purchaseDate, dueDate, paymentMethod, status, installmentsCount, type, paymentHistory, createdBy)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       customerId, description, totalAmount, paidAmount || 0, 
       purchaseDate, dueDate, paymentMethod, status || 'pending', 
-      installmentsCount || 1, type || 'income', initialPaymentHistory
+      installmentsCount || 1, type || 'income', initialPaymentHistory, createdBy || 1
     );
+    
+    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'client_payment', result.lastInsertRowid, `Created payment: ${description}`);
+
     res.json({ id: result.lastInsertRowid });
   });
 
   app.patch("/api/client-payments/:id", (req, res) => {
-    const { paidAmount, status, paymentHistory } = req.body;
+    const { paidAmount, status, paymentHistory, updatedBy } = req.body;
     
     if (paymentHistory) {
-      db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, paymentHistory = ? WHERE id = ?").run(paidAmount, status, JSON.stringify(paymentHistory), req.params.id);
+      db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, paymentHistory = ?, updatedBy = ? WHERE id = ?").run(paidAmount, status, JSON.stringify(paymentHistory), updatedBy || 1, req.params.id);
     } else {
-      db.prepare("UPDATE client_payments SET paidAmount = ?, status = ? WHERE id = ?").run(paidAmount, status, req.params.id);
+      db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, updatedBy = ? WHERE id = ?").run(paidAmount, status, updatedBy || 1, req.params.id);
     }
+    
+    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'client_payment', req.params.id, `Updated payment status: ${status}`);
+
     res.json({ success: true });
   });
 
@@ -338,6 +398,43 @@ async function startServer() {
     const { paymentId, content } = req.body;
     const result = db.prepare("INSERT INTO receipts (paymentId, content) VALUES (?, ?)").run(paymentId, content);
     res.json({ id: result.lastInsertRowid });
+  });
+
+  // Rotas de Usuários
+  app.get("/api/users", (req, res) => {
+    const users = db.prepare("SELECT id, username, role, name, createdAt FROM users ORDER BY name ASC").all();
+    res.json(users);
+  });
+
+  app.post("/api/users", (req, res) => {
+    const { username, password, role, name } = req.body;
+    try {
+      const result = db.prepare("INSERT INTO users (username, password, role, name) VALUES (?, ?, ?, ?)").run(username, password, role, name);
+      
+      // Log action
+      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'create', 'user', result.lastInsertRowid, `Created user ${username}`);
+      
+      res.json({ id: result.lastInsertRowid });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/users/:id", (req, res) => {
+    db.prepare("DELETE FROM users WHERE id = ?").run(req.params.id);
+    res.json({ success: true });
+  });
+
+  // Rotas de Auditoria
+  app.get("/api/audit-logs", (req, res) => {
+    const logs = db.prepare(`
+      SELECT l.*, u.name as userName 
+      FROM audit_logs l 
+      LEFT JOIN users u ON l.userId = u.id 
+      ORDER BY l.timestamp DESC 
+      LIMIT 100
+    `).all();
+    res.json(logs);
   });
 
   // Configuração do Vite para desenvolvimento

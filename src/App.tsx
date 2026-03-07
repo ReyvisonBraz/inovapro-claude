@@ -29,7 +29,7 @@ import {
   AlertTriangle,
   Palette,
   Tag,
-  User,
+  User as UserIcon,
   Users,
   CreditCard,
   MessageCircle,
@@ -59,7 +59,9 @@ import {
 import { format, parseISO, isSameMonth, isSameDay, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn, formatCurrency } from './lib/utils';
-import { Transaction, Screen, AppSettings, Customer, ClientPayment, Category } from './types';
+import { Transaction, Screen, AppSettings, Customer, ClientPayment, Category, User, AuditLog } from './types';
+import { SettingsLayout } from './components/settings/SettingsLayout';
+import { CustomerList } from './components/customers/CustomerList';
 
 // --- Componentes Reutilizáveis ---
 
@@ -293,9 +295,6 @@ export default function App() {
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [warningType, setWarningType] = useState<'category' | 'description' | 'both'>('both');
 
-  const [newIncomeCategory, setNewIncomeCategory] = useState('');
-  const [newExpenseCategory, setNewExpenseCategory] = useState('');
-  const [categoryTab, setCategoryTab] = useState<'income' | 'expense'>('income');
   const [showCustomerWarningModal, setShowCustomerWarningModal] = useState(false);
   const [customerWarningType, setCustomerWarningType] = useState<'cpf' | 'phone' | 'both'>('both');
 
@@ -339,15 +338,13 @@ export default function App() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [clientPayments, setClientPayments] = useState<ClientPayment[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [isAddingClientPayment, setIsAddingClientPayment] = useState(false);
   const [isRecordingPayment, setIsRecordingPayment] = useState<ClientPayment | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
-  const [customerSearch, setCustomerSearch] = useState('');
-  const [customerViewMode, setCustomerViewMode] = useState<'grid' | 'list'>('grid');
-  const [customerSort, setCustomerSort] = useState<'name' | 'debt'>('name');
-  const [customerFilterDebt, setCustomerFilterDebt] = useState<boolean>(false);
-  const [showCustomerFilters, setShowCustomerFilters] = useState(false);
   
   const [newCustomer, setNewCustomer] = useState({
     firstName: '',
@@ -432,7 +429,68 @@ export default function App() {
     fetchCustomers();
     fetchClientPayments();
     fetchCategories();
+    fetchUsers();
+    fetchAuditLogs();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/users');
+      const data = await res.json();
+      setUsers(data);
+      if (data.length > 0 && !currentUser) {
+        setCurrentUser(data[0]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch users", err);
+    }
+  };
+
+  const fetchAuditLogs = async () => {
+    try {
+      const res = await fetch('/api/audit-logs');
+      const data = await res.json();
+      setAuditLogs(data);
+    } catch (err) {
+      console.error("Failed to fetch audit logs", err);
+    }
+  };
+
+  const handleAddUser = async (user: any) => {
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user)
+      });
+      if (res.ok) {
+        fetchUsers();
+        fetchAuditLogs();
+        alert('Usuário criado com sucesso!');
+      } else {
+        alert('Erro ao criar usuário.');
+      }
+    } catch (err) {
+      console.error("Failed to add user", err);
+    }
+  };
+
+  const handleDeleteUser = async (id: number) => {
+    if (!window.confirm('Tem certeza que deseja excluir este usuário?')) return;
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        fetchUsers();
+        fetchAuditLogs();
+      } else {
+        alert('Erro ao excluir usuário.');
+      }
+    } catch (err) {
+      console.error("Failed to delete user", err);
+    }
+  };
 
   const fetchCustomers = async () => {
     try {
@@ -505,7 +563,9 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...newCustomer,
-          creditLimit: parseFloat(newCustomer.creditLimit) || 0
+          creditLimit: parseFloat(newCustomer.creditLimit) || 0,
+          createdBy: !editingCustomer ? currentUser?.id : undefined,
+          updatedBy: currentUser?.id
         })
       });
       const data = await res.json();
@@ -524,6 +584,7 @@ export default function App() {
         creditLimit: ''
       });
       fetchCustomers();
+      fetchAuditLogs();
 
       if (method === 'POST') {
         // Use a small delay to ensure the modal is closed before showing the confirm
@@ -557,7 +618,8 @@ export default function App() {
           ...newClientPayment,
           totalAmount: total,
           paidAmount: paid,
-          status
+          status,
+          createdBy: currentUser?.id
         })
       });
       setIsAddingClientPayment(false);
@@ -573,6 +635,7 @@ export default function App() {
         type: 'income'
       });
       fetchClientPayments();
+      fetchAuditLogs();
     } catch (err) {
       console.error("Failed to add client payment", err);
     }
@@ -604,12 +667,14 @@ export default function App() {
         body: JSON.stringify({
           paidAmount: newPaidAmount,
           status: newStatus,
-          paymentHistory: newHistory
+          paymentHistory: newHistory,
+          updatedBy: currentUser?.id
         })
       });
       setIsRecordingPayment(null);
       setPaymentAmount('');
       fetchClientPayments();
+      fetchAuditLogs();
     } catch (err) {
       console.error("Failed to record payment", err);
     }
@@ -1291,7 +1356,9 @@ export default function App() {
           ...newTx,
           amount: parseFloat(newTx.amount) || 0,
           category: newTx.category || 'Outros',
-          description: newTx.description || 'Sem descrição'
+          description: newTx.description || 'Sem descrição',
+          createdBy: !editingTransaction ? currentUser?.id : undefined,
+          updatedBy: currentUser?.id
         })
       });
       
@@ -1306,6 +1373,7 @@ export default function App() {
         date: format(new Date(), 'yyyy-MM-dd')
       });
       fetchTransactions();
+      fetchAuditLogs();
     } catch (err) {
       console.error("Failed to save", err);
     }
@@ -1321,10 +1389,12 @@ export default function App() {
           category: tx.category,
           type: tx.type,
           amount: tx.amount,
-          date: format(new Date(), 'yyyy-MM-dd')
+          date: format(new Date(), 'yyyy-MM-dd'),
+          createdBy: currentUser?.id
         })
       });
       fetchTransactions();
+      fetchAuditLogs();
     } catch (err) {
       console.error("Failed to duplicate", err);
     }
@@ -1436,32 +1506,6 @@ export default function App() {
     }
 
     return matchesSearch && matchesType && matchesCategory && matchesMin && matchesMax && matchesDate;
-  });
-
-  const filteredCustomers = customers.filter(c => {
-    const matchesSearch = c.firstName.toLowerCase().includes(customerSearch.toLowerCase()) ||
-      c.lastName.toLowerCase().includes(customerSearch.toLowerCase()) ||
-      c.nickname?.toLowerCase().includes(customerSearch.toLowerCase()) ||
-      c.companyName?.toLowerCase().includes(customerSearch.toLowerCase()) ||
-      c.phone.includes(customerSearch) ||
-      c.cpf?.includes(customerSearch);
-    
-    if (!matchesSearch) return false;
-
-    if (customerFilterDebt) {
-      const hasDebt = clientPayments.some(p => p.customerId === c.id && p.status !== 'paid');
-      if (!hasDebt) return false;
-    }
-
-    return true;
-  }).sort((a, b) => {
-    if (customerSort === 'name') {
-      return a.firstName.localeCompare(b.firstName);
-    } else {
-      const debtA = clientPayments.filter(p => p.customerId === a.id && p.status !== 'paid').reduce((acc, p) => acc + (p.totalAmount - p.paidAmount), 0);
-      const debtB = clientPayments.filter(p => p.customerId === b.id && p.status !== 'paid').reduce((acc, p) => acc + (p.totalAmount - p.paidAmount), 0);
-      return debtB - debtA;
-    }
   });
 
   const filteredClientPayments = clientPayments.filter(payment => {
@@ -1605,8 +1649,8 @@ export default function App() {
         </nav>
 
         <div className="p-6 border-t border-white/5">
-          <div className="flex items-center gap-4 p-3 rounded-2xl bg-white/5 border border-white/5">
-            <div className="h-10 w-10 rounded-full bg-slate-700 overflow-hidden border-2 border-primary/20">
+          <div className="flex items-center gap-4 p-3 rounded-2xl bg-white/5 border border-white/5 relative group hover:bg-white/10 transition-all">
+            <div className="h-10 w-10 shrink-0 rounded-full bg-slate-700 overflow-hidden border-2 border-primary/20">
               <img 
                 src={settings.profileAvatar} 
                 alt="Perfil" 
@@ -1615,10 +1659,28 @@ export default function App() {
               />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold truncate">{settings.profileName}</p>
-              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Acesso Admin</p>
+              <p className="text-sm font-bold truncate">{currentUser?.name || settings.profileName}</p>
+              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
+                {currentUser?.role === 'owner' ? 'Admin' : currentUser?.role === 'manager' ? 'Gerente' : 'Funcionário'}
+              </p>
             </div>
-            <MoreVertical size={16} className="text-slate-500 cursor-pointer hover:text-slate-300" />
+            
+            {/* User Switcher (Temporary for dev/demo) */}
+            <select 
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              value={currentUser?.id || ''}
+              onChange={(e) => {
+                const user = users.find(u => u.id === Number(e.target.value));
+                if (user) setCurrentUser(user);
+              }}
+              title="Alternar Usuário"
+            >
+              {users.map(u => (
+                <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+              ))}
+            </select>
+            
+            <MoreVertical size={16} className="text-slate-500 cursor-pointer hover:text-slate-300 shrink-0" />
           </div>
         </div>
       </aside>
@@ -1627,7 +1689,7 @@ export default function App() {
       <main className="flex-1 flex flex-col min-w-0">
         <header className={cn(
           "h-20 border-b border-white/5 flex items-center justify-between px-6 lg:px-10 bg-bg-dark/80 backdrop-blur-md sticky top-0 transition-all",
-          showNotifications ? "z-40" : "z-30"
+          showNotifications ? "z-[60]" : "z-30"
         )}>
           <div className="flex items-center gap-4">
             <button 
@@ -2664,230 +2726,59 @@ export default function App() {
                   <h3 className="text-2xl font-bold tracking-tight">Gestão de Clientes</h3>
                   <p className="text-sm text-slate-500 font-medium mt-1">Cadastre e gerencie seus clientes para cobranças rápidas</p>
                 </div>
-                <div className="flex flex-col sm:flex-row items-center gap-4">
-                  <div className="relative w-full sm:w-64">
-                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input 
-                      value={customerSearch}
-                      onChange={(e) => setCustomerSearch(e.target.value)}
-                      placeholder="Pesquisar clientes..."
-                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
-                    />
-                  </div>
-                  <div className="flex gap-2 w-full sm:w-auto">
-                    <button 
-                      onClick={() => setCustomerFilterDebt(!customerFilterDebt)}
-                      className={cn(
-                        "flex-1 sm:flex-none h-12 px-4 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all flex items-center justify-center gap-2",
-                        customerFilterDebt ? "bg-rose-500/10 border-rose-500/20 text-rose-500" : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10"
-                      )}
-                      title="Filtrar clientes com dívidas"
-                    >
-                      <AlertTriangle size={14} />
-                      Com Dívida
-                    </button>
-                    <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 shrink-0">
-                      <button 
-                        onClick={() => setCustomerSort('name')}
-                        className={cn(
-                          "p-2 rounded-lg transition-all text-[10px] font-bold uppercase tracking-widest",
-                          customerSort === 'name' ? "bg-primary text-white shadow-md" : "text-slate-400 hover:text-slate-200"
-                        )}
-                        title="Ordenar por Nome"
-                      >
-                        A-Z
-                      </button>
-                      <button 
-                        onClick={() => setCustomerSort('debt')}
-                        className={cn(
-                          "p-2 rounded-lg transition-all text-[10px] font-bold uppercase tracking-widest",
-                          customerSort === 'debt' ? "bg-primary text-white shadow-md" : "text-slate-400 hover:text-slate-200"
-                        )}
-                        title="Ordenar por Dívida"
-                      >
-                        $$$
-                      </button>
-                    </div>
-                    <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 shrink-0">
-                      <button 
-                        onClick={() => setCustomerViewMode('grid')}
-                        className={cn(
-                          "p-2 rounded-lg transition-all",
-                          customerViewMode === 'grid' ? "bg-primary text-white shadow-md" : "text-slate-400 hover:text-slate-200"
-                        )}
-                      >
-                        <LayoutGrid size={18} />
-                      </button>
-                      <button 
-                        onClick={() => setCustomerViewMode('list')}
-                        className={cn(
-                          "p-2 rounded-lg transition-all",
-                          customerViewMode === 'list' ? "bg-primary text-white shadow-md" : "text-slate-400 hover:text-slate-200"
-                        )}
-                      >
-                        <ListIcon size={18} />
-                      </button>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      setEditingCustomer(null);
-                      setNewCustomer({
-                        firstName: '',
-                        lastName: '',
-                        nickname: '',
-                        cpf: '',
-                        companyName: '',
-                        phone: '',
-                        observation: '',
-                        creditLimit: ''
-                      });
-                      setIsAddingCustomer(true);
-                    }}
-                    className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 h-12"
-                  >
-                    <Plus size={20} />
-                    Novo Cliente
-                  </button>
-                </div>
+                <button 
+                  onClick={() => {
+                    setEditingCustomer(null);
+                    setNewCustomer({
+                      firstName: '',
+                      lastName: '',
+                      nickname: '',
+                      cpf: '',
+                      companyName: '',
+                      phone: '',
+                      observation: '',
+                      creditLimit: ''
+                    });
+                    setIsAddingCustomer(true);
+                  }}
+                  className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 h-12"
+                >
+                  <Plus size={20} />
+                  Novo Cliente
+                </button>
               </div>
 
-              <div className={cn(
-                "gap-6",
-                customerViewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "flex flex-col"
-              )}>
-                {filteredCustomers.map(customer => (
-                  <motion.div 
-                    key={customer.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="glass-card p-6 space-y-4 group relative overflow-hidden"
-                  >
-                    <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">ID: {customer.id}</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-4">
-                      <div className="h-14 w-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black text-xl shadow-inner">
-                        {customer.firstName[0]}{customer.lastName[0]}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold truncate text-lg">
-                          {customer.firstName} {customer.lastName}
-                          {customer.nickname && <span className="text-primary ml-2 text-sm">({customer.nickname})</span>}
-                        </h4>
-                        {customer.companyName && <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">{customer.companyName}</p>}
-                        <div className="flex items-center gap-4 mt-1">
-                          <p className="text-xs text-slate-500">{customer.phone}</p>
-                          {customer.creditLimit && customer.creditLimit > 0 && (
-                            <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                              Limite: {formatCurrency(customer.creditLimit)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {customer.cpf && (
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 bg-white/5 px-3 py-1.5 rounded-lg">
-                          <Tag size={10} />
-                          CPF: {customer.cpf}
-                        </div>
-                      )}
-                      <button 
-                        onClick={() => {
-                          setNewClientPayment(prev => ({ ...prev, customerId: customer.id }));
-                          setActiveScreen('client-payments');
-                          setIsAddingClientPayment(true);
-                        }}
-                        className="flex items-center gap-2 text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-lg hover:bg-primary/20 transition-all"
-                      >
-                        <Plus size={10} />
-                        Novo Lançamento
-                      </button>
-                    </div>
-
-                    {customer.observation && (
-                      <p className="text-xs text-slate-500 italic line-clamp-2 bg-black/20 p-3 rounded-xl border border-white/5">
-                        "{customer.observation}"
-                      </p>
-                    )}
-
-                    <div className="flex gap-2 pt-2">
-                      <button 
-                        onClick={() => printCustomerStatement(customer)}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-500/10 text-slate-500 text-[10px] font-black uppercase tracking-widest border border-slate-500/20 hover:bg-slate-500/20 transition-all"
-                      >
-                        <Printer size={14} />
-                        Extrato
-                      </button>
-                      <button 
-                        onClick={() => {
-                          const whatsappUrl = `https://wa.me/${customer.phone.replace(/\D/g, '')}`;
-                          window.open(whatsappUrl, '_blank');
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
-                      >
-                        <MessageCircle size={14} />
-                        WhatsApp
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setEditingCustomer(customer);
-                          setNewCustomer({
-                            firstName: customer.firstName,
-                            lastName: customer.lastName,
-                            nickname: customer.nickname || '',
-                            cpf: customer.cpf || '',
-                            companyName: customer.companyName || '',
-                            phone: customer.phone,
-                            observation: customer.observation || '',
-                            creditLimit: customer.creditLimit?.toString() || ''
-                          });
-                          setIsAddingCustomer(true);
-                        }}
-                        className="p-2.5 rounded-xl bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all"
-                        title="Editar"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setNewCustomer({
-                            firstName: customer.firstName,
-                            lastName: customer.lastName,
-                            nickname: customer.nickname ? `${customer.nickname} (Cópia)` : '',
-                            cpf: customer.cpf || '',
-                            companyName: customer.companyName || '',
-                            phone: customer.phone,
-                            observation: customer.observation || '',
-                            creditLimit: customer.creditLimit?.toString() || ''
-                          });
-                          setIsAddingCustomer(true);
-                        }}
-                        className="p-2.5 rounded-xl bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all"
-                        title="Clonar"
-                      >
-                        <Copy size={14} />
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteCustomer(customer)}
-                        className="p-2.5 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
-                        title="Excluir"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-                {filteredCustomers.length === 0 && (
-                  <div className="col-span-full py-20 text-center glass-card border-dashed border-white/10">
-                    <Users size={40} className="mx-auto text-slate-600 mb-4 opacity-20" />
-                    <p className="text-slate-500 italic">Nenhum cliente encontrado.</p>
-                  </div>
-                )}
-              </div>
+              <CustomerList 
+                customers={customers}
+                clientPayments={clientPayments}
+                onEdit={(customer) => {
+                  setEditingCustomer(customer);
+                  setNewCustomer({
+                    firstName: customer.firstName,
+                    lastName: customer.lastName,
+                    nickname: customer.nickname || '',
+                    cpf: customer.cpf || '',
+                    companyName: customer.companyName || '',
+                    phone: customer.phone,
+                    observation: customer.observation || '',
+                    creditLimit: customer.creditLimit?.toString() || ''
+                  });
+                  setIsAddingCustomer(true);
+                }}
+                onDelete={(id) => {
+                  const customer = customers.find(c => c.id === id);
+                  if (customer) handleDeleteCustomer(customer);
+                }}
+                onAddPayment={(customer) => {
+                  setNewClientPayment(prev => ({ ...prev, customerId: customer.id }));
+                  setActiveScreen('client-payments');
+                  setIsAddingClientPayment(true);
+                }}
+                onViewHistory={(customer) => {
+                  // Implementar visualização de histórico
+                  alert(`Histórico de ${customer.firstName} em breve!`);
+                }}
+              />
 
               {/* Add/Edit Customer Modal */}
               <AnimatePresence>
@@ -3528,342 +3419,17 @@ export default function App() {
             </div>
           ) : (
             /* Settings Screen */
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="max-w-4xl space-y-8"
-            >
-              <div className="glass-card p-8 space-y-10">
-                <div className="flex items-center gap-4 border-b border-white/5 pb-6">
-                  <div className="p-3 rounded-xl bg-primary/10 text-primary">
-                    <Settings size={24} />
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-bold">Configurações do Sistema</h4>
-                    <p className="text-xs text-slate-500 font-medium">Personalize a identidade e o comportamento do seu dashboard</p>
-                  </div>
-                </div>
-
-                <div className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Nome do Sistema</label>
-                      <div className="relative">
-                        <Wallet size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                        <input 
-                          value={settings.appName}
-                          onChange={(e) => updateSettings({...settings, appName: e.target.value})}
-                          className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Saldo Inicial da Conta</label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">R$</span>
-                        <input 
-                          type="number"
-                          value={settings.initialBalance}
-                          onChange={(e) => updateSettings({...settings, initialBalance: parseFloat(e.target.value) || 0})}
-                          className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Ano Fiscal</label>
-                      <div className="relative">
-                        <Calendar size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                        <input 
-                          value={settings.fiscalYear}
-                          onChange={(e) => updateSettings({...settings, fiscalYear: e.target.value})}
-                          className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Senha de Acesso (Configurações)</label>
-                      <div className="relative">
-                        <Tag size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                        <input 
-                          type="text"
-                          value={settings.settingsPassword}
-                          onChange={(e) => updateSettings({...settings, settingsPassword: e.target.value})}
-                          className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-4">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Preferências de Exibição</label>
-                      <div className="space-y-3">
-                        <label className="flex items-center gap-3 cursor-pointer group">
-                          <input 
-                            type="checkbox" 
-                            checked={settings.showWarnings}
-                            onChange={(e) => updateSettings({ ...settings, showWarnings: e.target.checked })}
-                            className="w-5 h-5 rounded-lg bg-white/5 border border-white/10 text-primary focus:ring-primary outline-none transition-all"
-                          />
-                          <span className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors uppercase tracking-widest">Exibir avisos de campos incompletos</span>
-                        </label>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Colunas Ocultas (Transações)</label>
-                      <div className="flex flex-wrap gap-2">
-                        {['Descrição', 'Categoria', 'Tipo', 'Valor', 'Status'].map(col => (
-                          <button
-                            key={col}
-                            onClick={() => {
-                              const newHidden = settings.hiddenColumns.includes(col)
-                                ? settings.hiddenColumns.filter(c => c !== col)
-                                : [...settings.hiddenColumns, col];
-                              updateSettings({ ...settings, hiddenColumns: newHidden });
-                            }}
-                            className={cn(
-                              "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all",
-                              settings.hiddenColumns.includes(col) 
-                                ? "bg-rose-500/10 border-rose-500/20 text-rose-500" 
-                                : "bg-white/5 border-white/10 text-slate-500 hover:text-slate-300"
-                            )}
-                          >
-                            {col}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Nome do Perfil</label>
-                      <div className="relative">
-                        <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                        <input 
-                          value={settings.profileName}
-                          onChange={(e) => updateSettings({...settings, profileName: e.target.value})}
-                          className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">URL do Avatar</label>
-                      <div className="relative">
-                        <ImageIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                        <input 
-                          value={settings.profileAvatar}
-                          onChange={(e) => updateSettings({...settings, profileAvatar: e.target.value})}
-                          className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Cor Primária</label>
-                      <div className="flex gap-4">
-                        <input 
-                          type="color"
-                          value={settings.primaryColor}
-                          onChange={(e) => updateSettings({...settings, primaryColor: e.target.value})}
-                          className="h-12 w-20 bg-white/5 border border-white/10 rounded-xl p-1 cursor-pointer"
-                        />
-                        <div className="flex-1 h-12 bg-white/5 border border-white/10 rounded-xl flex items-center px-4 text-xs font-mono text-slate-400">
-                          {settings.primaryColor}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Configurações de Impressão</label>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Layout do Recibo</label>
-                          <div className="flex bg-white/5 border border-white/10 rounded-xl p-1">
-                            <button 
-                              onClick={() => updateSettings({...settings, receiptLayout: 'simple'})}
-                              className={cn(
-                                "flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all",
-                                settings.receiptLayout === 'simple' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:text-slate-300"
-                              )}
-                            >
-                              Simples (Térmico)
-                            </button>
-                            <button 
-                              onClick={() => updateSettings({...settings, receiptLayout: 'a4'})}
-                              className={cn(
-                                "flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all",
-                                settings.receiptLayout === 'a4' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:text-slate-300"
-                              )}
-                            >
-                              Completo (A4)
-                            </button>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">URL da Logo (Recibo)</label>
-                          <div className="relative">
-                            <ImageIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                            <input 
-                              value={settings.receiptLogo || ''}
-                              onChange={(e) => updateSettings({...settings, receiptLogo: e.target.value})}
-                              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
-                              placeholder="https://exemplo.com/logo.png"
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">CNPJ / CPF</label>
-                          <input 
-                            value={settings.receiptCnpj || ''}
-                            onChange={(e) => updateSettings({...settings, receiptCnpj: e.target.value})}
-                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
-                            placeholder="00.000.000/0000-00"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Endereço Completo</label>
-                          <input 
-                            value={settings.receiptAddress || ''}
-                            onChange={(e) => updateSettings({...settings, receiptAddress: e.target.value})}
-                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
-                            placeholder="Rua Exemplo, 123 - Cidade/UF"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Chave PIX</label>
-                          <input 
-                            value={settings.receiptPixKey || ''}
-                            onChange={(e) => updateSettings({...settings, receiptPixKey: e.target.value})}
-                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
-                            placeholder="Chave PIX (CPF, Email, etc)"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">URL QR Code (Opcional)</label>
-                          <input 
-                            value={settings.receiptQrCode || ''}
-                            onChange={(e) => updateSettings({...settings, receiptQrCode: e.target.value})}
-                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
-                            placeholder="URL da imagem do QR Code"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4 col-span-full">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Categorias de Lançamentos</label>
-                      
-                      <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 mb-4">
-                        <button 
-                          onClick={() => setCategoryTab('income')}
-                          className={cn(
-                            "flex-1 py-2 rounded-lg text-sm font-bold transition-all",
-                            categoryTab === 'income' ? "bg-emerald-500/20 text-emerald-500" : "text-slate-400 hover:text-slate-200"
-                          )}
-                        >
-                          Entradas
-                        </button>
-                        <button 
-                          onClick={() => setCategoryTab('expense')}
-                          className={cn(
-                            "flex-1 py-2 rounded-lg text-sm font-bold transition-all",
-                            categoryTab === 'expense' ? "bg-rose-500/20 text-rose-500" : "text-slate-400 hover:text-slate-200"
-                          )}
-                        >
-                          Saídas
-                        </button>
-                      </div>
-
-                      {categoryTab === 'income' ? (
-                        <div className="space-y-4">
-                          <div className="flex gap-2">
-                            <input 
-                              value={newIncomeCategory}
-                              onChange={(e) => setNewIncomeCategory(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && newIncomeCategory.trim()) {
-                                  addCategory(newIncomeCategory.trim(), 'income');
-                                  setNewIncomeCategory('');
-                                }
-                              }}
-                              placeholder="Nova categoria de entrada..."
-                              className="flex-1 h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
-                            />
-                            <button 
-                              onClick={() => {
-                                if (newIncomeCategory.trim()) {
-                                  addCategory(newIncomeCategory.trim(), 'income');
-                                  setNewIncomeCategory('');
-                                }
-                              }}
-                              className="h-12 px-6 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-xl font-bold hover:bg-emerald-500/20 transition-all"
-                            >
-                              Adicionar
-                            </button>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {categories.filter(c => c.type === 'income').map(cat => (
-                              <div key={cat.id} className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg text-sm text-slate-300">
-                                {cat.name}
-                                <button 
-                                  onClick={() => deleteCategory(cat.id)}
-                                  className="text-slate-500 hover:text-rose-500 transition-colors"
-                                >
-                                  <X size={12} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <div className="flex gap-2">
-                            <input 
-                              value={newExpenseCategory}
-                              onChange={(e) => setNewExpenseCategory(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && newExpenseCategory.trim()) {
-                                  addCategory(newExpenseCategory.trim(), 'expense');
-                                  setNewExpenseCategory('');
-                                }
-                              }}
-                              placeholder="Nova categoria de saída..."
-                              className="flex-1 h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-rose-500 outline-none transition-all"
-                            />
-                            <button 
-                              onClick={() => {
-                                if (newExpenseCategory.trim()) {
-                                  addCategory(newExpenseCategory.trim(), 'expense');
-                                  setNewExpenseCategory('');
-                                }
-                              }}
-                              className="h-12 px-6 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-xl font-bold hover:bg-rose-500/20 transition-all"
-                            >
-                              Adicionar
-                            </button>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {categories.filter(c => c.type === 'expense').map(cat => (
-                              <div key={cat.id} className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg text-sm text-slate-300">
-                                {cat.name}
-                                <button 
-                                  onClick={() => deleteCategory(cat.id)}
-                                  className="text-slate-500 hover:text-rose-500 transition-colors"
-                                >
-                                  <X size={12} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+            <SettingsLayout 
+              settings={settings}
+              updateSettings={updateSettings}
+              categories={categories}
+              addCategory={addCategory}
+              deleteCategory={deleteCategory}
+              users={users}
+              addUser={handleAddUser}
+              deleteUser={handleDeleteUser}
+              auditLogs={auditLogs}
+            />
           )}
         </div>
 
