@@ -127,6 +127,7 @@ export interface ServiceOrder {
   phone?: string;
   equipmentBrand?: string;
   equipmentModel?: string;
+  equipmentColor?: string;
   equipmentSerial?: string;
   reportedProblem?: string;
   arrivalPhotoUrl?: string;
@@ -147,6 +148,17 @@ export interface ServiceOrder {
   createdAt: string;
   createdBy?: number;
   updatedBy?: number;
+}
+
+export interface Brand {
+  id: number;
+  name: string;
+}
+
+export interface Model {
+  id: number;
+  brandId: number;
+  name: string;
 }
 
 export type Screen = 'dashboard' | 'transactions' | 'reports' | 'settings' | 'customers' | 'client-payments' | 'service-orders' | 'inventory';

@@ -156,6 +156,19 @@ db.exec(`
     priority INTEGER DEFAULT 0,
     isDefault INTEGER DEFAULT 0
   );
+
+  CREATE TABLE IF NOT EXISTS brands (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE
+  );
+
+  CREATE TABLE IF NOT EXISTS models (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    brandId INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    FOREIGN KEY (brandId) REFERENCES brands(id),
+    UNIQUE(brandId, name)
+  );
 `);
 
 // Garantir que as colunas novas existem (migrações simples)
@@ -192,7 +205,8 @@ const migrations = [
   { name: 'accessories', table: 'service_orders', type: "TEXT" },
   { name: 'ramInfo', table: 'service_orders', type: "TEXT" },
   { name: 'ssdInfo', table: 'service_orders', type: "TEXT" },
-  { name: 'priority', table: 'service_orders', type: "TEXT DEFAULT 'medium'" }
+  { name: 'priority', table: 'service_orders', type: "TEXT DEFAULT 'medium'" },
+  { name: 'equipmentColor', table: 'service_orders', type: "TEXT" }
 ];
 
 migrations.forEach(m => {
@@ -632,7 +646,7 @@ async function startServer() {
 
   app.post("/api/service-orders", (req, res) => {
     const { 
-      customerId, equipmentBrand, equipmentModel, equipmentSerial, 
+      customerId, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
       reportedProblem, arrivalPhotoUrl, status, entryDate, analysisPrediction, 
       customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy 
     } = req.body;
@@ -640,13 +654,13 @@ async function startServer() {
     try {
       const result = db.prepare(`
         INSERT INTO service_orders (
-          customerId, equipmentBrand, equipmentModel, equipmentSerial, 
+          customerId, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
           reportedProblem, arrivalPhotoUrl, status, entryDate, analysisPrediction, 
           customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy
         ) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
-        customerId, equipmentBrand, equipmentModel, equipmentSerial, 
+        customerId, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
         reportedProblem, arrivalPhotoUrl, status || 'Aguardando Análise', 
         entryDate, analysisPrediction, customerPassword, accessories, 
         ramInfo, ssdInfo, priority || 'medium', createdBy || 1
@@ -664,7 +678,8 @@ async function startServer() {
     const { 
       status, technicalAnalysis, servicesPerformed, partsUsed, 
       serviceFee, totalAmount, finalObservations, entryDate, analysisPrediction, 
-      customerPassword, accessories, ramInfo, ssdInfo, priority, updatedBy 
+      customerPassword, accessories, ramInfo, ssdInfo, priority, 
+      equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, updatedBy 
     } = req.body;
     
     try {
@@ -699,13 +714,17 @@ async function startServer() {
         SET status = ?, technicalAnalysis = ?, servicesPerformed = ?, partsUsed = ?, 
             serviceFee = ?, totalAmount = ?, finalObservations = ?, entryDate = ?, 
             analysisPrediction = ?, customerPassword = ?, accessories = ?, 
-            ramInfo = ?, ssdInfo = ?, priority = ?, updatedBy = ? 
+            ramInfo = ?, ssdInfo = ?, priority = ?, 
+            equipmentBrand = ?, equipmentModel = ?, equipmentColor = ?, equipmentSerial = ?, 
+            updatedBy = ? 
         WHERE id = ?
       `).run(
         status, technicalAnalysis, servicesPerformed, partsString, 
         serviceFee, totalAmount, finalObservations, entryDate, 
         analysisPrediction, customerPassword, accessories, 
-        ramInfo, ssdInfo, priority, updatedBy || 1, req.params.id
+        ramInfo, ssdInfo, priority, 
+        equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
+        updatedBy || 1, req.params.id
       );
       
       db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'ServiceOrder', req.params.id, `Updated OS #${req.params.id}`);
@@ -742,6 +761,37 @@ async function startServer() {
   app.delete("/api/service-order-statuses/:id", (req, res) => {
     db.prepare("DELETE FROM service_order_statuses WHERE id = ? AND isDefault = 0").run(req.params.id);
     res.json({ success: true });
+  });
+
+  // Rotas de Marcas e Modelos
+  app.get("/api/brands", (req, res) => {
+    const brands = db.prepare("SELECT * FROM brands ORDER BY name ASC").all();
+    res.json(brands);
+  });
+
+  app.post("/api/brands", (req, res) => {
+    const { name } = req.body;
+    try {
+      const result = db.prepare("INSERT INTO brands (name) VALUES (?)").run(name);
+      res.json({ id: result.lastInsertRowid });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/models", (req, res) => {
+    const models = db.prepare("SELECT * FROM models ORDER BY name ASC").all();
+    res.json(models);
+  });
+
+  app.post("/api/models", (req, res) => {
+    const { brandId, name } = req.body;
+    try {
+      const result = db.prepare("INSERT INTO models (brandId, name) VALUES (?, ?)").run(brandId, name);
+      res.json({ id: result.lastInsertRowid });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
   });
 
   // Configuração do Vite para desenvolvimento

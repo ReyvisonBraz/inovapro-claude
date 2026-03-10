@@ -62,7 +62,7 @@ import {
 import { format, parseISO, isSameMonth, isSameDay, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn, formatCurrency } from './lib/utils';
-import { Transaction, Screen, AppSettings, Customer, ClientPayment, Category, User, AuditLog, InventoryItem, ServiceOrder, ServiceOrderStatus } from './types';
+import { Transaction, Screen, AppSettings, Customer, ClientPayment, Category, User, AuditLog, InventoryItem, ServiceOrder, ServiceOrderStatus, Brand, Model } from './types';
 import { SettingsLayout } from './components/settings/SettingsLayout';
 import { CustomerList } from './components/customers/CustomerList';
 import { Login } from './components/Login';
@@ -349,6 +349,8 @@ export default function App() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
   const [serviceOrderStatuses, setServiceOrderStatuses] = useState<ServiceOrderStatus[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [models, setModels] = useState<Model[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
@@ -357,6 +359,7 @@ export default function App() {
   const [isRecordingPayment, setIsRecordingPayment] = useState<ClientPayment | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [directOsId, setDirectOsId] = useState<number | null>(null);
+  const [directMode, setDirectMode] = useState<string | null>(null);
   
   const [newCustomer, setNewCustomer] = useState({
     firstName: '',
@@ -438,8 +441,10 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const osId = params.get('osId');
+    const mode = params.get('mode');
     if (osId) {
       setDirectOsId(parseInt(osId));
+      setDirectMode(mode);
       setActiveScreen('service-orders');
     }
   }, []);
@@ -456,8 +461,30 @@ export default function App() {
       fetchInventoryItems();
       fetchServiceOrders();
       fetchServiceOrderStatuses();
+      fetchBrands();
+      fetchModels();
     }
   }, [isAuthenticated]);
+
+  const fetchBrands = async () => {
+    try {
+      const res = await fetch('/api/brands');
+      const data = await res.json();
+      setBrands(data);
+    } catch (err) {
+      console.error("Failed to fetch brands", err);
+    }
+  };
+
+  const fetchModels = async () => {
+    try {
+      const res = await fetch('/api/models');
+      const data = await res.json();
+      setModels(data);
+    } catch (err) {
+      console.error("Failed to fetch models", err);
+    }
+  };
 
   const fetchServiceOrderStatuses = async () => {
     try {
@@ -1691,6 +1718,32 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to add service order", err);
+    }
+  };
+
+  const handleAddBrand = async (name: string) => {
+    try {
+      const res = await fetch('/api/brands', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      if (res.ok) fetchBrands();
+    } catch (err) {
+      console.error("Failed to add brand", err);
+    }
+  };
+
+  const handleAddModel = async (brandId: number, name: string) => {
+    try {
+      const res = await fetch('/api/models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brandId, name })
+      });
+      if (res.ok) fetchModels();
+    } catch (err) {
+      console.error("Failed to add model", err);
     }
   };
 
@@ -3404,12 +3457,16 @@ export default function App() {
               customers={customers}
               inventoryItems={inventoryItems}
               statuses={serviceOrderStatuses}
+              brands={brands}
+              models={models}
               clientPayments={clientPayments}
               onAddOrder={handleAddServiceOrder}
               onUpdateOrder={handleUpdateServiceOrder}
               onDeleteOrder={handleDeleteServiceOrder}
               onAddStatus={handleAddServiceOrderStatus}
               onDeleteStatus={handleDeleteServiceOrderStatus}
+              onAddBrand={handleAddBrand}
+              onAddModel={handleAddModel}
               onTriggerAddCustomer={() => {
                 setEditingCustomer(null);
                 setNewCustomer({
@@ -3425,6 +3482,7 @@ export default function App() {
                 setIsAddingCustomer(true);
               }}
               directOsId={directOsId}
+              directMode={directMode}
               onClearDirectOsId={() => setDirectOsId(null)}
               currentUser={currentUser}
             />
