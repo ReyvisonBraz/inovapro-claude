@@ -28,17 +28,20 @@ import {
   Trash2,
   AlertTriangle,
   Palette,
+  Package,
+  CreditCard,
+  Users,
+  Wrench,
   Tag,
   User as UserIcon,
-  Users,
-  CreditCard,
   MessageCircle,
   ImageIcon,
   Edit,
   Copy,
   CheckCircle2,
   LayoutGrid,
-  List as ListIcon
+  List as ListIcon,
+  LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -59,9 +62,13 @@ import {
 import { format, parseISO, isSameMonth, isSameDay, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn, formatCurrency } from './lib/utils';
-import { Transaction, Screen, AppSettings, Customer, ClientPayment, Category, User, AuditLog } from './types';
+import { Transaction, Screen, AppSettings, Customer, ClientPayment, Category, User, AuditLog, InventoryItem, ServiceOrder, ServiceOrderStatus } from './types';
 import { SettingsLayout } from './components/settings/SettingsLayout';
 import { CustomerList } from './components/customers/CustomerList';
+import { Login } from './components/Login';
+import { ServiceOrders } from './components/ServiceOrders';
+import { Inventory } from './components/Inventory';
+import { CustomerSearchSelect } from './components/CustomerSearchSelect';
 
 // --- Componentes Reutilizáveis ---
 
@@ -339,12 +346,17 @@ export default function App() {
   const [clientPayments, setClientPayments] = useState<ClientPayment[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
+  const [serviceOrderStatuses, setServiceOrderStatuses] = useState<ServiceOrderStatus[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [isAddingClientPayment, setIsAddingClientPayment] = useState(false);
   const [isRecordingPayment, setIsRecordingPayment] = useState<ClientPayment | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
+  const [directOsId, setDirectOsId] = useState<number | null>(null);
   
   const [newCustomer, setNewCustomer] = useState({
     firstName: '',
@@ -424,23 +436,64 @@ export default function App() {
   const totalNotifications = upcomingDebts.length + dueTodayDebts.length + overdueDebts.length;
 
   useEffect(() => {
-    fetchTransactions();
-    fetchSettings();
-    fetchCustomers();
-    fetchClientPayments();
-    fetchCategories();
-    fetchUsers();
-    fetchAuditLogs();
+    const params = new URLSearchParams(window.location.search);
+    const osId = params.get('osId');
+    if (osId) {
+      setDirectOsId(parseInt(osId));
+      setActiveScreen('service-orders');
+    }
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchTransactions();
+      fetchSettings();
+      fetchCustomers();
+      fetchClientPayments();
+      fetchCategories();
+      fetchUsers();
+      fetchAuditLogs();
+      fetchInventoryItems();
+      fetchServiceOrders();
+      fetchServiceOrderStatuses();
+    }
+  }, [isAuthenticated]);
+
+  const fetchServiceOrderStatuses = async () => {
+    try {
+      const res = await fetch('/api/service-order-statuses');
+      const data = await res.json();
+      setServiceOrderStatuses(data);
+    } catch (err) {
+      console.error("Failed to fetch service order statuses", err);
+    }
+  };
+
+  const fetchInventoryItems = async () => {
+    try {
+      const res = await fetch('/api/inventory');
+      const data = await res.json();
+      setInventoryItems(data);
+    } catch (err) {
+      console.error("Failed to fetch inventory items", err);
+    }
+  };
+
+  const fetchServiceOrders = async () => {
+    try {
+      const res = await fetch('/api/service-orders');
+      const data = await res.json();
+      setServiceOrders(data);
+    } catch (err) {
+      console.error("Failed to fetch service orders", err);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
       const res = await fetch('/api/users');
       const data = await res.json();
       setUsers(data);
-      if (data.length > 0 && !currentUser) {
-        setCurrentUser(data[0]);
-      }
     } catch (err) {
       console.error("Failed to fetch users", err);
     }
@@ -472,6 +525,25 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to add user", err);
+    }
+  };
+
+  const handleUpdateUser = async (id: number, user: any) => {
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user)
+      });
+      if (res.ok) {
+        fetchUsers();
+        fetchAuditLogs();
+        alert('Usuário atualizado com sucesso!');
+      } else {
+        alert('Erro ao atualizar usuário.');
+      }
+    } catch (err) {
+      console.error("Failed to update user", err);
     }
   };
 
@@ -1544,6 +1616,145 @@ export default function App() {
     };
   });
 
+  const handleLogin = (user: User) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    setActiveScreen('dashboard');
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    setActiveScreen('dashboard');
+  };
+
+  const hasPermission = (permission: string) => {
+    if (!currentUser) return false;
+    if (currentUser.role === 'owner') return true;
+    return currentUser.permissions?.includes(permission);
+  };
+
+  const handleAddInventoryItem = async (item: any) => {
+    try {
+      const res = await fetch('/api/inventory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...item, createdBy: currentUser?.id })
+      });
+      if (res.ok) {
+        fetchInventoryItems();
+        fetchAuditLogs();
+      }
+    } catch (err) {
+      console.error("Failed to add inventory item", err);
+    }
+  };
+
+  const handleUpdateInventoryItem = async (id: number, item: any) => {
+    try {
+      const res = await fetch(`/api/inventory/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...item, updatedBy: currentUser?.id })
+      });
+      if (res.ok) {
+        fetchInventoryItems();
+        fetchAuditLogs();
+      }
+    } catch (err) {
+      console.error("Failed to update inventory item", err);
+    }
+  };
+
+  const handleDeleteInventoryItem = async (id: number) => {
+    try {
+      const res = await fetch(`/api/inventory/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchInventoryItems();
+        fetchAuditLogs();
+      }
+    } catch (err) {
+      console.error("Failed to delete inventory item", err);
+    }
+  };
+
+  const handleAddServiceOrder = async (order: any) => {
+    try {
+      const res = await fetch('/api/service-orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...order, createdBy: currentUser?.id })
+      });
+      if (res.ok) {
+        fetchServiceOrders();
+        fetchAuditLogs();
+      }
+    } catch (err) {
+      console.error("Failed to add service order", err);
+    }
+  };
+
+  const handleUpdateServiceOrder = async (id: number, order: any) => {
+    try {
+      const res = await fetch(`/api/service-orders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...order, updatedBy: currentUser?.id })
+      });
+      if (res.ok) {
+        fetchServiceOrders();
+        fetchInventoryItems(); // Refresh inventory as stock might have changed
+        fetchAuditLogs();
+      }
+    } catch (err) {
+      console.error("Failed to update service order", err);
+    }
+  };
+
+  const handleAddServiceOrderStatus = async (status: any) => {
+    try {
+      const res = await fetch('/api/service-order-statuses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(status)
+      });
+      if (res.ok) {
+        fetchServiceOrderStatuses();
+      }
+    } catch (err) {
+      console.error("Failed to add service order status", err);
+    }
+  };
+
+  const handleDeleteServiceOrderStatus = async (id: number) => {
+    try {
+      const res = await fetch(`/api/service-order-statuses/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        fetchServiceOrderStatuses();
+      }
+    } catch (err) {
+      console.error("Failed to delete service order status", err);
+    }
+  };
+
+  const handleDeleteServiceOrder = async (id: number) => {
+    try {
+      const res = await fetch(`/api/service-orders/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchServiceOrders();
+        fetchAuditLogs();
+      }
+    } catch (err) {
+      console.error("Failed to delete service order", err);
+    }
+  };
+
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
+
   return (
     <div className="flex min-h-screen bg-bg-dark text-slate-100 selection:bg-primary/30">
       {/* Mobile Sidebar Overlay */}
@@ -1593,59 +1804,108 @@ export default function App() {
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2">
-          <SidebarItem 
-            icon={LayoutDashboard} 
-            label="Painel" 
-            active={activeScreen === 'dashboard'} 
-            onClick={() => { setActiveScreen('dashboard'); setIsSidebarOpen(false); }} 
-          />
-          <SidebarItem 
-            icon={ReceiptText} 
-            label="Transações Diárias" 
-            active={activeScreen === 'transactions'} 
-            onClick={() => { setActiveScreen('transactions'); setIsSidebarOpen(false); }} 
-          />
-          <SidebarItem 
-            icon={BarChart3} 
-            label="Relatórios" 
-            active={activeScreen === 'reports'} 
-            onClick={() => { setActiveScreen('reports'); setIsSidebarOpen(false); }} 
-          />
+          {hasPermission('view_dashboard') && (
+            <SidebarItem 
+              icon={LayoutDashboard} 
+              label="Painel" 
+              active={activeScreen === 'dashboard'} 
+              onClick={() => { setActiveScreen('dashboard'); setIsSidebarOpen(false); }} 
+            />
+          )}
           
+          {hasPermission('manage_transactions') && (
+            <SidebarItem 
+              icon={ReceiptText} 
+              label="Transações Diárias" 
+              active={activeScreen === 'transactions'} 
+              onClick={() => { setActiveScreen('transactions'); setIsSidebarOpen(false); }} 
+            />
+          )}
+
           <div className="pt-8 pb-4 px-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Gestão de Clientes</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Assistência Técnica</p>
           </div>
 
           <SidebarItem 
-            icon={Users} 
-            label="Clientes" 
-            active={activeScreen === 'customers'} 
-            onClick={() => { setActiveScreen('customers'); setIsSidebarOpen(false); }} 
+            icon={Briefcase} 
+            label="Ordens de Serviço" 
+            active={activeScreen === 'service-orders'} 
+            onClick={() => { setActiveScreen('service-orders'); setIsSidebarOpen(false); }} 
           />
+
           <SidebarItem 
-            icon={CreditCard} 
-            label="Pagamentos Clientes" 
-            active={activeScreen === 'client-payments'} 
-            onClick={() => { setActiveScreen('client-payments'); setIsSidebarOpen(false); }} 
+            icon={ShoppingBag} 
+            label="Produtos & Serviços" 
+            active={activeScreen === 'inventory'} 
+            onClick={() => { setActiveScreen('inventory'); setIsSidebarOpen(false); }} 
           />
+
+          {hasPermission('view_reports') && (
+            <div className="pt-8 pb-4 px-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Análises</p>
+            </div>
+          )}
+
+          {hasPermission('view_reports') && (
+            <SidebarItem 
+              icon={BarChart3} 
+              label="Relatórios" 
+              active={activeScreen === 'reports'} 
+              onClick={() => { setActiveScreen('reports'); setIsSidebarOpen(false); }} 
+            />
+          )}
+          
+          {(hasPermission('manage_customers') || hasPermission('manage_payments')) && (
+            <div className="pt-8 pb-4 px-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Gestão de Clientes</p>
+            </div>
+          )}
+
+          {hasPermission('manage_customers') && (
+            <SidebarItem 
+              icon={Users} 
+              label="Clientes" 
+              active={activeScreen === 'customers'} 
+              onClick={() => { setActiveScreen('customers'); setIsSidebarOpen(false); }} 
+            />
+          )}
+
+          {hasPermission('manage_payments') && (
+            <SidebarItem 
+              icon={CreditCard} 
+              label="Pagamentos Clientes" 
+              active={activeScreen === 'client-payments'} 
+              onClick={() => { setActiveScreen('client-payments'); setIsSidebarOpen(false); }} 
+            />
+          )}
           
           <div className="pt-8 pb-4 px-4">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Conta</p>
           </div>
           
-          <SidebarItem 
-            icon={Settings} 
-            label="Configurações" 
-            active={activeScreen === 'settings'} 
-            onClick={() => { 
-              if (isSettingsUnlocked) {
-                setActiveScreen('settings'); 
-              } else {
-                setShowPasswordModal(true);
-              }
-              setIsSidebarOpen(false); 
-            }} 
-          />
+          {hasPermission('manage_settings') && (
+            <SidebarItem 
+              icon={Settings} 
+              label="Configurações" 
+              active={activeScreen === 'settings'} 
+              onClick={() => { 
+                if (isSettingsUnlocked) {
+                  setActiveScreen('settings'); 
+                } else {
+                  setShowPasswordModal(true);
+                }
+                setIsSidebarOpen(false); 
+              }} 
+            />
+          )}
+
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 w-full px-4 py-3.5 rounded-2xl transition-all duration-300 text-rose-500 hover:bg-rose-500/10 hover:text-rose-400"
+          >
+            <LogOut size={20} />
+            <span className="font-bold text-sm tracking-tight">Sair</span>
+          </button>
         </nav>
 
         <div className="p-6 border-t border-white/5">
@@ -1664,23 +1924,6 @@ export default function App() {
                 {currentUser?.role === 'owner' ? 'Admin' : currentUser?.role === 'manager' ? 'Gerente' : 'Funcionário'}
               </p>
             </div>
-            
-            {/* User Switcher (Temporary for dev/demo) */}
-            <select 
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-              value={currentUser?.id || ''}
-              onChange={(e) => {
-                const user = users.find(u => u.id === Number(e.target.value));
-                if (user) setCurrentUser(user);
-              }}
-              title="Alternar Usuário"
-            >
-              {users.map(u => (
-                <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
-              ))}
-            </select>
-            
-            <MoreVertical size={16} className="text-slate-500 cursor-pointer hover:text-slate-300 shrink-0" />
           </div>
         </div>
       </aside>
@@ -1704,6 +1947,8 @@ export default function App() {
                activeScreen === 'reports' ? 'Relatórios Financeiros' : 
                activeScreen === 'customers' ? 'Gestão de Clientes' :
                activeScreen === 'client-payments' ? 'Pagamentos e Parcelamentos' :
+               activeScreen === 'service-orders' ? 'Ordens de Serviço' :
+               activeScreen === 'inventory' ? 'Produtos & Serviços' :
                'Configurações do Sistema'}
             </h2>
             <span className="hidden sm:inline-block px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -2780,265 +3025,6 @@ export default function App() {
                 }}
               />
 
-              {/* Add/Edit Customer Modal */}
-              <AnimatePresence>
-                {isAddingCustomer && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      onClick={() => {
-                        setIsAddingCustomer(false);
-                        setEditingCustomer(null);
-                      }}
-                      className="absolute inset-0 bg-bg-dark/90 backdrop-blur-md"
-                    />
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                      className="relative w-full max-w-2xl glass-modal p-8 overflow-y-auto max-h-[90vh]"
-                    >
-                      <h3 className="text-xl font-bold mb-6">{editingCustomer ? 'Editar Cliente' : 'Novo Cliente'}</h3>
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex justify-between">
-                              <span>Nome *</span>
-                              <span className="text-[8px] text-primary/60 italic">Obrigatório</span>
-                            </label>
-                            <input 
-                              value={newCustomer.firstName}
-                              onChange={(e) => setNewCustomer({...newCustomer, firstName: e.target.value})}
-                              className="w-full h-12 bg-white/5 border-2 border-primary/30 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                              placeholder="João"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Sobrenome</label>
-                            <input 
-                              value={newCustomer.lastName}
-                              onChange={(e) => setNewCustomer({...newCustomer, lastName: e.target.value})}
-                              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
-                              placeholder="Silva"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Apelido</label>
-                            <input 
-                              value={newCustomer.nickname}
-                              onChange={(e) => setNewCustomer({...newCustomer, nickname: e.target.value})}
-                              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
-                              placeholder="Jão"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">CPF</label>
-                            <input 
-                              value={newCustomer.cpf}
-                              onChange={(e) => setNewCustomer({...newCustomer, cpf: e.target.value})}
-                              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
-                              placeholder="000.000.000-00"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Nome da Empresa</label>
-                            <input 
-                              value={newCustomer.companyName}
-                              onChange={(e) => setNewCustomer({...newCustomer, companyName: e.target.value})}
-                              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
-                              placeholder="Empresa LTDA"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex justify-between">
-                              <span>Telefone (WhatsApp) *</span>
-                              <span className="text-[8px] text-primary/60 italic">Obrigatório</span>
-                            </label>
-                            <input 
-                              value={newCustomer.phone}
-                              onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
-                              className="w-full h-12 bg-white/5 border-2 border-primary/30 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                              placeholder="5511999999999"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Limite de Crédito</label>
-                            <div className="relative">
-                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">R$</span>
-                              <input 
-                                type="number"
-                                value={newCustomer.creditLimit}
-                                onChange={(e) => setNewCustomer({...newCustomer, creditLimit: e.target.value})}
-                                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
-                                placeholder="0.00"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Observações</label>
-                          <textarea 
-                            value={newCustomer.observation}
-                            onChange={(e) => setNewCustomer({...newCustomer, observation: e.target.value})}
-                            className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none resize-none"
-                            placeholder="Notas sobre o cliente..."
-                          />
-                        </div>
-                        <div className="flex gap-4 pt-4">
-                          <button 
-                            onClick={() => {
-                              setIsAddingCustomer(false);
-                              setEditingCustomer(null);
-                            }}
-                            className="flex-1 py-4 rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all"
-                          >
-                            Cancelar
-                          </button>
-                          <button 
-                            onClick={() => handleAddCustomer(false)}
-                            className="flex-1 bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
-                          >
-                            {editingCustomer ? 'Atualizar Cliente' : 'Salvar Cliente'}
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  </div>
-                )}
-              </AnimatePresence>
-              {/* Customer Warning Modal */}
-              <AnimatePresence>
-                {showCustomerWarningModal && (
-                  <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute inset-0 bg-bg-dark/80 backdrop-blur-sm"
-                      onClick={() => setShowCustomerWarningModal(false)}
-                    />
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                      className="relative w-full max-w-md glass-modal p-8 text-center"
-                    >
-                      <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto mb-6">
-                        <AlertTriangle size={32} />
-                      </div>
-                      <h3 className="text-xl font-bold mb-2">Informações Incompletas</h3>
-                      <p className="text-slate-400 text-sm mb-8">
-                        {customerWarningType === 'both' && "Você não preencheu o CPF e o Telefone do cliente."}
-                        {customerWarningType === 'cpf' && "Você não preencheu o CPF do cliente."}
-                        {customerWarningType === 'phone' && "Você não preencheu o Telefone do cliente."}
-                        <br/><br/>
-                        Deseja salvar assim mesmo?
-                      </p>
-                      <div className="flex gap-4">
-                        <button 
-                          onClick={() => setShowCustomerWarningModal(false)}
-                          className="flex-1 py-4 rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all"
-                        >
-                          Voltar e Preencher
-                        </button>
-                        <button 
-                          onClick={() => handleAddCustomer(true)}
-                          className="flex-1 py-4 rounded-2xl font-bold bg-amber-500 text-white shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02]"
-                        >
-                          Salvar Assim Mesmo
-                        </button>
-                      </div>
-                    </motion.div>
-                  </div>
-                )}
-              </AnimatePresence>
-
-              {/* Customer Delete Warning Modal */}
-              <AnimatePresence>
-                {customerToDelete && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute inset-0 bg-bg-dark/80 backdrop-blur-sm"
-                      onClick={() => setCustomerToDelete(null)}
-                    />
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                      className="relative w-full max-w-md glass-modal p-8 text-center"
-                    >
-                      <div className="w-16 h-16 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto mb-6">
-                        <AlertTriangle size={32} />
-                      </div>
-                      <h3 className="text-xl font-bold mb-2">Atenção!</h3>
-                      
-                      {customerPaymentsWarning.length > 0 ? (
-                        <>
-                          <p className="text-slate-400 text-sm mb-6">
-                            O cliente <strong className="text-slate-200">{customerToDelete.firstName} {customerToDelete.lastName}</strong> possui <strong>{customerPaymentsWarning.length}</strong> lançamento(s) vinculado(s).
-                          </p>
-                          <div className="bg-white/5 rounded-xl p-4 mb-8 max-h-40 overflow-y-auto text-left space-y-2">
-                            {customerPaymentsWarning.map((p, i) => (
-                              <div key={i} className="text-xs text-slate-300 flex justify-between">
-                                <span className="truncate pr-4">{p.description}</span>
-                                <span className="font-bold text-slate-400">{formatCurrency(p.totalAmount - p.paidAmount)}</span>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="flex flex-col gap-3">
-                            <button 
-                              onClick={() => {
-                                setCustomerToDelete(null);
-                                setActiveScreen('client-payments');
-                              }}
-                              className="w-full py-4 rounded-2xl font-bold bg-primary text-white shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
-                            >
-                              Ir para Pagamentos
-                            </button>
-                            <button 
-                              onClick={confirmDeleteCustomerWithPayments}
-                              className="w-full py-4 rounded-2xl font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
-                            >
-                              Excluir Cliente e Pagamentos
-                            </button>
-                            <button 
-                              onClick={() => setCustomerToDelete(null)}
-                              className="w-full py-4 rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all"
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-slate-400 text-sm mb-8">
-                            Tem certeza que deseja excluir o cliente <strong className="text-slate-200">{customerToDelete.firstName} {customerToDelete.lastName}</strong>? Esta ação não pode ser desfeita.
-                          </p>
-                          <div className="flex gap-4">
-                            <button 
-                              onClick={() => setCustomerToDelete(null)}
-                              className="flex-1 py-4 rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all"
-                            >
-                              Cancelar
-                            </button>
-                            <button 
-                              onClick={confirmDeleteCustomerWithPayments}
-                              className="flex-1 py-4 rounded-2xl font-bold bg-rose-500 text-white shadow-lg shadow-rose-500/20 transition-all hover:scale-[1.02]"
-                            >
-                              Excluir Cliente
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </motion.div>
-                  </div>
-                )}
-              </AnimatePresence>
             </div>
           ) : activeScreen === 'client-payments' ? (
             /* Client Payments Screen */
@@ -3256,16 +3242,11 @@ export default function App() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Cliente</label>
-                          <select 
-                            value={newClientPayment.customerId}
-                            onChange={(e) => setNewClientPayment({...newClientPayment, customerId: parseInt(e.target.value)})}
-                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
-                          >
-                            <option value={0}>Selecionar Cliente</option>
-                            {customers.map(c => (
-                              <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
-                            ))}
-                          </select>
+                          <CustomerSearchSelect 
+                            customers={customers}
+                            selectedId={newClientPayment.customerId}
+                            onSelect={(id) => setNewClientPayment({...newClientPayment, customerId: id})}
+                          />
                         </div>
                         <div className="space-y-2">
                           <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Descrição da Compra</label>
@@ -3417,6 +3398,43 @@ export default function App() {
                 )}
               </AnimatePresence>
             </div>
+          ) : activeScreen === 'service-orders' ? (
+            <ServiceOrders 
+              orders={serviceOrders}
+              customers={customers}
+              inventoryItems={inventoryItems}
+              statuses={serviceOrderStatuses}
+              clientPayments={clientPayments}
+              onAddOrder={handleAddServiceOrder}
+              onUpdateOrder={handleUpdateServiceOrder}
+              onDeleteOrder={handleDeleteServiceOrder}
+              onAddStatus={handleAddServiceOrderStatus}
+              onDeleteStatus={handleDeleteServiceOrderStatus}
+              onTriggerAddCustomer={() => {
+                setEditingCustomer(null);
+                setNewCustomer({
+                  firstName: '',
+                  lastName: '',
+                  nickname: '',
+                  cpf: '',
+                  companyName: '',
+                  phone: '',
+                  observation: '',
+                  creditLimit: ''
+                });
+                setIsAddingCustomer(true);
+              }}
+              directOsId={directOsId}
+              onClearDirectOsId={() => setDirectOsId(null)}
+              currentUser={currentUser}
+            />
+          ) : activeScreen === 'inventory' ? (
+            <Inventory
+              items={inventoryItems}
+              onAddItem={handleAddInventoryItem}
+              onUpdateItem={handleUpdateInventoryItem}
+              onDeleteItem={handleDeleteInventoryItem}
+            />
           ) : (
             /* Settings Screen */
             <SettingsLayout 
@@ -3427,16 +3445,346 @@ export default function App() {
               deleteCategory={deleteCategory}
               users={users}
               addUser={handleAddUser}
+              updateUser={handleUpdateUser}
               deleteUser={handleDeleteUser}
               auditLogs={auditLogs}
+              transactions={transactions}
+              customers={customers}
+              clientPayments={clientPayments}
             />
           )}
+        </div>
+
+        {/* Mobile Bottom Navigation */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-bg-dark/80 backdrop-blur-xl border-t border-white/10 px-4 py-2 flex items-center justify-around pb-safe">
+          <button 
+            onClick={() => setActiveScreen('dashboard')}
+            className={cn(
+              "flex flex-col items-center gap-1 p-2 transition-all",
+              activeScreen === 'dashboard' ? "text-primary" : "text-slate-500"
+            )}
+          >
+            <LayoutDashboard size={20} />
+            <span className="text-[8px] font-black uppercase tracking-widest">Início</span>
+          </button>
+          <button 
+            onClick={() => setActiveScreen('service-orders')}
+            className={cn(
+              "flex flex-col items-center gap-1 p-2 transition-all",
+              activeScreen === 'service-orders' ? "text-primary" : "text-slate-500"
+            )}
+          >
+            <Briefcase size={20} />
+            <span className="text-[8px] font-black uppercase tracking-widest">Ordens</span>
+          </button>
+          <button 
+            onClick={() => setActiveScreen('client-payments')}
+            className={cn(
+              "flex flex-col items-center gap-1 p-2 transition-all",
+              activeScreen === 'client-payments' ? "text-primary" : "text-slate-500"
+            )}
+          >
+            <CreditCard size={20} />
+            <span className="text-[8px] font-black uppercase tracking-widest">Vendas</span>
+          </button>
+          <button 
+            onClick={() => setActiveScreen('customers')}
+            className={cn(
+              "flex flex-col items-center gap-1 p-2 transition-all",
+              activeScreen === 'customers' ? "text-primary" : "text-slate-500"
+            )}
+          >
+            <Users size={20} />
+            <span className="text-[8px] font-black uppercase tracking-widest">Clientes</span>
+          </button>
+          <button 
+            onClick={() => setActiveScreen('inventory')}
+            className={cn(
+              "flex flex-col items-center gap-1 p-2 transition-all",
+              activeScreen === 'inventory' ? "text-primary" : "text-slate-500"
+            )}
+          >
+            <Package size={20} />
+            <span className="text-[8px] font-black uppercase tracking-widest">Estoque</span>
+          </button>
         </div>
 
         <footer className="py-10 px-10 text-center border-t border-white/5">
           <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">© 2024 FinanceFlow Inc. Todos os direitos reservados.</p>
         </footer>
       </main>
+
+      {/* Global Customer Modals */}
+      <AnimatePresence>
+        {isAddingCustomer && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setIsAddingCustomer(false);
+                setEditingCustomer(null);
+              }}
+              className="absolute inset-0 bg-bg-dark/90 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl glass-modal p-8 overflow-y-auto max-h-[90vh] custom-scrollbar"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold">{editingCustomer ? 'Editar Cliente' : 'Novo Cliente'}</h3>
+                <button 
+                  onClick={() => {
+                    setIsAddingCustomer(false);
+                    setEditingCustomer(null);
+                  }}
+                  className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-primary flex justify-between">
+                      <span>Nome *</span>
+                      <span className="text-[8px] text-primary/60 italic">Obrigatório</span>
+                    </label>
+                    <input 
+                      value={newCustomer.firstName}
+                      onChange={(e) => setNewCustomer({...newCustomer, firstName: e.target.value})}
+                      className="w-full h-12 bg-white/5 border-2 border-primary/30 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                      placeholder="João"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Sobrenome</label>
+                    <input 
+                      value={newCustomer.lastName}
+                      onChange={(e) => setNewCustomer({...newCustomer, lastName: e.target.value})}
+                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
+                      placeholder="Silva"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Apelido</label>
+                    <input 
+                      value={newCustomer.nickname}
+                      onChange={(e) => setNewCustomer({...newCustomer, nickname: e.target.value})}
+                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
+                      placeholder="Jão"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">CPF</label>
+                    <input 
+                      value={newCustomer.cpf}
+                      onChange={(e) => setNewCustomer({...newCustomer, cpf: e.target.value})}
+                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
+                      placeholder="000.000.000-00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Nome da Empresa</label>
+                    <input 
+                      value={newCustomer.companyName}
+                      onChange={(e) => setNewCustomer({...newCustomer, companyName: e.target.value})}
+                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
+                      placeholder="Empresa LTDA"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-primary flex justify-between">
+                      <span>Telefone (WhatsApp) *</span>
+                      <span className="text-[8px] text-primary/60 italic">Obrigatório</span>
+                    </label>
+                    <input 
+                      value={newCustomer.phone}
+                      onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
+                      className="w-full h-12 bg-white/5 border-2 border-primary/30 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                      placeholder="5511999999999"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Limite de Crédito</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">R$</span>
+                      <input 
+                        type="number"
+                        value={newCustomer.creditLimit}
+                        onChange={(e) => setNewCustomer({...newCustomer, creditLimit: e.target.value})}
+                        className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Observações</label>
+                  <textarea 
+                    value={newCustomer.observation}
+                    onChange={(e) => setNewCustomer({...newCustomer, observation: e.target.value})}
+                    className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none resize-none"
+                    placeholder="Notas sobre o cliente..."
+                  />
+                </div>
+                <div className="flex gap-4 pt-4">
+                  <button 
+                    onClick={() => {
+                      setIsAddingCustomer(false);
+                      setEditingCustomer(null);
+                    }}
+                    className="flex-1 py-4 rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={() => handleAddCustomer(false)}
+                    className="flex-1 bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
+                  >
+                    {editingCustomer ? 'Atualizar Cliente' : 'Salvar Cliente'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Customer Warning Modal (Global) */}
+      <AnimatePresence>
+        {showCustomerWarningModal && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-bg-dark/80 backdrop-blur-sm"
+              onClick={() => setShowCustomerWarningModal(false)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md glass-modal p-8 text-center"
+            >
+              <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto mb-6">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Informações Incompletas</h3>
+              <p className="text-slate-400 text-sm mb-8">
+                {customerWarningType === 'both' && "Você não preencheu o CPF e o Telefone do cliente."}
+                {customerWarningType === 'cpf' && "Você não preencheu o CPF do cliente."}
+                {customerWarningType === 'phone' && "Você não preencheu o Telefone do cliente."}
+                <br/><br/>
+                Deseja salvar assim mesmo?
+              </p>
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setShowCustomerWarningModal(false)}
+                  className="flex-1 py-4 rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all"
+                >
+                  Voltar e Preencher
+                </button>
+                <button 
+                  onClick={() => handleAddCustomer(true)}
+                  className="flex-1 py-4 rounded-2xl font-bold bg-amber-500 text-white shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02]"
+                >
+                  Salvar Assim Mesmo
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Customer Delete Warning Modal (Global) */}
+      <AnimatePresence>
+        {customerToDelete && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-bg-dark/80 backdrop-blur-sm"
+              onClick={() => setCustomerToDelete(null)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md glass-modal p-8 text-center"
+            >
+              <div className="w-16 h-16 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto mb-6">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Atenção!</h3>
+              
+              {customerPaymentsWarning.length > 0 ? (
+                <>
+                  <p className="text-slate-400 text-sm mb-6">
+                    O cliente <strong className="text-slate-200">{customerToDelete.firstName} {customerToDelete.lastName}</strong> possui <strong>{customerPaymentsWarning.length}</strong> lançamento(s) vinculado(s).
+                  </p>
+                  <div className="bg-white/5 rounded-xl p-4 mb-8 max-h-40 overflow-y-auto text-left space-y-2">
+                    {customerPaymentsWarning.map((p, i) => (
+                      <div key={i} className="text-xs text-slate-300 flex justify-between">
+                        <span className="truncate pr-4">{p.description}</span>
+                        <span className="font-bold text-slate-400">{formatCurrency(p.totalAmount - p.paidAmount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <button 
+                      onClick={() => {
+                        setCustomerToDelete(null);
+                        setActiveScreen('client-payments');
+                      }}
+                      className="w-full py-4 rounded-2xl font-bold bg-primary text-white shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
+                    >
+                      Ir para Pagamentos
+                    </button>
+                    <button 
+                      onClick={confirmDeleteCustomerWithPayments}
+                      className="w-full py-4 rounded-2xl font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
+                    >
+                      Excluir Cliente e Pagamentos
+                    </button>
+                    <button 
+                      onClick={() => setCustomerToDelete(null)}
+                      className="w-full py-4 rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-slate-400 text-sm mb-8">
+                    Tem certeza que deseja excluir o cliente <strong className="text-slate-200">{customerToDelete.firstName} {customerToDelete.lastName}</strong>? Esta ação não pode ser desfeita.
+                  </p>
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => setCustomerToDelete(null)}
+                      className="flex-1 py-4 rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      onClick={confirmDeleteCustomerWithPayments}
+                      className="flex-1 py-4 rounded-2xl font-bold bg-rose-500 text-white shadow-lg shadow-rose-500/20 transition-all hover:scale-[1.02]"
+                    >
+                      Excluir Cliente
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <PasswordModal 
         isOpen={showPasswordModal} 

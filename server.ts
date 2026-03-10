@@ -104,6 +104,58 @@ db.exec(`
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (userId) REFERENCES users(id)
   );
+
+  CREATE TABLE IF NOT EXISTS inventory_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    category TEXT CHECK(category IN ('product', 'service')) NOT NULL,
+    sku TEXT,
+    unitPrice REAL NOT NULL,
+    stockLevel INTEGER DEFAULT 0,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    createdBy INTEGER,
+    updatedBy INTEGER,
+    FOREIGN KEY (createdBy) REFERENCES users(id),
+    FOREIGN KEY (updatedBy) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS service_orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customerId INTEGER NOT NULL,
+    equipmentBrand TEXT,
+    equipmentModel TEXT,
+    equipmentSerial TEXT,
+    reportedProblem TEXT,
+    arrivalPhotoUrl TEXT,
+    status TEXT DEFAULT 'awaiting_diagnosis',
+    technicalAnalysis TEXT,
+    servicesPerformed TEXT,
+    partsUsed TEXT DEFAULT '[]',
+    serviceFee REAL DEFAULT 0,
+    totalAmount REAL DEFAULT 0,
+    finalObservations TEXT,
+    entryDate TEXT,
+    analysisPrediction TEXT,
+    customerPassword TEXT,
+    accessories TEXT,
+    ramInfo TEXT,
+    ssdInfo TEXT,
+    priority TEXT DEFAULT 'medium',
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    createdBy INTEGER,
+    updatedBy INTEGER,
+    FOREIGN KEY (customerId) REFERENCES customers(id),
+    FOREIGN KEY (createdBy) REFERENCES users(id),
+    FOREIGN KEY (updatedBy) REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS service_order_statuses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    color TEXT NOT NULL,
+    priority INTEGER DEFAULT 0,
+    isDefault INTEGER DEFAULT 0
+  );
 `);
 
 // Garantir que as colunas novas existem (migrações simples)
@@ -132,7 +184,15 @@ const migrations = [
   { name: 'createdBy', table: 'client_payments', type: "INTEGER" },
   { name: 'updatedBy', table: 'client_payments', type: "INTEGER" },
   { name: 'createdBy', table: 'customers', type: "INTEGER" },
-  { name: 'updatedBy', table: 'customers', type: "INTEGER" }
+  { name: 'updatedBy', table: 'customers', type: "INTEGER" },
+  { name: 'permissions', table: 'users', type: "TEXT DEFAULT '[]'" },
+  { name: 'entryDate', table: 'service_orders', type: "TEXT" },
+  { name: 'analysisPrediction', table: 'service_orders', type: "TEXT" },
+  { name: 'customerPassword', table: 'service_orders', type: "TEXT" },
+  { name: 'accessories', table: 'service_orders', type: "TEXT" },
+  { name: 'ramInfo', table: 'service_orders', type: "TEXT" },
+  { name: 'ssdInfo', table: 'service_orders', type: "TEXT" },
+  { name: 'priority', table: 'service_orders', type: "TEXT DEFAULT 'medium'" }
 ];
 
 migrations.forEach(m => {
@@ -146,7 +206,9 @@ migrations.forEach(m => {
 // Inserir usuário Admin padrão se não existir
 const usersCount = db.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
 if (usersCount.count === 0) {
-  db.prepare("INSERT INTO users (username, password, role, name) VALUES (?, ?, ?, ?)").run('admin', 'admin', 'owner', 'Administrador');
+  // Admin tem todas as permissões por padrão
+  const allPermissions = JSON.stringify(['view_dashboard', 'manage_transactions', 'view_reports', 'manage_customers', 'manage_payments', 'manage_settings', 'manage_users']);
+  db.prepare("INSERT INTO users (username, password, role, name, permissions) VALUES (?, ?, ?, ?, ?)").run('admin', 'admin', 'owner', 'Administrador', allPermissions);
 }
 
 // Inserir configurações padrão se não existirem
@@ -164,6 +226,19 @@ if (categoriesCount.count === 0) {
   
   income.forEach(c => insertCat.run(c, 'income'));
   expense.forEach(c => insertCat.run(c, 'expense'));
+}
+
+// Inserir status de OS padrão se não existirem
+const statusCount = db.prepare("SELECT COUNT(*) as count FROM service_order_statuses").get() as { count: number };
+if (statusCount.count === 0) {
+  const insertStatus = db.prepare("INSERT INTO service_order_statuses (name, color, priority, isDefault) VALUES (?, ?, ?, ?)");
+  insertStatus.run('Aguardando Análise', '#f59e0b', 1, 1);
+  insertStatus.run('Em Manutenção', '#3b82f6', 2, 1);
+  insertStatus.run('Urgente', '#f43f5e', 3, 1);
+  insertStatus.run('Aguardando Peças', '#f97316', 4, 1);
+  insertStatus.run('Pronto para Retirada', '#10b981', 5, 1);
+  insertStatus.run('Concluído', '#64748b', 6, 1);
+  insertStatus.run('Sem Conserto', '#ef4444', 7, 1);
 }
 
 // Inserir dados iniciais se o banco estiver vazio
@@ -400,21 +475,77 @@ async function startServer() {
     res.json({ id: result.lastInsertRowid });
   });
 
+  // Rotas de Autenticação
+  app.post("/api/login", (req, res) => {
+    const { username, password } = req.body;
+    const user = db.prepare("SELECT * FROM users WHERE username = ? AND password = ?").get(username, password) as any;
+    
+    if (user) {
+      // Parse permissions
+      try {
+        user.permissions = JSON.parse(user.permissions || '[]');
+      } catch (e) {
+        user.permissions = [];
+      }
+      
+      // Se for owner, garante todas as permissões
+      if (user.role === 'owner') {
+        user.permissions = ['view_dashboard', 'manage_transactions', 'view_reports', 'manage_customers', 'manage_payments', 'manage_settings', 'manage_users'];
+      }
+
+      res.json(user);
+    } else {
+      res.status(401).json({ error: "Credenciais inválidas" });
+    }
+  });
+
   // Rotas de Usuários
   app.get("/api/users", (req, res) => {
-    const users = db.prepare("SELECT id, username, role, name, createdAt FROM users ORDER BY name ASC").all();
-    res.json(users);
+    const users = db.prepare("SELECT id, username, role, name, permissions, createdAt FROM users ORDER BY name ASC").all();
+    
+    // Parse permissions for each user
+    const usersWithPermissions = users.map((u: any) => {
+      try {
+        u.permissions = JSON.parse(u.permissions || '[]');
+      } catch (e) {
+        u.permissions = [];
+      }
+      return u;
+    });
+
+    res.json(usersWithPermissions);
   });
 
   app.post("/api/users", (req, res) => {
-    const { username, password, role, name } = req.body;
+    const { username, password, role, name, permissions } = req.body;
     try {
-      const result = db.prepare("INSERT INTO users (username, password, role, name) VALUES (?, ?, ?, ?)").run(username, password, role, name);
+      const permsString = JSON.stringify(permissions || []);
+      const result = db.prepare("INSERT INTO users (username, password, role, name, permissions) VALUES (?, ?, ?, ?, ?)").run(username, password, role, name, permsString);
       
       // Log action
       db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'create', 'user', result.lastInsertRowid, `Created user ${username}`);
       
       res.json({ id: result.lastInsertRowid });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.put("/api/users/:id", (req, res) => {
+    const { name, role, password, permissions } = req.body;
+    
+    try {
+      const permsString = JSON.stringify(permissions || []);
+      
+      if (password) {
+        db.prepare("UPDATE users SET name = ?, role = ?, password = ?, permissions = ? WHERE id = ?").run(name, role, password, permsString, req.params.id);
+      } else {
+        db.prepare("UPDATE users SET name = ?, role = ?, permissions = ? WHERE id = ?").run(name, role, permsString, req.params.id);
+      }
+      
+      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'update', 'user', req.params.id, `Updated user ${name}`);
+      
+      res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
@@ -435,6 +566,182 @@ async function startServer() {
       LIMIT 100
     `).all();
     res.json(logs);
+  });
+
+  // Rotas de Inventário
+  app.get("/api/inventory", (req, res) => {
+    const items = db.prepare("SELECT * FROM inventory_items ORDER BY name ASC").all();
+    res.json(items);
+  });
+
+  app.post("/api/inventory", (req, res) => {
+    const { name, category, sku, unitPrice, stockLevel, createdBy } = req.body;
+    try {
+      const result = db.prepare("INSERT INTO inventory_items (name, category, sku, unitPrice, stockLevel, createdBy) VALUES (?, ?, ?, ?, ?, ?)").run(name, category, sku, unitPrice, stockLevel, createdBy);
+      
+      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'InventoryItem', result.lastInsertRowid, `Created item ${name}`);
+      
+      res.json({ id: result.lastInsertRowid });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.put("/api/inventory/:id", (req, res) => {
+    const { name, category, sku, unitPrice, stockLevel, updatedBy } = req.body;
+    try {
+      db.prepare("UPDATE inventory_items SET name = ?, category = ?, sku = ?, unitPrice = ?, stockLevel = ?, updatedBy = ? WHERE id = ?").run(name, category, sku, unitPrice, stockLevel, updatedBy, req.params.id);
+      
+      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'InventoryItem', req.params.id, `Updated item ${name}`);
+      
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/inventory/:id", (req, res) => {
+    try {
+      db.prepare("DELETE FROM inventory_items WHERE id = ?").run(req.params.id);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  // Rotas de Ordens de Serviço (OS)
+  app.get("/api/service-orders", (req, res) => {
+    const orders = db.prepare(`
+      SELECT so.*, c.firstName, c.lastName, c.phone 
+      FROM service_orders so 
+      LEFT JOIN customers c ON so.customerId = c.id 
+      ORDER BY so.createdAt DESC
+    `).all();
+    
+    const parsedOrders = orders.map((o: any) => {
+      try {
+        o.partsUsed = JSON.parse(o.partsUsed || '[]');
+      } catch (e) {
+        o.partsUsed = [];
+      }
+      return o;
+    });
+    
+    res.json(parsedOrders);
+  });
+
+  app.post("/api/service-orders", (req, res) => {
+    const { 
+      customerId, equipmentBrand, equipmentModel, equipmentSerial, 
+      reportedProblem, arrivalPhotoUrl, status, entryDate, analysisPrediction, 
+      customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy 
+    } = req.body;
+    
+    try {
+      const result = db.prepare(`
+        INSERT INTO service_orders (
+          customerId, equipmentBrand, equipmentModel, equipmentSerial, 
+          reportedProblem, arrivalPhotoUrl, status, entryDate, analysisPrediction, 
+          customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy
+        ) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        customerId, equipmentBrand, equipmentModel, equipmentSerial, 
+        reportedProblem, arrivalPhotoUrl, status || 'Aguardando Análise', 
+        entryDate, analysisPrediction, customerPassword, accessories, 
+        ramInfo, ssdInfo, priority || 'medium', createdBy || 1
+      );
+      
+      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'ServiceOrder', result.lastInsertRowid, `Created OS for customer ${customerId}`);
+      
+      res.json({ id: result.lastInsertRowid });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.put("/api/service-orders/:id", (req, res) => {
+    const { 
+      status, technicalAnalysis, servicesPerformed, partsUsed, 
+      serviceFee, totalAmount, finalObservations, entryDate, analysisPrediction, 
+      customerPassword, accessories, ramInfo, ssdInfo, priority, updatedBy 
+    } = req.body;
+    
+    try {
+      // Fetch old OS to compare parts and update inventory
+      const oldOs = db.prepare("SELECT partsUsed FROM service_orders WHERE id = ?").get(req.params.id) as any;
+      let oldParts: any[] = [];
+      try {
+        oldParts = JSON.parse(oldOs?.partsUsed || '[]');
+      } catch (e) {}
+
+      const newParts = partsUsed || [];
+      
+      // Update inventory based on parts changes
+      // 1. Add back old parts
+      oldParts.forEach((p: any) => {
+        if (p.id) {
+          db.prepare("UPDATE inventory_items SET stockLevel = stockLevel + ? WHERE id = ?").run(p.quantity, p.id);
+        }
+      });
+      
+      // 2. Deduct new parts
+      newParts.forEach((p: any) => {
+        if (p.id) {
+          db.prepare("UPDATE inventory_items SET stockLevel = stockLevel - ? WHERE id = ?").run(p.quantity, p.id);
+        }
+      });
+
+      const partsString = JSON.stringify(newParts);
+      
+      db.prepare(`
+        UPDATE service_orders 
+        SET status = ?, technicalAnalysis = ?, servicesPerformed = ?, partsUsed = ?, 
+            serviceFee = ?, totalAmount = ?, finalObservations = ?, entryDate = ?, 
+            analysisPrediction = ?, customerPassword = ?, accessories = ?, 
+            ramInfo = ?, ssdInfo = ?, priority = ?, updatedBy = ? 
+        WHERE id = ?
+      `).run(
+        status, technicalAnalysis, servicesPerformed, partsString, 
+        serviceFee, totalAmount, finalObservations, entryDate, 
+        analysisPrediction, customerPassword, accessories, 
+        ramInfo, ssdInfo, priority, updatedBy || 1, req.params.id
+      );
+      
+      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'ServiceOrder', req.params.id, `Updated OS #${req.params.id}`);
+      
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/service-orders/:id", (req, res) => {
+    try {
+      // When deleting an OS, should we return parts to stock?
+      // For now, let's just delete.
+      db.prepare("DELETE FROM service_orders WHERE id = ?").run(req.params.id);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  // Rotas de Status de OS
+  app.get("/api/service-order-statuses", (req, res) => {
+    const statuses = db.prepare("SELECT * FROM service_order_statuses ORDER BY priority ASC").all();
+    res.json(statuses);
+  });
+
+  app.post("/api/service-order-statuses", (req, res) => {
+    const { name, color, priority, isDefault } = req.body;
+    const result = db.prepare("INSERT INTO service_order_statuses (name, color, priority, isDefault) VALUES (?, ?, ?, ?)").run(name, color, priority || 0, isDefault ? 1 : 0);
+    res.json({ id: result.lastInsertRowid });
+  });
+
+  app.delete("/api/service-order-statuses/:id", (req, res) => {
+    db.prepare("DELETE FROM service_order_statuses WHERE id = ? AND isDefault = 0").run(req.params.id);
+    res.json({ success: true });
   });
 
   // Configuração do Vite para desenvolvimento

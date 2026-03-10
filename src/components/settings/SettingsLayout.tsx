@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AppSettings, Category, User, AuditLog } from '../../types';
+import { AppSettings, Category, User, AuditLog, Transaction, Customer, ClientPayment } from '../../types';
 import { cn } from '../../lib/utils';
 import { PrintLayout } from './PrintLayout';
 import { InterfaceSettings } from './InterfaceSettings';
@@ -15,8 +15,12 @@ interface SettingsLayoutProps {
   deleteCategory: (id: number) => void;
   users: User[];
   addUser: (user: any) => void;
+  updateUser: (id: number, user: any) => void;
   deleteUser: (id: number) => void;
   auditLogs: AuditLog[];
+  transactions: Transaction[];
+  customers: Customer[];
+  clientPayments: ClientPayment[];
 }
 
 export const SettingsLayout: React.FC<SettingsLayoutProps> = (props) => {
@@ -87,7 +91,18 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = (props) => {
           {activeTab === 'interface' && <InterfaceSettings {...props} />}
           {activeTab === 'print' && <PrintLayout {...props} />}
           {activeTab === 'categories' && <CategorySettings {...props} />}
-          {activeTab === 'users' && <UserManagement {...props} />}
+          {activeTab === 'users' && (
+            <UserManagement 
+              users={props.users}
+              addUser={props.addUser}
+              updateUser={props.updateUser}
+              deleteUser={props.deleteUser}
+              auditLogs={props.auditLogs}
+              transactions={props.transactions}
+              customers={props.customers}
+              clientPayments={props.clientPayments}
+            />
+          )}
         </div>
       </div>
     </div>

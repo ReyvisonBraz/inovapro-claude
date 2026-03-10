@@ -3,6 +3,7 @@ export interface User {
   username: string;
   name: string;
   role: 'owner' | 'manager' | 'employee';
+  permissions: string[];
   createdAt: string;
 }
 
@@ -90,4 +91,62 @@ export interface AppSettings {
   receiptQrCode?: string;
 }
 
-export type Screen = 'dashboard' | 'transactions' | 'reports' | 'settings' | 'customers' | 'client-payments';
+export interface InventoryItem {
+  id: number;
+  name: string;
+  category: 'product' | 'service';
+  sku?: string;
+  unitPrice: number;
+  stockLevel: number;
+  createdAt: string;
+  createdBy?: number;
+  updatedBy?: number;
+}
+
+export interface ServiceOrderPart {
+  id?: number; // Inventory item ID
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+}
+
+export interface ServiceOrderStatus {
+  id: number;
+  name: string;
+  color: string;
+  priority: number;
+  isDefault?: boolean;
+}
+
+export interface ServiceOrder {
+  id: number;
+  customerId: number;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  equipmentBrand?: string;
+  equipmentModel?: string;
+  equipmentSerial?: string;
+  reportedProblem?: string;
+  arrivalPhotoUrl?: string;
+  status: string;
+  technicalAnalysis?: string;
+  servicesPerformed?: string;
+  partsUsed: ServiceOrderPart[];
+  serviceFee: number;
+  totalAmount: number;
+  finalObservations?: string;
+  entryDate?: string;
+  analysisPrediction?: string;
+  customerPassword?: string;
+  accessories?: string;
+  ramInfo?: string;
+  ssdInfo?: string;
+  priority?: 'low' | 'medium' | 'high';
+  createdAt: string;
+  createdBy?: number;
+  updatedBy?: number;
+}
+
+export type Screen = 'dashboard' | 'transactions' | 'reports' | 'settings' | 'customers' | 'client-payments' | 'service-orders' | 'inventory';
