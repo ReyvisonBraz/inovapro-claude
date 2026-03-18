@@ -206,7 +206,11 @@ const migrations = [
   { name: 'ramInfo', table: 'service_orders', type: "TEXT" },
   { name: 'ssdInfo', table: 'service_orders', type: "TEXT" },
   { name: 'priority', table: 'service_orders', type: "TEXT DEFAULT 'medium'" },
-  { name: 'equipmentColor', table: 'service_orders', type: "TEXT" }
+  { name: 'equipmentColor', table: 'service_orders', type: "TEXT" },
+  { name: 'minQuantity', table: 'inventory_items', type: "INTEGER DEFAULT 5" },
+  { name: 'costPrice', table: 'inventory_items', type: "REAL DEFAULT 0" },
+  { name: 'salePrice', table: 'inventory_items', type: "REAL DEFAULT 0" },
+  { name: 'quantity', table: 'inventory_items', type: "INTEGER DEFAULT 0" }
 ];
 
 migrations.forEach(m => {
@@ -589,9 +593,11 @@ async function startServer() {
   });
 
   app.post("/api/inventory", (req, res) => {
-    const { name, category, sku, unitPrice, stockLevel, createdBy } = req.body;
+    const { name, category, sku, costPrice, salePrice, quantity, minQuantity, createdBy } = req.body;
     try {
-      const result = db.prepare("INSERT INTO inventory_items (name, category, sku, unitPrice, stockLevel, createdBy) VALUES (?, ?, ?, ?, ?, ?)").run(name, category, sku, unitPrice, stockLevel, createdBy);
+      const result = db.prepare("INSERT INTO inventory_items (name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, createdBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(
+        name, category, sku, costPrice || 0, salePrice || 0, quantity || 0, minQuantity || 5, salePrice || 0, quantity || 0, createdBy || 1
+      );
       
       db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'InventoryItem', result.lastInsertRowid, `Created item ${name}`);
       
@@ -602,9 +608,11 @@ async function startServer() {
   });
 
   app.put("/api/inventory/:id", (req, res) => {
-    const { name, category, sku, unitPrice, stockLevel, updatedBy } = req.body;
+    const { name, category, sku, costPrice, salePrice, quantity, minQuantity, updatedBy } = req.body;
     try {
-      db.prepare("UPDATE inventory_items SET name = ?, category = ?, sku = ?, unitPrice = ?, stockLevel = ?, updatedBy = ? WHERE id = ?").run(name, category, sku, unitPrice, stockLevel, updatedBy, req.params.id);
+      db.prepare("UPDATE inventory_items SET name = ?, category = ?, sku = ?, costPrice = ?, salePrice = ?, quantity = ?, minQuantity = ?, unitPrice = ?, stockLevel = ?, updatedBy = ? WHERE id = ?").run(
+        name, category, sku, costPrice, salePrice, quantity, minQuantity, salePrice, quantity, updatedBy || 1, req.params.id
+      );
       
       db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'InventoryItem', req.params.id, `Updated item ${name}`);
       
@@ -696,14 +704,14 @@ async function startServer() {
       // 1. Add back old parts
       oldParts.forEach((p: any) => {
         if (p.id) {
-          db.prepare("UPDATE inventory_items SET stockLevel = stockLevel + ? WHERE id = ?").run(p.quantity, p.id);
+          db.prepare("UPDATE inventory_items SET quantity = quantity + ?, stockLevel = stockLevel + ? WHERE id = ?").run(p.quantity, p.quantity, p.id);
         }
       });
       
       // 2. Deduct new parts
       newParts.forEach((p: any) => {
         if (p.id) {
-          db.prepare("UPDATE inventory_items SET stockLevel = stockLevel - ? WHERE id = ?").run(p.quantity, p.id);
+          db.prepare("UPDATE inventory_items SET quantity = quantity - ?, stockLevel = stockLevel - ? WHERE id = ?").run(p.quantity, p.quantity, p.id);
         }
       });
 

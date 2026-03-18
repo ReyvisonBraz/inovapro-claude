@@ -34,6 +34,7 @@ interface ServiceOrdersProps {
   onAddBrand: (name: string) => void;
   onAddModel: (brandId: number, name: string) => void;
   onTriggerAddCustomer: () => void;
+  onPrintBlankForm: () => void;
   directOsId: number | null;
   directMode: string | null;
   onClearDirectOsId: () => void;
@@ -56,6 +57,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   onAddBrand,
   onAddModel,
   onTriggerAddCustomer,
+  onPrintBlankForm,
   directOsId,
   directMode,
   onClearDirectOsId
@@ -660,17 +662,24 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
           <h2 className="text-3xl font-black text-white tracking-tight">Ordens de Serviço</h2>
           <p className="text-slate-500 font-medium">Gerencie manutenções e reparos técnicos</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <button 
+            onClick={onPrintBlankForm}
+            className="w-full sm:w-auto h-12 px-6 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-bold text-sm hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+          >
+            <Printer size={20} />
+            Ficha em Branco
+          </button>
           <button 
             onClick={handlePrintReport}
-            className="h-12 px-6 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-bold text-sm hover:bg-white/10 transition-all flex items-center gap-2"
+            className="w-full sm:w-auto h-12 px-6 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-bold text-sm hover:bg-white/10 transition-all flex items-center justify-center gap-2"
           >
             <Printer size={20} />
             Relatório
           </button>
           <button 
             onClick={() => setShowStatusManager(true)}
-            className="h-12 px-6 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-bold text-sm hover:bg-white/10 transition-all flex items-center gap-2"
+            className="w-full sm:w-auto h-12 px-6 rounded-xl bg-white/5 border border-white/10 text-slate-300 font-bold text-sm hover:bg-white/10 transition-all flex items-center justify-center gap-2"
           >
             <Tag size={20} />
             Status
@@ -702,7 +711,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
               });
               setIsAdding(true);
             }}
-            className="h-12 px-6 rounded-xl bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center gap-2"
+            className="w-full sm:w-auto h-12 px-6 rounded-xl bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
           >
             <Plus size={20} />
             Nova Ordem
@@ -760,11 +769,11 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
               className="w-full h-12 pl-12 pr-4 bg-white/5 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full md:w-auto">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-12 px-4 bg-white/5 border border-white/10 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
+              className="flex-1 md:w-auto h-12 px-4 bg-white/5 border border-white/10 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
             >
               <option value="all">Todos os Status</option>
               {statuses.map(s => (
@@ -880,7 +889,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Criado em</p>
                   <p className="text-xs font-medium text-slate-300">{format(parseISO(order.createdAt), "dd MMM yyyy", { locale: ptBR })}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 justify-end">
                   <button 
                     onClick={() => {
                       setSelectedOrder(order);

@@ -24,19 +24,52 @@
   }
 
   .glass {
-    @apply bg-white/[0.03] backdrop-blur-lg border border-white/10;
+    @apply bg-white/[0.03] border border-white/10;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transform: translateZ(0);
   }
 
   .glass-card {
-    @apply bg-slate-900/40 backdrop-blur-2xl border border-white/[0.08] rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)];
+    @apply bg-slate-900/40 border border-white/[0.08] rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.4)];
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transform: translateZ(0);
   }
 
   .glass-input {
-    @apply bg-white/[0.02] backdrop-blur-md border border-white/[0.08] rounded-2xl focus:border-primary/40 focus:ring-4 focus:ring-primary/10 outline-none transition-all duration-300;
+    @apply bg-white/[0.02] border border-white/[0.08] rounded-2xl focus:border-primary/40 focus:ring-4 focus:ring-primary/10 outline-none transition-all duration-300;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
   }
 
   .glass-modal {
-    @apply bg-slate-950/60 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)];
+    @apply bg-slate-950/60 border border-white/10 rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)];
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    transform: translateZ(0);
+  }
+
+  /* Reduce blur on mobile for performance */
+  @media (max-width: 768px) {
+    .glass, .glass-card, .glass-modal {
+      backdrop-filter: blur(4px) !important;
+      -webkit-backdrop-filter: blur(4px) !important;
+    }
+    
+    /* Override Tailwind utility classes on mobile */
+    .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur-3xl {
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
+    }
+    .backdrop-blur-md, .backdrop-blur-lg {
+      backdrop-filter: blur(4px) !important;
+      -webkit-backdrop-filter: blur(4px) !important;
+    }
+    .backdrop-blur-sm {
+      backdrop-filter: blur(2px) !important;
+      -webkit-backdrop-filter: blur(2px) !important;
+    }
   }
 }
 
@@ -52,4 +85,37 @@
 
 ::-webkit-scrollbar-thumb {
   @apply bg-white/10 rounded-full hover:bg-primary/50 transition-colors;
+}
+
+/* Print Styles */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  aside, header, button, .no-print {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  .glass-card {
+    border: 1px solid #eee !important;
+    background: white !important;
+    box-shadow: none !important;
+  }
+
+  .text-slate-100, .text-slate-200, .text-slate-300, .text-slate-400 {
+    color: #333 !important;
+  }
+
+  .bg-bg-dark {
+    background: white !important;
+  }
 }

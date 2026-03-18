@@ -81,6 +81,7 @@ export interface AppSettings {
   appVersion: string;
   initialBalance: number;
   showWarnings: boolean;
+  currency: string;
   hiddenColumns: string[];
   settingsPassword?: string;
   receiptLayout: 'simple' | 'a4';

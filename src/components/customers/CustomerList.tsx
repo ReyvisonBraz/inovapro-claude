@@ -136,7 +136,8 @@ export const CustomerList: React.FC<CustomerListProps> = ({
                 {/* Info Principal */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-lg font-bold text-white truncate">
+                    <h3 className="text-lg font-bold text-white truncate flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-slate-500 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">ID: {customer.id}</span>
                       {customer.firstName} {customer.lastName}
                     </h3>
                     {customer.nickname && (
