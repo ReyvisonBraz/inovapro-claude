@@ -8,23 +8,35 @@ import {
 } from 'lucide-react';
 import { cn, formatCurrency } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { useToast } from './ui/Toast';
 
 interface InventoryProps {
   items: InventoryItem[];
   onAddItem: (item: any) => void;
   onUpdateItem: (id: number, item: any) => void;
   onDeleteItem: (id: number) => void;
+  openConfirm: (options: { title: string; message: string; onConfirm: () => void; type?: 'danger' | 'warning' | 'info' }) => void;
+  isAdding?: boolean;
+  setIsAdding?: (value: boolean) => void;
 }
 
 export const Inventory: React.FC<InventoryProps> = ({
   items,
   onAddItem,
   onUpdateItem,
-  onDeleteItem
+  onDeleteItem,
+  openConfirm,
+  isAdding: isAddingProp,
+  setIsAdding: setIsAddingProp,
 }) => {
+  const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'product' | 'service'>('all');
-  const [isAdding, setIsAdding] = useState(false);
+  const [isAddingLocal, setIsAddingLocal] = useState(false);
+  
+  const isAdding = isAddingProp !== undefined ? isAddingProp : isAddingLocal;
+  const setIsAdding = setIsAddingProp !== undefined ? setIsAddingProp : setIsAddingLocal;
+
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
 
   // Form state
@@ -48,14 +60,14 @@ export const Inventory: React.FC<InventoryProps> = ({
 
   const handleSave = () => {
     if (!newItem.name || !newItem.unitPrice) {
-      alert("Preencha o nome e o preço unitário.");
+      showToast("Preencha o nome e o preço unitário.", "warning");
       return;
     }
     
     const itemData = {
       ...newItem,
-      unitPrice: parseFloat(newItem.unitPrice),
-      stockLevel: newItem.category === 'product' ? parseInt(newItem.stockLevel) || 0 : 0
+      unitPrice: parseFloat(newItem.unitPrice.toString().replace(',', '.')) || 0,
+      stockLevel: newItem.category === 'product' ? parseInt(newItem.stockLevel.toString()) || 0 : 0
     };
 
     if (editingItem) {
@@ -100,23 +112,6 @@ export const Inventory: React.FC<InventoryProps> = ({
           <h2 className="text-2xl font-bold tracking-tight">Produtos & Serviços</h2>
           <p className="text-sm text-slate-500">Gerencie seu inventário e catálogo de serviços</p>
         </div>
-        <button 
-          onClick={() => {
-            setEditingItem(null);
-            setNewItem({
-              name: '',
-              category: 'product',
-              sku: '',
-              unitPrice: '',
-              stockLevel: ''
-            });
-            setIsAdding(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all"
-        >
-          <Plus size={20} />
-          Novo Item
-        </button>
       </div>
 
       {/* Stats */}
@@ -200,9 +195,12 @@ export const Inventory: React.FC<InventoryProps> = ({
                   </button>
                   <button 
                     onClick={() => {
-                      if (window.confirm('Tem certeza que deseja excluir este item?')) {
-                        onDeleteItem(item.id);
-                      }
+                      openConfirm({
+                        title: 'Excluir Item',
+                        message: `Tem certeza que deseja excluir o item "${item.name}"?`,
+                        onConfirm: () => onDeleteItem(item.id),
+                        type: 'danger'
+                      });
                     }}
                     className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
                   >

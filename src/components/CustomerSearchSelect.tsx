@@ -98,7 +98,6 @@ export function CustomerSearchSelect({
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input 
-                  autoFocus
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Pesquisar por nome, apelido ou empresa..."

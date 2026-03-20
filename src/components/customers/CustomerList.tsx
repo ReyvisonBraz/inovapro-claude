@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Customer, ClientPayment } from '../../types';
+import { Customer, ClientPayment, AppSettings } from '../../types';
 import { cn, formatCurrency } from '../../lib/utils';
 import { Search, Plus, Filter, MoreVertical, Phone, MessageCircle, History, CreditCard, Trash2, Edit, AlertTriangle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { WhatsAppModal } from './WhatsAppModal';
 
 interface CustomerListProps {
+  settings: AppSettings;
   customers: Customer[];
   clientPayments: ClientPayment[];
   onEdit: (customer: Customer) => void;
@@ -14,6 +16,7 @@ interface CustomerListProps {
 }
 
 export const CustomerList: React.FC<CustomerListProps> = ({ 
+  settings,
   customers, 
   clientPayments, 
   onEdit, 
@@ -24,6 +27,9 @@ export const CustomerList: React.FC<CustomerListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDebt, setFilterDebt] = useState(false);
   const [sortMode, setSortMode] = useState<'name' | 'debt'>('name');
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [selectedCustomerForWhatsApp, setSelectedCustomerForWhatsApp] = useState<Customer | null>(null);
+  const [selectedDebtForWhatsApp, setSelectedDebtForWhatsApp] = useState(0);
 
   const filteredCustomers = customers.filter(c => {
     const matchesSearch = 
@@ -68,22 +74,22 @@ export const CustomerList: React.FC<CustomerListProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header e Filtros */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/10">
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-white/5 p-4 rounded-2xl border border-white/10">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
           <input 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar cliente por nome, empresa ou telefone..."
+            placeholder="Buscar cliente..."
             className="w-full h-12 bg-slate-900/50 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
           />
         </div>
         
-        <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+        <div className="flex flex-wrap gap-2 w-full md:w-auto">
           <button 
             onClick={() => setSortMode('name')}
             className={cn(
-              "px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all border",
+              "flex-1 md:flex-none px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all border text-center",
               sortMode === 'name' 
                 ? "bg-primary/10 text-primary border-primary/20" 
                 : "bg-white/5 text-slate-500 border-transparent hover:bg-white/10"
@@ -94,7 +100,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({
           <button 
             onClick={() => setSortMode('debt')}
             className={cn(
-              "px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all border",
+              "flex-1 md:flex-none px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all border text-center",
               sortMode === 'debt' 
                 ? "bg-rose-500/10 text-rose-500 border-rose-500/20" 
                 : "bg-white/5 text-slate-500 border-transparent hover:bg-white/10"
@@ -105,7 +111,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({
           <button 
             onClick={() => setFilterDebt(!filterDebt)}
             className={cn(
-              "px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all border flex items-center gap-2",
+              "w-full md:w-auto px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all border flex items-center justify-center gap-2",
               filterDebt
                 ? "bg-amber-500/10 text-amber-500 border-amber-500/20" 
                 : "bg-white/5 text-slate-500 border-transparent hover:bg-white/10"
@@ -168,8 +174,8 @@ export const CustomerList: React.FC<CustomerListProps> = ({
                 </div>
 
                 {/* Status Financeiro */}
-                <div className="flex items-center gap-8 w-full lg:w-auto bg-black/20 p-3 rounded-xl border border-white/5">
-                  <div>
+                <div className="flex items-center gap-4 sm:gap-8 w-full lg:w-auto bg-black/20 p-3 rounded-xl border border-white/5 mt-4 lg:mt-0">
+                  <div className="flex-1 sm:flex-none">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Pendências</p>
                     <p className={cn(
                       "text-lg font-black tracking-tight",
@@ -179,7 +185,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({
                     </p>
                   </div>
                   <div className="h-8 w-px bg-white/10" />
-                  <div>
+                  <div className="flex-1 sm:flex-none">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Limite</p>
                     <p className="text-lg font-bold text-slate-300 tracking-tight">
                       {formatCurrency(customer.creditLimit || 0)}
@@ -188,41 +194,42 @@ export const CustomerList: React.FC<CustomerListProps> = ({
                 </div>
 
                 {/* Ações */}
-                <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
+                <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-start lg:justify-end mt-4 lg:mt-0">
                   <button 
                     onClick={() => onAddPayment(customer)}
-                    className="p-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all border border-primary/20"
+                    className="flex-1 sm:flex-none flex items-center justify-center p-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all border border-primary/20"
                     title="Nova Venda"
                   >
                     <Plus size={18} />
                   </button>
                   <button 
                     onClick={() => onViewHistory(customer)}
-                    className="p-2.5 rounded-xl bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white transition-all border border-white/10"
+                    className="flex-1 sm:flex-none flex items-center justify-center p-2.5 rounded-xl bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white transition-all border border-white/10"
                     title="Histórico"
                   >
                     <History size={18} />
                   </button>
                   <button 
                     onClick={() => {
-                      const msg = `Olá ${customer.firstName}, gostaríamos de lembrar sobre o débito pendente de ${formatCurrency(debt)}. Podemos ajudar com algo?`;
-                      window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                      setSelectedCustomerForWhatsApp(customer);
+                      setSelectedDebtForWhatsApp(debt);
+                      setIsWhatsAppModalOpen(true);
                     }}
-                    className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all border border-emerald-500/20"
+                    className="flex-1 sm:flex-none flex items-center justify-center p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all border border-emerald-500/20"
                     title="Cobrar no WhatsApp"
                   >
                     <MessageCircle size={18} />
                   </button>
                   <button 
                     onClick={() => onEdit(customer)}
-                    className="p-2.5 rounded-xl bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white transition-all border border-white/10"
+                    className="flex-1 sm:flex-none flex items-center justify-center p-2.5 rounded-xl bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white transition-all border border-white/10"
                     title="Editar"
                   >
                     <Edit size={18} />
                   </button>
                   <button 
                     onClick={() => onDelete(customer.id)}
-                    className="p-2.5 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all border border-rose-500/20"
+                    className="flex-1 sm:flex-none flex items-center justify-center p-2.5 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all border border-rose-500/20"
                     title="Excluir"
                   >
                     <Trash2 size={18} />
@@ -239,6 +246,19 @@ export const CustomerList: React.FC<CustomerListProps> = ({
           </div>
         )}
       </div>
+
+      {selectedCustomerForWhatsApp && (
+        <WhatsAppModal 
+          isOpen={isWhatsAppModalOpen}
+          onClose={() => {
+            setIsWhatsAppModalOpen(false);
+            setSelectedCustomerForWhatsApp(null);
+          }}
+          customer={selectedCustomerForWhatsApp}
+          debt={selectedDebtForWhatsApp}
+          settings={settings}
+        />
+      )}
     </div>
   );
 };

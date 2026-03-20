@@ -75,9 +75,9 @@ export const Transactions = ({
   handleDuplicateTransaction
 }: TransactionsProps) => {
   return (
-    <div className="space-y-8 p-6 lg:p-10">
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between bg-white/[0.02] border border-white/5 p-6 rounded-[2rem] backdrop-blur-xl">
+    <div className="space-y-6 md:space-y-8 p-4 md:p-6 lg:p-10">
+      <div className="flex flex-col gap-6 md:gap-8">
+        <div className="flex flex-col lg:flex-row gap-4 md:gap-6 items-start lg:items-center justify-between bg-white/[0.02] border border-white/5 p-4 md:p-6 rounded-2xl md:rounded-[2rem] backdrop-blur-xl">
           <div className="relative w-full lg:max-w-md">
             <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary" />
             <input 
@@ -88,8 +88,8 @@ export const Transactions = ({
             />
           </div>
           
-          <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
-            <div className="flex p-1.5 bg-black/20 rounded-2xl border border-white/5 shadow-inner">
+          <div className="flex flex-wrap items-center gap-2 md:gap-4 w-full lg:w-auto">
+            <div className="flex flex-wrap md:flex-nowrap p-1.5 bg-black/20 rounded-2xl border border-white/5 shadow-inner w-full md:w-auto">
               {[
                 { id: 'day', label: 'Dia' },
                 { id: 'month', label: 'Mês' },
@@ -100,9 +100,9 @@ export const Transactions = ({
                   key={mode.id}
                   onClick={() => setDateFilterMode(mode.id as any)}
                   className={cn(
-                    "px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300",
+                    "flex-1 md:flex-none px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300",
                     dateFilterMode === mode.id 
-                      ? "bg-primary text-white shadow-[0_10px_20px_-5px_rgba(17,82,212,0.4)] scale-105" 
+                      ? "bg-primary text-white shadow-[0_10px_20px_-5px_rgba(17,82,212,0.4)] md:scale-105" 
                       : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
                   )}
                 >
@@ -116,7 +116,7 @@ export const Transactions = ({
             <button 
               onClick={() => setShowFilters(!showFilters)}
               className={cn(
-                "flex items-center gap-3 px-6 h-14 rounded-2xl border text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300",
+                "flex-1 md:flex-none flex items-center justify-center gap-3 px-6 h-12 md:h-14 rounded-2xl border text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300",
                 showFilters 
                   ? "bg-primary/20 border-primary text-primary shadow-[0_0_30px_rgba(17,82,212,0.1)]" 
                   : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20"
@@ -365,7 +365,96 @@ export const Transactions = ({
       </AnimatePresence>
 
       <div className="glass-card overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile View */}
+        <div className="md:hidden divide-y divide-white/5">
+          {filteredTransactions.map((tx) => (
+            <div key={tx.id} className="p-4 space-y-4">
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-slate-500">
+                    {tx.category === 'Alimentação' ? <Coffee size={16} /> :
+                     tx.category === 'Trabalho' ? <Briefcase size={16} /> :
+                     tx.category === 'Utilidades' ? <Zap size={16} /> :
+                     tx.category === 'Viagem' ? <Car size={16} /> :
+                     tx.category === 'Lazer' ? <ShoppingBag size={16} /> :
+                     <ShoppingBag size={16} />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold">{tx.description}</p>
+                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">
+                      {format(new Date(tx.date), 'dd/MM/yyyy')} • {tx.category}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className={cn(
+                    "text-sm font-black tracking-tight block",
+                    tx.type === 'income' ? "text-emerald-500" : "text-rose-500"
+                  )}>
+                    {tx.type === 'income' ? '+' : '-'} {formatCurrency(tx.amount)}
+                  </span>
+                  <span className={cn(
+                    "text-[10px] font-black uppercase tracking-widest",
+                    tx.type === 'income' ? "text-emerald-500" : "text-rose-500"
+                  )}>
+                    {tx.type === 'income' ? 'Entrada' : 'Saída'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 w-fit">
+                  <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">{tx.status}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setEditingTransaction(tx)}
+                    className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
+                    title="Editar"
+                  >
+                    <Edit size={16} />
+                  </button>
+                  <button 
+                    onClick={() => handleDuplicateTransaction(tx)}
+                    className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 rounded-xl transition-all"
+                    title="Duplicar"
+                  >
+                    <Copy size={16} />
+                  </button>
+                  <button 
+                    onClick={() => setTransactionToDelete(tx.id)}
+                    className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
+                    title="Excluir"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+          {filteredTransactions.length === 0 && (
+            <div className="p-8 text-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-slate-600">
+                  <Search size={32} />
+                </div>
+                <div>
+                  <p className="text-slate-400 font-bold">Nenhuma transação encontrada</p>
+                  <p className="text-[10px] text-slate-600 uppercase tracking-widest mt-1">Ajuste seus filtros</p>
+                </div>
+                <button 
+                  onClick={() => setIsAdding(true)}
+                  className="mt-2 px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-primary/20"
+                >
+                  Nova Transação
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-white/5 border-b border-white/5">

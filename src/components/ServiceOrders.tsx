@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ServiceOrder, Customer, InventoryItem, ServiceOrderStatus, User, ServiceOrderPart, Brand, Model } from '../types';
+import { ServiceOrder, Customer, InventoryItem, ServiceOrderStatus, User, ServiceOrderPart, Brand, Model, AppSettings } from '../types';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -16,12 +16,16 @@ import { motion, AnimatePresence } from 'motion/react';
 
 import { QRCodeSVG } from 'qrcode.react';
 import { CustomerSearchSelect } from './CustomerSearchSelect';
+import { SearchableSelect } from './SearchableSelect';
+import { useToast } from './ui/Toast';
+import { ServiceOrderItem } from '../types';
 
 interface ServiceOrdersProps {
   orders: ServiceOrder[];
   customers: Customer[];
   inventoryItems: InventoryItem[];
   statuses: ServiceOrderStatus[];
+  equipmentTypes: {id: number, name: string}[];
   brands: Brand[];
   models: Model[];
   clientPayments: any[];
@@ -31,13 +35,18 @@ interface ServiceOrdersProps {
   onDeleteOrder: (id: number) => void;
   onAddStatus: (status: any) => void;
   onDeleteStatus: (id: number) => void;
-  onAddBrand: (name: string) => void;
+  onAddEquipmentType: (name: string) => void;
+  onAddBrand: (name: string, equipmentType: string) => void;
   onAddModel: (brandId: number, name: string) => void;
   onTriggerAddCustomer: () => void;
   onPrintBlankForm: () => void;
+  openConfirm: (options: { title: string; message: string; onConfirm: () => void; type?: 'danger' | 'warning' | 'info' }) => void;
   directOsId: number | null;
   directMode: string | null;
   onClearDirectOsId: () => void;
+  settings: AppSettings;
+  isAdding?: boolean;
+  setIsAdding?: (value: boolean) => void;
 }
 
 export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
@@ -45,6 +54,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   customers,
   inventoryItems,
   statuses,
+  equipmentTypes,
   brands,
   models,
   clientPayments,
@@ -54,17 +64,26 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   onDeleteOrder,
   onAddStatus,
   onDeleteStatus,
+  onAddEquipmentType,
   onAddBrand,
   onAddModel,
   onTriggerAddCustomer,
   onPrintBlankForm,
+  openConfirm,
   directOsId,
   directMode,
-  onClearDirectOsId
+  onClearDirectOsId,
+  settings,
+  isAdding: isAddingProp,
+  setIsAdding: setIsAddingProp,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [isAdding, setIsAdding] = useState(false);
+  const [isAddingLocal, setIsAddingLocal] = useState(false);
+  
+  const isAdding = isAddingProp !== undefined ? isAddingProp : isAddingLocal;
+  const setIsAdding = setIsAddingProp !== undefined ? setIsAddingProp : setIsAddingLocal;
+
   const [editingOrder, setEditingOrder] = useState<ServiceOrder | null>(null);
   const [showStatusManager, setShowStatusManager] = useState(false);
   const [isAddingStatus, setIsAddingStatus] = useState(false);
@@ -79,6 +98,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   // Form state
   const [newOrder, setNewOrder] = useState({
     customerId: 0,
+    equipmentType: '',
     equipmentBrand: '',
     equipmentModel: '',
     equipmentColor: '',
@@ -97,20 +117,76 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     ramInfo: '',
     ssdInfo: '',
     priority: 'medium' as 'low' | 'medium' | 'high',
-    partsUsed: [] as ServiceOrderPart[]
+    partsUsed: [] as ServiceOrderPart[],
+    services: [] as ServiceOrderItem[]
   });
 
-  const [isAddingBrand, setIsAddingBrand] = useState(false);
-  const [isAddingModel, setIsAddingModel] = useState(false);
-  const [newBrandName, setNewBrandName] = useState('');
-  const [newModelName, setNewModelName] = useState('');
+  const { showToast } = useToast();
 
   const [partSearch, setPartSearch] = useState('');
   const [isAddingPart, setIsAddingPart] = useState(false);
+  const [isAddingService, setIsAddingService] = useState(false);
+  const [newServiceName, setNewServiceName] = useState('');
+  const [newServicePrice, setNewServicePrice] = useState('');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const photoSectionRef = React.useRef<HTMLDivElement>(null);
 
   const [showStatusOnly, setShowStatusOnly] = useState<ServiceOrder | null>(null);
+  const [quickStatusOrder, setQuickStatusOrder] = useState<ServiceOrder | null>(null);
+
+  const [quickAddModal, setQuickAddModal] = useState<{
+    isOpen: boolean;
+    type: 'type' | 'brand' | 'model';
+    title: string;
+    placeholder: string;
+    value: string;
+  }>({
+    isOpen: false,
+    type: 'type',
+    title: '',
+    placeholder: '',
+    value: ''
+  });
+
+  const handleQuickAdd = () => {
+    if (!quickAddModal.value.trim()) return;
+    
+    if (quickAddModal.type === 'type') {
+      onAddEquipmentType(quickAddModal.value.trim());
+      setNewOrder({ ...newOrder, equipmentType: quickAddModal.value.trim(), equipmentBrand: '', equipmentModel: '' });
+    } else if (quickAddModal.type === 'brand') {
+      onAddBrand(quickAddModal.value.trim(), newOrder.equipmentType);
+      setNewOrder({ ...newOrder, equipmentBrand: quickAddModal.value.trim(), equipmentModel: '' });
+    } else if (quickAddModal.type === 'model') {
+      const brand = brands.find(b => b.name === newOrder.equipmentBrand);
+      if (brand) {
+        onAddModel(brand.id, quickAddModal.value.trim());
+        setNewOrder({ ...newOrder, equipmentModel: quickAddModal.value.trim() });
+      }
+    }
+    
+    setQuickAddModal({ ...quickAddModal, isOpen: false, value: '' });
+  };
+
+  const handleUpdateStatus = (id: number, newStatus: string) => {
+    const order = orders.find(o => o.id === id);
+    if (order) {
+      onUpdateOrder(id, { ...order, status: newStatus });
+      showToast('Status atualizado com sucesso!', 'success');
+    }
+  };
+
+  const updateOrderTotals = (updatedServices: ServiceOrderItem[], updatedParts: ServiceOrderPart[]) => {
+    const newFee = updatedServices.reduce((acc, s) => acc + s.price, 0);
+    const partsTotal = updatedParts.reduce((acc, p) => acc + p.subtotal, 0);
+    setNewOrder(prev => ({
+      ...prev,
+      services: updatedServices,
+      partsUsed: updatedParts,
+      serviceFee: newFee.toString(),
+      totalAmount: (newFee + partsTotal).toFixed(2)
+    }));
+  };
 
   // Handle direct OS access from QR Code
   React.useEffect(() => {
@@ -135,6 +211,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   // New states for Print and WhatsApp
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [whatsappMessage, setWhatsappMessage] = useState('');
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<ServiceOrder | null>(null);
   const [printConfig, setPrintConfig] = useState<{ type: 'simplified' | 'complete', format: 'a4' | 'thermal' }>({
@@ -193,8 +270,8 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     
     const orderData = {
       ...newOrder,
-      serviceFee: parseFloat(newOrder.serviceFee) || 0,
-      totalAmount: parseFloat(newOrder.totalAmount) || 0,
+      serviceFee: parseFloat(newOrder.serviceFee.toString().replace(',', '.')) || 0,
+      totalAmount: parseFloat(newOrder.totalAmount.toString().replace(',', '.')) || 0,
       createdBy: currentUser?.id
     };
 
@@ -208,6 +285,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     setEditingOrder(null);
     setNewOrder({
       customerId: 0,
+      equipmentType: '',
       equipmentBrand: '',
       equipmentModel: '',
       equipmentColor: '',
@@ -240,6 +318,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     setEditingOrder(order);
     setNewOrder({
       customerId: order.customerId,
+      equipmentType: order.equipmentType || '',
       equipmentBrand: order.equipmentBrand || '',
       equipmentModel: order.equipmentModel || '',
       equipmentColor: order.equipmentColor || '',
@@ -268,16 +347,46 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     if (!customer) return '';
 
     const osNumber = `#OS-${order.id.toString().padStart(4, '0')}`;
-    const equipment = `${order.equipmentBrand} ${order.equipmentModel}`;
+    const equipment = `${order.equipmentType || ''} ${order.equipmentBrand || ''} ${order.equipmentModel || ''}`.trim();
     
-    let message = `*ORDEM DE SERVIÇO ${osNumber}*\n\n`;
-    message += `*Cliente:* ${customer.firstName} ${customer.lastName}\n`;
-    message += `*Equipamento:* ${equipment}\n`;
-    message += `*Status:* ${order.status}\n`;
+    let template = settings.whatsappOSTemplate || '';
+    
+    if (!template) {
+      let message = `*ORDEM DE SERVIÇO ${osNumber}*\n\n`;
+      message += `*Cliente:* ${customer.firstName} ${customer.lastName}\n`;
+      message += `*Equipamento:* ${equipment}\n`;
+      message += `*Status:* ${order.status}\n`;
+
+      if (type === 'complete') {
+        message += `*Data de Entrada:* ${order.entryDate || format(parseISO(order.createdAt), 'dd/MM/yyyy')}\n`;
+        if (order.reportedProblem) message += `*Problema:* ${order.reportedProblem}\n`;
+        if (order.technicalAnalysis) message += `*Análise:* ${order.technicalAnalysis}\n`;
+        if (order.servicesPerformed) message += `*Serviços:* ${order.servicesPerformed}\n`;
+        if (order.partsUsed && order.partsUsed.length > 0) {
+          message += `\n*Peças:*\n`;
+          order.partsUsed.forEach(p => {
+            message += `- ${p.name} (${p.quantity}x ${formatCurrency(p.unitPrice)})\n`;
+          });
+        }
+        message += `\n*Total:* ${formatCurrency(order.totalAmount || 0)}\n`;
+      } else {
+        message += `\nPara mais informações, entre em contato conosco.`;
+      }
+      return message;
+    }
+
+    // Replace variables in template
+    let message = template
+      .replace(/{nome_cliente}/g, customer.firstName)
+      .replace(/{os_id}/g, osNumber)
+      .replace(/{equipamento}/g, equipment)
+      .replace(/{status}/g, order.status)
+      .replace(/{valor_total}/g, formatCurrency(order.totalAmount || 0))
+      .replace(/{problema}/g, order.reportedProblem || 'N/A')
+      .replace(/{empresa}/g, settings.profileName || 'Nossa Empresa');
 
     if (type === 'complete') {
-      message += `*Data de Entrada:* ${order.entryDate || format(parseISO(order.createdAt), 'dd/MM/yyyy')}\n`;
-      if (order.reportedProblem) message += `*Problema:* ${order.reportedProblem}\n`;
+      message += `\n\n*Detalhes da OS:*\n`;
       if (order.technicalAnalysis) message += `*Análise:* ${order.technicalAnalysis}\n`;
       if (order.servicesPerformed) message += `*Serviços:* ${order.servicesPerformed}\n`;
       if (order.partsUsed && order.partsUsed.length > 0) {
@@ -286,18 +395,15 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
           message += `- ${p.name} (${p.quantity}x ${formatCurrency(p.unitPrice)})\n`;
         });
       }
-      message += `\n*Total:* ${formatCurrency(order.totalAmount || 0)}\n`;
-    } else {
-      message += `\nPara mais informações, entre em contato conosco.`;
     }
 
     return message;
   };
 
-  const handleSendWhatsApp = async (order: ServiceOrder, type: 'simplified' | 'complete') => {
+  const handleSendWhatsApp = async (order: ServiceOrder, messageOverride?: string) => {
     const customer = customers.find(c => c.id === order.customerId);
     if (customer?.phone) {
-      const message = generateWhatsAppMessage(order, type);
+      const message = messageOverride || generateWhatsAppMessage(order, whatsappConfig.type);
       let phone = customer.phone.replace(/\D/g, '');
       if (phone.length === 10 || phone.length === 11) {
         phone = '55' + phone;
@@ -684,38 +790,6 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
             <Tag size={20} />
             Status
           </button>
-          <button 
-            onClick={() => {
-              setEditingOrder(null);
-              setNewOrder({
-                customerId: 0,
-                equipmentBrand: '',
-                equipmentModel: '',
-                equipmentColor: '',
-                equipmentSerial: '',
-                reportedProblem: '',
-                status: 'Aguardando Análise',
-                technicalAnalysis: '',
-                servicesPerformed: '',
-                serviceFee: '',
-                totalAmount: '',
-                finalObservations: '',
-                entryDate: format(new Date(), 'yyyy-MM-dd'),
-                analysisPrediction: '',
-                customerPassword: '',
-                accessories: '',
-                ramInfo: '',
-                ssdInfo: '',
-                priority: 'medium',
-                partsUsed: []
-              });
-              setIsAdding(true);
-            }}
-            className="w-full sm:w-auto h-12 px-6 rounded-xl bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
-          >
-            <Plus size={20} />
-            Nova Ordem
-          </button>
         </div>
       </div>
 
@@ -826,12 +900,38 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                   <div className="flex flex-wrap items-center gap-3 mb-1">
                     {visibleColumns.id && <span className="text-sm font-bold text-primary">#OS-{order.id.toString().padStart(4, '0')}</span>}
                     {visibleColumns.status && (
-                      <span 
-                        className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border"
-                        style={getStatusColor(order.status)}
-                      >
-                        {order.status}
-                      </span>
+                      <div className="relative">
+                        <button 
+                          onClick={() => setQuickStatusOrder(quickStatusOrder?.id === order.id ? null : order)}
+                          className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border hover:opacity-80 transition-all flex items-center gap-1"
+                          style={getStatusColor(order.status)}
+                        >
+                          {order.status}
+                          <ChevronDown size={10} />
+                        </button>
+                        
+                        {quickStatusOrder?.id === order.id && (
+                          <div className="absolute left-0 top-full mt-1 w-48 glass-modal p-2 z-50 shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200">
+                            <div className="space-y-1">
+                              {statuses.map(s => (
+                                <button
+                                  key={s.id}
+                                  onClick={() => {
+                                    handleUpdateStatus(order.id, s.name);
+                                    setQuickStatusOrder(null);
+                                  }}
+                                  className={cn(
+                                    "w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
+                                    order.status === s.name ? "bg-primary/20 text-primary" : "text-slate-400 hover:bg-white/5 hover:text-white"
+                                  )}
+                                >
+                                  {s.name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
                     {visibleColumns.priority && order.priority === 'high' && (
                       <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-rose-500/10 text-rose-500 border border-rose-500/20">
@@ -884,12 +984,16 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                 </div>
               </div>
               
-              <div className="flex flex-row md:flex-col justify-between items-end gap-2 shrink-0">
+              <div className="flex flex-col sm:flex-row md:flex-col justify-between items-start sm:items-end gap-4 shrink-0 mt-4 md:mt-0 pt-4 md:pt-0 border-t border-white/5 md:border-t-0">
+                <div className="text-left sm:text-right w-full sm:w-auto flex flex-row sm:flex-col justify-between sm:justify-start items-center sm:items-end md:hidden">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Criado em</p>
+                  <p className="text-xs font-medium text-slate-300">{format(parseISO(order.createdAt), "dd MMM yyyy", { locale: ptBR })}</p>
+                </div>
                 <div className="text-right hidden md:block">
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Criado em</p>
                   <p className="text-xs font-medium text-slate-300">{format(parseISO(order.createdAt), "dd MMM yyyy", { locale: ptBR })}</p>
                 </div>
-                <div className="flex flex-wrap gap-2 justify-end">
+                <div className="flex flex-wrap gap-2 justify-start sm:justify-end w-full sm:w-auto">
                   <button 
                     onClick={() => {
                       setSelectedOrder(order);
@@ -903,6 +1007,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                   <button 
                     onClick={() => {
                       setSelectedOrder(order);
+                      setWhatsappMessage(generateWhatsAppMessage(order, whatsappConfig.type));
                       setShowWhatsAppModal(true);
                     }}
                     className="p-2.5 rounded-xl bg-white/5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 transition-all border border-white/5"
@@ -1003,33 +1108,47 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
               <div className="space-y-6">
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
                   <p className="text-xs text-slate-400 uppercase font-black tracking-widest mb-2">Selecione o Formato</p>
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <button 
-                      onClick={() => setWhatsappConfig({ type: 'simplified' })}
+                      onClick={() => {
+                        setWhatsappConfig({ type: 'simplified' });
+                        setWhatsappMessage(generateWhatsAppMessage(selectedOrder, 'simplified'));
+                      }}
                       className={cn(
-                        "p-4 rounded-xl border transition-all text-left group",
+                        "p-3 rounded-xl border transition-all text-left group",
                         whatsappConfig.type === 'simplified' ? "bg-primary/10 border-primary text-primary" : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10"
                       )}
                     >
-                      <p className="font-bold text-sm">Ordem Simplificada</p>
-                      <p className="text-xs opacity-70">Apenas status e informações básicas.</p>
+                      <p className="font-bold text-xs">Simplificada</p>
                     </button>
                     <button 
-                      onClick={() => setWhatsappConfig({ type: 'complete' })}
+                      onClick={() => {
+                        setWhatsappConfig({ type: 'complete' });
+                        setWhatsappMessage(generateWhatsAppMessage(selectedOrder, 'complete'));
+                      }}
                       className={cn(
-                        "p-4 rounded-xl border transition-all text-left group",
+                        "p-3 rounded-xl border transition-all text-left group",
                         whatsappConfig.type === 'complete' ? "bg-primary/10 border-primary text-primary" : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10"
                       )}
                     >
-                      <p className="font-bold text-sm">Ordem Completa</p>
-                      <p className="text-xs opacity-70">Inclui análise, serviços e peças utilizadas.</p>
+                      <p className="font-bold text-xs">Completa</p>
                     </button>
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Personalizar Mensagem</label>
+                  <textarea 
+                    value={whatsappMessage}
+                    onChange={(e) => setWhatsappMessage(e.target.value)}
+                    className="w-full h-48 bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none resize-none transition-all"
+                    placeholder="Sua mensagem..."
+                  />
+                </div>
+
                 <button 
                   onClick={async () => {
-                    await handleSendWhatsApp(selectedOrder, whatsappConfig.type);
+                    await handleSendWhatsApp(selectedOrder, whatsappMessage);
                     setShowWhatsAppModal(false);
                   }}
                   className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-black shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all flex items-center justify-center gap-3 group"
@@ -1062,9 +1181,9 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-sm glass-modal p-8 text-center"
+              className="relative w-full max-w-sm glass-modal p-4 sm:p-6 md:p-8 text-center"
             >
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex justify-between items-center mb-4 sm:mb-6">
                 <h3 className="text-xl font-bold">QR Code da OS</h3>
                 <button onClick={() => setShowQRCodeModal(false)} className="text-slate-400 hover:text-white">
                   <X size={24} />
@@ -1205,21 +1324,21 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg glass-modal p-8"
+              className="relative w-full max-w-lg glass-modal p-4 sm:p-6 md:p-8 max-h-[90vh] overflow-y-auto custom-scrollbar"
             >
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold">Gerenciar Status</h3>
-                <button onClick={() => setShowStatusManager(false)} className="text-slate-400 hover:text-white">
-                  <X size={24} />
+              <div className="flex justify-between items-center mb-4 md:mb-6">
+                <h3 className="text-lg md:text-xl font-bold">Gerenciar Status</h3>
+                <button onClick={() => setShowStatusManager(false)} className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/5 transition-all">
+                  <X size={20} className="md:w-6 md:h-6" />
                 </button>
               </div>
 
               <div className="space-y-6">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <p className="text-sm text-slate-400">Personalize os status das suas ordens de serviço.</p>
                   <button 
                     onClick={() => setIsAddingStatus(true)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold border border-primary/20 hover:bg-primary/20 transition-all"
+                    className="flex items-center justify-center w-full sm:w-auto gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold border border-primary/20 hover:bg-primary/20 transition-all"
                   >
                     <Plus size={14} /> Novo Status
                   </button>
@@ -1327,9 +1446,9 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
               </div>
 
               {/* Modal Body */}
-              <div className="p-8 space-y-8 overflow-y-auto flex-1 custom-scrollbar">
+              <div className="p-4 sm:p-6 md:p-8 space-y-6 md:space-y-8 overflow-y-auto flex-1 custom-scrollbar">
                 {/* Cliente e Data */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-primary ml-1 flex items-center gap-2 bg-primary/5 px-2 py-1 rounded-md w-fit mb-1">
                       <UserIcon size={12} /> Cliente <span className="text-rose-500">*</span>
@@ -1374,82 +1493,123 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                     <div className="h-1 w-8 bg-primary rounded-full" />
                     <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Dados do Equipamento</h4>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Marca</label>
-                        <button 
-                          type="button"
-                          onClick={() => setIsAddingBrand(true)}
-                          className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all text-[10px] font-black uppercase tracking-widest border border-primary/20"
-                        >
-                          <Plus size={12} /> Nova
-                        </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Tipo</label>
+                        <div className="flex gap-2">
+                          <SearchableSelect
+                            options={equipmentTypes.map(t => ({ value: t.name, label: t.name }))}
+                            value={newOrder.equipmentType || ''}
+                            onChange={(val) => setNewOrder({ ...newOrder, equipmentType: val, equipmentBrand: '', equipmentModel: '' })}
+                            placeholder="Selecione o Tipo"
+                            onAdd={(val) => onAddEquipmentType(val)}
+                            className="h-12 flex-1"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setQuickAddModal({ isOpen: true, type: 'type', title: 'Novo Tipo de Equipamento', placeholder: 'Ex: Notebook, Smartphone...', value: '' })}
+                            className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-primary/10 text-primary border border-primary/20 rounded-xl hover:bg-primary/20 transition-all shadow-lg shadow-primary/5"
+                            title="Adicionar Novo Tipo"
+                          >
+                            <Plus size={18} />
+                          </button>
+                        </div>
                       </div>
-                      <select 
-                        value={newOrder.equipmentBrand}
-                        onChange={(e) => setNewOrder({...newOrder, equipmentBrand: e.target.value})}
-                        className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all hover:bg-white/10 [&>option]:bg-slate-900"
-                      >
-                        <option value="">Selecione a Marca</option>
-                        {brands.map(b => (
-                          <option key={b.id} value={b.name}>{b.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Modelo</label>
-                        <button 
-                          type="button"
-                          onClick={() => {
-                            if (!newOrder.equipmentBrand) {
-                              alert("Selecione uma marca primeiro.");
-                              return;
-                            }
-                            setIsAddingModel(true);
-                          }}
-                          className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all text-[10px] font-black uppercase tracking-widest border border-primary/20"
-                        >
-                          <Plus size={12} /> Novo
-                        </button>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Marca</label>
+                        </div>
+                        <div className="flex gap-2">
+                          <SearchableSelect
+                            options={brands
+                              .filter(b => !newOrder.equipmentType || b.equipmentType === newOrder.equipmentType)
+                              .map(b => ({ value: b.name, label: b.name }))}
+                            value={newOrder.equipmentBrand || ''}
+                            onChange={(val) => setNewOrder({ ...newOrder, equipmentBrand: val, equipmentModel: '' })}
+                            placeholder="Selecione a Marca"
+                            onAdd={(val) => onAddBrand(val, newOrder.equipmentType || '')}
+                            disabled={!newOrder.equipmentType}
+                            className="h-12 flex-1"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!newOrder.equipmentType) {
+                                showToast('Selecione um tipo primeiro!', 'error');
+                                return;
+                              }
+                              setQuickAddModal({ isOpen: true, type: 'brand', title: 'Nova Marca', placeholder: 'Ex: Samsung, Apple...', value: '' });
+                            }}
+                            disabled={!newOrder.equipmentType}
+                            className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-primary/10 text-primary border border-primary/20 rounded-xl hover:bg-primary/20 transition-all shadow-lg shadow-primary/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Adicionar Nova Marca"
+                          >
+                            <Plus size={18} />
+                          </button>
+                        </div>
                       </div>
-                      <select 
-                        value={newOrder.equipmentModel}
-                        onChange={(e) => setNewOrder({...newOrder, equipmentModel: e.target.value})}
-                        className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all hover:bg-white/10 [&>option]:bg-slate-900"
-                      >
-                        <option value="">Selecione o Modelo</option>
-                        {models
-                          .filter(m => {
-                            const brand = brands.find(b => b.name === newOrder.equipmentBrand);
-                            return brand ? m.brandId === brand.id : false;
-                          })
-                          .map(m => (
-                            <option key={m.id} value={m.name}>{m.name}</option>
-                          ))
-                        }
-                      </select>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Modelo</label>
+                        </div>
+                        <div className="flex gap-2">
+                          <SearchableSelect
+                            options={models
+                              .filter(m => {
+                                const brand = brands.find(b => b.name === newOrder.equipmentBrand);
+                                return brand ? m.brandId === brand.id : false;
+                              })
+                              .map(m => ({ value: m.name, label: m.name }))}
+                            value={newOrder.equipmentModel || ''}
+                            onChange={(val) => setNewOrder({ ...newOrder, equipmentModel: val })}
+                            placeholder="Selecione o Modelo"
+                            onAdd={(val) => {
+                              const brand = brands.find(b => b.name === newOrder.equipmentBrand);
+                              if (brand) {
+                                onAddModel(brand.id, val);
+                              } else {
+                                showToast('Selecione uma marca primeiro!', 'error');
+                              }
+                            }}
+                            disabled={!newOrder.equipmentBrand}
+                            className="h-12 flex-1"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!newOrder.equipmentBrand) {
+                                showToast('Selecione uma marca primeiro!', 'error');
+                                return;
+                              }
+                              setQuickAddModal({ isOpen: true, type: 'model', title: 'Novo Modelo', placeholder: 'Ex: Galaxy S23, iPhone 15...', value: '' });
+                            }}
+                            disabled={!newOrder.equipmentBrand}
+                            className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-primary/10 text-primary border border-primary/20 rounded-xl hover:bg-primary/20 transition-all shadow-lg shadow-primary/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Adicionar Novo Modelo"
+                          >
+                            <Plus size={18} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Cor do Equipamento</label>
+                        <input 
+                          value={newOrder.equipmentColor}
+                          onChange={(e) => setNewOrder({...newOrder, equipmentColor: e.target.value})}
+                          className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
+                          placeholder="Ex: Preto, Prata, Azul"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Nº de Série</label>
+                        <input 
+                          value={newOrder.equipmentSerial}
+                          onChange={(e) => setNewOrder({...newOrder, equipmentSerial: e.target.value})}
+                          className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
+                          placeholder="Opcional"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Cor do Equipamento</label>
-                      <input 
-                        value={newOrder.equipmentColor}
-                        onChange={(e) => setNewOrder({...newOrder, equipmentColor: e.target.value})}
-                        className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
-                        placeholder="Ex: Preto, Prata, Azul"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Nº de Série</label>
-                      <input 
-                        value={newOrder.equipmentSerial}
-                        onChange={(e) => setNewOrder({...newOrder, equipmentSerial: e.target.value})}
-                        className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
-                        placeholder="Opcional"
-                      />
-                    </div>
-                  </div>
                 </div>
 
                 {/* Especificações e Senha */}
@@ -1461,7 +1621,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                     <input 
                       value={newOrder.ramInfo}
                       onChange={(e) => setNewOrder({...newOrder, ramInfo: e.target.value})}
-                      className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
+                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
                       placeholder="Ex: 8GB DDR4"
                     />
                   </div>
@@ -1472,7 +1632,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                     <input 
                       value={newOrder.ssdInfo}
                       onChange={(e) => setNewOrder({...newOrder, ssdInfo: e.target.value})}
-                      className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
+                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
                       placeholder="Ex: 240GB SSD"
                     />
                   </div>
@@ -1483,7 +1643,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                     <input 
                       value={newOrder.customerPassword}
                       onChange={(e) => setNewOrder({...newOrder, customerPassword: e.target.value})}
-                      className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
+                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
                       placeholder="Opcional"
                     />
                   </div>
@@ -1495,9 +1655,64 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                   <input 
                     value={newOrder.accessories}
                     onChange={(e) => setNewOrder({...newOrder, accessories: e.target.value})}
-                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
+                    className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
                     placeholder="Ex: Carregador, Capa, Cabo USB..."
                   />
+                </div>
+
+                {/* Foto de Entrada */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="h-1 w-8 bg-primary rounded-full" />
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Foto do Equipamento (Entrada)</h4>
+                  </div>
+                  <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-white/10 rounded-3xl bg-white/5 hover:bg-white/10 transition-all group relative overflow-hidden">
+                    {newOrder.arrivalPhotoBase64 ? (
+                      <div className="relative w-full aspect-video rounded-2xl overflow-hidden">
+                        <img 
+                          src={newOrder.arrivalPhotoBase64} 
+                          alt="Foto de Entrada" 
+                          className="w-full h-full object-cover"
+                        />
+                        <button 
+                          onClick={() => setNewOrder({...newOrder, arrivalPhotoBase64: ''})}
+                          className="absolute top-4 right-4 p-2 bg-rose-500 text-white rounded-xl shadow-lg hover:scale-110 transition-all"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer flex flex-col items-center gap-4">
+                        <div className="p-4 bg-primary/10 text-primary rounded-2xl group-hover:scale-110 transition-all">
+                          <Camera size={32} />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-bold">Clique para tirar ou anexar foto</p>
+                          <p className="text-xs text-slate-500 mt-1">PNG, JPG ou JPEG (Máx. 2MB)</p>
+                        </div>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          capture="environment"
+                          className="hidden" 
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              if (file.size > 2 * 1024 * 1024) {
+                                showToast('A imagem deve ter no máximo 2MB', 'error');
+                                return;
+                              }
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setNewOrder({...newOrder, arrivalPhotoBase64: reader.result as string});
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
 
                 {/* Problema e Análise */}
@@ -1523,101 +1738,6 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                       className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all resize-none"
                       placeholder="Diagnóstico técnico inicial..."
                     />
-                  </div>
-                </div>
-
-                {/* Foto do Equipamento */}
-                <div ref={photoSectionRef} className="space-y-4 p-6 bg-white/5 rounded-3xl border border-white/10">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Camera className="text-primary" size={20} />
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Foto do Equipamento</h4>
-                  </div>
-                  
-                  <div className="flex flex-col md:flex-row gap-6 items-start">
-                    <div className="w-full md:w-48 h-48 rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden bg-slate-900/50 relative group">
-                      {newOrder.arrivalPhotoUrl ? (
-                        <>
-                          <img src={newOrder.arrivalPhotoUrl} alt="Equipamento" className="w-full h-full object-cover" />
-                          <button 
-                            onClick={() => setNewOrder({...newOrder, arrivalPhotoUrl: ''})}
-                            className="absolute top-2 right-2 p-1.5 bg-rose-500 rounded-lg text-white opacity-0 group-hover:opacity-100 transition-all shadow-lg"
-                          >
-                            <X size={16} />
-                          </button>
-                        </>
-                      ) : (
-                        <div className="text-center p-4">
-                          <Camera size={32} className="mx-auto text-slate-600 mb-2" />
-                          <p className="text-[10px] font-bold text-slate-500 uppercase">Nenhuma foto</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex-1 space-y-4 w-full">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Anexar Foto (Arquivo)</label>
-                        <input 
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setNewOrder({...newOrder, arrivalPhotoUrl: reader.result as string});
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                          className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs font-medium focus:ring-1 focus:ring-primary outline-none file:bg-primary file:border-none file:rounded-lg file:text-white file:text-[10px] file:font-bold file:px-3 file:py-1 file:mr-4 file:cursor-pointer"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Ou URL da Imagem</label>
-                        <input 
-                          value={newOrder.arrivalPhotoUrl || ''}
-                          onChange={(e) => setNewOrder({...newOrder, arrivalPhotoUrl: e.target.value})}
-                          className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-xs font-medium focus:ring-1 focus:ring-primary outline-none"
-                          placeholder="https://exemplo.com/foto.jpg"
-                        />
-                      </div>
-                      <div className="relative">
-                        <input 
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              setIsUploadingPhoto(true);
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setNewOrder({...newOrder, arrivalPhotoUrl: reader.result as string});
-                                setIsUploadingPhoto(false);
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                          className="hidden"
-                          id="photo-upload"
-                        />
-                        <label 
-                          htmlFor="photo-upload"
-                          className="flex items-center justify-center gap-2 w-full h-12 bg-primary/10 text-primary border border-primary/20 rounded-xl font-bold text-sm cursor-pointer hover:bg-primary/20 transition-all"
-                        >
-                          {isUploadingPhoto ? (
-                            <div className="flex items-center gap-2">
-                              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                              Processando...
-                            </div>
-                          ) : (
-                            <>
-                              <Upload size={18} />
-                              Anexar Foto do Celular/PC
-                            </>
-                          )}
-                        </label>
-                      </div>
-                    </div>
                   </div>
                 </div>
 
@@ -1658,22 +1778,55 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                   </div>
                 </div>
 
-                {/* Peças Utilizadas */}
+                {/* Serviços e Peças */}
                 <div className="space-y-4 pt-6 border-t border-white/5">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
                       <div className="h-1 w-8 bg-primary rounded-full" />
                       <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                        <Package size={12} /> Peças Utilizadas
+                        <Wrench size={12} /> Serviços e Peças
                       </h4>
                     </div>
-                    <button 
-                      onClick={() => setIsAddingPart(!isAddingPart)}
-                      className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/20 hover:bg-primary/20 transition-all"
-                    >
-                      {isAddingPart ? <X size={14} /> : <Plus size={14} />}
-                      {isAddingPart ? 'Fechar' : 'Adicionar Peça'}
-                    </button>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setIsAddingService(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/20 hover:bg-primary/20 transition-all"
+                      >
+                        <Plus size={14} /> Serviço
+                      </button>
+                      <button 
+                        onClick={() => setIsAddingPart(!isAddingPart)}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-500 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
+                      >
+                        {isAddingPart ? <X size={14} /> : <Plus size={14} />}
+                        Peça
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Services List */}
+                  <div className="space-y-3">
+                    {(newOrder.services || []).map((service, idx) => (
+                      <div key={`service-${idx}`} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 group hover:border-primary/20 transition-all">
+                        <div className="flex-1">
+                          <p className="text-sm font-bold text-slate-200">{service.name}</p>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Mão de Obra</p>
+                        </div>
+                        <div className="flex items-center gap-6">
+                          <span className="text-sm font-black text-primary w-24 text-right">{formatCurrency(service.price)}</span>
+                          <button 
+                            onClick={() => {
+                              const updatedServices = [...(newOrder.services || [])];
+                              updatedServices.splice(idx, 1);
+                              updateOrderTotals(updatedServices, newOrder.partsUsed);
+                            }}
+                            className="p-2 rounded-xl text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
                   {isAddingPart && (
@@ -1699,17 +1852,13 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                               key={item.id}
                               onClick={() => {
                                 const existing = newOrder.partsUsed.find(p => p.id === item.id);
+                                let updatedParts;
                                 if (existing) {
-                                  setNewOrder({
-                                    ...newOrder,
-                                    partsUsed: newOrder.partsUsed.map(p => p.id === item.id ? {...p, quantity: p.quantity + 1, subtotal: (p.quantity + 1) * p.unitPrice} : p)
-                                  });
+                                  updatedParts = newOrder.partsUsed.map(p => p.id === item.id ? {...p, quantity: p.quantity + 1, subtotal: (p.quantity + 1) * p.unitPrice} : p);
                                 } else {
-                                  setNewOrder({
-                                    ...newOrder,
-                                    partsUsed: [...newOrder.partsUsed, { id: item.id, name: item.name, quantity: 1, unitPrice: item.unitPrice, subtotal: item.unitPrice }]
-                                  });
+                                  updatedParts = [...newOrder.partsUsed, { id: item.id, name: item.name, quantity: 1, unitPrice: item.unitPrice, subtotal: item.unitPrice }];
                                 }
+                                updateOrderTotals(newOrder.services || [], updatedParts);
                                 setPartSearch('');
                               }}
                               className="w-full flex justify-between items-center p-3 rounded-xl hover:bg-white/5 text-left transition-all group border border-transparent hover:border-white/5"
@@ -1720,7 +1869,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                               </div>
                               <div className="flex items-center gap-4">
                                 <span className="text-sm font-black text-primary">{formatCurrency(item.unitPrice)}</span>
-                                <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                                <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all">
                                   <Plus size={16} />
                                 </div>
                               </div>
@@ -1732,20 +1881,18 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
 
                   <div className="space-y-3">
                     {newOrder.partsUsed.map((part, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 group hover:border-primary/20 transition-all">
-                        <div className="flex-1">
-                          <p className="text-sm font-bold text-slate-200">{part.name}</p>
+                      <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 group hover:border-primary/20 transition-all gap-4 sm:gap-0">
+                        <div className="flex-1 w-full">
+                          <p className="text-sm font-bold text-slate-200 truncate">{part.name}</p>
                           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{formatCurrency(part.unitPrice)} x {part.quantity}</p>
                         </div>
-                        <div className="flex items-center gap-6">
+                        <div className="flex items-center justify-between w-full sm:w-auto gap-4 sm:gap-6">
                           <div className="flex items-center gap-3 bg-white/5 p-1 rounded-xl border border-white/10">
                             <button 
                               onClick={() => {
                                 if (part.quantity > 1) {
-                                  setNewOrder({
-                                    ...newOrder,
-                                    partsUsed: newOrder.partsUsed.map((p, i) => i === idx ? {...p, quantity: p.quantity - 1, subtotal: (p.quantity - 1) * p.unitPrice} : p)
-                                  });
+                                  const updatedParts = newOrder.partsUsed.map((p, i) => i === idx ? {...p, quantity: p.quantity - 1, subtotal: (p.quantity - 1) * p.unitPrice} : p);
+                                  updateOrderTotals(newOrder.services || [], updatedParts);
                                 }
                               }}
                               className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
@@ -1755,10 +1902,8 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                             <span className="text-sm font-black w-6 text-center">{part.quantity}</span>
                             <button 
                               onClick={() => {
-                                setNewOrder({
-                                  ...newOrder,
-                                  partsUsed: newOrder.partsUsed.map((p, i) => i === idx ? {...p, quantity: p.quantity + 1, subtotal: (p.quantity + 1) * p.unitPrice} : p)
-                                });
+                                const updatedParts = newOrder.partsUsed.map((p, i) => i === idx ? {...p, quantity: p.quantity + 1, subtotal: (p.quantity + 1) * p.unitPrice} : p);
+                                updateOrderTotals(newOrder.services || [], updatedParts);
                               }}
                               className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
                             >
@@ -1768,10 +1913,8 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                           <span className="text-sm font-black text-slate-300 w-24 text-right">{formatCurrency(part.subtotal)}</span>
                           <button 
                             onClick={() => {
-                              setNewOrder({
-                                ...newOrder,
-                                partsUsed: newOrder.partsUsed.filter((_, i) => i !== idx)
-                              });
+                              const updatedParts = newOrder.partsUsed.filter((_, i) => i !== idx);
+                              updateOrderTotals(newOrder.services || [], updatedParts);
                             }}
                             className="p-2 rounded-xl text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
                           >
@@ -1811,7 +1954,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                             step="0.01"
                             value={newOrder.serviceFee}
                             onChange={(e) => {
-                              const fee = parseFloat(e.target.value) || 0;
+                              const fee = parseFloat(e.target.value.toString().replace(',', '.')) || 0;
                               const partsTotal = newOrder.partsUsed.reduce((acc, p) => acc + p.subtotal, 0);
                               setNewOrder({...newOrder, serviceFee: e.target.value, totalAmount: (fee + partsTotal).toFixed(2)});
                             }}
@@ -1866,16 +2009,16 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
               </div>
 
               {/* Modal Footer */}
-              <div className="p-6 border-t border-white/5 bg-white/5 flex gap-4">
+              <div className="p-4 sm:p-6 border-t border-white/5 bg-white/5 flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <button 
                   onClick={() => setIsAdding(false)}
-                  className="flex-1 h-14 rounded-2xl font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                  className="flex-1 h-12 sm:h-14 rounded-xl sm:rounded-2xl font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all order-2 sm:order-1"
                 >
                   Cancelar
                 </button>
                 <button 
                   onClick={handleSave}
-                  className="flex-[2] h-14 rounded-2xl bg-primary text-white font-black shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
+                  className="flex-[2] h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-primary text-white font-black shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 order-1 sm:order-2"
                 >
                   <Check size={20} />
                   {editingOrder ? 'Salvar Alterações' : 'Gerar Ordem de Serviço'}
@@ -1983,66 +2126,74 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
           )}
         </AnimatePresence>
 
-      {/* Modal Adicionar Marca */}
+      {/* Add Service Modal */}
       <AnimatePresence>
-        {isAddingBrand && (
+        {isAddingService && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-bg-dark/90 backdrop-blur-md">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-md glass-modal p-8 relative overflow-hidden"
+              className="w-full max-w-md glass-modal p-4 sm:p-6 md:p-8 relative overflow-hidden"
             >
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-blue-500" />
               
               <div className="flex justify-between items-center mb-8">
                 <div>
-                  <h3 className="text-2xl font-black text-white tracking-tight">Nova Marca</h3>
-                  <p className="text-slate-500 text-xs font-medium uppercase tracking-widest mt-1">Cadastro de Fabricante</p>
+                  <h3 className="text-2xl font-black text-white tracking-tight">Novo Serviço</h3>
+                  <p className="text-slate-500 text-xs font-medium uppercase tracking-widest mt-1">Mão de Obra</p>
                 </div>
-                <button 
-                  onClick={() => setIsAddingBrand(false)} 
-                  className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all"
-                >
+                <button onClick={() => setIsAddingService(false)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all">
                   <X size={20} />
                 </button>
               </div>
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Nome da Marca</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-primary transition-colors">
-                      <Tag size={18} />
-                    </div>
-                    <input 
-                      type="text"
-                      value={newBrandName}
-                      onChange={(e) => setNewBrandName(e.target.value)}
-                      className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-slate-700"
-                      placeholder="Ex: Apple, Samsung, Dell..."
-                      autoFocus
-                    />
-                  </div>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Descrição</label>
+                  <input 
+                    type="text"
+                    value={newServiceName}
+                    onChange={(e) => setNewServiceName(e.target.value)}
+                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
+                    placeholder="Ex: Formatação, Limpeza..."
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Valor (R$)</label>
+                  <input 
+                    type="number"
+                    value={newServicePrice}
+                    onChange={(e) => setNewServicePrice(e.target.value)}
+                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
+                    placeholder="0,00"
+                  />
                 </div>
 
                 <div className="flex gap-3 pt-2">
                   <button 
-                    onClick={() => setIsAddingBrand(false)}
+                    onClick={() => setIsAddingService(false)}
                     className="flex-1 h-14 bg-white/5 border border-white/10 text-slate-400 font-bold rounded-2xl hover:bg-white/10 transition-all"
                   >
                     Cancelar
                   </button>
                   <button 
                     onClick={() => {
-                      if (!newBrandName) return;
-                      onAddBrand(newBrandName);
-                      setNewBrandName('');
-                      setIsAddingBrand(false);
+                      if (!newServiceName || !newServicePrice) return;
+                      const service: ServiceOrderItem = {
+                        name: newServiceName,
+                        price: Number(newServicePrice)
+                      };
+                      const updatedServices = [...(newOrder.services || []), service];
+                      updateOrderTotals(updatedServices, newOrder.partsUsed);
+                      setIsAddingService(false);
+                      setNewServiceName('');
+                      setNewServicePrice('');
                     }}
                     className="flex-[2] h-14 bg-primary text-white font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
                   >
-                    <Plus size={18} /> Salvar Marca
+                    <Plus size={18} /> Adicionar
                   </button>
                 </div>
               </div>
@@ -2051,25 +2202,25 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Modal Adicionar Modelo */}
+      {/* Quick Add Modal */}
       <AnimatePresence>
-        {isAddingModel && (
+        {quickAddModal.isOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-bg-dark/90 backdrop-blur-md">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-md glass-modal p-8 relative overflow-hidden"
+              className="w-full max-w-md glass-modal p-4 sm:p-6 md:p-8 relative overflow-hidden"
             >
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-emerald-500" />
 
-              <div className="flex justify-between items-center mb-8">
+              <div className="flex justify-between items-center mb-4 sm:mb-6 md:mb-8">
                 <div>
-                  <h3 className="text-2xl font-black text-white tracking-tight">Novo Modelo</h3>
-                  <p className="text-slate-500 text-xs font-medium uppercase tracking-widest mt-1">Cadastro de Equipamento</p>
+                  <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">{quickAddModal.title}</h3>
+                  <p className="text-slate-500 text-xs font-medium uppercase tracking-widest mt-1">Cadastro Rápido</p>
                 </div>
                 <button 
-                  onClick={() => setIsAddingModel(false)} 
+                  onClick={() => setQuickAddModal({ ...quickAddModal, isOpen: false, value: '' })} 
                   className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all"
                 >
                   <X size={20} />
@@ -2077,53 +2228,42 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
               </div>
 
               <div className="space-y-6">
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
-                    <Tag size={20} />
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Marca Selecionada</div>
-                    <div className="text-sm font-bold text-white">{newOrder.equipmentBrand}</div>
-                  </div>
-                </div>
-
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Nome do Modelo</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Nome</label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-primary transition-colors">
-                      <Smartphone size={18} />
+                      <Tag size={18} />
                     </div>
                     <input 
                       type="text"
-                      value={newModelName}
-                      onChange={(e) => setNewModelName(e.target.value)}
+                      value={quickAddModal.value}
+                      onChange={(e) => setQuickAddModal({ ...quickAddModal, value: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleQuickAdd();
+                        }
+                      }}
                       className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-slate-700"
-                      placeholder="Ex: iPhone 15 Pro, Galaxy S24..."
+                      placeholder={quickAddModal.placeholder}
                       autoFocus
                     />
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
                   <button 
-                    onClick={() => setIsAddingModel(false)}
-                    className="flex-1 h-14 bg-white/5 border border-white/10 text-slate-400 font-bold rounded-2xl hover:bg-white/10 transition-all"
+                    onClick={() => setQuickAddModal({ ...quickAddModal, isOpen: false, value: '' })}
+                    className="flex-1 h-12 sm:h-14 bg-white/5 border border-white/10 text-slate-400 font-bold rounded-xl sm:rounded-2xl hover:bg-white/10 transition-all order-2 sm:order-1"
                   >
                     Cancelar
                   </button>
                   <button 
-                    onClick={() => {
-                      if (!newModelName) return;
-                      const brand = brands.find(b => b.name === newOrder.equipmentBrand);
-                      if (brand) {
-                        onAddModel(brand.id, newModelName);
-                        setNewModelName('');
-                        setIsAddingModel(false);
-                      }
-                    }}
-                    className="flex-[2] h-14 bg-primary text-white font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
+                    onClick={handleQuickAdd}
+                    disabled={!quickAddModal.value.trim()}
+                    className="flex-[2] h-12 sm:h-14 bg-primary text-white font-black uppercase tracking-widest rounded-xl sm:rounded-2xl shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 order-1 sm:order-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Plus size={18} /> Salvar Modelo
+                    <Plus size={18} /> Adicionar
                   </button>
                 </div>
               </div>

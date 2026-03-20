@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { X } from 'lucide-react';
 import { CustomerSearchSelect } from '../CustomerSearchSelect';
 
 interface AddClientPaymentModalProps {
@@ -45,10 +46,18 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-2xl glass-modal p-8 max-h-[90vh] overflow-y-auto"
+            className="relative w-full max-w-2xl glass-modal p-4 sm:p-6 md:p-8 max-h-[90vh] overflow-y-auto custom-scrollbar"
           >
-            <h3 className="text-xl font-bold mb-6">Novo Registro de Venda/Pagamento</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex justify-between items-center mb-4 md:mb-6">
+              <h3 className="text-lg md:text-xl font-bold">Novo Registro de Venda/Pagamento</h3>
+              <button 
+                onClick={onClose}
+                className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all"
+              >
+                <X size={20} className="md:w-6 md:h-6" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Cliente</label>
                 <CustomerSearchSelect 
@@ -129,17 +138,17 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                 />
               </div>
             </div>
-            <div className="flex gap-4 pt-8">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6 md:pt-8">
               <button 
                 onClick={onClose}
-                className="flex-1 py-4 rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all"
+                className="flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all order-2 sm:order-1"
               >
                 Cancelar
               </button>
               <button 
                 onClick={onAdd}
                 disabled={isSaving}
-                className="flex-1 bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-primary text-white py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
               >
                 {isSaving ? 'Registrando...' : 'Registrar Venda'}
               </button>

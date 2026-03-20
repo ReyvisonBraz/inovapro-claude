@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { AppSettings, Category, User, AuditLog, Transaction, Customer, ClientPayment } from '../../types';
+import { AppSettings, Category, User, AuditLog, Transaction, Customer, ClientPayment, EquipmentType } from '../../types';
 import { cn } from '../../lib/utils';
 import { PrintLayout } from './PrintLayout';
 import { InterfaceSettings } from './InterfaceSettings';
 import { CategorySettings } from './CategorySettings';
 import { UserManagement } from './UserManagement';
-import { Printer, Layout, List, Users } from 'lucide-react';
+import { Printer, Layout, List, Users, MessageCircle, Laptop } from 'lucide-react';
+import { WhatsAppSettings } from './WhatsAppSettings';
+import { EquipmentSettings } from './EquipmentSettings';
+import { Brand, Model } from '../../types';
 
 interface SettingsLayoutProps {
   settings: AppSettings;
@@ -21,10 +24,19 @@ interface SettingsLayoutProps {
   transactions: Transaction[];
   customers: Customer[];
   clientPayments: ClientPayment[];
+  brands: Brand[];
+  models: Model[];
+  equipmentTypes: EquipmentType[];
+  addBrand: (name: string, equipmentType: string) => Promise<void>;
+  deleteBrand: (id: number) => Promise<void>;
+  addModel: (brandId: number, name: string) => Promise<void>;
+  deleteModel: (id: number) => Promise<void>;
+  addEquipmentType: (name: string, icon?: string) => void;
+  deleteEquipmentType: (id: number) => void;
 }
 
 export const SettingsLayout: React.FC<SettingsLayoutProps> = (props) => {
-  const [activeTab, setActiveTab] = useState<'print' | 'interface' | 'categories' | 'users'>('interface');
+  const [activeTab, setActiveTab] = useState<'print' | 'interface' | 'categories' | 'users' | 'whatsapp' | 'equipment'>('interface');
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 p-6">
@@ -71,6 +83,32 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = (props) => {
             <List size={18} />
             Categorias
           </button>
+
+          <button
+            onClick={() => setActiveTab('equipment')}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
+              activeTab === 'equipment' 
+                ? "bg-primary/10 text-primary border border-primary/20" 
+                : "text-slate-400 hover:bg-white/5 hover:text-slate-200 border border-transparent"
+            )}
+          >
+            <Laptop size={18} />
+            Equipamentos
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('whatsapp')}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
+              activeTab === 'whatsapp' 
+                ? "bg-primary/10 text-primary border border-primary/20" 
+                : "text-slate-400 hover:bg-white/5 hover:text-slate-200 border border-transparent"
+            )}
+          >
+            <MessageCircle size={18} />
+            WhatsApp
+          </button>
           
           <button
             onClick={() => setActiveTab('users')}
@@ -91,6 +129,20 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = (props) => {
           {activeTab === 'interface' && <InterfaceSettings {...props} />}
           {activeTab === 'print' && <PrintLayout {...props} />}
           {activeTab === 'categories' && <CategorySettings {...props} />}
+          {activeTab === 'whatsapp' && <WhatsAppSettings settings={props.settings} updateSettings={props.updateSettings} />}
+          {activeTab === 'equipment' && (
+            <EquipmentSettings 
+              brands={props.brands}
+              models={props.models}
+              equipmentTypes={props.equipmentTypes}
+              onAddBrand={props.addBrand}
+              onDeleteBrand={props.deleteBrand}
+              onAddModel={props.addModel}
+              onDeleteModel={props.deleteModel}
+              onAddEquipmentType={props.addEquipmentType}
+              onDeleteEquipmentType={props.deleteEquipmentType}
+            />
+          )}
           {activeTab === 'users' && (
             <UserManagement 
               users={props.users}

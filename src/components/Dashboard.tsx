@@ -83,14 +83,14 @@ export const Dashboard = ({
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass-card p-8"
+          className="glass-card p-4 md:p-8"
         >
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
             <div>
-              <h4 className="text-lg font-bold">Tendência de Fluxo de Caixa</h4>
-              <p className="text-xs text-slate-500 font-medium">Desempenho de flutuação mensal</p>
+              <h4 className="text-base md:text-lg font-bold">Tendência de Fluxo de Caixa</h4>
+              <p className="text-[10px] md:text-xs text-slate-500 font-medium">Desempenho de flutuação mensal</p>
             </div>
-            <select className="bg-slate-800 border border-white/10 rounded-xl text-[10px] font-bold uppercase tracking-widest py-2 px-4 focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900">
+            <select className="bg-slate-800 border border-white/10 rounded-xl text-[10px] font-bold uppercase tracking-widest py-2 px-4 focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900 w-full sm:w-auto">
               <option>Últimos 12 Meses</option>
               <option>Últimos 6 Meses</option>
             </select>
@@ -133,12 +133,12 @@ export const Dashboard = ({
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass-card p-8"
+          className="glass-card p-4 md:p-8"
         >
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
             <div>
-              <h4 className="text-lg font-bold">Comparação Mensal</h4>
-              <p className="text-xs text-slate-500 font-medium">Detalhamento de Renda vs Despesas</p>
+              <h4 className="text-base md:text-lg font-bold">Comparação Mensal</h4>
+              <p className="text-[10px] md:text-xs text-slate-500 font-medium">Detalhamento de Renda vs Despesas</p>
             </div>
             <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest">
               <div className="flex items-center gap-2">
@@ -180,14 +180,14 @@ export const Dashboard = ({
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-8"
+          className="glass-card p-4 md:p-8"
         >
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
             <div>
-              <h4 className="text-lg font-bold">Ranking de Entradas</h4>
-              <p className="text-xs text-slate-500 font-medium">Categorias mais rentáveis</p>
+              <h4 className="text-base md:text-lg font-bold">Ranking de Entradas</h4>
+              <p className="text-[10px] md:text-xs text-slate-500 font-medium">Categorias mais rentáveis</p>
             </div>
-            <div className="flex items-center gap-2 bg-white/5 rounded-xl border border-white/10 p-1">
+            <div className="flex items-center justify-between sm:justify-center gap-2 bg-white/5 rounded-xl border border-white/10 p-1 w-full sm:w-auto">
               <button onClick={handlePrevMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
                 <ChevronLeft size={16} />
               </button>
@@ -229,14 +229,14 @@ export const Dashboard = ({
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-8"
+          className="glass-card p-4 md:p-8"
         >
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
             <div>
-              <h4 className="text-lg font-bold">Ranking de Saídas</h4>
-              <p className="text-xs text-slate-500 font-medium">Maiores despesas por categoria</p>
+              <h4 className="text-base md:text-lg font-bold">Ranking de Saídas</h4>
+              <p className="text-[10px] md:text-xs text-slate-500 font-medium">Maiores despesas por categoria</p>
             </div>
-            <div className="flex items-center gap-2 bg-white/5 rounded-xl border border-white/10 p-1">
+            <div className="flex items-center justify-between sm:justify-center gap-2 bg-white/5 rounded-xl border border-white/10 p-1 w-full sm:w-auto">
               <button onClick={handlePrevMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
                 <ChevronLeft size={16} />
               </button>

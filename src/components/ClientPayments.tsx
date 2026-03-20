@@ -61,15 +61,15 @@ export const ClientPayments = ({
   isSaving
 }: ClientPaymentsProps) => {
   return (
-    <div className="p-6 lg:p-10 space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="p-4 md:p-6 lg:p-10 space-y-6 md:space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
         <div>
-          <h3 className="text-2xl font-bold tracking-tight">Pagamentos e Parcelamentos</h3>
-          <p className="text-sm text-slate-500 font-medium mt-1">Registre vendas, parcelamentos e envie lembretes de cobrança</p>
+          <h3 className="text-xl md:text-2xl font-bold tracking-tight">Pagamentos e Parcelamentos</h3>
+          <p className="text-xs md:text-sm text-slate-500 font-medium mt-1">Registre vendas, parcelamentos e envie lembretes de cobrança</p>
         </div>
         <button 
           onClick={() => setIsAddingClientPayment(true)}
-          className="bg-primary hover:bg-primary/90 text-white px-6 py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-95"
+          className="w-full md:w-auto bg-primary hover:bg-primary/90 text-white px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95"
         >
           <Plus size={20} />
           Novo Registro
@@ -77,8 +77,8 @@ export const ClientPayments = ({
       </div>
 
       <div className="glass-card overflow-hidden">
-        <div className="p-4 border-b border-white/5 flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
+        <div className="p-4 border-b border-white/5 flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1 w-full">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
             <input 
               type="text"
@@ -88,28 +88,172 @@ export const ClientPayments = ({
               className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
             />
           </div>
-          <select
-            value={paymentFilterStatus}
-            onChange={(e) => setPaymentFilterStatus(e.target.value)}
-            className="h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
-          >
-            <option value="all">Todos os Status</option>
-            <option value="paid">Pagos</option>
-            <option value="partial">Parciais</option>
-            <option value="pending">Pendentes</option>
-            <option value="overdue">Vencidos</option>
-          </select>
-          <select
-            value={paymentSortMode}
-            onChange={(e) => setPaymentSortMode(e.target.value as any)}
-            className="h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
-          >
-            <option value="date">Mais Recentes</option>
-            <option value="amount">Maior Valor</option>
-            <option value="alphabetical">Ordem Alfabética</option>
-          </select>
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <select
+              value={paymentFilterStatus}
+              onChange={(e) => setPaymentFilterStatus(e.target.value)}
+              className="flex-1 sm:flex-none h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
+            >
+              <option value="all">Todos os Status</option>
+              <option value="paid">Pagos</option>
+              <option value="partial">Parciais</option>
+              <option value="pending">Pendentes</option>
+              <option value="overdue">Vencidos</option>
+            </select>
+            <select
+              value={paymentSortMode}
+              onChange={(e) => setPaymentSortMode(e.target.value as any)}
+              className="flex-1 sm:flex-none h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
+            >
+              <option value="date">Mais Recentes</option>
+              <option value="amount">Maior Valor</option>
+              <option value="alphabetical">Ordem Alfabética</option>
+            </select>
+          </div>
         </div>
-        <div className="overflow-x-auto">
+        {/* Mobile View */}
+        <div className="md:hidden divide-y divide-white/5">
+          {filteredClientPayments.map(payment => (
+            <div key={payment.id} className="p-4 space-y-4">
+              <div className="flex justify-between items-start gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <button 
+                    onClick={() => togglePaymentExpansion(payment.id)}
+                    className="p-1 rounded-md hover:bg-white/10 text-slate-400 transition-colors shrink-0"
+                  >
+                    {expandedPayments.includes(payment.id) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </button>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold truncate">{payment.customerName}</p>
+                    <p className="text-xs text-slate-400 truncate">{payment.description}</p>
+                  </div>
+                </div>
+                <span className={cn(
+                  "px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border shrink-0",
+                  payment.status === 'paid' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" :
+                  payment.status === 'partial' ? "bg-amber-500/10 border-amber-500/20 text-amber-500" :
+                  "bg-rose-500/10 border-rose-500/20 text-rose-500"
+                )}>
+                  {payment.status === 'paid' ? 'Pago' : payment.status === 'partial' ? 'Parcial' : 'Pendente'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 bg-black/20 p-3 rounded-xl border border-white/5">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Vencimento</p>
+                  <p className={cn(
+                    "text-sm font-bold",
+                    new Date(payment.dueDate) < new Date() && payment.status !== 'paid' ? "text-rose-500" : "text-slate-300"
+                  )}>
+                    {format(parseISO(payment.dueDate), 'dd/MM/yyyy')}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Total / Pago</p>
+                  <p className="text-sm font-black">{formatCurrency(payment.totalAmount)}</p>
+                  <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">{formatCurrency(payment.paidAmount)}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {payment.status !== 'paid' && (
+                  <button 
+                    onClick={() => setIsRecordingPayment(payment)}
+                    className="flex-1 flex justify-center items-center py-3 px-2 rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all"
+                    title="Registrar Pagamento"
+                  >
+                    <CheckCircle2 size={16} />
+                  </button>
+                )}
+                <button 
+                  onClick={() => generateReceipt(payment, 'simple')}
+                  className="flex-1 flex justify-center items-center py-3 px-2 rounded-lg bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all"
+                  title="Recibo Térmico"
+                >
+                  <Zap size={16} />
+                </button>
+                <button 
+                  onClick={() => generateReceipt(payment, 'a4')}
+                  className="flex-1 flex justify-center items-center py-3 px-2 rounded-lg bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all"
+                  title="Recibo A4"
+                >
+                  <Printer size={16} />
+                </button>
+                <button 
+                  onClick={() => sendWhatsAppReminder(payment)}
+                  className="flex-1 flex justify-center items-center py-3 px-2 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
+                  title="WhatsApp"
+                >
+                  <MessageCircle size={16} />
+                </button>
+                <button 
+                  onClick={() => handleDeleteClientPayment(payment)}
+                  className="flex-1 flex justify-center items-center py-3 px-2 rounded-lg bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
+                  title="Excluir"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {expandedPayments.includes(payment.id) && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-4 border-t border-white/5">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Histórico de Pagamentos</h4>
+                      {payment.paymentHistory && JSON.parse(payment.paymentHistory).length > 0 ? (
+                        <div className="space-y-2">
+                          {JSON.parse(payment.paymentHistory).map((h: any, i: number) => (
+                            <div key={i} className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/5">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                                  <CheckCircle2 size={14} />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-bold">{formatCurrency(h.amount)}</p>
+                                  <p className="text-[10px] text-slate-500">{format(parseISO(h.date), 'dd/MM/yyyy HH:mm')}</p>
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                Parcela {i + 1}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-500 italic">Nenhum pagamento registrado ainda.</p>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ))}
+          {filteredClientPayments.length === 0 && (
+            <div className="p-8 text-center flex flex-col items-center justify-center gap-3">
+              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-slate-500 mb-2">
+                <Search size={24} />
+              </div>
+              <p className="text-slate-400 font-medium">Nenhum pagamento encontrado com os filtros atuais.</p>
+              <button 
+                onClick={() => {
+                  setPaymentSearchTerm('');
+                  setPaymentFilterStatus('all');
+                }}
+                className="text-primary text-sm font-bold hover:underline mt-2"
+              >
+                Limpar filtros
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-white/5 border-b border-white/5">

@@ -1,9 +1,10 @@
 import React from 'react';
 import { Plus, Printer } from 'lucide-react';
 import { CustomerList } from './customers/CustomerList';
-import { Customer, ClientPayment } from '../types';
+import { Customer, ClientPayment, AppSettings } from '../types';
 
 interface CustomersProps {
+  settings: AppSettings;
   customers: Customer[];
   clientPayments: ClientPayment[];
   setEditingCustomer: (customer: Customer | null) => void;
@@ -15,6 +16,7 @@ interface CustomersProps {
 }
 
 export const Customers = ({
+  settings,
   customers,
   clientPayments,
   setEditingCustomer,
@@ -31,31 +33,10 @@ export const Customers = ({
           <h3 className="text-2xl font-bold tracking-tight">Gestão de Clientes</h3>
           <p className="text-sm text-slate-500 font-medium mt-1">Cadastre e gerencie seus clientes para cobranças rápidas</p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <button 
-            onClick={() => {
-              setEditingCustomer(null);
-              setNewCustomer({
-                firstName: '',
-                lastName: '',
-                nickname: '',
-                cpf: '',
-                companyName: '',
-                phone: '',
-                observation: '',
-                creditLimit: ''
-              });
-              setIsAddingCustomer(true);
-            }}
-            className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 h-12"
-          >
-            <Plus size={20} />
-            Novo Cliente
-          </button>
-        </div>
       </div>
 
       <CustomerList 
+        settings={settings}
         customers={customers}
         clientPayments={clientPayments}
         onEdit={(customer) => {
