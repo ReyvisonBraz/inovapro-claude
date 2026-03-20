@@ -33,10 +33,10 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md glass-modal p-8"
+            className="relative w-full max-w-md glass-modal p-4 sm:p-6 md:p-8"
           >
-            <h3 className="text-xl font-bold mb-2">Registrar Pagamento</h3>
-            <p className="text-sm text-slate-500 mb-6">
+            <h3 className="text-lg md:text-xl font-bold mb-2">Registrar Pagamento</h3>
+            <p className="text-xs md:text-sm text-slate-500 mb-6">
               Cliente: <span className="text-slate-200 font-bold">{payment.customerName}</span><br/>
               Saldo Devedor: <span className="text-primary font-bold">{formatCurrency(payment.totalAmount - payment.paidAmount)}</span>
             </p>
@@ -57,16 +57,16 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                 </div>
               </div>
               
-              <div className="flex gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
                 <button 
                   onClick={onClose}
-                  className="flex-1 py-4 rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all"
+                  className="flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all order-2 sm:order-1"
                 >
                   Cancelar
                 </button>
                 <button 
                   onClick={onConfirm}
-                  className="flex-1 bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
+                  className="flex-1 bg-primary text-white py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] order-1 sm:order-2"
                 >
                   Confirmar
                 </button>

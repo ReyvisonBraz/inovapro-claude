@@ -44,6 +44,8 @@ import {
   LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useToast } from './components/ui/Toast';
+import { ConfirmModal } from './components/ui/ConfirmModal';
 import { 
   AreaChart, 
   Area, 
@@ -94,8 +96,11 @@ export default function App() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
+  const [isAddingServiceOrder, setIsAddingServiceOrder] = useState(false);
+  const [isAddingInventoryItem, setIsAddingInventoryItem] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
   const handlePrintBlankForm = () => {
@@ -278,6 +283,27 @@ export default function App() {
   const [showCustomerWarningModal, setShowCustomerWarningModal] = useState(false);
   const [customerWarningType, setCustomerWarningType] = useState<'cpf' | 'phone' | 'both'>('both');
 
+  const { showToast } = useToast();
+
+  // Estados para Modais de Confirmação
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'warning'
+  });
+
+  const openConfirm = (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning' | 'info' = 'warning') => {
+    setConfirmModal({ isOpen: true, title, message, onConfirm, type });
+  };
+
   // Configurações do App
   const [settings, setSettings] = useState<AppSettings>({
     appName: 'Financeiro Pro',
@@ -298,7 +324,10 @@ export default function App() {
     receiptCnpj: '',
     receiptAddress: '',
     receiptPixKey: '',
-    receiptQrCode: ''
+    receiptQrCode: '',
+    sendPulseClientId: '',
+    sendPulseClientSecret: '',
+    sendPulseTemplateId: ''
   });
 
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -322,6 +351,7 @@ export default function App() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
   const [serviceOrderStatuses, setServiceOrderStatuses] = useState<ServiceOrderStatus[]>([]);
+  const [equipmentTypes, setEquipmentTypes] = useState<{id: number, name: string}[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [models, setModels] = useState<Model[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -342,7 +372,7 @@ export default function App() {
     nickname: '',
     cpf: '',
     companyName: '',
-    phone: '',
+    phone: '+55',
     observation: '',
     creditLimit: ''
   });
@@ -430,10 +460,21 @@ export default function App() {
       fetchInventoryItems();
       fetchServiceOrders();
       fetchServiceOrderStatuses();
+      fetchEquipmentTypes();
       fetchBrands();
       fetchModels();
     }
   }, [isAuthenticated]);
+
+  const fetchEquipmentTypes = async () => {
+    try {
+      const res = await fetch('/api/equipment-types');
+      const data = await res.json();
+      setEquipmentTypes(data);
+    } catch (err) {
+      console.error("Failed to fetch equipment types", err);
+    }
+  };
 
   const fetchBrands = async () => {
     try {
@@ -515,9 +556,9 @@ export default function App() {
       if (res.ok) {
         fetchUsers();
         fetchAuditLogs();
-        alert('Usuário criado com sucesso!');
+        showToast('Usuário criado com sucesso!', 'success');
       } else {
-        alert('Erro ao criar usuário.');
+        showToast('Erro ao criar usuário.', 'error');
       }
     } catch (err) {
       console.error("Failed to add user", err);
@@ -534,9 +575,9 @@ export default function App() {
       if (res.ok) {
         fetchUsers();
         fetchAuditLogs();
-        alert('Usuário atualizado com sucesso!');
+        showToast('Usuário atualizado com sucesso!', 'success');
       } else {
-        alert('Erro ao atualizar usuário.');
+        showToast('Erro ao atualizar usuário.', 'error');
       }
     } catch (err) {
       console.error("Failed to update user", err);
@@ -544,20 +585,28 @@ export default function App() {
   };
 
   const handleDeleteUser = async (id: number) => {
-    if (!window.confirm('Tem certeza que deseja excluir este usuário?')) return;
-    try {
-      const res = await fetch(`/api/users/${id}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        fetchUsers();
-        fetchAuditLogs();
-      } else {
-        alert('Erro ao excluir usuário.');
-      }
-    } catch (err) {
-      console.error("Failed to delete user", err);
-    }
+    openConfirm(
+      'Excluir Usuário',
+      'Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.',
+      async () => {
+        try {
+          const res = await fetch(`/api/users/${id}`, {
+            method: 'DELETE'
+          });
+          if (res.ok) {
+            fetchUsers();
+            fetchAuditLogs();
+            showToast('Usuário excluído com sucesso!', 'success');
+          } else {
+            showToast('Erro ao excluir usuário.', 'error');
+          }
+        } catch (err) {
+          console.error("Failed to delete user", err);
+          showToast('Erro de conexão ao excluir usuário.', 'error');
+        }
+      },
+      'danger'
+    );
   };
 
   const fetchCustomers = async () => {
@@ -568,6 +617,124 @@ export default function App() {
     } catch (err) {
       console.error("Failed to fetch customers", err);
     }
+  };
+
+  const handleAddBrand = async (name: string, equipmentType: string) => {
+    try {
+      const res = await fetch('/api/brands', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, equipmentType })
+      });
+      if (res.ok) {
+        fetchBrands();
+        showToast('Marca adicionada com sucesso!', 'success');
+      } else {
+        showToast('Erro ao adicionar marca.', 'error');
+      }
+    } catch (err) {
+      console.error("Failed to add brand", err);
+    }
+  };
+
+  const handleAddEquipmentType = async (name: string, icon?: string) => {
+    try {
+      const res = await fetch('/api/equipment-types', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, icon })
+      });
+      if (res.ok) {
+        fetchEquipmentTypes();
+        showToast('Tipo de equipamento adicionado!', 'success');
+      } else {
+        showToast('Erro ao adicionar tipo de equipamento.', 'error');
+      }
+    } catch (err) {
+      console.error("Failed to add equipment type", err);
+    }
+  };
+
+  const handleDeleteEquipmentType = (id: number) => {
+    openConfirm(
+      'Excluir Tipo de Equipamento',
+      'Tem certeza que deseja excluir este tipo? Isso não afetará as marcas e modelos já cadastrados, mas eles não aparecerão mais nesta categoria.',
+      async () => {
+        try {
+          const res = await fetch(`/api/equipment-types/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            fetchEquipmentTypes();
+            showToast('Tipo de equipamento removido!', 'info');
+          } else {
+            showToast('Erro ao remover tipo de equipamento.', 'error');
+          }
+        } catch (err) {
+          console.error("Failed to delete equipment type", err);
+        }
+      },
+      'danger'
+    );
+  };
+
+  const handleDeleteBrand = async (id: number) => {
+    openConfirm(
+      'Excluir Marca',
+      'Tem certeza que deseja excluir esta marca? Todos os modelos vinculados também serão excluídos.',
+      async () => {
+        try {
+          const res = await fetch(`/api/brands/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            fetchBrands();
+            fetchModels();
+            showToast('Marca excluída com sucesso!', 'success');
+          } else {
+            showToast('Erro ao excluir marca.', 'error');
+          }
+        } catch (err) {
+          console.error("Failed to delete brand", err);
+        }
+      },
+      'danger'
+    );
+  };
+
+  const handleAddModel = async (brandId: number, name: string) => {
+    try {
+      const res = await fetch('/api/models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brandId, name })
+      });
+      if (res.ok) {
+        fetchModels();
+        showToast('Modelo adicionado com sucesso!', 'success');
+      } else {
+        showToast('Erro ao adicionar modelo.', 'error');
+      }
+    } catch (err) {
+      console.error("Failed to add model", err);
+    }
+  };
+
+  const handleDeleteModel = async (id: number) => {
+    openConfirm(
+      'Excluir Modelo',
+      'Tem certeza que deseja excluir este modelo?',
+      async () => {
+        try {
+          const res = await fetch(`/api/models/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            fetchModels();
+            showToast('Modelo excluído com sucesso!', 'success');
+          } else {
+            showToast('Erro ao excluir modelo.', 'error');
+          }
+        } catch (err) {
+          console.error("Failed to delete model", err);
+        }
+      },
+      'danger'
+    );
   };
 
   const fetchClientPayments = async () => {
@@ -583,7 +750,7 @@ export default function App() {
   const handleAddCustomer = async (force: boolean = false) => {
     if (isSaving) return;
     if (!newCustomer.firstName) {
-      alert("Por favor, preencha o nome do cliente.");
+      showToast("Por favor, preencha o nome do cliente.", 'warning');
       return;
     }
 
@@ -631,7 +798,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...newCustomer,
-          creditLimit: parseFloat(newCustomer.creditLimit) || 0,
+          creditLimit: parseFloat(newCustomer.creditLimit.toString().replace(',', '.')) || 0,
           createdBy: !editingCustomer ? currentUser?.id : undefined,
           updatedBy: currentUser?.id
         })
@@ -647,7 +814,7 @@ export default function App() {
         nickname: '',
         cpf: '',
         companyName: '',
-        phone: '',
+        phone: '+55',
         observation: '',
         creditLimit: ''
       });
@@ -678,8 +845,8 @@ export default function App() {
     
     setIsSaving(true);
     try {
-      const total = parseFloat(newClientPayment.totalAmount);
-      const paid = parseFloat(newClientPayment.paidAmount || '0');
+      const total = parseFloat(newClientPayment.totalAmount.toString().replace(',', '.'));
+      const paid = parseFloat((newClientPayment.paidAmount || '0').toString().replace(',', '.'));
       const status = paid >= total ? 'paid' : paid > 0 ? 'partial' : 'pending';
 
       await fetch('/api/client-payments', {
@@ -731,7 +898,7 @@ export default function App() {
   const handleRecordPayment = async () => {
     if (!isRecordingPayment || !paymentAmount) return;
     
-    const amount = parseFloat(paymentAmount);
+    const amount = parseFloat(paymentAmount.toString().replace(',', '.'));
     const newPaidAmount = isRecordingPayment.paidAmount + amount;
     const newStatus = newPaidAmount >= isRecordingPayment.totalAmount ? 'paid' : 'partial';
 
@@ -1441,7 +1608,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...newTx,
-          amount: parseFloat(newTx.amount) || 0,
+          amount: parseFloat(newTx.amount.toString().replace(',', '.')) || 0,
           category: newTx.category || 'Outros',
           description: newTx.description || 'Sem descrição',
           createdBy: !editingTransaction ? currentUser?.id : undefined,
@@ -1487,6 +1654,19 @@ export default function App() {
     }
   };
 
+  const downloadCSV = (headers: string[], rows: any[][], filename: string) => {
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const exportToCSV = () => {
     const headers = ["Descrição", "Categoria", "Tipo", "Valor", "Data", "Status"];
     const rows = transactions.map(t => [
@@ -1497,17 +1677,63 @@ export default function App() {
       t.date,
       t.status
     ]);
-    
-    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `relatorio_financeiro_${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadCSV(headers, rows, `relatorio_financeiro_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+  };
+
+  const exportServiceOrdersToCSV = () => {
+    const headers = ["ID", "Cliente", "Equipamento", "Status", "Prioridade", "Data Entrada", "Total"];
+    const rows = serviceOrders.map(o => {
+      const customer = customers.find(c => c.id === o.customerId);
+      return [
+        `#OS-${o.id}`,
+        `${customer?.firstName} ${customer?.lastName}`,
+        `${o.equipmentBrand} ${o.equipmentModel}`,
+        o.status,
+        o.priority,
+        o.entryDate || format(parseISO(o.createdAt), 'yyyy-MM-dd'),
+        o.totalAmount
+      ];
+    });
+    downloadCSV(headers, rows, `ordens_de_servico_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+  };
+
+  const exportCustomersToCSV = () => {
+    const headers = ["Nome", "Apelido", "CPF", "Empresa", "Telefone", "Limite de Crédito"];
+    const rows = customers.map(c => [
+      `${c.firstName} ${c.lastName}`,
+      c.nickname || '-',
+      c.cpf || '-',
+      c.companyName || '-',
+      c.phone || '-',
+      c.creditLimit || '0'
+    ]);
+    downloadCSV(headers, rows, `clientes_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+  };
+
+  const exportInventoryToCSV = () => {
+    const headers = ["Nome", "Categoria", "SKU", "Preço Unitário", "Estoque"];
+    const rows = inventoryItems.map(i => [
+      i.name,
+      i.category === 'product' ? 'Produto' : 'Serviço',
+      i.sku || '-',
+      i.unitPrice,
+      i.stockLevel || '0'
+    ]);
+    downloadCSV(headers, rows, `estoque_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+  };
+
+  const exportPaymentsToCSV = () => {
+    const headers = ["Cliente", "Descrição", "Valor Total", "Valor Pago", "Saldo Devedor", "Vencimento", "Status"];
+    const rows = clientPayments.map(p => [
+      p.customerName,
+      p.description,
+      p.totalAmount,
+      p.paidAmount,
+      p.totalAmount - p.paidAmount,
+      p.dueDate,
+      p.status
+    ]);
+    downloadCSV(headers, rows, `pagamentos_clientes_${format(new Date(), 'yyyy-MM-dd')}.csv`);
   };
 
   const printReport = () => {
@@ -1520,8 +1746,9 @@ export default function App() {
       setShowPasswordModal(false);
       setActiveScreen('settings');
       setPasswordInput('');
+      showToast('Acesso autorizado!', 'success');
     } else {
-      alert('Senha incorreta!');
+      showToast('Senha incorreta!', 'error');
     }
   };
 
@@ -1577,8 +1804,8 @@ export default function App() {
                          tx.amount.toString().includes(searchTerm);
     const matchesType = filterType === 'all' || tx.type === filterType;
     const matchesCategory = filterCategory === 'all' || tx.category === filterCategory;
-    const matchesMin = filterMinAmount === '' || tx.amount >= parseFloat(filterMinAmount);
-    const matchesMax = filterMaxAmount === '' || tx.amount <= parseFloat(filterMaxAmount);
+    const matchesMin = filterMinAmount === '' || tx.amount >= parseFloat(filterMinAmount.toString().replace(',', '.'));
+    const matchesMax = filterMaxAmount === '' || tx.amount <= parseFloat(filterMaxAmount.toString().replace(',', '.'));
     
     let matchesDate = true;
     if (dateFilterMode === 'day') {
@@ -1710,38 +1937,15 @@ export default function App() {
         body: JSON.stringify({ ...order, createdBy: currentUser?.id })
       });
       if (res.ok) {
+        const data = await res.json();
         fetchServiceOrders();
         fetchAuditLogs();
+        return data.id;
       }
     } catch (err) {
       console.error("Failed to add service order", err);
     }
-  };
-
-  const handleAddBrand = async (name: string) => {
-    try {
-      const res = await fetch('/api/brands', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
-      });
-      if (res.ok) fetchBrands();
-    } catch (err) {
-      console.error("Failed to add brand", err);
-    }
-  };
-
-  const handleAddModel = async (brandId: number, name: string) => {
-    try {
-      const res = await fetch('/api/models', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brandId, name })
-      });
-      if (res.ok) fetchModels();
-    } catch (err) {
-      console.error("Failed to add model", err);
-    }
+    return null;
   };
 
   const handleUpdateServiceOrder = async (id: number, order: any) => {
@@ -1801,6 +2005,69 @@ export default function App() {
     }
   };
 
+  const getHeaderConfig = () => {
+    switch (activeScreen) {
+      case 'dashboard':
+        return { title: 'Painel de Controle' };
+      case 'transactions':
+        return { 
+          title: 'Transações Diárias',
+          export: { label: 'Exportar CSV', icon: Download, onClick: exportToCSV },
+          newButton: { label: 'Nova Entrada', icon: Plus, onClick: () => setIsAdding(true) }
+        };
+      case 'service-orders':
+        return { 
+          title: 'Ordens de Serviço',
+          export: { label: 'Exportar CSV', icon: Download, onClick: exportServiceOrdersToCSV },
+          newButton: { label: 'Nova Ordem', icon: Plus, onClick: () => setIsAddingServiceOrder(true) }
+        };
+      case 'customers':
+        return { 
+          title: 'Gestão de Clientes',
+          export: { label: 'Exportar CSV', icon: Download, onClick: exportCustomersToCSV },
+          newButton: { 
+            label: 'Novo Cliente', 
+            icon: Users, 
+            onClick: () => {
+              setEditingCustomer(null);
+              setNewCustomer({
+                firstName: '',
+                lastName: '',
+                nickname: '',
+                cpf: '',
+                companyName: '',
+                phone: '',
+                observation: '',
+                creditLimit: ''
+              });
+              setIsAddingCustomer(true);
+            } 
+          }
+        };
+      case 'inventory':
+        return { 
+          title: 'Produtos & Serviços',
+          export: { label: 'Exportar CSV', icon: Download, onClick: exportInventoryToCSV },
+          newButton: { label: 'Novo Item', icon: Package, onClick: () => setIsAddingInventoryItem(true) }
+        };
+      case 'client-payments':
+        return { 
+          title: 'Vendas e Pagamentos',
+          export: { label: 'Exportar CSV', icon: Download, onClick: exportPaymentsToCSV },
+          newButton: { label: 'Novo Pagamento', icon: CreditCard, onClick: () => setIsAddingClientPayment(true) }
+        };
+      case 'reports':
+        return { 
+          title: 'Relatórios e Análises',
+          export: { label: 'Imprimir', icon: Printer, onClick: printReport }
+        };
+      case 'settings':
+        return { title: 'Configurações do Sistema' };
+      default:
+        return { title: 'FinanceFlow' };
+    }
+  };
+
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
   }
@@ -1835,52 +2102,97 @@ export default function App() {
       </AnimatePresence>
 
       {/* Sidebar */}
-      <aside className={cn(
-        "w-72 border-r border-white/5 flex flex-col bg-slate-900/50 backdrop-blur-xl fixed lg:sticky top-0 h-screen z-50 transition-transform duration-300 lg:translate-x-0",
-        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
-        <div className="p-8 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center text-white shadow-[0_0_20px_rgba(17,82,212,0.3)]">
+      <aside 
+        className={cn(
+          "border-r border-white/5 flex flex-col bg-slate-900/50 backdrop-blur-xl fixed lg:sticky top-0 h-screen z-50 transition-all duration-300 lg:translate-x-0",
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+          isSidebarCollapsed ? "w-20 overflow-visible" : "w-72"
+        )}
+      >
+        <div className={cn(
+          "flex items-center transition-all duration-300",
+          isSidebarCollapsed ? "p-4 justify-center" : "p-8 justify-between"
+        )}>
+          <div className={cn(
+            "flex items-center gap-4 transition-all duration-300",
+            isSidebarCollapsed ? "gap-0" : "gap-4"
+          )}>
+            <div className={cn(
+              "h-12 w-12 shrink-0 rounded-2xl bg-primary flex items-center justify-center text-white shadow-[0_0_20px_rgba(17,82,212,0.3)] transition-all duration-300",
+              isSidebarCollapsed && "scale-90"
+            )}>
               <Wallet size={24} />
             </div>
-            <div>
-              <h1 className="font-bold text-xl tracking-tight">{settings.appName}</h1>
-              <p className="text-[10px] font-bold text-primary uppercase tracking-widest opacity-70">{settings.appVersion}</p>
-            </div>
+            <AnimatePresence mode="wait">
+              {!isSidebarCollapsed && (
+                <motion.div
+                  initial={{ opacity: 0, width: 0, x: -10 }}
+                  animate={{ opacity: 1, width: "auto", x: 0 }}
+                  exit={{ opacity: 0, width: 0, x: -10 }}
+                  className="whitespace-nowrap overflow-hidden"
+                >
+                  <h1 className="font-bold text-xl tracking-tight">{settings.appName}</h1>
+                  <p className="text-[10px] font-bold text-primary uppercase tracking-widest opacity-70">{settings.appVersion}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-slate-500">
-            <X size={20} />
-          </button>
+          
+          {!isSidebarCollapsed && (
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={() => setIsSidebarCollapsed(true)} 
+                className="hidden lg:flex p-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                title="Recolher Menu"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-slate-500">
+                <X size={20} />
+              </button>
+            </div>
+          )}
+          
+          {isSidebarCollapsed && (
+            <button 
+              onClick={() => setIsSidebarCollapsed(false)}
+              className="absolute -right-3 top-10 h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border border-white/10 hover:scale-110 transition-all z-[60]"
+            >
+              <ChevronRight size={14} />
+            </button>
+          )}
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+        <nav className={cn(
+          "flex-1 transition-all duration-300",
+          isSidebarCollapsed ? "px-2 py-2 space-y-0.5 overflow-y-auto scrollbar-hide" : "px-4 py-4 space-y-2 overflow-y-auto custom-scrollbar"
+        )}>
           {hasPermission('view_dashboard') && (
             <SidebarItem 
               icon={LayoutDashboard} 
               label="Painel" 
               active={activeScreen === 'dashboard'} 
+              collapsed={isSidebarCollapsed}
               onClick={() => { setActiveScreen('dashboard'); setIsSidebarOpen(false); }} 
             />
           )}
-          
-          {hasPermission('manage_transactions') && (
-            <SidebarItem 
-              icon={ReceiptText} 
-              label="Transações Diárias" 
-              active={activeScreen === 'transactions'} 
-              onClick={() => { setActiveScreen('transactions'); setIsSidebarOpen(false); }} 
-            />
-          )}
 
-          <div className="pt-8 pb-4 px-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Assistência Técnica</p>
+          <div className={cn(
+            "px-4 overflow-hidden transition-all duration-300",
+            isSidebarCollapsed ? "pt-4 pb-2" : "pt-8 pb-4"
+          )}>
+            {isSidebarCollapsed ? (
+              <div className="h-px bg-white/5 w-full" />
+            ) : (
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">Operacional</p>
+            )}
           </div>
 
           <SidebarItem 
             icon={Briefcase} 
             label="Ordens de Serviço" 
             active={activeScreen === 'service-orders'} 
+            collapsed={isSidebarCollapsed}
             onClick={() => { setActiveScreen('service-orders'); setIsSidebarOpen(false); }} 
           />
 
@@ -1888,13 +2200,29 @@ export default function App() {
             icon={ShoppingBag} 
             label="Produtos & Serviços" 
             active={activeScreen === 'inventory'} 
+            collapsed={isSidebarCollapsed}
             onClick={() => { setActiveScreen('inventory'); setIsSidebarOpen(false); }} 
           />
 
-          {hasPermission('view_reports') && (
-            <div className="pt-8 pb-4 px-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Análises</p>
-            </div>
+          <div className={cn(
+            "px-4 overflow-hidden transition-all duration-300",
+            isSidebarCollapsed ? "pt-4 pb-2" : "pt-8 pb-4"
+          )}>
+            {isSidebarCollapsed ? (
+              <div className="h-px bg-white/5 w-full" />
+            ) : (
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">Financeiro</p>
+            )}
+          </div>
+
+          {hasPermission('manage_transactions') && (
+            <SidebarItem 
+              icon={ReceiptText} 
+              label="Transações Diárias" 
+              active={activeScreen === 'transactions'} 
+              collapsed={isSidebarCollapsed}
+              onClick={() => { setActiveScreen('transactions'); setIsSidebarOpen(false); }} 
+            />
           )}
 
           {hasPermission('view_reports') && (
@@ -1902,21 +2230,30 @@ export default function App() {
               icon={BarChart3} 
               label="Relatórios" 
               active={activeScreen === 'reports'} 
+              collapsed={isSidebarCollapsed}
               onClick={() => { setActiveScreen('reports'); setIsSidebarOpen(false); }} 
             />
           )}
           
           {(hasPermission('manage_customers') || hasPermission('manage_payments')) && (
-            <div className="pt-8 pb-4 px-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Gestão de Clientes</p>
+            <div className={cn(
+              "px-4 overflow-hidden transition-all duration-300",
+              isSidebarCollapsed ? "pt-4 pb-2" : "pt-8 pb-4"
+            )}>
+              {isSidebarCollapsed ? (
+                <div className="h-px bg-white/5 w-full" />
+              ) : (
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">Clientes</p>
+              )}
             </div>
           )}
 
           {hasPermission('manage_customers') && (
             <SidebarItem 
               icon={Users} 
-              label="Clientes" 
+              label="Gestão de Clientes" 
               active={activeScreen === 'customers'} 
+              collapsed={isSidebarCollapsed}
               onClick={() => { setActiveScreen('customers'); setIsSidebarOpen(false); }} 
             />
           )}
@@ -1924,14 +2261,22 @@ export default function App() {
           {hasPermission('manage_payments') && (
             <SidebarItem 
               icon={CreditCard} 
-              label="Pagamentos Clientes" 
+              label="Vendas e Pagamentos" 
               active={activeScreen === 'client-payments'} 
+              collapsed={isSidebarCollapsed}
               onClick={() => { setActiveScreen('client-payments'); setIsSidebarOpen(false); }} 
             />
           )}
           
-          <div className="pt-8 pb-4 px-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Conta</p>
+          <div className={cn(
+            "px-4 overflow-hidden transition-all duration-300",
+            isSidebarCollapsed ? "pt-4 pb-2" : "pt-8 pb-4"
+          )}>
+            {isSidebarCollapsed ? (
+              <div className="h-px bg-white/5 w-full" />
+            ) : (
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">Sistema</p>
+            )}
           </div>
           
           {hasPermission('manage_settings') && (
@@ -1939,6 +2284,7 @@ export default function App() {
               icon={Settings} 
               label="Configurações" 
               active={activeScreen === 'settings'} 
+              collapsed={isSidebarCollapsed}
               onClick={() => { 
                 if (isSettingsUnlocked) {
                   setActiveScreen('settings'); 
@@ -1952,16 +2298,45 @@ export default function App() {
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-4 py-3.5 rounded-2xl transition-all duration-300 text-rose-500 hover:bg-rose-500/10 hover:text-rose-400"
+            className={cn(
+              "flex items-center gap-3 w-full px-4 py-3 rounded-2xl transition-all duration-300 text-rose-500 hover:bg-rose-500/10 hover:text-rose-400 group relative",
+              isSidebarCollapsed && "justify-center px-0 py-2.5"
+            )}
           >
-            <LogOut size={20} />
-            <span className="font-bold text-sm tracking-tight">Sair</span>
+            <LogOut size={20} className="shrink-0" />
+            <AnimatePresence mode="wait">
+              {!isSidebarCollapsed && (
+                <motion.span 
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: "auto" }}
+                  exit={{ opacity: 0, width: 0 }}
+                  className="font-bold text-sm tracking-tight whitespace-nowrap overflow-hidden"
+                >
+                  Sair
+                </motion.span>
+              )}
+            </AnimatePresence>
+            {isSidebarCollapsed && (
+              <div className="absolute left-full ml-4 px-3 py-2 bg-slate-800 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-[100] border border-white/10 shadow-2xl translate-x-2 group-hover:translate-x-0">
+                Sair
+                <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-800 border-l border-b border-white/10 rotate-45" />
+              </div>
+            )}
           </button>
         </nav>
 
-        <div className="p-6 border-t border-white/5">
-          <div className="flex items-center gap-4 p-3 rounded-2xl bg-white/5 border border-white/5 relative group hover:bg-white/10 transition-all">
-            <div className="h-10 w-10 shrink-0 rounded-full bg-slate-700 overflow-hidden border-2 border-primary/20">
+        <div className={cn(
+          "border-t border-white/5 transition-all duration-300",
+          isSidebarCollapsed ? "p-2" : "p-6"
+        )}>
+          <div className={cn(
+            "flex items-center gap-4 rounded-2xl bg-white/5 border border-white/5 relative group hover:bg-white/10 transition-all",
+            isSidebarCollapsed ? "justify-center p-1.5" : "p-3"
+          )}>
+            <div className={cn(
+              "shrink-0 rounded-full bg-slate-700 overflow-hidden border-2 border-primary/20 transition-all",
+              isSidebarCollapsed ? "h-9 w-9" : "h-10 w-10"
+            )}>
               <img 
                 src={settings.profileAvatar} 
                 alt="Perfil" 
@@ -1969,12 +2344,27 @@ export default function App() {
                 referrerPolicy="no-referrer"
               />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold truncate">{currentUser?.name || settings.profileName}</p>
-              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
-                {currentUser?.role === 'owner' ? 'Admin' : currentUser?.role === 'manager' ? 'Gerente' : 'Funcionário'}
-              </p>
-            </div>
+            <AnimatePresence mode="wait">
+              {!isSidebarCollapsed && (
+                <motion.div 
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: "auto" }}
+                  exit={{ opacity: 0, width: 0 }}
+                  className="flex-1 min-w-0 overflow-hidden"
+                >
+                  <p className="text-sm font-bold truncate">{currentUser?.name || settings.profileName}</p>
+                  <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
+                    {currentUser?.role === 'owner' ? 'Admin' : currentUser?.role === 'manager' ? 'Gerente' : 'Funcionário'}
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {isSidebarCollapsed && (
+              <div className="absolute left-full ml-4 px-3 py-2 bg-slate-800 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-[100] border border-white/10 shadow-2xl translate-x-2 group-hover:translate-x-0">
+                {currentUser?.name || settings.profileName}
+                <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-800 border-l border-b border-white/10 rotate-45" />
+              </div>
+            )}
           </div>
         </div>
       </aside>
@@ -1993,14 +2383,7 @@ export default function App() {
               <LayoutDashboard size={20} />
             </button>
             <h2 className="text-xl font-bold tracking-tight">
-              {activeScreen === 'dashboard' ? 'Visão Geral Anual' : 
-               activeScreen === 'transactions' ? 'Transações Diárias' :
-               activeScreen === 'reports' ? 'Relatórios Financeiros' : 
-               activeScreen === 'customers' ? 'Gestão de Clientes' :
-               activeScreen === 'client-payments' ? 'Pagamentos e Parcelamentos' :
-               activeScreen === 'service-orders' ? 'Ordens de Serviço' :
-               activeScreen === 'inventory' ? 'Produtos & Serviços' :
-               'Configurações do Sistema'}
+              {getHeaderConfig().title}
             </h2>
             <span className="hidden sm:inline-block px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
               Ano Fiscal {settings.fiscalYear}
@@ -2093,20 +2476,24 @@ export default function App() {
             </div>
             <div className="h-8 w-[1px] bg-white/10 mx-2 hidden sm:block"></div>
             <div className="flex gap-2">
-               <button 
-                onClick={exportToCSV}
-                className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-400 hover:text-slate-200 hover:bg-white/[0.03] border border-white/10 transition-all hover:border-white/20"
-              >
-                <Download size={16} />
-                Exportar
-              </button>
-              <button 
-                onClick={() => setIsAdding(true)}
-                className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-[0_10px_20px_-5px_rgba(17,82,212,0.4)] hover:shadow-[0_15px_25px_-5px_rgba(17,82,212,0.5)] hover:scale-[1.02] active:scale-95"
-              >
-                <Plus size={18} />
-                Nova Entrada
-              </button>
+               {getHeaderConfig().export && (
+                 <button 
+                  onClick={getHeaderConfig().export?.onClick}
+                  className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-400 hover:text-slate-200 hover:bg-white/[0.03] border border-white/10 transition-all hover:border-white/20"
+                >
+                  {React.createElement(getHeaderConfig().export?.icon || Download, { size: 16 })}
+                  {getHeaderConfig().export?.label || 'Exportar'}
+                </button>
+               )}
+               {getHeaderConfig().newButton && (
+                <button 
+                  onClick={getHeaderConfig().newButton?.onClick}
+                  className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-[0_10px_20px_-5px_rgba(17,82,212,0.4)] hover:shadow-[0_15px_25px_-5px_rgba(17,82,212,0.5)] hover:scale-[1.02] active:scale-95"
+                >
+                  {React.createElement(getHeaderConfig().newButton?.icon || Plus, { size: 18 })}
+                  {getHeaderConfig().newButton?.label}
+                </button>
+               )}
             </div>
           </div>
         </header>
@@ -2173,6 +2560,7 @@ export default function App() {
             />
           ) : activeScreen === 'customers' ? (
             <Customers 
+              settings={settings}
               customers={customers}
               clientPayments={clientPayments}
               setEditingCustomer={setEditingCustomer}
@@ -2225,6 +2613,7 @@ export default function App() {
               customers={customers}
               inventoryItems={inventoryItems}
               statuses={serviceOrderStatuses}
+              equipmentTypes={equipmentTypes}
               brands={brands}
               models={models}
               clientPayments={clientPayments}
@@ -2233,9 +2622,11 @@ export default function App() {
               onDeleteOrder={handleDeleteServiceOrder}
               onAddStatus={handleAddServiceOrderStatus}
               onDeleteStatus={handleDeleteServiceOrderStatus}
+              onAddEquipmentType={handleAddEquipmentType}
               onAddBrand={handleAddBrand}
               onAddModel={handleAddModel}
               onPrintBlankForm={handlePrintBlankForm}
+              openConfirm={openConfirm}
               onTriggerAddCustomer={() => {
                 setEditingCustomer(null);
                 setNewCustomer({
@@ -2254,6 +2645,9 @@ export default function App() {
               directMode={directMode}
               onClearDirectOsId={() => setDirectOsId(null)}
               currentUser={currentUser}
+              settings={settings}
+              isAdding={isAddingServiceOrder}
+              setIsAdding={setIsAddingServiceOrder}
             />
           ) : activeScreen === 'inventory' ? (
             <Inventory
@@ -2261,6 +2655,9 @@ export default function App() {
               onAddItem={handleAddInventoryItem}
               onUpdateItem={handleUpdateInventoryItem}
               onDeleteItem={handleDeleteInventoryItem}
+              openConfirm={openConfirm}
+              isAdding={isAddingInventoryItem}
+              setIsAdding={setIsAddingInventoryItem}
             />
           ) : (
             /* Settings Screen */
@@ -2278,6 +2675,15 @@ export default function App() {
               transactions={transactions}
               customers={customers}
               clientPayments={clientPayments}
+              brands={brands}
+              models={models}
+              addBrand={handleAddBrand}
+              deleteBrand={handleDeleteBrand}
+              addModel={handleAddModel}
+              deleteModel={handleDeleteModel}
+              equipmentTypes={equipmentTypes}
+              addEquipmentType={handleAddEquipmentType}
+              deleteEquipmentType={handleDeleteEquipmentType}
             />
           )}
         </div>
@@ -2436,6 +2842,15 @@ export default function App() {
         customer={historyCustomer}
         clientPayments={clientPayments}
         serviceOrders={serviceOrders}
+      />
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
       />
     </div>
   );

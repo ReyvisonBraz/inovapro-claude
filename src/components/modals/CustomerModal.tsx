@@ -43,19 +43,19 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-2xl glass-modal p-8 overflow-y-auto max-h-[90vh] custom-scrollbar"
+            className="relative w-full max-w-2xl glass-modal p-4 sm:p-6 md:p-8 overflow-y-auto max-h-[90vh] custom-scrollbar"
           >
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold">{editingCustomer ? 'Editar Cliente' : 'Novo Cliente'}</h3>
+            <div className="flex justify-between items-center mb-4 md:mb-6">
+              <h3 className="text-lg md:text-xl font-bold">{editingCustomer ? 'Editar Cliente' : 'Novo Cliente'}</h3>
               <button 
                 onClick={onClose}
                 className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all"
               >
-                <X size={24} />
+                <X size={20} className="md:w-6 md:h-6" />
               </button>
             </div>
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4 md:space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-primary flex justify-between">
                     <span>Nome *</span>
@@ -111,9 +111,20 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                   </label>
                   <input 
                     value={newCustomer.phone}
-                    onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
+                    onChange={(e) => {
+                      let val = e.target.value;
+                      // Se o usuário tentar apagar o +, garante que ele volte
+                      if (!val.startsWith('+')) {
+                        val = '+' + val.replace(/\+/g, '');
+                      }
+                      // Se o usuário apagar o 55, garante que ele volte se houver outros números
+                      if (val === '+') {
+                        val = '+55';
+                      }
+                      setNewCustomer({...newCustomer, phone: val});
+                    }}
                     className="w-full h-12 bg-white/5 border-2 border-primary/30 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                    placeholder="5511999999999"
+                    placeholder="+5511999999999"
                   />
                 </div>
                 <div className="space-y-2">

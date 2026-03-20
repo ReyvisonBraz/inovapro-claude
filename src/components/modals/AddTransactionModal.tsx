@@ -42,30 +42,30 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-2xl glass-modal p-8 lg:p-12"
+            className="relative w-full max-w-2xl glass-modal p-4 sm:p-6 md:p-8 lg:p-12 max-h-[90vh] overflow-y-auto custom-scrollbar"
           >
-            <div className="flex items-center justify-between mb-12">
-              <div className="flex items-center gap-5">
-                <div className="h-14 w-14 rounded-3xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
-                  {editingTransaction ? <Edit size={28} /> : <Plus size={28} />}
+            <div className="flex items-start justify-between mb-8 md:mb-12">
+              <div className="flex items-center gap-4 md:gap-5">
+                <div className="h-12 w-12 md:h-14 md:w-14 rounded-2xl md:rounded-3xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                  {editingTransaction ? <Edit size={24} className="md:w-7 md:h-7" /> : <Plus size={24} className="md:w-7 md:h-7" />}
                 </div>
                 <div>
-                  <h3 className="text-3xl font-bold tracking-tight">
+                  <h3 className="text-xl md:text-3xl font-bold tracking-tight">
                     {editingTransaction ? 'Editar Transação' : 'Nova Entrada'}
                   </h3>
-                  <p className="text-slate-500 text-sm font-medium mt-1">Preencha os detalhes da sua movimentação</p>
+                  <p className="text-slate-500 text-xs md:text-sm font-medium mt-1">Preencha os detalhes da sua movimentação</p>
                 </div>
               </div>
               <button 
                 onClick={onClose}
-                className="p-3 hover:bg-white/5 rounded-2xl text-slate-500 hover:text-white transition-all border border-transparent hover:border-white/10"
+                className="p-2 md:p-3 hover:bg-white/5 rounded-xl md:rounded-2xl text-slate-500 hover:text-white transition-all border border-transparent hover:border-white/10 shrink-0"
               >
-                <X size={28} />
+                <X size={24} className="md:w-7 md:h-7" />
               </button>
             </div>
 
-            <form onSubmit={onSubmit} className="space-y-10">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <form onSubmit={onSubmit} className="space-y-6 md:space-y-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                 <div className="space-y-3">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Tipo de Fluxo</label>
                   <select 
@@ -137,17 +137,17 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 />
               </div>
 
-              <div className="flex flex-col-reverse sm:flex-row items-center gap-6 pt-10 border-t border-white/5">
+              <div className="flex flex-col-reverse sm:flex-row items-center gap-4 sm:gap-6 pt-8 md:pt-10 border-t border-white/5">
                 <button 
                   type="button"
                   onClick={onClose}
-                  className="w-full sm:w-auto px-10 py-5 rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all text-sm uppercase tracking-widest"
+                  className="w-full sm:w-auto px-6 sm:px-10 py-4 sm:py-5 rounded-xl sm:rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all text-xs sm:text-sm uppercase tracking-widest"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit"
-                  className="w-full sm:flex-1 bg-primary text-white py-5 rounded-2xl font-black shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98] text-sm uppercase tracking-[0.2em]"
+                  className="w-full sm:flex-1 bg-primary text-white py-4 sm:py-5 rounded-xl sm:rounded-2xl font-black shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98] text-xs sm:text-sm uppercase tracking-[0.2em]"
                 >
                   {editingTransaction ? 'Atualizar Lançamento' : 'Confirmar Lançamento'}
                 </button>

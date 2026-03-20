@@ -169,6 +169,12 @@ db.exec(`
     FOREIGN KEY (brandId) REFERENCES brands(id),
     UNIQUE(brandId, name)
   );
+
+  CREATE TABLE IF NOT EXISTS equipment_types (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    icon TEXT
+  );
 `);
 
 // Garantir que as colunas novas existem (migrações simples)
@@ -186,6 +192,14 @@ const migrations = [
   { name: 'companyAddress', table: 'settings', type: "TEXT" },
   { name: 'pixKey', table: 'settings', type: "TEXT" },
   { name: 'pixQrCode', table: 'settings', type: "TEXT" },
+  { name: 'whatsappBillingTemplate', table: 'settings', type: "TEXT DEFAULT 'Olá {nome_cliente}, gostaríamos de lembrar sobre o débito pendente de {valor_divida}. Podemos ajudar com algo?'" },
+  { name: 'whatsappOSTemplate', table: 'settings', type: "TEXT DEFAULT 'Olá {nome_cliente}, sua Ordem de Serviço #{os_id} ({equipamento}) está com o status: {status}.'" },
+  { name: 'equipmentType', table: 'service_orders', type: "TEXT" },
+  { name: 'equipmentColor', table: 'service_orders', type: "TEXT" },
+  { name: 'equipmentType', table: 'brands', type: "TEXT" },
+  { name: 'sendPulseClientId', table: 'settings', type: "TEXT" },
+  { name: 'sendPulseClientSecret', table: 'settings', type: "TEXT" },
+  { name: 'sendPulseTemplateId', table: 'settings', type: "TEXT" },
   { name: 'nickname', table: 'customers', type: "TEXT" },
   { name: 'cpf', table: 'customers', type: "TEXT" },
   { name: 'companyName', table: 'customers', type: "TEXT" },
@@ -206,11 +220,13 @@ const migrations = [
   { name: 'ramInfo', table: 'service_orders', type: "TEXT" },
   { name: 'ssdInfo', table: 'service_orders', type: "TEXT" },
   { name: 'priority', table: 'service_orders', type: "TEXT DEFAULT 'medium'" },
+  { name: 'arrivalPhotoBase64', table: 'service_orders', type: "TEXT" },
   { name: 'equipmentColor', table: 'service_orders', type: "TEXT" },
   { name: 'minQuantity', table: 'inventory_items', type: "INTEGER DEFAULT 5" },
   { name: 'costPrice', table: 'inventory_items', type: "REAL DEFAULT 0" },
   { name: 'salePrice', table: 'inventory_items', type: "REAL DEFAULT 0" },
-  { name: 'quantity', table: 'inventory_items', type: "INTEGER DEFAULT 0" }
+  { name: 'quantity', table: 'inventory_items', type: "INTEGER DEFAULT 0" },
+  { name: 'icon', table: 'equipment_types', type: "TEXT" }
 ];
 
 migrations.forEach(m => {
@@ -257,6 +273,14 @@ if (statusCount.count === 0) {
   insertStatus.run('Pronto para Retirada', '#10b981', 5, 1);
   insertStatus.run('Concluído', '#64748b', 6, 1);
   insertStatus.run('Sem Conserto', '#ef4444', 7, 1);
+}
+
+// Inserir tipos de equipamento padrão se não existirem
+const equipmentTypesCount = db.prepare("SELECT COUNT(*) as count FROM equipment_types").get() as { count: number };
+if (equipmentTypesCount.count === 0) {
+  const insertType = db.prepare("INSERT INTO equipment_types (name) VALUES (?)");
+  const defaultTypes = ['Notebook', 'Desktop', 'Smartphone', 'Tablet', 'Monitor', 'Impressora', 'Console'];
+  defaultTypes.forEach(t => insertType.run(t));
 }
 
 // Inserir dados iniciais se o banco estiver vazio
@@ -346,7 +370,8 @@ async function startServer() {
       appName, appVersion, fiscalYear, primaryColor, categories, 
       incomeCategories, expenseCategories,
       profileName, profileAvatar, initialBalance, showWarnings, 
-      hiddenColumns, settingsPassword, receiptLayout, receiptLogo
+      hiddenColumns, settingsPassword, receiptLayout, receiptLogo,
+      sendPulseClientId, sendPulseClientSecret, sendPulseTemplateId
     } = req.body;
     
     db.prepare(`
@@ -354,13 +379,15 @@ async function startServer() {
       SET appName = ?, appVersion = ?, fiscalYear = ?, primaryColor = ?, 
           categories = ?, incomeCategories = ?, expenseCategories = ?, profileName = ?, profileAvatar = ?, 
           initialBalance = ?, showWarnings = ?, hiddenColumns = ?, 
-          settingsPassword = ?, receiptLayout = ?, receiptLogo = ?
+          settingsPassword = ?, receiptLayout = ?, receiptLogo = ?,
+          sendPulseClientId = ?, sendPulseClientSecret = ?, sendPulseTemplateId = ?
       WHERE id = 1
     `).run(
       appName, appVersion, fiscalYear, primaryColor, 
       categories, incomeCategories, expenseCategories, profileName, profileAvatar, initialBalance, 
       showWarnings ? 1 : 0, JSON.stringify(hiddenColumns || []), 
-      settingsPassword, receiptLayout || 'a4', receiptLogo || ''
+      settingsPassword, receiptLayout || 'a4', receiptLogo || '',
+      sendPulseClientId || '', sendPulseClientSecret || '', sendPulseTemplateId || ''
     );
     res.json({ success: true });
   });
@@ -593,10 +620,13 @@ async function startServer() {
   });
 
   app.post("/api/inventory", (req, res) => {
-    const { name, category, sku, costPrice, salePrice, quantity, minQuantity, createdBy } = req.body;
+    const { name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, createdBy } = req.body;
     try {
+      const finalUnitPrice = unitPrice !== undefined ? unitPrice : (salePrice || 0);
+      const finalStockLevel = stockLevel !== undefined ? stockLevel : (quantity || 0);
+      
       const result = db.prepare("INSERT INTO inventory_items (name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, createdBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(
-        name, category, sku, costPrice || 0, salePrice || 0, quantity || 0, minQuantity || 5, salePrice || 0, quantity || 0, createdBy || 1
+        name, category, sku, costPrice || 0, finalUnitPrice, finalStockLevel, minQuantity || 5, finalUnitPrice, finalStockLevel, createdBy || 1
       );
       
       db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'InventoryItem', result.lastInsertRowid, `Created item ${name}`);
@@ -608,10 +638,13 @@ async function startServer() {
   });
 
   app.put("/api/inventory/:id", (req, res) => {
-    const { name, category, sku, costPrice, salePrice, quantity, minQuantity, updatedBy } = req.body;
+    const { name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, updatedBy } = req.body;
     try {
+      const finalUnitPrice = unitPrice !== undefined ? unitPrice : (salePrice || 0);
+      const finalStockLevel = stockLevel !== undefined ? stockLevel : (quantity || 0);
+      
       db.prepare("UPDATE inventory_items SET name = ?, category = ?, sku = ?, costPrice = ?, salePrice = ?, quantity = ?, minQuantity = ?, unitPrice = ?, stockLevel = ?, updatedBy = ? WHERE id = ?").run(
-        name, category, sku, costPrice, salePrice, quantity, minQuantity, salePrice, quantity, updatedBy || 1, req.params.id
+        name, category, sku, costPrice || 0, finalUnitPrice, finalStockLevel, minQuantity || 5, finalUnitPrice, finalStockLevel, updatedBy || 1, req.params.id
       );
       
       db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'InventoryItem', req.params.id, `Updated item ${name}`);
@@ -654,22 +687,22 @@ async function startServer() {
 
   app.post("/api/service-orders", (req, res) => {
     const { 
-      customerId, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
-      reportedProblem, arrivalPhotoUrl, status, entryDate, analysisPrediction, 
+      customerId, equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
+      reportedProblem, arrivalPhotoUrl, arrivalPhotoBase64, status, entryDate, analysisPrediction, 
       customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy 
     } = req.body;
     
     try {
       const result = db.prepare(`
         INSERT INTO service_orders (
-          customerId, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
-          reportedProblem, arrivalPhotoUrl, status, entryDate, analysisPrediction, 
+          customerId, equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
+          reportedProblem, arrivalPhotoUrl, arrivalPhotoBase64, status, entryDate, analysisPrediction, 
           customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy
         ) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
-        customerId, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
-        reportedProblem, arrivalPhotoUrl, status || 'Aguardando Análise', 
+        customerId, equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
+        reportedProblem, arrivalPhotoUrl, arrivalPhotoBase64, status || 'Aguardando Análise', 
         entryDate, analysisPrediction, customerPassword, accessories, 
         ramInfo, ssdInfo, priority || 'medium', createdBy || 1
       );
@@ -687,7 +720,7 @@ async function startServer() {
       status, technicalAnalysis, servicesPerformed, partsUsed, 
       serviceFee, totalAmount, finalObservations, entryDate, analysisPrediction, 
       customerPassword, accessories, ramInfo, ssdInfo, priority, 
-      equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, updatedBy 
+      equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, arrivalPhotoBase64, updatedBy 
     } = req.body;
     
     try {
@@ -723,16 +756,16 @@ async function startServer() {
             serviceFee = ?, totalAmount = ?, finalObservations = ?, entryDate = ?, 
             analysisPrediction = ?, customerPassword = ?, accessories = ?, 
             ramInfo = ?, ssdInfo = ?, priority = ?, 
-            equipmentBrand = ?, equipmentModel = ?, equipmentColor = ?, equipmentSerial = ?, 
-            updatedBy = ? 
+            equipmentType = ?, equipmentBrand = ?, equipmentModel = ?, equipmentColor = ?, equipmentSerial = ?, 
+            arrivalPhotoBase64 = ?, updatedBy = ? 
         WHERE id = ?
       `).run(
         status, technicalAnalysis, servicesPerformed, partsString, 
         serviceFee, totalAmount, finalObservations, entryDate, 
         analysisPrediction, customerPassword, accessories, 
         ramInfo, ssdInfo, priority, 
-        equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
-        updatedBy || 1, req.params.id
+        equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
+        arrivalPhotoBase64, updatedBy || 1, req.params.id
       );
       
       db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'ServiceOrder', req.params.id, `Updated OS #${req.params.id}`);
@@ -778,10 +811,20 @@ async function startServer() {
   });
 
   app.post("/api/brands", (req, res) => {
-    const { name } = req.body;
+    const { name, equipmentType } = req.body;
     try {
-      const result = db.prepare("INSERT INTO brands (name) VALUES (?)").run(name);
+      const result = db.prepare("INSERT INTO brands (name, equipmentType) VALUES (?, ?)").run(name, equipmentType);
       res.json({ id: result.lastInsertRowid });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/brands/:id", (req, res) => {
+    try {
+      db.prepare("DELETE FROM brands WHERE id = ?").run(req.params.id);
+      db.prepare("DELETE FROM models WHERE brandId = ?").run(req.params.id);
+      res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
@@ -797,6 +840,40 @@ async function startServer() {
     try {
       const result = db.prepare("INSERT INTO models (brandId, name) VALUES (?, ?)").run(brandId, name);
       res.json({ id: result.lastInsertRowid });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/models/:id", (req, res) => {
+    try {
+      db.prepare("DELETE FROM models WHERE id = ?").run(req.params.id);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  // Rotas de Tipos de Equipamento
+  app.get("/api/equipment-types", (req, res) => {
+    const types = db.prepare("SELECT * FROM equipment_types ORDER BY name ASC").all();
+    res.json(types);
+  });
+
+  app.post("/api/equipment-types", (req, res) => {
+    const { name, icon } = req.body;
+    try {
+      const result = db.prepare("INSERT INTO equipment_types (name, icon) VALUES (?, ?)").run(name, icon);
+      res.json({ id: result.lastInsertRowid });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/equipment-types/:id", (req, res) => {
+    try {
+      db.prepare("DELETE FROM equipment_types WHERE id = ?").run(req.params.id);
+      res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }

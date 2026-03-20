@@ -15,6 +15,7 @@ interface TransactionsProps {
   onAdd: (tx: Omit<Transaction, 'id'>) => Promise<boolean>;
   onUpdate: (id: number, tx: Partial<Transaction>) => Promise<boolean>;
   onDelete: (id: number) => Promise<boolean>;
+  openConfirm: (options: { title: string; message: string; onConfirm: () => void; type?: 'danger' | 'warning' | 'info' }) => void;
 }
 
 const Transactions: React.FC<TransactionsProps> = ({
@@ -22,7 +23,8 @@ const Transactions: React.FC<TransactionsProps> = ({
   categories,
   onAdd,
   onUpdate,
-  onDelete
+  onDelete,
+  openConfirm
 }) => {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [dateFilterMode, setDateFilterMode] = React.useState<'day' | 'month' | 'range' | 'all'>('month');
@@ -68,9 +70,12 @@ const Transactions: React.FC<TransactionsProps> = ({
   };
 
   const handleDeleteTransaction = async (id: number) => {
-    if (confirm('Tem certeza que deseja excluir esta transação?')) {
-      await onDelete(id);
-    }
+    openConfirm({
+      title: 'Excluir Transação',
+      message: 'Tem certeza que deseja excluir esta transação?',
+      onConfirm: () => onDelete(id),
+      type: 'danger'
+    });
   };
 
   const exportToExcel = () => {

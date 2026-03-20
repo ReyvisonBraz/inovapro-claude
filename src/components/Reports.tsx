@@ -61,13 +61,6 @@ export const Reports = ({
               Tabela
             </button>
           </div>
-          <button 
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-sm font-bold hover:bg-white/10 transition-all"
-          >
-            <Printer size={18} />
-            Imprimir
-          </button>
         </div>
       </div>
 

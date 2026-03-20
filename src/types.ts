@@ -90,6 +90,11 @@ export interface AppSettings {
   receiptAddress?: string;
   receiptPixKey?: string;
   receiptQrCode?: string;
+  whatsappBillingTemplate?: string;
+  whatsappOSTemplate?: string;
+  sendPulseClientId?: string;
+  sendPulseClientSecret?: string;
+  sendPulseTemplateId?: string;
 }
 
 export interface InventoryItem {
@@ -120,21 +125,29 @@ export interface ServiceOrderStatus {
   isDefault?: boolean;
 }
 
+export interface ServiceOrderItem {
+  name: string;
+  price: number;
+}
+
 export interface ServiceOrder {
   id: number;
   customerId: number;
   firstName?: string;
   lastName?: string;
   phone?: string;
+  equipmentType?: string;
   equipmentBrand?: string;
   equipmentModel?: string;
   equipmentColor?: string;
   equipmentSerial?: string;
   reportedProblem?: string;
   arrivalPhotoUrl?: string;
+  arrivalPhotoBase64?: string;
   status: string;
   technicalAnalysis?: string;
   servicesPerformed?: string;
+  services?: ServiceOrderItem[];
   partsUsed: ServiceOrderPart[];
   serviceFee: number;
   totalAmount: number;
@@ -151,9 +164,16 @@ export interface ServiceOrder {
   updatedBy?: number;
 }
 
+export interface EquipmentType {
+  id: number;
+  name: string;
+  icon?: string;
+}
+
 export interface Brand {
   id: number;
   name: string;
+  equipmentType?: string;
 }
 
 export interface Model {
