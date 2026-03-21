@@ -61,5 +61,31 @@ O Supabase utiliza PostgreSQL. Para migrar:
 
 O sistema agora suporta múltiplos usuários com níveis de permissão (Dono, Gerente, Funcionário). Todas as ações críticas (criar, editar, excluir) geram um registro em `audit_logs` para rastreabilidade.
 
+## Status do Projeto e Próximos Passos
+
+### Status Atual: **85% (Fase de Transição Cloud)**
+O sistema está em fase final de **Transição para Arquitetura Cloud**. Atualmente operando com SQLite local para desenvolvimento ágil, mas com toda a estrutura de tipos, esquemas e serviços preparada para migração imediata para **Supabase (Banco de Dados)** e **Render (Hospedagem de Backend)**.
+
+### Próximos Passos (Roadmap de Migração)
+
+1.  **Migração para Supabase (PostgreSQL):**
+    *   [x] Definição do Esquema Relacional (Prisma/SQL).
+    *   [ ] Provisionar projeto no Supabase (Região: `sa-east-1`).
+    *   [ ] Executar script de criação de tabelas (DDL) no SQL Editor do Supabase.
+    *   [ ] Migrar dados existentes do SQLite para o PostgreSQL via script de importação.
+2.  **Hospedagem no Render.com (Backend):**
+    *   [ ] Criar Web Service no Render conectado ao repositório GitHub.
+    *   [ ] Configurar variáveis de ambiente (`DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`).
+    *   [ ] Configurar o `start` script para rodar o servidor Express em produção.
+    *   [ ] Habilitar HTTPS automático e monitoramento de saúde (Health Check).
+3.  **Autenticação e Segurança:**
+    *   [ ] Implementar **Supabase Auth** para substituir a autenticação local.
+    *   [ ] Configurar **Row Level Security (RLS)** no Supabase para proteção direta no banco.
+    *   [ ] Configurar políticas de acesso baseadas em `auth.uid()`.
+4.  **Integrações Avançadas:**
+    *   [ ] Configurar **Supabase Storage** para fotos de entrada de equipamentos (substituindo Base64).
+    *   [ ] Implementar Webhooks para notificações em tempo real via Edge Functions.
+    *   [ ] Integração com APIs de Terceiros (WhatsApp/SendPulse) via Server-side.
+
 ---
 **Nota:** Este arquivo deve ser mantido atualizado conforme o projeto evolui.
