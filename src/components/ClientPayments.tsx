@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search, ChevronDown, ChevronUp, Trash2, MessageCircle, Zap, Printer, CheckCircle2, Clock, Plus } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { ClientPayment, Customer } from '../types';
 import { cn, formatCurrency } from '../lib/utils';
 import { AddClientPaymentModal } from './modals/AddClientPaymentModal';

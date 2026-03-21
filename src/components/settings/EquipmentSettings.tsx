@@ -7,7 +7,7 @@ import {
   Box, Layers, Layout, Grid, List as ListIcon, Search
 } from 'lucide-react';
 import { Brand, Model, EquipmentType } from '../../types';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 
 interface EquipmentSettingsProps {

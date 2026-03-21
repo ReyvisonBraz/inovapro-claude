@@ -32,8 +32,8 @@ interface ServiceOrdersProps {
   models: Model[];
   clientPayments: { data: any[], meta: any };
   currentUser: User | null;
-  onAddOrder: (order: any) => void;
-  onUpdateOrder: (id: number, order: any) => void;
+  onAddOrder: (order: any) => Promise<number | null>;
+  onUpdateOrder: (id: number, order: any) => Promise<boolean>;
   onDeleteOrder: (id: number) => void;
   onAddStatus: (status: any) => void;
   onDeleteStatus: (id: number) => void;
@@ -300,9 +300,14 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     };
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (newOrder.customerId === 0) {
-      alert("Selecione um cliente.");
+      showToast("Selecione um cliente.", "error");
+      return;
+    }
+    
+    if (!newOrder.reportedProblem.trim()) {
+      showToast("Descreva o problema relatado.", "error");
       return;
     }
     
@@ -314,9 +319,11 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     };
 
     if (editingOrder) {
-      onUpdateOrder(editingOrder.id, orderData);
+      const success = await onUpdateOrder(editingOrder.id, orderData);
+      if (!success) return;
     } else {
-      onAddOrder(orderData);
+      const success = await onAddOrder(orderData);
+      if (!success) return;
     }
     
     setIsAdding(false);
@@ -822,10 +829,11 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     printWindow.print();
   };
 
-  const stats = {
-    awaiting: orders.data.filter(o => o.status === 'Aguardando Análise' || o.status === 'Aguardando Peças').length,
-    active: orders.data.filter(o => o.status === 'Em Reparo' || o.status === 'Aprovado').length,
-    ready: orders.data.filter(o => o.status === 'Pronto' || o.status === 'Concluído').length,
+  const stats = orders.meta?.counts || {
+    awaiting: 0,
+    active: 0,
+    ready: 0,
+    urgent: 0
   };
 
   return (
@@ -861,7 +869,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="glass-card p-6 border-l-4 border-l-amber-500">
           <div className="flex justify-between items-start">
             <div>
@@ -892,6 +900,17 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
             </div>
             <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-500">
               <CheckCircle size={24} />
+            </div>
+          </div>
+        </div>
+        <div className="glass-card p-6 border-l-4 border-l-rose-500">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Urgente</p>
+              <h3 className="text-3xl font-black mt-1">{stats.urgent}</h3>
+            </div>
+            <div className="p-3 rounded-xl bg-rose-500/10 text-rose-500">
+              <AlertCircle size={24} />
             </div>
           </div>
         </div>

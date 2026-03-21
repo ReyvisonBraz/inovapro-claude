@@ -2133,17 +2133,24 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...order, createdBy: currentUser?.id })
       });
+      
       if (res.ok) {
         const data = await res.json();
         fetchServiceOrders();
         fetchAuditLogs();
+        showToast('Ordem de serviço adicionada com sucesso!', 'success');
         return data.id;
+      } else {
+        const errorData = await res.json();
+        console.error("Failed to add service order", errorData);
+        showToast(`Erro ao adicionar: ${errorData.error || 'Erro desconhecido'}`, 'error');
+        return null;
       }
     } catch (err) {
       console.error("Failed to add service order", err);
-      showToast('Erro ao adicionar ordem de serviço.', 'error');
+      showToast('Erro de rede ao adicionar ordem de serviço.', 'error');
+      return null;
     }
-    return null;
   };
 
   const handleUpdateServiceOrder = async (id: number, order: any) => {
@@ -2153,14 +2160,23 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...order, updatedBy: currentUser?.id })
       });
+      
       if (res.ok) {
         fetchServiceOrders();
         fetchInventoryItems(); // Refresh inventory as stock might have changed
         fetchAuditLogs();
+        showToast('Ordem de serviço atualizada com sucesso!', 'success');
+        return true;
+      } else {
+        const errorData = await res.json();
+        console.error("Failed to update service order", errorData);
+        showToast(`Erro ao atualizar: ${errorData.error || 'Erro desconhecido'}`, 'error');
+        return false;
       }
     } catch (err) {
       console.error("Failed to update service order", err);
-      showToast('Erro ao atualizar ordem de serviço.', 'error');
+      showToast('Erro de rede ao atualizar ordem de serviço.', 'error');
+      return false;
     }
   };
 

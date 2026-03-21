@@ -71,7 +71,8 @@ const ServiceOrderSchema = z.object({
   priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
   technicalAnalysis: z.string().optional().nullable(),
   servicesPerformed: z.string().optional().nullable(),
-  partsUsed: z.string().optional(), // JSON string
+  services: z.any().optional(), // JSON array
+  partsUsed: z.any().optional(), // JSON array
   serviceFee: z.number().nonnegative().optional(),
   totalAmount: z.number().nonnegative().optional(),
   finalObservations: z.string().optional().nullable(),
@@ -330,7 +331,8 @@ const migrations = [
   { name: 'salePrice', table: 'inventory_items', type: "REAL DEFAULT 0" },
   { name: 'quantity', table: 'inventory_items', type: "INTEGER DEFAULT 0" },
   { name: 'saleId', table: 'client_payments', type: "TEXT" },
-  { name: 'icon', table: 'equipment_types', type: "TEXT" }
+  { name: 'icon', table: 'equipment_types', type: "TEXT" },
+  { name: 'services', table: 'service_orders', type: "TEXT DEFAULT '[]'" }
 ];
 
 migrations.forEach(m => {
@@ -874,11 +876,28 @@ async function startServer() {
     
     const result = getPaginatedData("service_orders", page, limit, options);
     
+    // Calculate status counts for all orders (not just the current page)
+    const counts = db.prepare(`
+      SELECT 
+        COUNT(CASE WHEN status IN ('Aguardando Análise', 'Aguardando Peças') THEN 1 END) as awaiting,
+        COUNT(CASE WHEN status IN ('Em Manutenção', 'Em Reparo', 'Aprovado') THEN 1 END) as active,
+        COUNT(CASE WHEN status IN ('Pronto para Retirada', 'Pronto', 'Concluído') THEN 1 END) as ready,
+        COUNT(CASE WHEN status = 'Urgente' OR (priority = 'high' AND status NOT IN ('Pronto para Retirada', 'Pronto', 'Concluído', 'Entregue')) THEN 1 END) as urgent
+      FROM service_orders
+    `).get() as any;
+
+    (result.meta as any).counts = counts;
+    
     result.data = result.data.map((o: any) => {
       try {
         o.partsUsed = JSON.parse(o.partsUsed || '[]');
       } catch (e) {
         o.partsUsed = [];
+      }
+      try {
+        o.services = JSON.parse(o.services || '[]');
+      } catch (e) {
+        o.services = [];
       }
       return o;
     });
@@ -892,30 +911,28 @@ async function startServer() {
       const { 
         customerId, equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
         reportedProblem, arrivalPhotoUrl, arrivalPhotoBase64, status, entryDate, analysisPrediction, 
-        customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy 
+        customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy,
+        technicalAnalysis, servicesPerformed, services, partsUsed, serviceFee, totalAmount, finalObservations
       } = validatedData;
+      
+      const partsString = JSON.stringify(partsUsed || []);
+      const servicesString = JSON.stringify(services || []);
       
       const result = db.prepare(`
         INSERT INTO service_orders (
           customerId, equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
           reportedProblem, arrivalPhotoUrl, arrivalPhotoBase64, status, entryDate, analysisPrediction, 
-          customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy
+          customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy,
+          technicalAnalysis, servicesPerformed, services, partsUsed, serviceFee, totalAmount, finalObservations
         ) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         customerId, equipmentType || null, equipmentBrand || null, equipmentModel || null, equipmentColor || null, equipmentSerial || null, 
-        reportedProblem, status || 'Aguardando Análise', 
-        arrivalPhotoUrl || null, arrivalPhotoBase64 || null, // Note: I swapped status and arrivalPhotoUrl in the SQL to match the values array if needed, but let's be careful.
-        // Wait, the previous SQL was:
-        // VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        // customerId, equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
-        // reportedProblem, arrivalPhotoUrl, arrivalPhotoBase64, status || 'Aguardando Análise', 
-        // entryDate, analysisPrediction, customerPassword, accessories, 
-        // ramInfo, ssdInfo, priority || 'medium', createdBy || 1
-        
-        // Let's re-align:
+        reportedProblem, arrivalPhotoUrl || null, arrivalPhotoBase64 || null, status || 'Aguardando Análise', 
         entryDate || null, analysisPrediction || null, customerPassword || null, accessories || null, 
-        ramInfo || null, ssdInfo || null, priority || 'medium', createdBy || 1
+        ramInfo || null, ssdInfo || null, priority || 'medium', createdBy || 1,
+        technicalAnalysis || null, servicesPerformed || null, servicesString, partsString, 
+        serviceFee || 0, totalAmount || 0, finalObservations || null
       );
       
       db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'ServiceOrder', result.lastInsertRowid, `Created OS for customer ${customerId}`);
@@ -923,8 +940,10 @@ async function startServer() {
       res.json({ id: result.lastInsertRowid });
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Validation failed for Service Order:", error.issues);
         return res.status(400).json({ error: "Validation failed", details: error.issues });
       }
+      console.error("Internal server error in POST /api/service-orders:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -933,7 +952,7 @@ async function startServer() {
     try {
       const validatedData = ServiceOrderSchema.partial().parse(req.body);
       const { 
-        status, technicalAnalysis, servicesPerformed, partsUsed, 
+        status, technicalAnalysis, servicesPerformed, services, partsUsed, 
         serviceFee, totalAmount, finalObservations, entryDate, analysisPrediction, 
         customerPassword, accessories, ramInfo, ssdInfo, priority, 
         equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, arrivalPhotoBase64, updatedBy 
@@ -947,31 +966,34 @@ async function startServer() {
       } catch (e) {}
 
       const newParts = partsUsed ? (typeof partsUsed === 'string' ? JSON.parse(partsUsed) : partsUsed) : oldParts;
+      const newServices = services ? (typeof services === 'string' ? JSON.parse(services) : services) : [];
       
       // Update inventory based on parts changes if partsUsed was provided
       if (partsUsed) {
         // 1. Add back old parts
         oldParts.forEach((p: any) => {
           if (p.id) {
-            db.prepare("UPDATE inventory_items SET quantity = quantity + ?, stockLevel = stockLevel + ? WHERE id = ?").run(p.quantity, p.quantity, p.id);
+            db.prepare("UPDATE inventory_items SET stockLevel = stockLevel + ? WHERE id = ?").run(p.quantity, p.id);
           }
         });
         
         // 2. Deduct new parts
         newParts.forEach((p: any) => {
           if (p.id) {
-            db.prepare("UPDATE inventory_items SET quantity = quantity - ?, stockLevel = stockLevel - ? WHERE id = ?").run(p.quantity, p.quantity, p.id);
+            db.prepare("UPDATE inventory_items SET stockLevel = stockLevel - ? WHERE id = ?").run(p.quantity, p.id);
           }
         });
       }
 
       const partsString = JSON.stringify(newParts);
+      const servicesString = JSON.stringify(newServices);
       
       db.prepare(`
         UPDATE service_orders 
         SET status = COALESCE(?, status), 
             technicalAnalysis = COALESCE(?, technicalAnalysis), 
             servicesPerformed = COALESCE(?, servicesPerformed), 
+            services = COALESCE(?, services),
             partsUsed = COALESCE(?, partsUsed), 
             serviceFee = COALESCE(?, serviceFee), 
             totalAmount = COALESCE(?, totalAmount), 
@@ -992,7 +1014,7 @@ async function startServer() {
             updatedBy = ? 
         WHERE id = ?
       `).run(
-        status, technicalAnalysis, servicesPerformed, partsString, 
+        status, technicalAnalysis, servicesPerformed, servicesString, partsString, 
         serviceFee, totalAmount, finalObservations, entryDate, 
         analysisPrediction, customerPassword, accessories, 
         ramInfo, ssdInfo, priority, 

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Search, User, X, Check } from 'lucide-react';
 import { Customer } from '../types';
 import { cn } from '../lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface CustomerSearchSelectProps {
   customers: Customer[];
@@ -13,7 +13,7 @@ interface CustomerSearchSelectProps {
 }
 
 export function CustomerSearchSelect({ 
-  customers, 
+  customers = [], 
   selectedId, 
   onSelect, 
   placeholder = "Selecionar Cliente",
@@ -23,9 +23,9 @@ export function CustomerSearchSelect({
   const [searchTerm, setSearchTerm] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const selectedCustomer = customers.find(c => c.id === selectedId);
+  const selectedCustomer = (customers || []).find(c => c.id === selectedId);
 
-  const filteredCustomers = customers.filter(c => {
+  const filteredCustomers = (customers || []).filter(c => {
     const search = searchTerm.toLowerCase();
     return (
       c.firstName.toLowerCase().includes(search) ||
