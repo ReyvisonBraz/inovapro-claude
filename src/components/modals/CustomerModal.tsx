@@ -1,6 +1,49 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X } from 'lucide-react';
+import { X, ChevronDown } from 'lucide-react';
+
+const COUNTRIES = [
+  { code: '+55', name: 'Brasil', flag: '🇧🇷' },
+  { code: '+1', name: 'EUA/Canadá', flag: '🇺🇸' },
+  { code: '+351', name: 'Portugal', flag: '🇵🇹' },
+  { code: '+54', name: 'Argentina', flag: '🇦🇷' },
+  { code: '+56', name: 'Chile', flag: '🇨🇱' },
+  { code: '+57', name: 'Colômbia', flag: '🇨🇴' },
+  { code: '+52', name: 'México', flag: '🇲🇽' },
+];
+
+const parsePhone = (fullPhone: string) => {
+  if (!fullPhone) return { country: '+55', number: '' };
+  
+  const sortedCountries = [...COUNTRIES].sort((a, b) => b.code.length - a.code.length);
+  const country = sortedCountries.find(c => fullPhone.startsWith(c.code));
+  
+  if (country) {
+    return { country: country.code, number: fullPhone.slice(country.code.length) };
+  }
+  
+  if (fullPhone.startsWith('+')) {
+     const match = fullPhone.match(/^(\+\d{1,3})(.*)$/);
+     if (match) {
+        return { country: match[1], number: match[2] };
+     }
+  }
+  return { country: '+55', number: fullPhone };
+};
+
+const formatNumber = (country: string, number: string) => {
+  let cleaned = number.replace(/\D/g, '');
+  
+  if (country === '+55') {
+    if (cleaned.length === 0) return '';
+    if (cleaned.length <= 2) return `(${cleaned}`;
+    if (cleaned.length <= 6) return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2)}`;
+    if (cleaned.length <= 10) return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 6)}-${cleaned.slice(6)}`;
+    if (cleaned.length >= 11) return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 3)} ${cleaned.slice(3, 7)}-${cleaned.slice(7, 11)}`;
+  }
+  
+  return cleaned;
+};
 
 interface CustomerModalProps {
   isOpen: boolean;
@@ -109,23 +152,37 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                     <span>Telefone (WhatsApp) *</span>
                     <span className="text-[8px] text-primary/60 italic">Obrigatório</span>
                   </label>
-                  <input 
-                    value={newCustomer.phone}
-                    onChange={(e) => {
-                      let val = e.target.value;
-                      // Se o usuário tentar apagar o +, garante que ele volte
-                      if (!val.startsWith('+')) {
-                        val = '+' + val.replace(/\+/g, '');
-                      }
-                      // Se o usuário apagar o 55, garante que ele volte se houver outros números
-                      if (val === '+') {
-                        val = '+55';
-                      }
-                      setNewCustomer({...newCustomer, phone: val});
-                    }}
-                    className="w-full h-12 bg-white/5 border-2 border-primary/30 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                    placeholder="+5511999999999"
-                  />
+                  <div className="flex gap-2">
+                    <div className="relative w-32 shrink-0">
+                      <select
+                        value={parsePhone(newCustomer.phone).country}
+                        onChange={(e) => {
+                          const currentNumber = parsePhone(newCustomer.phone).number.replace(/\D/g, '');
+                          setNewCustomer({...newCustomer, phone: e.target.value + currentNumber});
+                        }}
+                        className="w-full h-12 bg-white/5 border-2 border-primary/30 rounded-xl pl-3 pr-8 text-sm font-bold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all appearance-none text-white"
+                      >
+                        {COUNTRIES.map(c => (
+                          <option key={c.code} value={c.code} className="bg-slate-900 text-white">
+                            {c.flag} {c.code}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <ChevronDown size={16} />
+                      </div>
+                    </div>
+                    <input 
+                      value={formatNumber(parsePhone(newCustomer.phone).country, parsePhone(newCustomer.phone).number)}
+                      onChange={(e) => {
+                        const country = parsePhone(newCustomer.phone).country;
+                        const rawNumber = e.target.value.replace(/\D/g, '');
+                        setNewCustomer({...newCustomer, phone: country + rawNumber});
+                      }}
+                      className="flex-1 w-full h-12 bg-white/5 border-2 border-primary/30 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                      placeholder={parsePhone(newCustomer.phone).country === '+55' ? "(11) 9 9999-9999" : "Número"}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Limite de Crédito</label>

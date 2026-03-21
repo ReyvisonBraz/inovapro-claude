@@ -4,7 +4,7 @@ import {
   Settings as SettingsIcon, User, Shield, 
   Database, Bell, Palette, Globe,
   Save, Plus, Trash2, Edit2, Key,
-  MessageSquare, Send
+  MessageSquare, Send, RefreshCw, Github, DownloadCloud
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { AppSettings, Category, User as UserType } from '../../types';
@@ -45,9 +45,16 @@ const Settings: React.FC<SettingsProps> = ({
     username: '',
     password: '',
     name: '',
-    role: 'user' as 'owner' | 'admin' | 'user'
+    role: 'employee' as 'owner' | 'manager' | 'employee',
+    permissions: [] as string[],
+    createdAt: new Date().toISOString()
   });
   const [localPassword, setLocalPassword] = React.useState(settings.settingsPassword || '');
+  const [isUpdating, setIsUpdating] = React.useState(false);
+  const [updateStatus, setUpdateStatus] = React.useState<{type: 'idle' | 'checking' | 'updating' | 'success' | 'error', message: string}>({
+    type: 'idle',
+    message: 'Sistema atualizado. Nenhuma ação necessária no momento.'
+  });
   const { showToast } = useToast();
 
   const tabs = [
@@ -56,12 +63,41 @@ const Settings: React.FC<SettingsProps> = ({
     { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
     { id: 'users', label: 'Usuários', icon: User },
     { id: 'security', label: 'Segurança', icon: Shield },
+    { id: 'updates', label: 'Atualizações', icon: RefreshCw },
     { id: 'audit', label: 'Auditoria', icon: Database },
   ];
 
   const handleUpdatePassword = () => {
     updateSettings({ settingsPassword: localPassword });
     showToast('Senha de configurações atualizada!', 'success');
+  };
+
+  const handleCheckUpdate = async () => {
+    setUpdateStatus({ type: 'checking', message: 'Verificando atualizações no GitHub...' });
+    setIsUpdating(true);
+    
+    try {
+      // Aqui você pode conectar com seu backend que fará o "git pull"
+      // Exemplo: await fetch('/api/system/update', { method: 'POST' });
+      
+      setTimeout(() => {
+        setUpdateStatus({ type: 'updating', message: 'Baixando nova versão e aplicando (git pull)...' });
+        
+        setTimeout(() => {
+          setUpdateStatus({ type: 'success', message: 'Sistema atualizado com sucesso! Recarregando...' });
+          showToast('Sistema atualizado com sucesso!', 'success');
+          
+          setTimeout(() => {
+            setIsUpdating(false);
+            window.location.reload();
+          }, 3000);
+        }, 2500);
+      }, 1500);
+    } catch (error) {
+      setUpdateStatus({ type: 'error', message: 'Erro ao tentar atualizar o sistema.' });
+      setIsUpdating(false);
+      showToast('Erro ao atualizar', 'error');
+    }
   };
 
   const handleSaveUser = () => {
@@ -80,7 +116,7 @@ const Settings: React.FC<SettingsProps> = ({
 
     setIsAddingUser(false);
     setEditingUser(null);
-    setUserForm({ username: '', password: '', name: '', role: 'user' });
+    setUserForm({ username: '', password: '', name: '', role: 'employee', permissions: [], createdAt: new Date().toISOString() });
   };
 
   return (
@@ -279,7 +315,7 @@ const Settings: React.FC<SettingsProps> = ({
                     <button 
                       onClick={() => {
                         setEditingUser(null);
-                        setUserForm({ username: '', password: '', name: '', role: 'user' });
+                        setUserForm({ username: '', password: '', name: '', role: 'employee', permissions: [], createdAt: new Date().toISOString() });
                         setIsAddingUser(true);
                       }}
                       className="flex items-center gap-2 text-primary text-xs font-bold hover:underline"
@@ -328,8 +364,8 @@ const Settings: React.FC<SettingsProps> = ({
                           onChange={(e) => setUserForm({...userForm, role: e.target.value as any})}
                           className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
                         >
-                          <option value="user">Usuário Comum</option>
-                          <option value="admin">Administrador</option>
+                          <option value="employee">Funcionário</option>
+                          <option value="manager">Gerente</option>
                           <option value="owner">Proprietário</option>
                         </select>
                       </div>
@@ -370,7 +406,9 @@ const Settings: React.FC<SettingsProps> = ({
                                 username: user.username,
                                 password: '',
                                 name: user.name,
-                                role: user.role
+                                role: user.role,
+                                permissions: user.permissions || [],
+                                createdAt: user.createdAt
                               });
                               setIsAddingUser(true);
                             }}
@@ -413,6 +451,64 @@ const Settings: React.FC<SettingsProps> = ({
                     >
                       Atualizar
                     </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'updates' && (
+              <div className="space-y-8">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                      <Github size={24} />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-white tracking-tight">Atualização do Sistema</h4>
+                      <p className="text-sm text-slate-400">Sincronize com o repositório do GitHub para obter as últimas melhorias.</p>
+                    </div>
+                  </div>
+
+                  <div className="p-6 rounded-2xl bg-white/5 border border-white/10 mt-6">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Status Atual</span>
+                          {updateStatus.type === 'success' && <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">Atualizado</span>}
+                          {updateStatus.type === 'error' && <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-bold">Erro</span>}
+                          {updateStatus.type === 'updating' && <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-bold">Baixando...</span>}
+                        </div>
+                        <p className={cn(
+                          "text-sm font-medium",
+                          updateStatus.type === 'error' ? "text-rose-400" :
+                          updateStatus.type === 'success' ? "text-emerald-400" :
+                          updateStatus.type === 'checking' || updateStatus.type === 'updating' ? "text-blue-400" :
+                          "text-slate-300"
+                        )}>
+                          {updateStatus.message}
+                        </p>
+                      </div>
+
+                      <button 
+                        onClick={handleCheckUpdate}
+                        disabled={isUpdating}
+                        className={cn(
+                          "h-12 px-6 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg whitespace-nowrap",
+                          isUpdating 
+                            ? "bg-white/10 text-slate-400 cursor-not-allowed" 
+                            : "bg-primary text-white shadow-primary/20 hover:scale-105"
+                        )}
+                      >
+                        <RefreshCw size={18} className={cn(isUpdating && "animate-spin")} />
+                        {isUpdating ? 'Atualizando...' : 'Buscar Atualizações'}
+                      </button>
+                    </div>
+
+                    <div className="mt-6 p-4 rounded-xl bg-slate-900/50 border border-white/5">
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        <strong className="text-slate-300">Nota para desenvolvedores:</strong> Este botão simula a interface de atualização. Para que ele realmente execute um <code className="bg-black/30 px-1 py-0.5 rounded text-primary">git pull</code> e atualize o sistema, você precisará conectar a função <code className="bg-black/30 px-1 py-0.5 rounded text-primary">handleCheckUpdate</code> (no arquivo Settings.tsx) a um endpoint do seu servidor backend (ex: Node.js, PHP, Python) que tenha permissão para executar comandos no terminal do servidor.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

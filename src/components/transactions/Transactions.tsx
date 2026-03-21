@@ -15,7 +15,7 @@ interface TransactionsProps {
   onAdd: (tx: Omit<Transaction, 'id'>) => Promise<boolean>;
   onUpdate: (id: number, tx: Partial<Transaction>) => Promise<boolean>;
   onDelete: (id: number) => Promise<boolean>;
-  openConfirm: (options: { title: string; message: string; onConfirm: () => void; type?: 'danger' | 'warning' | 'info' }) => void;
+  openConfirm: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
 }
 
 const Transactions: React.FC<TransactionsProps> = ({
@@ -70,12 +70,12 @@ const Transactions: React.FC<TransactionsProps> = ({
   };
 
   const handleDeleteTransaction = async (id: number) => {
-    openConfirm({
-      title: 'Excluir Transação',
-      message: 'Tem certeza que deseja excluir esta transação?',
-      onConfirm: () => onDelete(id),
-      type: 'danger'
-    });
+    openConfirm(
+      'Excluir Transação',
+      'Tem certeza que deseja excluir esta transação?',
+      () => onDelete(id),
+      'danger'
+    );
   };
 
   const exportToExcel = () => {

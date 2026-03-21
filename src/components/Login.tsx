@@ -33,6 +33,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         setError(data.error || 'Falha no login');
       }
     } catch (err) {
+      console.error("Login error:", err);
       setError('Erro ao conectar com o servidor');
     } finally {
       setLoading(false);

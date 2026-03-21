@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { InventoryItem, ServiceOrder, ServiceOrderStatus, Brand, Model } from '../types';
 import { api } from '../services/api';
+import { useToast } from '../components/ui/Toast';
 
 export const useInventory = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -8,6 +9,7 @@ export const useInventory = () => {
   const [serviceOrderStatuses, setServiceOrderStatuses] = useState<ServiceOrderStatus[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [models, setModels] = useState<Model[]>([]);
+  const { showToast } = useToast();
 
   const fetchInventory = useCallback(async () => {
     try {
@@ -15,8 +17,9 @@ export const useInventory = () => {
       setInventory(data);
     } catch (err) {
       console.error("Failed to fetch inventory", err);
+      showToast("Erro ao carregar inventário.", "error");
     }
-  }, []);
+  }, [showToast]);
 
   const fetchServiceOrders = useCallback(async () => {
     try {
@@ -24,8 +27,9 @@ export const useInventory = () => {
       setServiceOrders(data);
     } catch (err) {
       console.error("Failed to fetch service orders", err);
+      showToast("Erro ao carregar ordens de serviço.", "error");
     }
-  }, []);
+  }, [showToast]);
 
   const fetchServiceOrderStatuses = useCallback(async () => {
     try {
@@ -33,8 +37,9 @@ export const useInventory = () => {
       setServiceOrderStatuses(data);
     } catch (err) {
       console.error("Failed to fetch service order statuses", err);
+      showToast("Erro ao carregar status de ordens de serviço.", "error");
     }
-  }, []);
+  }, [showToast]);
 
   const fetchBrands = useCallback(async () => {
     try {
@@ -42,8 +47,9 @@ export const useInventory = () => {
       setBrands(data);
     } catch (err) {
       console.error("Failed to fetch brands", err);
+      showToast("Erro ao carregar marcas.", "error");
     }
-  }, []);
+  }, [showToast]);
 
   const fetchModels = useCallback(async () => {
     try {
@@ -51,8 +57,9 @@ export const useInventory = () => {
       setModels(data);
     } catch (err) {
       console.error("Failed to fetch models", err);
+      showToast("Erro ao carregar modelos.", "error");
     }
-  }, []);
+  }, [showToast]);
 
   const addInventoryItem = useCallback(async (item: any) => {
     try {
@@ -61,9 +68,10 @@ export const useInventory = () => {
       return true;
     } catch (err) {
       console.error("Failed to add inventory item", err);
+      showToast("Erro ao adicionar item ao inventário.", "error");
       return false;
     }
-  }, [fetchInventory]);
+  }, [fetchInventory, showToast]);
 
   const updateInventoryItem = useCallback(async (id: number, item: any) => {
     try {
@@ -72,9 +80,10 @@ export const useInventory = () => {
       return true;
     } catch (err) {
       console.error("Failed to update inventory item", err);
+      showToast("Erro ao atualizar item do inventário.", "error");
       return false;
     }
-  }, [fetchInventory]);
+  }, [fetchInventory, showToast]);
 
   const deleteInventoryItem = useCallback(async (id: number) => {
     try {
@@ -83,9 +92,10 @@ export const useInventory = () => {
       return true;
     } catch (err) {
       console.error("Failed to delete inventory item", err);
+      showToast("Erro ao excluir item do inventário.", "error");
       return false;
     }
-  }, [fetchInventory]);
+  }, [fetchInventory, showToast]);
 
   const addServiceOrder = useCallback(async (so: any) => {
     try {
@@ -94,9 +104,10 @@ export const useInventory = () => {
       return true;
     } catch (err) {
       console.error("Failed to add service order", err);
+      showToast("Erro ao adicionar ordem de serviço.", "error");
       return false;
     }
-  }, [fetchServiceOrders]);
+  }, [fetchServiceOrders, showToast]);
 
   const updateServiceOrder = useCallback(async (id: number, so: any) => {
     try {
@@ -105,9 +116,10 @@ export const useInventory = () => {
       return true;
     } catch (err) {
       console.error("Failed to update service order", err);
+      showToast("Erro ao atualizar ordem de serviço.", "error");
       return false;
     }
-  }, [fetchServiceOrders]);
+  }, [fetchServiceOrders, showToast]);
 
   const deleteServiceOrder = useCallback(async (id: number) => {
     try {
@@ -116,9 +128,10 @@ export const useInventory = () => {
       return true;
     } catch (err) {
       console.error("Failed to delete service order", err);
+      showToast("Erro ao excluir ordem de serviço.", "error");
       return false;
     }
-  }, [fetchServiceOrders]);
+  }, [fetchServiceOrders, showToast]);
 
   return { 
     inventory, 

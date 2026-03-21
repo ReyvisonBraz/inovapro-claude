@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // Preparado para Supabase/Render
+  url      = env("DATABASE_URL")
+}
+
+model Transaction {
+  id          Int      @id @default(autoincrement())
+  description String
+  category    String
+  type        String   // 'income' | 'expense'
+  amount      Float
+  date        String
+  status      String   @default("Concluído")
+  createdBy   Int?
+  updatedBy   Int?
+}
+
+model Settings {
+  id                      Int     @id @default(1)
+  appName                 String? @default("Financeiro Pro")
+  appVersion              String? @default("Versão Empresarial")
+  fiscalYear              String? @default("2024")
+  primaryColor            String? @default("#1152d4")
+  categories              String? @default("Alimentação,Trabalho,Utilidades,Viagem,Lazer,Outros")
+  incomeCategories        String? @default("Salário,Vendas,Serviços,Investimentos,Outros")
+  expenseCategories       String? @default("Alimentação,Trabalho,Utilidades,Viagem,Lazer,Outros")
+  profileName             String? @default("Inova Informática")
+  profileAvatar           String? @default("https://picsum.photos/seed/inova/100/100")
+  initialBalance          Float?  @default(0)
+  showWarnings            Int?    @default(1)
+  hiddenColumns           String? @default("[]")
+  settingsPassword        String? @default("1234")
+  receiptLayout           String? @default("a4")
+  receiptLogo             String?
+  companyCnpj             String?
+  companyAddress          String?
+  pixKey                  String?
+  pixQrCode               String?
+  whatsappBillingTemplate String?
+  whatsappOSTemplate      String?
+  sendPulseClientId       String?
+  sendPulseClientSecret   String?
+  sendPulseTemplateId     String?
+}
+
+model Customer {
+  id             Int      @id @default(autoincrement())
+  firstName      String
+  lastName       String
+  nickname       String?
+  cpf            String?
+  companyName    String?
+  phone          String
+  observation    String?
+  creditLimit    Float?   @default(0)
+  createdAt      DateTime @default(now())
+  createdBy      Int?
+  updatedBy      Int?
+  ClientPayments ClientPayment[]
+  ServiceOrders  ServiceOrder[]
+}
+
+model ClientPayment {
+  id                Int      @id @default(autoincrement())
+  customerId        Int
+  description       String
+  totalAmount       Float
+  paidAmount        Float?   @default(0)
+  purchaseDate      String
+  dueDate           String
+  paymentMethod     String
+  status            String?  @default("pending")
+  installmentsCount Int?     @default(1)
+  type              String?  @default("income")
+  paymentHistory    String?  @default("[]")
+  createdBy         Int?
+  updatedBy         Int?
+  customer          Customer @relation(fields: [customerId], references: [id])
+  Receipts          Receipt[]
+}
+
+model Category {
+  id   Int    @id @default(autoincrement())
+  name String
+  type String // 'income' | 'expense'
+}
+
+model Receipt {
+  id        Int           @id @default(autoincrement())
+  paymentId Int
+  content   String
+  createdAt DateTime      @default(now())
+  payment   ClientPayment @relation(fields: [paymentId], references: [id])
+}
+
+model User {
+  id          Int        @id @default(autoincrement())
+  username    String     @unique
+  password    String
+  role        String     @default("employee")
+  name        String
+  permissions String?    @default("[]")
+  createdAt   DateTime   @default(now())
+  AuditLogs   AuditLog[]
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  action    String
+  entity    String
+  entityId  Int?
+  details   String?
+  timestamp DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+}
+
+model InventoryItem {
+  id          Int      @id @default(autoincrement())
+  name        String
+  category    String   // 'product' | 'service'
+  sku         String?
+  unitPrice   Float
+  costPrice   Float?   @default(0)
+  salePrice   Float?   @default(0)
+  quantity    Int?     @default(0)
+  minQuantity Int?     @default(5)
+  stockLevel  Int?     @default(0)
+  createdAt   DateTime @default(now())
+  createdBy   Int?
+  updatedBy   Int?
+}
+
+model ServiceOrder {
+  id                 Int      @id @default(autoincrement())
+  customerId         Int
+  equipmentType      String?
+  equipmentBrand     String?
+  equipmentModel     String?
+  equipmentColor     String?
+  equipmentSerial    String?
+  reportedProblem    String?
+  arrivalPhotoUrl    String?
+  arrivalPhotoBase64 String?
+  status             String?  @default("awaiting_diagnosis")
+  technicalAnalysis  String?
+  servicesPerformed  String?
+  partsUsed          String?  @default("[]")
+  serviceFee         Float?   @default(0)
+  totalAmount        Float?   @default(0)
+  finalObservations  String?
+  entryDate          String?
+  analysisPrediction String?
+  customerPassword   String?
+  accessories        String?
+  ramInfo            String?
+  ssdInfo            String?
+  priority           String?  @default("medium")
+  createdAt          DateTime @default(now())
+  createdBy          Int?
+  updatedBy          Int?
+  customer           Customer @relation(fields: [customerId], references: [id])
+}
+
+model ServiceOrderStatus {
+  id        Int     @id @default(autoincrement())
+  name      String
+  color     String
+  priority  Int?    @default(0)
+  isDefault Int?    @default(0)
+}
+
+model Brand {
+  id            Int     @id @default(autoincrement())
+  name          String  @unique
+  equipmentType String?
+  Models        Model[]
+}
+
+model Model {
+  id      Int    @id @default(autoincrement())
+  brandId Int
+  name    String
+  brand   Brand  @relation(fields: [brandId], references: [id])
+
+  @@unique([brandId, name])
+}
+
+model EquipmentType {
+  id   Int     @id @default(autoincrement())
+  name String  @unique
+  icon String?
+}

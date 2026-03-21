@@ -20,15 +20,17 @@ import { SearchableSelect } from './SearchableSelect';
 import { useToast } from './ui/Toast';
 import { ServiceOrderItem } from '../types';
 
+import { Pagination } from './ui/Pagination';
+
 interface ServiceOrdersProps {
-  orders: ServiceOrder[];
-  customers: Customer[];
+  orders: { data: ServiceOrder[], meta: any };
+  customers: { data: Customer[], meta: any };
   inventoryItems: InventoryItem[];
   statuses: ServiceOrderStatus[];
   equipmentTypes: {id: number, name: string}[];
   brands: Brand[];
   models: Model[];
-  clientPayments: any[];
+  clientPayments: { data: any[], meta: any };
   currentUser: User | null;
   onAddOrder: (order: any) => void;
   onUpdateOrder: (id: number, order: any) => void;
@@ -40,13 +42,22 @@ interface ServiceOrdersProps {
   onAddModel: (brandId: number, name: string) => void;
   onTriggerAddCustomer: () => void;
   onPrintBlankForm: () => void;
-  openConfirm: (options: { title: string; message: string; onConfirm: () => void; type?: 'danger' | 'warning' | 'info' }) => void;
+  openConfirm: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
   directOsId: number | null;
   directMode: string | null;
   onClearDirectOsId: () => void;
   settings: AppSettings;
   isAdding?: boolean;
   setIsAdding?: (value: boolean) => void;
+  searchTerm: string;
+  setSearchTerm: (val: string) => void;
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    limit: number;
+  };
+  onPageChange: (page: number) => void;
 }
 
 export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
@@ -76,9 +87,14 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   settings,
   isAdding: isAddingProp,
   setIsAdding: setIsAddingProp,
+  searchTerm,
+  setSearchTerm,
+  pagination,
+  onPageChange
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
   const [isAddingLocal, setIsAddingLocal] = useState(false);
   
   const isAdding = isAddingProp !== undefined ? isAddingProp : isAddingLocal;
@@ -118,7 +134,8 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     ssdInfo: '',
     priority: 'medium' as 'low' | 'medium' | 'high',
     partsUsed: [] as ServiceOrderPart[],
-    services: [] as ServiceOrderItem[]
+    services: [] as ServiceOrderItem[],
+    arrivalPhotoBase64: ''
   });
 
   const { showToast } = useToast();
@@ -169,7 +186,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   };
 
   const handleUpdateStatus = (id: number, newStatus: string) => {
-    const order = orders.find(o => o.id === id);
+    const order = orders.data.find(o => o.id === id);
     if (order) {
       onUpdateOrder(id, { ...order, status: newStatus });
       showToast('Status atualizado com sucesso!', 'success');
@@ -191,7 +208,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   // Handle direct OS access from QR Code
   React.useEffect(() => {
     if (directOsId) {
-      const order = orders.find(o => o.id === directOsId);
+      const order = orders.data.find(o => o.id === directOsId);
       if (order) {
         if (directMode === 'status') {
           setShowStatusOnly(order);
@@ -213,6 +230,8 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [whatsappMessage, setWhatsappMessage] = useState('');
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
+  const [showDirectOsModal, setShowDirectOsModal] = useState(false);
+  const [directOsSearch, setDirectOsSearch] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<ServiceOrder | null>(null);
   const [printConfig, setPrintConfig] = useState<{ type: 'simplified' | 'complete', format: 'a4' | 'thermal' }>({
     type: 'complete',
@@ -232,18 +251,37 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     total: true
   });
 
-  const filteredOrders = orders.filter(order => {
-    const customer = customers.find(c => c.id === order.customerId);
+  const filteredOrders = orders.data.filter(order => {
+    const customer = customers.data.find(c => c.id === order.customerId);
+    const searchLower = searchTerm.toLowerCase().trim();
+    const searchNumber = searchLower.replace(/[^0-9]/g, '');
+    
     const matchesSearch = 
-      order.equipmentBrand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.equipmentModel?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `#OS-${order.id}`.toLowerCase().includes(searchTerm.toLowerCase());
+      order.equipmentBrand?.toLowerCase().includes(searchLower) ||
+      order.equipmentModel?.toLowerCase().includes(searchLower) ||
+      order.reportedProblem?.toLowerCase().includes(searchLower) ||
+      customer?.firstName?.toLowerCase().includes(searchLower) ||
+      customer?.lastName?.toLowerCase().includes(searchLower) ||
+      `#os-${order.id.toString().padStart(4, '0')}`.includes(searchLower) ||
+      (searchNumber && order.id.toString().includes(searchNumber));
     
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    const matchesPriority = priorityFilter === 'all' || order.priority === priorityFilter;
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesPriority;
+  }).sort((a, b) => {
+    if (sortBy === 'newest') return b.id - a.id;
+    if (sortBy === 'oldest') return a.id - b.id;
+    if (sortBy === 'priority') {
+      const pMap = { high: 3, medium: 2, low: 1 };
+      return (pMap[b.priority as keyof typeof pMap] || 0) - (pMap[a.priority as keyof typeof pMap] || 0);
+    }
+    if (sortBy === 'prediction') {
+      if (!a.analysisPrediction) return 1;
+      if (!b.analysisPrediction) return -1;
+      return new Date(a.analysisPrediction).getTime() - new Date(b.analysisPrediction).getTime();
+    }
+    return 0;
   });
 
   const getStatusColor = (statusName: string) => {
@@ -304,13 +342,40 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
       ramInfo: '',
       ssdInfo: '',
       priority: 'medium',
-      partsUsed: []
+      partsUsed: [],
+      services: [],
+      arrivalPhotoBase64: ''
     });
 
     // Option to send via WhatsApp after saving
-    if (window.confirm('Deseja enviar a Ordem de Serviço via WhatsApp agora?')) {
-      // We need the ID of the newly created order, but onAddOrder is async and doesn't return it here easily
-      // For now, we'll just close. In a real app, we'd wait for the response.
+    openConfirm(
+      'Enviar via WhatsApp',
+      'Deseja enviar a Ordem de Serviço via WhatsApp agora?',
+      () => {
+        // We need the ID of the newly created order, but onAddOrder is async and doesn't return it here easily
+        // For now, we'll just close. In a real app, we'd wait for the response.
+      },
+      'info'
+    );
+  };
+
+  const handleDirectOsSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!directOsSearch.trim()) return;
+    
+    const searchNumber = parseInt(directOsSearch.replace(/[^0-9]/g, ''), 10);
+    if (isNaN(searchNumber)) {
+      showToast('Número de OS inválido', 'error');
+      return;
+    }
+    
+    const order = orders.data.find(o => o.id === searchNumber);
+    if (order) {
+      setShowDirectOsModal(false);
+      setDirectOsSearch('');
+      handleEdit(order);
+    } else {
+      showToast(`OS #${searchNumber.toString().padStart(4, '0')} não encontrada`, 'error');
     }
   };
 
@@ -337,13 +402,15 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
       ramInfo: order.ramInfo || '',
       ssdInfo: order.ssdInfo || '',
       priority: order.priority || 'medium',
-      partsUsed: order.partsUsed || []
+      partsUsed: order.partsUsed || [],
+      services: order.services || [],
+      arrivalPhotoBase64: order.arrivalPhotoBase64 || ''
     });
     setIsAdding(true);
   };
 
   const generateWhatsAppMessage = (order: ServiceOrder, type: 'simplified' | 'complete') => {
-    const customer = customers.find(c => c.id === order.customerId);
+    const customer = customers.data.find(c => c.id === order.customerId);
     if (!customer) return '';
 
     const osNumber = `#OS-${order.id.toString().padStart(4, '0')}`;
@@ -401,7 +468,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   };
 
   const handleSendWhatsApp = async (order: ServiceOrder, messageOverride?: string) => {
-    const customer = customers.find(c => c.id === order.customerId);
+    const customer = customers.data.find(c => c.id === order.customerId);
     if (customer?.phone) {
       const message = messageOverride || generateWhatsAppMessage(order, whatsappConfig.type);
       let phone = customer.phone.replace(/\D/g, '');
@@ -449,7 +516,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   };
 
   const handlePrint = (order: ServiceOrder, type: 'simplified' | 'complete', formatType: 'a4' | 'thermal') => {
-    const customer = customers.find(c => c.id === order.customerId);
+    const customer = customers.data.find(c => c.id === order.customerId);
     if (!customer) return;
 
     const printWindow = window.open('', '_blank');
@@ -728,7 +795,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
             </thead>
             <tbody>
               ${filteredOrders.map(order => {
-                const customer = customers.find(c => c.id === order.customerId);
+                const customer = customers.data.find(c => c.id === order.customerId);
                 const customerName = customer ? `${customer.firstName} ${customer.lastName}` : 'Não encontrado';
                 return `
                   <tr>
@@ -756,9 +823,9 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   };
 
   const stats = {
-    awaiting: orders.filter(o => o.status === 'Aguardando Análise' || o.status === 'Aguardando Peças').length,
-    active: orders.filter(o => o.status === 'Em Reparo' || o.status === 'Aprovado').length,
-    ready: orders.filter(o => o.status === 'Pronto' || o.status === 'Concluído').length,
+    awaiting: orders.data.filter(o => o.status === 'Aguardando Análise' || o.status === 'Aguardando Peças').length,
+    active: orders.data.filter(o => o.status === 'Em Reparo' || o.status === 'Aprovado').length,
+    ready: orders.data.filter(o => o.status === 'Pronto' || o.status === 'Concluído').length,
   };
 
   return (
@@ -833,17 +900,26 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
       {/* Filters */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-            <input 
-              type="text"
-              placeholder="Buscar por cliente, equipamento ou número da OS..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-12 pl-12 pr-4 bg-white/5 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
-            />
+          <div className="flex gap-2 flex-1">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+              <input 
+                type="text"
+                placeholder="Buscar por cliente, equipamento ou número da OS..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full h-12 pl-12 pr-4 bg-white/5 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
+              />
+            </div>
+            <button
+              onClick={() => setShowDirectOsModal(true)}
+              className="h-12 px-4 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 rounded-xl text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap"
+            >
+              <Search size={18} />
+              <span className="hidden sm:inline">Buscar Nº OS</span>
+            </button>
           </div>
-          <div className="flex gap-2 w-full md:w-auto">
+          <div className="flex flex-wrap gap-2 w-full md:w-auto">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -853,6 +929,28 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
               {statuses.map(s => (
                 <option key={s.id} value={s.name}>{s.name}</option>
               ))}
+            </select>
+
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              className="flex-1 md:w-auto h-12 px-4 bg-white/5 border border-white/10 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
+            >
+              <option value="all">Todas Prioridades</option>
+              <option value="high">Alta</option>
+              <option value="medium">Normal</option>
+              <option value="low">Baixa</option>
+            </select>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="flex-1 md:w-auto h-12 px-4 bg-white/5 border border-white/10 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
+            >
+              <option value="newest">Mais Recentes</option>
+              <option value="oldest">Mais Antigas</option>
+              <option value="priority">Maior Prioridade</option>
+              <option value="prediction">Previsão Mais Próxima</option>
             </select>
             
             {/* Column Visibility Toggle */}
@@ -935,7 +1033,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                     )}
                     {visibleColumns.priority && order.priority === 'high' && (
                       <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-rose-500/10 text-rose-500 border border-rose-500/20">
-                        <AlertTriangle size={10} /> Urgente
+                        <AlertTriangle size={10} /> Alta Prioridade
                       </span>
                     )}
                     {visibleColumns.prediction && order.analysisPrediction && new Date(order.analysisPrediction) < new Date() && order.status !== 'Concluído' && (
@@ -949,10 +1047,12 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                     <h4 className="font-black text-xl text-white tracking-tight">
                       {order.firstName} {order.lastName}
                     </h4>
-                    <p className="text-sm font-bold text-primary/80 flex items-center gap-2">
-                      <Smartphone size={14} />
-                      {order.equipmentBrand} {order.equipmentModel}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
+                        <Smartphone size={14} />
+                        {order.equipmentBrand} {order.equipmentModel}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 mt-4">
@@ -977,9 +1077,12 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                   </div>
 
                   {order.reportedProblem && (
-                    <p className="text-xs text-slate-500 mt-3 line-clamp-1 max-w-2xl bg-white/5 p-2 rounded-lg border border-white/5">
-                      <span className="font-bold text-slate-400">Problema:</span> {order.reportedProblem}
-                    </p>
+                    <div className="mt-4 p-3 rounded-xl bg-white/5 border border-white/10">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Problema Relatado</p>
+                      <p className="text-sm text-slate-300 line-clamp-2 leading-relaxed">
+                        {order.reportedProblem}
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1037,7 +1140,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                       // Professional Deletion Logic with multiple checks
                       const hasParts = order.partsUsed && order.partsUsed.length > 0;
                       const isCompleted = order.status === 'Concluído' || order.status === 'Entregue';
-                      const hasPayments = clientPayments.some(p => p.description?.includes(`#OS-${order.id}`));
+                      const hasPayments = clientPayments.data.some(p => p.description?.includes(`#OS-${order.id}`));
                       
                       let warningMessage = `Tem certeza que deseja excluir a Ordem de Serviço #OS-${order.id.toString().padStart(4, '0')}?`;
                       
@@ -1046,16 +1149,19 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                       }
                       
                       if (hasParts) {
-                        warningMessage += `\n\n⚠️ ATENÇÃO: Existem ${order.partsUsed.length} peças vinculadas a esta ordem. A exclusão NÃO retornará automaticamente estas peças ao estoque.`;
+                        warningMessage += `\n\n⚠️ ATENÇÃO: Existem ${order.partsUsed?.length || 0} peças vinculadas a esta ordem. A exclusão NÃO retornará automaticamente estas peças ao estoque.`;
                       }
 
                       if (hasPayments) {
                         warningMessage += `\n\n⚠️ ATENÇÃO: Existem pagamentos registrados para esta Ordem de Serviço no módulo de Contas a Receber. Recomenda-se verificar antes de excluir.`;
                       }
 
-                      if (window.confirm(warningMessage)) {
-                        onDeleteOrder(order.id);
-                      }
+                      openConfirm(
+                        'Excluir Ordem de Serviço',
+                        warningMessage,
+                        () => onDeleteOrder(order.id),
+                        'danger'
+                      );
                     }}
                     className="p-2.5 rounded-xl bg-white/5 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all border border-white/5"
                     title="Excluir"
@@ -1075,6 +1181,14 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
           </div>
         )}
       </div>
+
+      <Pagination 
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        limit={pagination.limit}
+        onPageChange={onPageChange}
+      />
 
       {/* WhatsApp Modal */}
       <AnimatePresence>
@@ -1161,6 +1275,72 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                   O cliente receberá um link direto para acompanhar a OS em tempo real.
                 </p>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Direct OS Search Modal */}
+      <AnimatePresence>
+        {showDirectOsModal && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDirectOsModal(false)}
+              className="absolute inset-0 bg-bg-dark/90 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-sm glass-modal rounded-3xl p-6 shadow-2xl overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-primary/50 to-transparent" />
+              
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <Search size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-white tracking-tight">Buscar OS</h3>
+                    <p className="text-xs text-slate-400 font-medium">Acesso rápido pelo número</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowDirectOsModal(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form onSubmit={handleDirectOsSearch} className="flex flex-col gap-4">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Número da OS</label>
+                  <div className="relative mt-1">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-mono">#OS-</span>
+                    <input 
+                      type="text"
+                      autoFocus
+                      placeholder="0001"
+                      value={directOsSearch}
+                      onChange={(e) => setDirectOsSearch(e.target.value)}
+                      className="w-full h-12 pl-14 pr-4 bg-white/5 border border-white/10 rounded-xl text-sm font-mono focus:ring-2 focus:ring-primary outline-none transition-all"
+                    />
+                  </div>
+                </div>
+                
+                <button 
+                  type="submit"
+                  className="w-full h-12 rounded-xl bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
+                >
+                  <Search size={18} />
+                  Abrir Ordem de Serviço
+                </button>
+              </form>
             </motion.div>
           </div>
         )}
@@ -1398,9 +1578,9 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                       <div className="flex items-center gap-3">
                         <div className="h-4 w-4 rounded-full shadow-sm" style={{ backgroundColor: s.color }} />
                         <span className="text-sm font-bold">{s.name}</span>
-                        {s.isDefault === 1 && <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 bg-white/10 text-slate-500 rounded">Padrão</span>}
+                        {s.isDefault && <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 bg-white/10 text-slate-500 rounded">Padrão</span>}
                       </div>
-                      {s.isDefault === 0 && (
+                      {!s.isDefault && (
                         <button 
                           onClick={() => onDeleteStatus(s.id)}
                           className="p-1.5 rounded-lg text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-all"
@@ -1455,7 +1635,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                     </label>
                     <div className="flex gap-2">
                       <CustomerSearchSelect 
-                        customers={customers}
+                        customers={customers.data}
                         selectedId={newOrder.customerId}
                         onSelect={(id) => setNewOrder({...newOrder, customerId: id})}
                         className="flex-1"
@@ -1500,7 +1680,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                           <SearchableSelect
                             options={equipmentTypes.map(t => ({ value: t.name, label: t.name }))}
                             value={newOrder.equipmentType || ''}
-                            onChange={(val) => setNewOrder({ ...newOrder, equipmentType: val, equipmentBrand: '', equipmentModel: '' })}
+                            onChange={(val) => setNewOrder({ ...newOrder, equipmentType: val as string, equipmentBrand: '', equipmentModel: '' })}
                             placeholder="Selecione o Tipo"
                             onAdd={(val) => onAddEquipmentType(val)}
                             className="h-12 flex-1"
@@ -1525,7 +1705,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                               .filter(b => !newOrder.equipmentType || b.equipmentType === newOrder.equipmentType)
                               .map(b => ({ value: b.name, label: b.name }))}
                             value={newOrder.equipmentBrand || ''}
-                            onChange={(val) => setNewOrder({ ...newOrder, equipmentBrand: val, equipmentModel: '' })}
+                            onChange={(val) => setNewOrder({ ...newOrder, equipmentBrand: val as string, equipmentModel: '' })}
                             placeholder="Selecione a Marca"
                             onAdd={(val) => onAddBrand(val, newOrder.equipmentType || '')}
                             disabled={!newOrder.equipmentType}
@@ -1561,7 +1741,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                               })
                               .map(m => ({ value: m.name, label: m.name }))}
                             value={newOrder.equipmentModel || ''}
-                            onChange={(val) => setNewOrder({ ...newOrder, equipmentModel: val })}
+                            onChange={(val) => setNewOrder({ ...newOrder, equipmentModel: val as string })}
                             placeholder="Selecione o Modelo"
                             onAdd={(val) => {
                               const brand = brands.find(b => b.name === newOrder.equipmentBrand);
@@ -1771,7 +1951,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                               : "bg-white/5 text-slate-500 border-transparent hover:bg-white/10"
                           )}
                         >
-                          {p === 'low' ? 'Baixa' : p === 'medium' ? 'Normal' : 'Urgente'}
+                          {p === 'low' ? 'Baixa' : p === 'medium' ? 'Normal' : 'Alta'}
                         </button>
                       ))}
                     </div>
@@ -2100,12 +2280,10 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                     </div>
                     
                     <div className="grid grid-cols-3 gap-3">
-                      {showStatusOnly.photos && showStatusOnly.photos.length > 0 ? (
-                        showStatusOnly.photos.map((photo, idx) => (
-                          <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-white/10 bg-white/5">
-                            <img src={photo} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
-                          </div>
-                        ))
+                      {showStatusOnly.arrivalPhotoBase64 ? (
+                        <div className="aspect-square rounded-xl overflow-hidden border border-white/10 bg-white/5">
+                          <img src={showStatusOnly.arrivalPhotoBase64} alt="Foto de Entrada" className="w-full h-full object-cover" />
+                        </div>
                       ) : (
                         <div className="col-span-3 py-8 text-center text-slate-600 text-xs font-medium italic">
                           Nenhuma foto anexada ainda.

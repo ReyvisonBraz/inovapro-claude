@@ -9,6 +9,8 @@ import { format, parseISO, isSameDay, startOfMonth } from 'date-fns';
 import { cn, formatCurrency } from '../lib/utils';
 import { Transaction, Category, AppSettings } from '../types';
 
+import { Pagination } from './ui/Pagination';
+
 interface TransactionsProps {
   searchTerm: string;
   setSearchTerm: (val: string) => void;
@@ -40,6 +42,13 @@ interface TransactionsProps {
   setIsAdding: (val: boolean) => void;
   setTransactionToDelete: (id: number | null) => void;
   handleDuplicateTransaction: (tx: Transaction) => void;
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    limit: number;
+  };
+  onPageChange: (page: number) => void;
 }
 
 export const Transactions = ({
@@ -72,7 +81,9 @@ export const Transactions = ({
   setEditingTransaction,
   setIsAdding,
   setTransactionToDelete,
-  handleDuplicateTransaction
+  handleDuplicateTransaction,
+  pagination,
+  onPageChange
 }: TransactionsProps) => {
   return (
     <div className="space-y-6 md:space-y-8 p-4 md:p-6 lg:p-10">
@@ -581,6 +592,14 @@ export const Transactions = ({
             </tbody>
           </table>
         </div>
+        
+        <Pagination 
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          limit={pagination.limit}
+          onPageChange={onPageChange}
+        />
       </div>
     </div>
   );

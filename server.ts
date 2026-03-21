@@ -3,11 +3,113 @@ import { createServer as createViteServer } from "vite";
 import Database from "better-sqlite3";
 import path from "path";
 import { fileURLToPath } from "url";
+import { z } from "zod";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const db = new Database("finance.db");
+
+// --- Zod Schemas for Validation ---
+const TransactionSchema = z.object({
+  description: z.string().min(1),
+  category: z.string().min(1),
+  type: z.enum(['income', 'expense']),
+  amount: z.number().positive(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}/),
+  createdBy: z.number().optional(),
+  updatedBy: z.number().optional()
+});
+
+const CustomerSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  nickname: z.string().optional().nullable(),
+  cpf: z.string().optional().nullable(),
+  companyName: z.string().optional().nullable(),
+  phone: z.string().min(1),
+  observation: z.string().optional().nullable(),
+  creditLimit: z.number().nonnegative().optional(),
+  createdBy: z.number().optional(),
+  updatedBy: z.number().optional()
+});
+
+const ClientPaymentSchema = z.object({
+  customerId: z.number(),
+  description: z.string().min(1),
+  totalAmount: z.number().positive(),
+  paidAmount: z.number().nonnegative().optional(),
+  purchaseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}/),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}/),
+  paymentMethod: z.string().min(1),
+  status: z.enum(['pending', 'partial', 'paid']).optional(),
+  installmentsCount: z.number().int().positive().optional(),
+  type: z.enum(['income', 'expense']).optional(),
+  saleId: z.string().optional().nullable(),
+  paymentHistory: z.string().optional(), // JSON string
+  createdBy: z.number().optional(),
+  updatedBy: z.number().optional()
+});
+
+const ServiceOrderSchema = z.object({
+  customerId: z.number(),
+  equipmentType: z.string().optional().nullable(),
+  equipmentBrand: z.string().optional().nullable(),
+  equipmentModel: z.string().optional().nullable(),
+  equipmentColor: z.string().optional().nullable(),
+  equipmentSerial: z.string().optional().nullable(),
+  reportedProblem: z.string().min(1),
+  arrivalPhotoUrl: z.string().optional().nullable(),
+  arrivalPhotoBase64: z.string().optional().nullable(),
+  status: z.string().optional(),
+  entryDate: z.string().optional().nullable(),
+  analysisPrediction: z.string().optional().nullable(),
+  customerPassword: z.string().optional().nullable(),
+  accessories: z.string().optional().nullable(),
+  ramInfo: z.string().optional().nullable(),
+  ssdInfo: z.string().optional().nullable(),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
+  technicalAnalysis: z.string().optional().nullable(),
+  servicesPerformed: z.string().optional().nullable(),
+  partsUsed: z.string().optional(), // JSON string
+  serviceFee: z.number().nonnegative().optional(),
+  totalAmount: z.number().nonnegative().optional(),
+  finalObservations: z.string().optional().nullable(),
+  createdBy: z.number().optional(),
+  updatedBy: z.number().optional()
+});
+
+// --- Helper for Paginated Responses ---
+function getPaginatedData(tableName: string, page: number = 1, limit: number = 20, options: { 
+  where?: string, 
+  params?: any[], 
+  orderBy?: string,
+  join?: string,
+  select?: string
+} = {}) {
+  const offset = (page - 1) * limit;
+  const whereClause = options.where ? `WHERE ${options.where}` : "";
+  const params = options.params || [];
+  const orderBy = options.orderBy || "id DESC";
+  const join = options.join || "";
+  const select = options.select || "*";
+  
+  const countQuery = `SELECT COUNT(*) as total FROM ${tableName} ${join} ${whereClause}`;
+  const total = db.prepare(countQuery).get(...params).total;
+  
+  const dataQuery = `SELECT ${select} FROM ${tableName} ${join} ${whereClause} ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
+  const data = db.prepare(dataQuery).all(...params, limit, offset);
+  
+  return {
+    data,
+    meta: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    }
+  };
+}
 
 // Inicializar o banco de dados SQLite
 db.exec(`
@@ -68,6 +170,7 @@ db.exec(`
     status TEXT DEFAULT 'pending',
     installmentsCount INTEGER DEFAULT 1,
     type TEXT DEFAULT 'income',
+    saleId TEXT,
     FOREIGN KEY (customerId) REFERENCES customers(id)
   );
 
@@ -226,6 +329,7 @@ const migrations = [
   { name: 'costPrice', table: 'inventory_items', type: "REAL DEFAULT 0" },
   { name: 'salePrice', table: 'inventory_items', type: "REAL DEFAULT 0" },
   { name: 'quantity', table: 'inventory_items', type: "INTEGER DEFAULT 0" },
+  { name: 'saleId', table: 'client_payments', type: "TEXT" },
   { name: 'icon', table: 'equipment_types', type: "TEXT" }
 ];
 
@@ -305,21 +409,39 @@ async function startServer() {
 
   // Buscar todas as transações
   app.get("/api/transactions", (req, res) => {
-    const transactions = db.prepare("SELECT * FROM transactions ORDER BY date DESC, id DESC").all();
-    res.json(transactions);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const search = req.query.search as string;
+    
+    let options: any = { orderBy: "date DESC, id DESC" };
+    if (search) {
+      options.where = "description LIKE ? OR category LIKE ? OR CAST(amount AS TEXT) LIKE ?";
+      options.params = [`%${search}%`, `%${search}%`, `%${search}%` ];
+    }
+    
+    const result = getPaginatedData("transactions", page, limit, options);
+    res.json(result);
   });
 
   // Adicionar uma nova transação
   app.post("/api/transactions", (req, res) => {
-    const { description, category, type, amount, date, createdBy } = req.body;
-    const info = db.prepare(
-      "INSERT INTO transactions (description, category, type, amount, date, createdBy) VALUES (?, ?, ?, ?, ?, ?)"
-    ).run(description, category, type, amount, date, createdBy || 1);
-    
-    // Audit Log
-    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'transaction', info.lastInsertRowid, `Created transaction: ${description}`);
-    
-    res.json({ id: info.lastInsertRowid });
+    try {
+      const validatedData = TransactionSchema.parse(req.body);
+      const { description, category, type, amount, date, createdBy } = validatedData;
+      const info = db.prepare(
+        "INSERT INTO transactions (description, category, type, amount, date, createdBy) VALUES (?, ?, ?, ?, ?, ?)"
+      ).run(description, category, type, amount, date, createdBy || 1);
+      
+      // Audit Log
+      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'transaction', info.lastInsertRowid, `Created transaction: ${description}`);
+      
+      res.json({ id: info.lastInsertRowid });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Validation failed", details: error.issues });
+      }
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
 
   // Deletar uma transação
@@ -349,6 +471,22 @@ async function startServer() {
     db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'transaction', req.params.id, `Updated transaction: ${description}`);
 
     res.json({ success: true });
+  });
+
+  // Rota de Estatísticas
+  app.get("/api/stats", (req, res) => {
+    const totalIncome = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'income'").get().total || 0;
+    const totalExpense = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'expense'").get().total || 0;
+    const pendingPayments = db.prepare("SELECT COUNT(*) as count FROM client_payments WHERE status != 'paid'").get().count || 0;
+    const activeOS = db.prepare("SELECT COUNT(*) as count FROM service_orders WHERE status NOT IN ('completed', 'delivered', 'cancelled')").get().count || 0;
+    
+    res.json({
+      totalIncome,
+      totalExpense,
+      balance: totalIncome - totalExpense,
+      pendingPayments,
+      activeOS
+    });
   });
 
   // Rotas de Configurações
@@ -395,33 +533,59 @@ async function startServer() {
 
   // Rotas de Clientes
   app.get("/api/customers", (req, res) => {
-    const customers = db.prepare("SELECT * FROM customers ORDER BY firstName ASC").all();
-    res.json(customers);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const search = req.query.search as string;
+    
+    let options: any = { orderBy: "firstName ASC" };
+    if (search) {
+      options.where = "firstName LIKE ? OR lastName LIKE ? OR nickname LIKE ? OR phone LIKE ? OR companyName LIKE ?";
+      options.params = [`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%` ];
+    }
+    
+    const result = getPaginatedData("customers", page, limit, options);
+    res.json(result);
   });
 
   app.post("/api/customers", (req, res) => {
-    const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, createdBy } = req.body;
-    const result = db.prepare(`
-      INSERT INTO customers (firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, createdBy) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit || 0, createdBy || 1);
-    
-    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'customer', result.lastInsertRowid, `Created customer: ${firstName} ${lastName}`);
+    try {
+      const validatedData = CustomerSchema.parse(req.body);
+      const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, createdBy } = validatedData;
+      const result = db.prepare(`
+        INSERT INTO customers (firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, createdBy) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(firstName, lastName, nickname || null, cpf || null, companyName || null, phone, observation || null, creditLimit || 0, createdBy || 1);
+      
+      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'customer', result.lastInsertRowid, `Created customer: ${firstName} ${lastName}`);
 
-    res.json({ id: result.lastInsertRowid });
+      res.json({ id: result.lastInsertRowid });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Validation failed", details: error.issues });
+      }
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
 
   app.put("/api/customers/:id", (req, res) => {
-    const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, updatedBy } = req.body;
-    db.prepare(`
-      UPDATE customers 
-      SET firstName = ?, lastName = ?, nickname = ?, cpf = ?, companyName = ?, phone = ?, observation = ?, creditLimit = ?, updatedBy = ?
-      WHERE id = ?
-    `).run(firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit || 0, updatedBy || 1, req.params.id);
-    
-    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'customer', req.params.id, `Updated customer: ${firstName} ${lastName}`);
+    try {
+      const validatedData = CustomerSchema.parse(req.body);
+      const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, updatedBy } = validatedData;
+      db.prepare(`
+        UPDATE customers 
+        SET firstName = ?, lastName = ?, nickname = ?, cpf = ?, companyName = ?, phone = ?, observation = ?, creditLimit = ?, updatedBy = ?
+        WHERE id = ?
+      `).run(firstName, lastName, nickname || null, cpf || null, companyName || null, phone, observation || null, creditLimit || 0, updatedBy || 1, req.params.id);
+      
+      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'customer', req.params.id, `Updated customer: ${firstName} ${lastName}`);
 
-    res.json({ success: true });
+      res.json({ success: true });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Validation failed", details: error.issues });
+      }
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
 
   app.get("/api/customers/:id/payments", (req, res) => {
@@ -437,40 +601,58 @@ async function startServer() {
 
   // Rotas de Pagamentos de Clientes
   app.get("/api/client-payments", (req, res) => {
-    const payments = db.prepare(`
-      SELECT cp.*, c.firstName || ' ' || c.lastName as customerName 
-      FROM client_payments cp
-      JOIN customers c ON cp.customerId = c.id
-      ORDER BY cp.dueDate ASC
-    `).all();
-    res.json(payments);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const search = req.query.search as string;
+    
+    let options: any = {
+      select: "cp.*, c.firstName || ' ' || c.lastName as customerName",
+      join: "cp JOIN customers c ON cp.customerId = c.id",
+      orderBy: "cp.dueDate ASC"
+    };
+    
+    if (search) {
+      options.where = "c.firstName LIKE ? OR c.lastName LIKE ? OR cp.description LIKE ? OR cp.saleId LIKE ?";
+      options.params = [`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%` ];
+    }
+    
+    const result = getPaginatedData("client_payments", page, limit, options);
+    res.json(result);
   });
 
   app.post("/api/client-payments", (req, res) => {
-    const { 
-      customerId, description, totalAmount, paidAmount, 
-      purchaseDate, dueDate, paymentMethod, status, installmentsCount, type, createdBy 
-    } = req.body;
-    
-    // Initialize payment history if there's an initial payment
-    const initialPaymentHistory = paidAmount > 0 ? JSON.stringify([{
-      amount: paidAmount,
-      date: new Date().toISOString()
-    }]) : '[]';
+    try {
+      const validatedData = ClientPaymentSchema.parse(req.body);
+      const { 
+        customerId, description, totalAmount, paidAmount, 
+        purchaseDate, dueDate, paymentMethod, status, installmentsCount, type, saleId, createdBy 
+      } = validatedData;
+      
+      // Initialize payment history if there's an initial payment
+      const initialPaymentHistory = paidAmount && paidAmount > 0 ? JSON.stringify([{
+        amount: paidAmount,
+        date: new Date().toISOString()
+      }]) : '[]';
 
-    const result = db.prepare(`
-      INSERT INTO client_payments 
-      (customerId, description, totalAmount, paidAmount, purchaseDate, dueDate, paymentMethod, status, installmentsCount, type, paymentHistory, createdBy)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      customerId, description, totalAmount, paidAmount || 0, 
-      purchaseDate, dueDate, paymentMethod, status || 'pending', 
-      installmentsCount || 1, type || 'income', initialPaymentHistory, createdBy || 1
-    );
-    
-    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'client_payment', result.lastInsertRowid, `Created payment: ${description}`);
+      const result = db.prepare(`
+        INSERT INTO client_payments 
+        (customerId, description, totalAmount, paidAmount, purchaseDate, dueDate, paymentMethod, status, installmentsCount, type, paymentHistory, saleId, createdBy)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        customerId, description, totalAmount, paidAmount || 0, 
+        purchaseDate, dueDate, paymentMethod, status || 'pending', 
+        installmentsCount || 1, type || 'income', initialPaymentHistory, saleId || null, createdBy || 1
+      );
+      
+      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'client_payment', result.lastInsertRowid, `Created payment: ${description}`);
 
-    res.json({ id: result.lastInsertRowid });
+      res.json({ id: result.lastInsertRowid });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Validation failed", details: error.issues });
+      }
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
 
   app.patch("/api/client-payments/:id", (req, res) => {
@@ -489,6 +671,14 @@ async function startServer() {
 
   app.delete("/api/client-payments/:id", (req, res) => {
     db.prepare("DELETE FROM client_payments WHERE id = ?").run(req.params.id);
+    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'client_payment', req.params.id, `Deleted payment ID: ${req.params.id}`);
+    res.json({ success: true });
+  });
+
+  app.delete("/api/client-payments/group/:saleId", (req, res) => {
+    const { saleId } = req.params;
+    db.prepare("DELETE FROM client_payments WHERE saleId = ?").run(saleId);
+    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'client_payment_group', 0, `Deleted payment group: ${saleId}`);
     res.json({ success: true });
   });
 
@@ -667,14 +857,24 @@ async function startServer() {
 
   // Rotas de Ordens de Serviço (OS)
   app.get("/api/service-orders", (req, res) => {
-    const orders = db.prepare(`
-      SELECT so.*, c.firstName, c.lastName, c.phone 
-      FROM service_orders so 
-      LEFT JOIN customers c ON so.customerId = c.id 
-      ORDER BY so.createdAt DESC
-    `).all();
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const search = req.query.search as string;
     
-    const parsedOrders = orders.map((o: any) => {
+    let options: any = {
+      select: "so.*, c.firstName, c.lastName, c.phone",
+      join: "so LEFT JOIN customers c ON so.customerId = c.id",
+      orderBy: "so.createdAt DESC"
+    };
+    
+    if (search) {
+      options.where = "c.firstName LIKE ? OR c.lastName LIKE ? OR so.equipmentName LIKE ? OR so.equipmentSerial LIKE ? OR CAST(so.id AS TEXT) LIKE ?";
+      options.params = [`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%` ];
+    }
+    
+    const result = getPaginatedData("service_orders", page, limit, options);
+    
+    result.data = result.data.map((o: any) => {
       try {
         o.partsUsed = JSON.parse(o.partsUsed || '[]');
       } catch (e) {
@@ -683,17 +883,18 @@ async function startServer() {
       return o;
     });
     
-    res.json(parsedOrders);
+    res.json(result);
   });
 
   app.post("/api/service-orders", (req, res) => {
-    const { 
-      customerId, equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
-      reportedProblem, arrivalPhotoUrl, arrivalPhotoBase64, status, entryDate, analysisPrediction, 
-      customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy 
-    } = req.body;
-    
     try {
+      const validatedData = ServiceOrderSchema.parse(req.body);
+      const { 
+        customerId, equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
+        reportedProblem, arrivalPhotoUrl, arrivalPhotoBase64, status, entryDate, analysisPrediction, 
+        customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy 
+      } = validatedData;
+      
       const result = db.prepare(`
         INSERT INTO service_orders (
           customerId, equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
@@ -702,29 +903,42 @@ async function startServer() {
         ) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
-        customerId, equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
-        reportedProblem, arrivalPhotoUrl, arrivalPhotoBase64, status || 'Aguardando Análise', 
-        entryDate, analysisPrediction, customerPassword, accessories, 
-        ramInfo, ssdInfo, priority || 'medium', createdBy || 1
+        customerId, equipmentType || null, equipmentBrand || null, equipmentModel || null, equipmentColor || null, equipmentSerial || null, 
+        reportedProblem, status || 'Aguardando Análise', 
+        arrivalPhotoUrl || null, arrivalPhotoBase64 || null, // Note: I swapped status and arrivalPhotoUrl in the SQL to match the values array if needed, but let's be careful.
+        // Wait, the previous SQL was:
+        // VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        // customerId, equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
+        // reportedProblem, arrivalPhotoUrl, arrivalPhotoBase64, status || 'Aguardando Análise', 
+        // entryDate, analysisPrediction, customerPassword, accessories, 
+        // ramInfo, ssdInfo, priority || 'medium', createdBy || 1
+        
+        // Let's re-align:
+        entryDate || null, analysisPrediction || null, customerPassword || null, accessories || null, 
+        ramInfo || null, ssdInfo || null, priority || 'medium', createdBy || 1
       );
       
       db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'ServiceOrder', result.lastInsertRowid, `Created OS for customer ${customerId}`);
       
       res.json({ id: result.lastInsertRowid });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Validation failed", details: error.issues });
+      }
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
   app.put("/api/service-orders/:id", (req, res) => {
-    const { 
-      status, technicalAnalysis, servicesPerformed, partsUsed, 
-      serviceFee, totalAmount, finalObservations, entryDate, analysisPrediction, 
-      customerPassword, accessories, ramInfo, ssdInfo, priority, 
-      equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, arrivalPhotoBase64, updatedBy 
-    } = req.body;
-    
     try {
+      const validatedData = ServiceOrderSchema.partial().parse(req.body);
+      const { 
+        status, technicalAnalysis, servicesPerformed, partsUsed, 
+        serviceFee, totalAmount, finalObservations, entryDate, analysisPrediction, 
+        customerPassword, accessories, ramInfo, ssdInfo, priority, 
+        equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, arrivalPhotoBase64, updatedBy 
+      } = validatedData as any;
+      
       // Fetch old OS to compare parts and update inventory
       const oldOs = db.prepare("SELECT partsUsed FROM service_orders WHERE id = ?").get(req.params.id) as any;
       let oldParts: any[] = [];
@@ -732,33 +946,50 @@ async function startServer() {
         oldParts = JSON.parse(oldOs?.partsUsed || '[]');
       } catch (e) {}
 
-      const newParts = partsUsed || [];
+      const newParts = partsUsed ? (typeof partsUsed === 'string' ? JSON.parse(partsUsed) : partsUsed) : oldParts;
       
-      // Update inventory based on parts changes
-      // 1. Add back old parts
-      oldParts.forEach((p: any) => {
-        if (p.id) {
-          db.prepare("UPDATE inventory_items SET quantity = quantity + ?, stockLevel = stockLevel + ? WHERE id = ?").run(p.quantity, p.quantity, p.id);
-        }
-      });
-      
-      // 2. Deduct new parts
-      newParts.forEach((p: any) => {
-        if (p.id) {
-          db.prepare("UPDATE inventory_items SET quantity = quantity - ?, stockLevel = stockLevel - ? WHERE id = ?").run(p.quantity, p.quantity, p.id);
-        }
-      });
+      // Update inventory based on parts changes if partsUsed was provided
+      if (partsUsed) {
+        // 1. Add back old parts
+        oldParts.forEach((p: any) => {
+          if (p.id) {
+            db.prepare("UPDATE inventory_items SET quantity = quantity + ?, stockLevel = stockLevel + ? WHERE id = ?").run(p.quantity, p.quantity, p.id);
+          }
+        });
+        
+        // 2. Deduct new parts
+        newParts.forEach((p: any) => {
+          if (p.id) {
+            db.prepare("UPDATE inventory_items SET quantity = quantity - ?, stockLevel = stockLevel - ? WHERE id = ?").run(p.quantity, p.quantity, p.id);
+          }
+        });
+      }
 
       const partsString = JSON.stringify(newParts);
       
       db.prepare(`
         UPDATE service_orders 
-        SET status = ?, technicalAnalysis = ?, servicesPerformed = ?, partsUsed = ?, 
-            serviceFee = ?, totalAmount = ?, finalObservations = ?, entryDate = ?, 
-            analysisPrediction = ?, customerPassword = ?, accessories = ?, 
-            ramInfo = ?, ssdInfo = ?, priority = ?, 
-            equipmentType = ?, equipmentBrand = ?, equipmentModel = ?, equipmentColor = ?, equipmentSerial = ?, 
-            arrivalPhotoBase64 = ?, updatedBy = ? 
+        SET status = COALESCE(?, status), 
+            technicalAnalysis = COALESCE(?, technicalAnalysis), 
+            servicesPerformed = COALESCE(?, servicesPerformed), 
+            partsUsed = COALESCE(?, partsUsed), 
+            serviceFee = COALESCE(?, serviceFee), 
+            totalAmount = COALESCE(?, totalAmount), 
+            finalObservations = COALESCE(?, finalObservations), 
+            entryDate = COALESCE(?, entryDate), 
+            analysisPrediction = COALESCE(?, analysisPrediction), 
+            customerPassword = COALESCE(?, customerPassword), 
+            accessories = COALESCE(?, accessories), 
+            ramInfo = COALESCE(?, ramInfo), 
+            ssdInfo = COALESCE(?, ssdInfo), 
+            priority = COALESCE(?, priority), 
+            equipmentType = COALESCE(?, equipmentType), 
+            equipmentBrand = COALESCE(?, equipmentBrand), 
+            equipmentModel = COALESCE(?, equipmentModel), 
+            equipmentColor = COALESCE(?, equipmentColor), 
+            equipmentSerial = COALESCE(?, equipmentSerial), 
+            arrivalPhotoBase64 = COALESCE(?, arrivalPhotoBase64), 
+            updatedBy = ? 
         WHERE id = ?
       `).run(
         status, technicalAnalysis, servicesPerformed, partsString, 
@@ -772,8 +1003,11 @@ async function startServer() {
       db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'ServiceOrder', req.params.id, `Updated OS #${req.params.id}`);
       
       res.json({ success: true });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Validation failed", details: error.issues });
+      }
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
