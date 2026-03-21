@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { cn, formatCurrency } from '../../lib/utils';
 import { InventoryItem } from '../../types';
+import { DeleteConfirmationModal } from '../modals/DeleteConfirmationModal';
 
 interface InventoryProps {
   inventory: InventoryItem[];
@@ -24,15 +25,21 @@ const Inventory: React.FC<InventoryProps> = ({
   const [searchTerm, setSearchTerm] = React.useState('');
   const [isAddingInventoryItem, setIsAddingInventoryItem] = React.useState(false);
   const [editingItem, setEditingItem] = React.useState<InventoryItem | null>(null);
+  const [itemToDelete, setItemToDelete] = React.useState<number | null>(null);
 
   const handleEditInventoryItem = (item: InventoryItem) => {
     setEditingItem(item);
     setIsAddingInventoryItem(true);
   };
 
-  const handleDeleteInventoryItem = async (id: number) => {
-    if (confirm('Tem certeza que deseja excluir este item do estoque?')) {
-      await onDelete(id);
+  const handleDeleteInventoryItem = (id: number) => {
+    setItemToDelete(id);
+  };
+
+  const confirmDeleteInventoryItem = async () => {
+    if (itemToDelete !== null) {
+      await onDelete(itemToDelete);
+      setItemToDelete(null);
     }
   };
 
@@ -42,7 +49,7 @@ const Inventory: React.FC<InventoryProps> = ({
     item.category?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const lowStockItems = inventory.filter(item => item.quantity <= (item.minQuantity || 5));
+  const lowStockItems = inventory.filter(item => item.stockLevel <= 5);
 
   return (
     <div className="space-y-8 p-6 lg:p-10">
@@ -113,26 +120,26 @@ const Inventory: React.FC<InventoryProps> = ({
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Quantidade</p>
                   <p className={cn(
                     "text-lg font-black",
-                    item.quantity <= (item.minQuantity || 5) ? "text-rose-500" : "text-slate-200"
+                    item.stockLevel <= 5 ? "text-rose-500" : "text-slate-200"
                   )}>
-                    {item.quantity}
+                    {item.stockLevel}
                   </p>
                 </div>
                 <div className="p-3 rounded-xl bg-white/5 border border-white/5">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Preço Venda</p>
-                  <p className="text-lg font-black text-emerald-500">{formatCurrency(item.salePrice)}</p>
+                  <p className="text-lg font-black text-emerald-500">{formatCurrency(item.unitPrice)}</p>
                 </div>
               </div>
 
               <div className="pt-4 border-t border-white/5 flex items-center justify-between">
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Custo</span>
-                  <span className="text-xs font-bold">{formatCurrency(item.costPrice)}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">SKU</span>
+                  <span className="text-xs font-bold">{item.sku || 'N/A'}</span>
                 </div>
                 <div className="flex flex-col text-right">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Margem</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Categoria</span>
                   <span className="text-xs font-bold text-emerald-500">
-                    {(((item.salePrice - item.costPrice) / item.costPrice) * 100).toFixed(1)}%
+                    {item.category === 'product' ? 'Produto' : 'Serviço'}
                   </span>
                 </div>
               </div>
@@ -149,6 +156,14 @@ const Inventory: React.FC<InventoryProps> = ({
           </div>
         )}
       </div>
+
+      <DeleteConfirmationModal 
+        isOpen={itemToDelete !== null}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={confirmDeleteInventoryItem}
+        title="Excluir Item do Estoque"
+        message="Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita."
+      />
     </div>
   );
 };

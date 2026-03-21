@@ -1,10 +1,12 @@
 import { useState, useCallback } from 'react';
 import { Customer, ClientPayment } from '../types';
 import { api } from '../services/api';
+import { useToast } from '../components/ui/Toast';
 
 export const useCustomers = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [clientPayments, setClientPayments] = useState<ClientPayment[]>([]);
+  const { showToast } = useToast();
 
   const fetchCustomers = useCallback(async () => {
     try {
@@ -12,8 +14,9 @@ export const useCustomers = () => {
       setCustomers(data);
     } catch (err) {
       console.error("Failed to fetch customers", err);
+      showToast("Erro ao carregar clientes.", "error");
     }
-  }, []);
+  }, [showToast]);
 
   const fetchClientPayments = useCallback(async () => {
     try {
@@ -21,8 +24,9 @@ export const useCustomers = () => {
       setClientPayments(data);
     } catch (err) {
       console.error("Failed to fetch client payments", err);
+      showToast("Erro ao carregar pagamentos de clientes.", "error");
     }
-  }, []);
+  }, [showToast]);
 
   const addCustomer = useCallback(async (customer: any) => {
     try {
@@ -31,9 +35,10 @@ export const useCustomers = () => {
       return data;
     } catch (err) {
       console.error("Failed to add customer", err);
+      showToast("Erro ao adicionar cliente.", "error");
       throw err;
     }
-  }, [fetchCustomers]);
+  }, [fetchCustomers, showToast]);
 
   const updateCustomer = useCallback(async (id: number, customer: any) => {
     try {
@@ -42,9 +47,10 @@ export const useCustomers = () => {
       return true;
     } catch (err) {
       console.error("Failed to update customer", err);
+      showToast("Erro ao atualizar cliente.", "error");
       return false;
     }
-  }, [fetchCustomers]);
+  }, [fetchCustomers, showToast]);
 
   const deleteCustomer = useCallback(async (id: number) => {
     try {
@@ -54,9 +60,10 @@ export const useCustomers = () => {
       return true;
     } catch (err) {
       console.error("Failed to delete customer", err);
+      showToast("Erro ao excluir cliente.", "error");
       return false;
     }
-  }, [fetchCustomers, fetchClientPayments]);
+  }, [fetchCustomers, fetchClientPayments, showToast]);
 
   const addClientPayment = useCallback(async (payment: any) => {
     try {
@@ -65,9 +72,10 @@ export const useCustomers = () => {
       return true;
     } catch (err) {
       console.error("Failed to add client payment", err);
+      showToast("Erro ao adicionar pagamento de cliente.", "error");
       return false;
     }
-  }, [fetchClientPayments]);
+  }, [fetchClientPayments, showToast]);
 
   const updateClientPayment = useCallback(async (id: number, payment: any) => {
     try {
@@ -76,9 +84,10 @@ export const useCustomers = () => {
       return true;
     } catch (err) {
       console.error("Failed to update client payment", err);
+      showToast("Erro ao atualizar pagamento de cliente.", "error");
       return false;
     }
-  }, [fetchClientPayments]);
+  }, [fetchClientPayments, showToast]);
 
   const deleteClientPayment = useCallback(async (id: number) => {
     try {
@@ -87,9 +96,10 @@ export const useCustomers = () => {
       return true;
     } catch (err) {
       console.error("Failed to delete client payment", err);
+      showToast("Erro ao excluir pagamento de cliente.", "error");
       return false;
     }
-  }, [fetchClientPayments]);
+  }, [fetchClientPayments, showToast]);
 
   return { 
     customers, 

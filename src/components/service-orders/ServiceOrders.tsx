@@ -8,6 +8,7 @@ import {
 import { cn, formatCurrency } from '../../lib/utils';
 import { ServiceOrder } from '../../types';
 import { format, parseISO } from 'date-fns';
+import { DeleteConfirmationModal } from '../modals/DeleteConfirmationModal';
 
 interface ServiceOrdersProps {
   serviceOrders: ServiceOrder[];
@@ -26,15 +27,21 @@ const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [isAddingSO, setIsAddingSO] = React.useState(false);
   const [editingSO, setEditingSO] = React.useState<ServiceOrder | null>(null);
+  const [orderToDelete, setOrderToDelete] = React.useState<number | null>(null);
 
   const handleEditSO = (so: ServiceOrder) => {
     setEditingSO(so);
     setIsAddingSO(true);
   };
 
-  const handleDeleteSO = async (id: number) => {
-    if (confirm('Tem certeza que deseja excluir esta Ordem de Serviço?')) {
-      await onDelete(id);
+  const handleDeleteSO = (id: number) => {
+    setOrderToDelete(id);
+  };
+
+  const confirmDeleteSO = async () => {
+    if (orderToDelete !== null) {
+      await onDelete(orderToDelete);
+      setOrderToDelete(null);
     }
   };
 
@@ -48,8 +55,8 @@ const ServiceOrders: React.FC<ServiceOrdersProps> = ({
 
   const filteredOrders = serviceOrders.filter(so => {
     const matchesSearch = 
-      so.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      so.deviceModel.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      `${so.firstName || ''} ${so.lastName || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (so.equipmentModel || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       so.id.toString().includes(searchTerm);
     
     const matchesStatus = statusFilter === 'all' || so.status === statusFilter;
@@ -158,25 +165,25 @@ const ServiceOrders: React.FC<ServiceOrdersProps> = ({
               </div>
 
               <div className="space-y-1">
-                <p className="text-sm font-bold truncate">{so.customerName}</p>
-                <p className="text-xs text-slate-400 font-medium">{so.deviceModel} • {so.deviceBrand}</p>
+                <p className="text-sm font-bold truncate">{`${so.firstName || ''} ${so.lastName || ''}`.trim() || 'Cliente'}</p>
+                <p className="text-xs text-slate-400 font-medium">{so.equipmentModel || 'N/A'} • {so.equipmentBrand || 'N/A'}</p>
               </div>
 
               <div className="p-3 rounded-xl bg-white/5 border border-white/5">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Defeito Relatado</p>
-                <p className="text-xs text-slate-300 line-clamp-2 italic">"{so.reportedDefect}"</p>
+                <p className="text-xs text-slate-300 line-clamp-2 italic">"{so.reportedProblem || 'Não informado'}"</p>
               </div>
 
               <div className="flex items-center justify-between pt-2">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Previsão</p>
                   <p className="text-xs font-bold text-slate-300">
-                    {so.estimatedDate ? format(parseISO(so.estimatedDate), 'dd/MM/yyyy') : 'Não definida'}
+                    {so.analysisPrediction ? format(parseISO(so.analysisPrediction), 'dd/MM/yyyy') : 'Não definida'}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor Total</p>
-                  <p className="text-lg font-black text-primary">{formatCurrency(so.totalValue)}</p>
+                  <p className="text-lg font-black text-primary">{formatCurrency(so.totalAmount || 0)}</p>
                 </div>
               </div>
 
@@ -224,6 +231,14 @@ const ServiceOrders: React.FC<ServiceOrdersProps> = ({
           </div>
         )}
       </div>
+
+      <DeleteConfirmationModal 
+        isOpen={orderToDelete !== null}
+        onClose={() => setOrderToDelete(null)}
+        onConfirm={confirmDeleteSO}
+        title="Excluir Ordem de Serviço"
+        message="Tem certeza que deseja excluir esta Ordem de Serviço? Esta ação não pode ser desfeita."
+      />
     </div>
   );
 };

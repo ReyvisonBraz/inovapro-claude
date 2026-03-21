@@ -5,14 +5,17 @@ import { Customer, ClientPayment, AppSettings } from '../types';
 
 interface CustomersProps {
   settings: AppSettings;
-  customers: Customer[];
-  clientPayments: ClientPayment[];
+  customers: { data: Customer[], meta: any };
+  clientPayments: { data: ClientPayment[], meta: any };
   setEditingCustomer: (customer: Customer | null) => void;
   setNewCustomer: (customer: any) => void;
   setIsAddingCustomer: (isAdding: boolean) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: number) => void;
   onAddPayment: (customer: Customer) => void;
   onViewHistory: (customer: Customer) => void;
+  searchTerm: string;
+  setSearchTerm: (val: string) => void;
+  onPageChange: (page: number) => void;
 }
 
 export const Customers = ({
@@ -24,7 +27,10 @@ export const Customers = ({
   setIsAddingCustomer,
   onDelete,
   onAddPayment,
-  onViewHistory
+  onViewHistory,
+  searchTerm,
+  setSearchTerm,
+  onPageChange
 }: CustomersProps) => {
   return (
     <div className="p-6 lg:p-10 space-y-8">
@@ -37,8 +43,17 @@ export const Customers = ({
 
       <CustomerList 
         settings={settings}
-        customers={customers}
-        clientPayments={clientPayments}
+        customers={customers.data}
+        clientPayments={clientPayments.data}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        pagination={{
+          currentPage: customers.meta.page,
+          totalPages: customers.meta.totalPages,
+          totalItems: customers.meta.total,
+          limit: customers.meta.limit
+        }}
+        onPageChange={onPageChange}
         onEdit={(customer) => {
           setEditingCustomer(customer);
           setNewCustomer({

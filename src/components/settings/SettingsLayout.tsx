@@ -5,9 +5,10 @@ import { PrintLayout } from './PrintLayout';
 import { InterfaceSettings } from './InterfaceSettings';
 import { CategorySettings } from './CategorySettings';
 import { UserManagement } from './UserManagement';
-import { Printer, Layout, List, Users, MessageCircle, Laptop } from 'lucide-react';
+import { Printer, Layout, List, Users, MessageCircle, Laptop, RefreshCw } from 'lucide-react';
 import { WhatsAppSettings } from './WhatsAppSettings';
 import { EquipmentSettings } from './EquipmentSettings';
+import { SystemUpdate } from './SystemUpdate';
 import { Brand, Model } from '../../types';
 
 interface SettingsLayoutProps {
@@ -36,7 +37,7 @@ interface SettingsLayoutProps {
 }
 
 export const SettingsLayout: React.FC<SettingsLayoutProps> = (props) => {
-  const [activeTab, setActiveTab] = useState<'print' | 'interface' | 'categories' | 'users' | 'whatsapp' | 'equipment'>('interface');
+  const [activeTab, setActiveTab] = useState<'print' | 'interface' | 'categories' | 'users' | 'whatsapp' | 'equipment' | 'updates'>('interface');
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 p-6">
@@ -122,6 +123,19 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = (props) => {
             <Users size={18} />
             Usuários
           </button>
+
+          <button
+            onClick={() => setActiveTab('updates')}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
+              activeTab === 'updates' 
+                ? "bg-primary/10 text-primary border border-primary/20" 
+                : "text-slate-400 hover:bg-white/5 hover:text-slate-200 border border-transparent"
+            )}
+          >
+            <RefreshCw size={18} />
+            Atualizações
+          </button>
         </div>
 
         {/* Conteúdo Principal */}
@@ -155,6 +169,7 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = (props) => {
               clientPayments={props.clientPayments}
             />
           )}
+          {activeTab === 'updates' && <SystemUpdate />}
         </div>
       </div>
     </div>

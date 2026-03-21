@@ -52,7 +52,7 @@ const AuditLogs: React.FC<AuditLogsProps> = ({ auditLogs }) => {
                 <tr key={log.id} className="hover:bg-white/[0.02] transition-colors">
                   <td className="px-6 py-4">
                     <p className="text-xs font-bold text-slate-300">
-                      {format(parseISO(log.createdAt), 'dd/MM/yyyy HH:mm:ss')}
+                      {format(parseISO(log.timestamp), 'dd/MM/yyyy HH:mm:ss')}
                     </p>
                   </td>
                   <td className="px-6 py-4">

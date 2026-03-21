@@ -26,6 +26,7 @@ export interface Transaction {
   amount: number;
   date: string;
   status: string;
+  paymentMethod?: string;
   createdBy?: number;
   updatedBy?: number;
 }
@@ -57,6 +58,7 @@ export interface ClientPayment {
   status: 'pending' | 'partial' | 'paid';
   installmentsCount: number;
   type: 'income' | 'expense';
+  saleId?: string;
   customerName?: string;
   paymentHistory?: string; // JSON string of { amount: number, date: string }[]
   createdBy?: number;

@@ -7,6 +7,8 @@ interface RecordPaymentModalProps {
   onConfirm: () => void;
   amount: string;
   setAmount: (amount: string) => void;
+  date: string;
+  setDate: (date: string) => void;
   formatCurrency: (value: number) => string;
 }
 
@@ -16,6 +18,8 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
   onConfirm,
   amount,
   setAmount,
+  date,
+  setDate,
   formatCurrency
 }) => {
   return (
@@ -42,18 +46,30 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
             </p>
             
             <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor do Pagamento</label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">R$</span>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Data do Pagamento</label>
                   <input 
-                    type="number"
-                    autoFocus
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
-                    placeholder="0.00"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-white [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                   />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor do Pagamento</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">R$</span>
+                    <input 
+                      type="number"
+                      autoFocus
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
+                      placeholder="0.00"
+                    />
+                  </div>
                 </div>
               </div>
               

@@ -93,7 +93,9 @@ import { CustomerHistoryModal } from './components/modals/CustomerHistoryModal';
 
 export default function App() {
   const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<{ data: Transaction[], meta: any }>({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } });
+  const [transactionsPage, setTransactionsPage] = useState(1);
+  const [stats, setStats] = useState({ totalIncome: 0, totalExpense: 0, balance: 0, pendingPayments: 0, activeOS: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [isAddingServiceOrder, setIsAddingServiceOrder] = useState(false);
@@ -102,6 +104,16 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationTab, setNotificationTab] = useState<'payments' | 'service-orders'>('payments');
+  const [fontSize, setFontSize] = useState<number>(() => {
+    const saved = localStorage.getItem('app_font_size');
+    return saved ? parseInt(saved, 10) : 16;
+  });
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontSize}px`;
+    localStorage.setItem('app_font_size', fontSize.toString());
+  }, [fontSize]);
 
   const handlePrintBlankForm = () => {
     console.log("Directly triggering print via new window...");
@@ -250,11 +262,14 @@ export default function App() {
   const [expandedPayments, setExpandedPayments] = useState<number[]>([]);
   const [paymentFilterStatus, setPaymentFilterStatus] = useState<string>('all');
   const [paymentSearchTerm, setPaymentSearchTerm] = useState<string>('');
+  const [customerSearchTerm, setCustomerSearchTerm] = useState<string>('');
+  const [osSearchTerm, setOsSearchTerm] = useState<string>('');
   const [paymentSortMode, setPaymentSortMode] = useState<'date' | 'amount' | 'alphabetical'>('date');
 
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [customerPaymentsWarning, setCustomerPaymentsWarning] = useState<any[]>([]);
   const [transactionToDelete, setTransactionToDelete] = useState<number | null>(null);
+  const [clientPaymentToDelete, setClientPaymentToDelete] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [dateFilterMode, setDateFilterMode] = useState<'day' | 'month' | 'range' | 'all'>('day');
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
@@ -317,6 +332,7 @@ export default function App() {
     appVersion: 'Versão Empresarial',
     initialBalance: 0,
     showWarnings: true,
+    currency: 'BRL',
     hiddenColumns: [],
     settingsPassword: '1234',
     receiptLayout: 'a4',
@@ -344,12 +360,15 @@ export default function App() {
   });
 
   // Clientes e Pagamentos
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [clientPayments, setClientPayments] = useState<ClientPayment[]>([]);
+  const [customers, setCustomers] = useState<{ data: Customer[], meta: any }>({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } });
+  const [customersPage, setCustomersPage] = useState(1);
+  const [clientPayments, setClientPayments] = useState<{ data: ClientPayment[], meta: any }>({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } });
+  const [paymentsPage, setPaymentsPage] = useState(1);
   const [categories, setCategories] = useState<Category[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
-  const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
+  const [serviceOrders, setServiceOrders] = useState<{ data: ServiceOrder[], meta: any }>({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } });
+  const [serviceOrdersPage, setServiceOrdersPage] = useState(1);
   const [serviceOrderStatuses, setServiceOrderStatuses] = useState<ServiceOrderStatus[]>([]);
   const [equipmentTypes, setEquipmentTypes] = useState<{id: number, name: string}[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -363,6 +382,7 @@ export default function App() {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [directOsId, setDirectOsId] = useState<number | null>(null);
   const [directMode, setDirectMode] = useState<string | null>(null);
   
@@ -386,6 +406,7 @@ export default function App() {
     dueDate: format(new Date(), 'yyyy-MM-dd'),
     paymentMethod: 'Dinheiro',
     installmentsCount: 1,
+    installmentInterval: 'monthly',
     type: 'income' as 'income' | 'expense'
   });
 
@@ -412,7 +433,7 @@ export default function App() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const upcomingDebts = clientPayments.filter(p => {
+  const upcomingDebts = clientPayments.data.filter(p => {
     if (p.status === 'paid') return false;
     const dueDate = parseISO(p.dueDate);
     dueDate.setHours(0, 0, 0, 0);
@@ -421,21 +442,49 @@ export default function App() {
     return diffDays > 0 && diffDays <= 3;
   });
 
-  const dueTodayDebts = clientPayments.filter(p => {
+  const dueTodayDebts = clientPayments.data.filter(p => {
     if (p.status === 'paid') return false;
     const dueDate = parseISO(p.dueDate);
     dueDate.setHours(0, 0, 0, 0);
     return dueDate.getTime() === today.getTime();
   });
 
-  const overdueDebts = clientPayments.filter(p => {
+  const overdueDebts = clientPayments.data.filter(p => {
     if (p.status === 'paid') return false;
     const dueDate = parseISO(p.dueDate);
     dueDate.setHours(0, 0, 0, 0);
     return dueDate.getTime() < today.getTime();
   });
 
-  const totalNotifications = upcomingDebts.length + dueTodayDebts.length + overdueDebts.length;
+  const overdueServiceOrders = serviceOrders.data.filter(o => {
+    if (o.status === 'Concluído' || o.status === 'Entregue' || o.status === 'Cancelado') return false;
+    if (!o.analysisPrediction) return false;
+    const predictionDate = parseISO(o.analysisPrediction);
+    predictionDate.setHours(0, 0, 0, 0);
+    return predictionDate.getTime() < today.getTime();
+  });
+
+  const dueTodayServiceOrders = serviceOrders.data.filter(o => {
+    if (o.status === 'Concluído' || o.status === 'Entregue' || o.status === 'Cancelado') return false;
+    if (!o.analysisPrediction) return false;
+    const predictionDate = parseISO(o.analysisPrediction);
+    predictionDate.setHours(0, 0, 0, 0);
+    return predictionDate.getTime() === today.getTime();
+  });
+
+  const upcomingServiceOrders = serviceOrders.data.filter(o => {
+    if (o.status === 'Concluído' || o.status === 'Entregue' || o.status === 'Cancelado') return false;
+    if (!o.analysisPrediction) return false;
+    const predictionDate = parseISO(o.analysisPrediction);
+    predictionDate.setHours(0, 0, 0, 0);
+    const diffTime = predictionDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 && diffDays <= 3;
+  });
+
+  const totalPaymentNotifications = upcomingDebts.length + dueTodayDebts.length + overdueDebts.length;
+  const totalServiceOrderNotifications = overdueServiceOrders.length + dueTodayServiceOrders.length + upcomingServiceOrders.length;
+  const totalNotifications = totalPaymentNotifications + totalServiceOrderNotifications;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -450,6 +499,7 @@ export default function App() {
 
   useEffect(() => {
     if (isAuthenticated) {
+      fetchStats();
       fetchTransactions();
       fetchSettings();
       fetchCustomers();
@@ -464,7 +514,17 @@ export default function App() {
       fetchBrands();
       fetchModels();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, transactionsPage, customersPage, paymentsPage, serviceOrdersPage, searchTerm, customerSearchTerm, paymentSearchTerm, osSearchTerm]);
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('/api/stats');
+      const data = await res.json();
+      setStats(data);
+    } catch (err) {
+      console.error("Failed to fetch stats", err);
+    }
+  };
 
   const fetchEquipmentTypes = async () => {
     try {
@@ -473,6 +533,7 @@ export default function App() {
       setEquipmentTypes(data);
     } catch (err) {
       console.error("Failed to fetch equipment types", err);
+      showToast('Erro ao carregar tipos de equipamento.', 'error');
     }
   };
 
@@ -483,6 +544,7 @@ export default function App() {
       setBrands(data);
     } catch (err) {
       console.error("Failed to fetch brands", err);
+      showToast('Erro ao carregar marcas.', 'error');
     }
   };
 
@@ -493,6 +555,7 @@ export default function App() {
       setModels(data);
     } catch (err) {
       console.error("Failed to fetch models", err);
+      showToast('Erro ao carregar modelos.', 'error');
     }
   };
 
@@ -503,6 +566,7 @@ export default function App() {
       setServiceOrderStatuses(data);
     } catch (err) {
       console.error("Failed to fetch service order statuses", err);
+      showToast('Erro ao carregar status de OS.', 'error');
     }
   };
 
@@ -513,16 +577,18 @@ export default function App() {
       setInventoryItems(data);
     } catch (err) {
       console.error("Failed to fetch inventory items", err);
+      showToast('Erro ao carregar itens do estoque.', 'error');
     }
   };
 
   const fetchServiceOrders = async () => {
     try {
-      const res = await fetch('/api/service-orders');
+      const res = await fetch(`/api/service-orders?page=${serviceOrdersPage}&limit=20&search=${osSearchTerm}`);
       const data = await res.json();
       setServiceOrders(data);
     } catch (err) {
       console.error("Failed to fetch service orders", err);
+      showToast('Erro ao carregar ordens de serviço.', 'error');
     }
   };
 
@@ -533,6 +599,7 @@ export default function App() {
       setUsers(data);
     } catch (err) {
       console.error("Failed to fetch users", err);
+      showToast('Erro ao carregar usuários.', 'error');
     }
   };
 
@@ -543,6 +610,7 @@ export default function App() {
       setAuditLogs(data);
     } catch (err) {
       console.error("Failed to fetch audit logs", err);
+      showToast('Erro ao carregar logs de auditoria.', 'error');
     }
   };
 
@@ -562,6 +630,7 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to add user", err);
+      showToast('Erro ao criar usuário.', 'error');
     }
   };
 
@@ -581,6 +650,7 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to update user", err);
+      showToast('Erro ao atualizar usuário.', 'error');
     }
   };
 
@@ -611,11 +681,12 @@ export default function App() {
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch('/api/customers');
+      const res = await fetch(`/api/customers?page=${customersPage}&limit=20&search=${customerSearchTerm}`);
       const data = await res.json();
       setCustomers(data);
     } catch (err) {
       console.error("Failed to fetch customers", err);
+      showToast('Erro ao carregar clientes.', 'error');
     }
   };
 
@@ -634,6 +705,7 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to add brand", err);
+      showToast('Erro ao adicionar marca.', 'error');
     }
   };
 
@@ -652,6 +724,7 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to add equipment type", err);
+      showToast('Erro ao adicionar tipo de equipamento.', 'error');
     }
   };
 
@@ -670,6 +743,7 @@ export default function App() {
           }
         } catch (err) {
           console.error("Failed to delete equipment type", err);
+          showToast('Erro ao remover tipo de equipamento.', 'error');
         }
       },
       'danger'
@@ -692,6 +766,7 @@ export default function App() {
           }
         } catch (err) {
           console.error("Failed to delete brand", err);
+          showToast('Erro ao excluir marca.', 'error');
         }
       },
       'danger'
@@ -713,6 +788,7 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to add model", err);
+      showToast('Erro ao adicionar modelo.', 'error');
     }
   };
 
@@ -731,6 +807,7 @@ export default function App() {
           }
         } catch (err) {
           console.error("Failed to delete model", err);
+          showToast('Erro ao excluir modelo.', 'error');
         }
       },
       'danger'
@@ -739,11 +816,12 @@ export default function App() {
 
   const fetchClientPayments = async () => {
     try {
-      const res = await fetch('/api/client-payments');
+      const res = await fetch(`/api/client-payments?page=${paymentsPage}&limit=20&search=${paymentSearchTerm}`);
       const data = await res.json();
       setClientPayments(data);
     } catch (err) {
       console.error("Failed to fetch client payments", err);
+      showToast('Erro ao carregar pagamentos.', 'error');
     }
   };
 
@@ -766,77 +844,93 @@ export default function App() {
     }
 
     // Verificar similaridade
-    const similarity = customers.find(c => 
+    const similarity = customers.data.find(c => 
       (newCustomer.nickname && c.nickname?.toLowerCase() === newCustomer.nickname.toLowerCase()) ||
       (newCustomer.companyName && c.companyName?.toLowerCase() === newCustomer.companyName.toLowerCase()) ||
       (c.firstName.toLowerCase() === newCustomer.firstName.toLowerCase() && c.lastName.toLowerCase() === newCustomer.lastName.toLowerCase())
     );
 
-    if (similarity && !editingCustomer) {
-      const confirmAdd = window.confirm(`Já existe um cliente similar: ${similarity.firstName} ${similarity.lastName}${similarity.nickname ? ` (${similarity.nickname})` : ''}. Deseja cadastrar assim mesmo?`);
-      if (!confirmAdd) return;
-    }
+    const saveCustomer = async () => {
+      setIsSaving(true);
+      try {
+        const url = editingCustomer ? `/api/customers/${editingCustomer.id}` : '/api/customers';
+        const method = editingCustomer ? 'PUT' : 'POST';
+        
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...newCustomer,
+            creditLimit: parseFloat(newCustomer.creditLimit.toString().replace(',', '.')) || 0,
+            createdBy: !editingCustomer ? currentUser?.id : undefined,
+            updatedBy: currentUser?.id
+          })
+        });
+        const data = await res.json();
+        
+        setIsAddingCustomer(false);
+        setShowCustomerWarningModal(false);
+        setEditingCustomer(null);
+        setNewCustomer({
+          firstName: '',
+          lastName: '',
+          nickname: '',
+          cpf: '',
+          companyName: '',
+          phone: '+55',
+          observation: '',
+          creditLimit: ''
+        });
+        fetchCustomers();
+        fetchAuditLogs();
 
-    setIsSaving(true);
-    try {
-      const url = editingCustomer ? `/api/customers/${editingCustomer.id}` : '/api/customers';
-      const method = editingCustomer ? 'PUT' : 'POST';
-      
-      if (editingCustomer) {
-        const nameChanged = editingCustomer.firstName !== newCustomer.firstName || editingCustomer.lastName !== newCustomer.lastName;
-        if (nameChanged) {
-          const confirmNameChange = window.confirm("Você alterou o nome do cliente. Isso será refletido em todos os lançamentos vinculados. Deseja continuar?");
-          if (!confirmNameChange) {
-            setIsSaving(false);
-            return;
-          }
+        if (method === 'POST') {
+          // Use a small delay to ensure the modal is closed before showing the confirm
+          setTimeout(() => {
+            openConfirm(
+              'Lançar Pagamento',
+              'Cliente cadastrado com sucesso! Deseja lançar um pagamento/parcelamento para este cliente agora?',
+              () => {
+                setNewClientPayment(prev => ({ ...prev, customerId: data.id }));
+                setActiveScreen('client-payments');
+                setIsAddingClientPayment(true);
+              },
+              'info'
+            );
+          }, 500);
         }
+      } catch (err) {
+        console.error("Failed to add customer", err);
+        showToast('Erro ao adicionar cliente.', 'error');
+      } finally {
+        setIsSaving(false);
       }
+    };
 
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...newCustomer,
-          creditLimit: parseFloat(newCustomer.creditLimit.toString().replace(',', '.')) || 0,
-          createdBy: !editingCustomer ? currentUser?.id : undefined,
-          updatedBy: currentUser?.id
-        })
-      });
-      const data = await res.json();
-      
-      setIsAddingCustomer(false);
-      setShowCustomerWarningModal(false);
-      setEditingCustomer(null);
-      setNewCustomer({
-        firstName: '',
-        lastName: '',
-        nickname: '',
-        cpf: '',
-        companyName: '',
-        phone: '+55',
-        observation: '',
-        creditLimit: ''
-      });
-      fetchCustomers();
-      fetchAuditLogs();
-
-      if (method === 'POST') {
-        // Use a small delay to ensure the modal is closed before showing the confirm
-        setTimeout(() => {
-          const launchPayment = window.confirm("Cliente cadastrado com sucesso! Deseja lançar um pagamento/parcelamento para este cliente agora?");
-          if (launchPayment) {
-            setNewClientPayment(prev => ({ ...prev, customerId: data.id }));
-            setActiveScreen('client-payments');
-            setIsAddingClientPayment(true);
-          }
-        }, 500);
-      }
-    } catch (err) {
-      console.error("Failed to add customer", err);
-    } finally {
-      setIsSaving(false);
+    if (similarity && !editingCustomer) {
+      openConfirm(
+        'Cliente Similar Encontrado',
+        `Já existe um cliente similar: ${similarity.firstName} ${similarity.lastName}${similarity.nickname ? ` (${similarity.nickname})` : ''}. Deseja cadastrar assim mesmo?`,
+        saveCustomer,
+        'warning'
+      );
+      return;
     }
+
+    if (editingCustomer) {
+      const nameChanged = editingCustomer.firstName !== newCustomer.firstName || editingCustomer.lastName !== newCustomer.lastName;
+      if (nameChanged) {
+        openConfirm(
+          'Atenção: Alteração de Nome',
+          "Você alterou o nome do cliente. Isso será refletido em todos os lançamentos vinculados. Deseja continuar?",
+          saveCustomer,
+          'warning'
+        );
+        return;
+      }
+    }
+
+    saveCustomer();
   };
 
   const handleAddClientPayment = async () => {
@@ -847,19 +941,70 @@ export default function App() {
     try {
       const total = parseFloat(newClientPayment.totalAmount.toString().replace(',', '.'));
       const paid = parseFloat((newClientPayment.paidAmount || '0').toString().replace(',', '.'));
-      const status = paid >= total ? 'paid' : paid > 0 ? 'partial' : 'pending';
+      const installmentsCount = newClientPayment.installmentsCount || 1;
+      const interval = newClientPayment.installmentInterval || 'monthly';
+      const saleId = `SALE-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-      await fetch('/api/client-payments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...newClientPayment,
-          totalAmount: total,
-          paidAmount: paid,
-          status,
-          createdBy: currentUser?.id
-        })
-      });
+      const promises = [];
+
+      // 1. Criar a Entrada se houver
+      if (paid > 0) {
+        promises.push(fetch('/api/client-payments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...newClientPayment,
+            description: `ENTRADA: ${newClientPayment.description}`,
+            totalAmount: paid,
+            paidAmount: paid,
+            dueDate: newClientPayment.purchaseDate,
+            status: 'paid',
+            installmentsCount: 1,
+            saleId,
+            createdBy: currentUser?.id
+          })
+        }));
+      }
+
+      // 2. Criar as parcelas do saldo restante
+      const remainingAmount = total - paid;
+      if (remainingAmount > 0) {
+        const installmentAmount = remainingAmount / installmentsCount;
+
+        for (let i = 0; i < installmentsCount; i++) {
+          let dueDate = new Date(newClientPayment.dueDate + 'T12:00:00');
+          if (interval === 'monthly') {
+            dueDate.setMonth(dueDate.getMonth() + i);
+          } else if (interval === '15days') {
+            dueDate.setDate(dueDate.getDate() + (i * 15));
+          } else if (interval === 'weekly') {
+            dueDate.setDate(dueDate.getDate() + (i * 7));
+          }
+
+          const description = installmentsCount > 1 
+            ? `${newClientPayment.description} (Parcela ${i + 1}/${installmentsCount})`
+            : newClientPayment.description;
+
+          promises.push(fetch('/api/client-payments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...newClientPayment,
+              description,
+              totalAmount: installmentAmount,
+              paidAmount: 0,
+              dueDate: format(dueDate, 'yyyy-MM-dd'),
+              status: 'pending',
+              installmentsCount: 1,
+              saleId,
+              createdBy: currentUser?.id
+            })
+          }));
+        }
+      }
+
+      await Promise.all(promises);
+
       setIsAddingClientPayment(false);
       setNewClientPayment({
         customerId: 0,
@@ -870,29 +1015,59 @@ export default function App() {
         dueDate: format(new Date(), 'yyyy-MM-dd'),
         paymentMethod: 'Dinheiro',
         installmentsCount: 1,
+        installmentInterval: 'monthly',
         type: 'income'
       });
       fetchClientPayments();
       fetchAuditLogs();
     } catch (err) {
       console.error("Failed to add client payment", err);
+      showToast('Erro ao adicionar pagamento de cliente.', 'error');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDeleteClientPayment = async (payment: ClientPayment) => {
-    if (confirm('Deseja excluir este registro?')) {
-      try {
-        const res = await fetch(`/api/client-payments/${payment.id}`, { method: 'DELETE' });
-        if (res.ok) {
-          fetchClientPayments();
-          fetchAuditLogs();
-        }
-      } catch (err) {
-        console.error("Failed to delete client payment", err);
+  const handleDeleteClientPayment = (payment: ClientPayment) => {
+    setClientPaymentToDelete(payment.id);
+  };
+
+  const confirmDeleteClientPayment = async () => {
+    if (!clientPaymentToDelete) return;
+    try {
+      const res = await fetch(`/api/client-payments/${clientPaymentToDelete}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchClientPayments();
+        fetchAuditLogs();
       }
+    } catch (err) {
+      console.error("Failed to delete client payment", err);
+      showToast('Erro ao excluir pagamento de cliente.', 'error');
+    } finally {
+      setClientPaymentToDelete(null);
     }
+  };
+
+  const handleDeleteClientPaymentGroup = async (saleId: string) => {
+    openConfirm(
+      'Excluir Venda Completa',
+      'Deseja excluir todos os lançamentos desta venda agrupada? Esta ação não pode ser desfeita.',
+      async () => {
+        try {
+          // We need a new endpoint or just loop. Let's add a query param to delete by saleId.
+          const res = await fetch(`/api/client-payments/group/${saleId}`, { method: 'DELETE' });
+          if (res.ok) {
+            fetchClientPayments();
+            fetchAuditLogs();
+            showToast('Venda excluída com sucesso.', 'success');
+          }
+        } catch (err) {
+          console.error("Failed to delete client payment group", err);
+          showToast('Erro ao excluir venda.', 'error');
+        }
+      },
+      'danger'
+    );
   };
 
   const handleRecordPayment = async () => {
@@ -909,9 +1084,15 @@ export default function App() {
       }
     } catch (e) {}
 
+    // Convert the selected date to ISO string, keeping the current time
+    const [y, m, d] = paymentDate.split('-');
+    const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    const now = new Date();
+    dateObj.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+
     const newHistory = [...currentHistory, {
       amount: amount,
-      date: new Date().toISOString()
+      date: dateObj.toISOString()
     }];
 
     try {
@@ -931,11 +1112,12 @@ export default function App() {
       fetchAuditLogs();
     } catch (err) {
       console.error("Failed to record payment", err);
+      showToast('Erro ao registrar pagamento.', 'error');
     }
   };
 
   const sendWhatsAppReminder = (payment: ClientPayment) => {
-    const customer = customers.find(c => c.id === payment.customerId);
+    const customer = customers.data.find(c => c.id === payment.customerId);
     if (!customer) return;
     
     const isPaid = payment.status === 'paid';
@@ -970,6 +1152,7 @@ export default function App() {
       setCustomerPaymentsWarning(payments);
     } catch (err) {
       console.error("Failed to delete customer", err);
+      showToast('Erro ao excluir cliente.', 'error');
     }
   };
 
@@ -983,11 +1166,12 @@ export default function App() {
       setCustomerPaymentsWarning([]);
     } catch (err) {
       console.error("Failed to delete customer", err);
+      showToast('Erro ao excluir cliente.', 'error');
     }
   };
 
   const printCustomerStatement = (customer: Customer) => {
-    const customerPayments = clientPayments.filter(p => p.customerId === customer.id);
+    const customerPayments = clientPayments.data.filter(p => p.customerId === customer.id);
     const totalDebt = customerPayments.reduce((acc, p) => acc + (p.totalAmount - p.paidAmount), 0);
     
     const printWindow = window.open('', '_blank');
@@ -1064,7 +1248,7 @@ export default function App() {
   };
 
   const generateReceipt = async (payment: ClientPayment, layoutOverride?: 'simple' | 'a4') => {
-    const customer = customers.find(c => c.id === payment.customerId);
+    const customer = customers.data.find(c => c.id === payment.customerId);
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -1464,6 +1648,7 @@ export default function App() {
       });
     } catch (err) {
       console.error("Failed to save receipt", err);
+      showToast('Erro ao salvar recibo.', 'error');
     }
 
     printWindow.document.write(content);
@@ -1473,11 +1658,12 @@ export default function App() {
   const fetchTransactions = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/transactions');
+      const res = await fetch(`/api/transactions?page=${transactionsPage}&limit=20&search=${searchTerm}`);
       const data = await res.json();
       setTransactions(data);
     } catch (err) {
       console.error("Failed to fetch transactions", err);
+      showToast('Erro ao carregar transações.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -1490,6 +1676,7 @@ export default function App() {
       setCategories(data);
     } catch (err) {
       console.error("Failed to fetch categories", err);
+      showToast('Erro ao carregar categorias.', 'error');
     }
   };
 
@@ -1503,6 +1690,7 @@ export default function App() {
       fetchCategories();
     } catch (err) {
       console.error("Failed to add category", err);
+      showToast('Erro ao adicionar categoria.', 'error');
     }
   };
 
@@ -1512,6 +1700,7 @@ export default function App() {
       fetchCategories();
     } catch (err) {
       console.error("Failed to delete category", err);
+      showToast('Erro ao excluir categoria.', 'error');
     }
   };
 
@@ -1529,6 +1718,7 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to fetch settings", err);
+      showToast('Erro ao carregar configurações.', 'error');
     }
   };
 
@@ -1542,13 +1732,14 @@ export default function App() {
       setSettings(newSettings);
     } catch (err) {
       console.error("Failed to update settings", err);
+      showToast('Erro ao atualizar configurações.', 'error');
     }
   };
 
   const getAllMovements = () => {
-    const movements: any[] = [...transactions.map(t => ({...t, source: 'transaction', clientName: '-'}))];
+    const movements: any[] = [...transactions.data.map(t => ({...t, source: 'transaction', clientName: '-'}))];
     
-    clientPayments.forEach(cp => {
+    clientPayments.data.forEach(cp => {
       if (cp.paymentHistory) {
         try {
           const history = JSON.parse(cp.paymentHistory);
@@ -1581,6 +1772,7 @@ export default function App() {
       fetchTransactions();
     } catch (err) {
       console.error("Failed to delete", err);
+      showToast('Erro ao excluir transação.', 'error');
     }
   };
 
@@ -1630,6 +1822,7 @@ export default function App() {
       fetchAuditLogs();
     } catch (err) {
       console.error("Failed to save", err);
+      showToast('Erro ao salvar transação.', 'error');
     }
   };
 
@@ -1651,6 +1844,7 @@ export default function App() {
       fetchAuditLogs();
     } catch (err) {
       console.error("Failed to duplicate", err);
+      showToast('Erro ao duplicar transação.', 'error');
     }
   };
 
@@ -1669,7 +1863,7 @@ export default function App() {
 
   const exportToCSV = () => {
     const headers = ["Descrição", "Categoria", "Tipo", "Valor", "Data", "Status"];
-    const rows = transactions.map(t => [
+    const rows = transactions.data.map(t => [
       t.description,
       t.category,
       t.type,
@@ -1682,8 +1876,8 @@ export default function App() {
 
   const exportServiceOrdersToCSV = () => {
     const headers = ["ID", "Cliente", "Equipamento", "Status", "Prioridade", "Data Entrada", "Total"];
-    const rows = serviceOrders.map(o => {
-      const customer = customers.find(c => c.id === o.customerId);
+    const rows = serviceOrders.data.map(o => {
+      const customer = customers.data.find(c => c.id === o.customerId);
       return [
         `#OS-${o.id}`,
         `${customer?.firstName} ${customer?.lastName}`,
@@ -1699,7 +1893,7 @@ export default function App() {
 
   const exportCustomersToCSV = () => {
     const headers = ["Nome", "Apelido", "CPF", "Empresa", "Telefone", "Limite de Crédito"];
-    const rows = customers.map(c => [
+    const rows = customers.data.map(c => [
       `${c.firstName} ${c.lastName}`,
       c.nickname || '-',
       c.cpf || '-',
@@ -1724,7 +1918,7 @@ export default function App() {
 
   const exportPaymentsToCSV = () => {
     const headers = ["Cliente", "Descrição", "Valor Total", "Valor Pago", "Saldo Devedor", "Vencimento", "Status"];
-    const rows = clientPayments.map(p => [
+    const rows = clientPayments.data.map(p => [
       p.customerName,
       p.description,
       p.totalAmount,
@@ -1770,12 +1964,12 @@ export default function App() {
     // Opcional: Adicionar um pequeno delay para scroll ou highlight
   };
 
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-  const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
-  const netBalance = settings.initialBalance + totalIncome - totalExpenses;
+  const totalIncome = stats.totalIncome;
+  const totalExpenses = stats.totalExpense;
+  const netBalance = settings.initialBalance + stats.balance;
 
   // Rankings do Dashboard
-  const dashboardTransactions = transactions.filter(t => format(parseISO(t.date), 'yyyy-MM') === dashboardMonth);
+  const dashboardTransactions = transactions.data.filter(t => format(parseISO(t.date), 'yyyy-MM') === dashboardMonth);
   
   const incomeByCategory = dashboardTransactions
     .filter(t => t.type === 'income')
@@ -1798,7 +1992,7 @@ export default function App() {
     .sort(([, a], [, b]) => (b as number) - (a as number)) as [string, number][];
 
   // Transações Filtradas
-  const filteredTransactions = transactions.filter(tx => {
+  const filteredTransactions = transactions.data.filter(tx => {
     const matchesSearch = tx.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          tx.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          tx.amount.toString().includes(searchTerm);
@@ -1822,7 +2016,7 @@ export default function App() {
     return matchesSearch && matchesType && matchesCategory && matchesMin && matchesMax && matchesDate;
   });
 
-  const filteredClientPayments = clientPayments.filter(payment => {
+  const filteredClientPayments = clientPayments.data.filter(payment => {
     const matchesSearch = payment.customerName.toLowerCase().includes(paymentSearchTerm.toLowerCase()) || 
                           payment.description.toLowerCase().includes(paymentSearchTerm.toLowerCase());
     
@@ -1856,7 +2050,7 @@ export default function App() {
 
   const chartData = last6Months.map(month => {
     const monthName = format(month, 'MMM', { locale: ptBR });
-    const monthTransactions = transactions.filter(t => isSameMonth(parseISO(t.date), month));
+    const monthTransactions = transactions.data.filter(t => isSameMonth(parseISO(t.date), month));
     
     return {
       name: monthName.charAt(0).toUpperCase() + monthName.slice(1),
@@ -1898,6 +2092,7 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to add inventory item", err);
+      showToast('Erro ao adicionar item ao estoque.', 'error');
     }
   };
 
@@ -1914,6 +2109,7 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to update inventory item", err);
+      showToast('Erro ao atualizar item do estoque.', 'error');
     }
   };
 
@@ -1926,6 +2122,7 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to delete inventory item", err);
+      showToast('Erro ao excluir item do estoque.', 'error');
     }
   };
 
@@ -1944,6 +2141,7 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to add service order", err);
+      showToast('Erro ao adicionar ordem de serviço.', 'error');
     }
     return null;
   };
@@ -1962,6 +2160,7 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to update service order", err);
+      showToast('Erro ao atualizar ordem de serviço.', 'error');
     }
   };
 
@@ -1977,6 +2176,7 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to add service order status", err);
+      showToast('Erro ao adicionar status da OS.', 'error');
     }
   };
 
@@ -1990,6 +2190,7 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to delete service order status", err);
+      showToast('Erro ao excluir status da OS.', 'error');
     }
   };
 
@@ -2002,6 +2203,7 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to delete service order", err);
+      showToast('Erro ao excluir ordem de serviço.', 'error');
     }
   };
 
@@ -2165,7 +2367,7 @@ export default function App() {
 
         <nav className={cn(
           "flex-1 transition-all duration-300",
-          isSidebarCollapsed ? "px-2 py-2 space-y-0.5 overflow-y-auto scrollbar-hide" : "px-4 py-4 space-y-2 overflow-y-auto custom-scrollbar"
+          isSidebarCollapsed ? "px-2 py-2 space-y-0.5 overflow-visible" : "px-4 py-4 space-y-2 overflow-y-auto custom-scrollbar"
         )}>
           {hasPermission('view_dashboard') && (
             <SidebarItem 
@@ -2391,6 +2593,30 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl p-1">
+              <button
+                onClick={() => setFontSize(prev => Math.max(prev - 2, 12))}
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                title="Diminuir fonte"
+              >
+                <span className="text-sm font-bold">A-</span>
+              </button>
+              <button
+                onClick={() => setFontSize(16)}
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                title="Tamanho original"
+              >
+                <span className="text-sm font-bold">A</span>
+              </button>
+              <button
+                onClick={() => setFontSize(prev => Math.min(prev + 2, 24))}
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                title="Aumentar fonte"
+              >
+                <span className="text-sm font-bold">A+</span>
+              </button>
+            </div>
+
             <div className="relative">
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
@@ -2411,65 +2637,146 @@ export default function App() {
                     className="absolute right-0 mt-2 w-80 glass-card border border-white/10 shadow-2xl z-50 overflow-hidden"
                   >
                       <div className="p-4 border-b border-white/5 bg-white/5">
-                        <h3 className="font-bold text-sm tracking-tight">Notificações</h3>
+                        <h3 className="font-bold text-sm tracking-tight mb-3">Notificações</h3>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setNotificationTab('payments')}
+                            className={cn(
+                              "flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-colors relative",
+                              notificationTab === 'payments' ? "bg-primary/20 text-primary" : "text-slate-400 hover:bg-white/5"
+                            )}
+                          >
+                            Pagamentos
+                            {totalPaymentNotifications > 0 && (
+                              <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => setNotificationTab('service-orders')}
+                            className={cn(
+                              "flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-colors relative",
+                              notificationTab === 'service-orders' ? "bg-primary/20 text-primary" : "text-slate-400 hover:bg-white/5"
+                            )}
+                          >
+                            Ordens de Serviço
+                            {totalServiceOrderNotifications > 0 && (
+                              <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <div className="max-h-96 overflow-y-auto p-2 space-y-1">
-                        {totalNotifications === 0 ? (
-                          <div className="p-8 text-center flex flex-col items-center justify-center gap-3">
-                            <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-slate-500">
-                              <Bell size={20} />
+                        {notificationTab === 'payments' ? (
+                          totalPaymentNotifications === 0 ? (
+                            <div className="p-8 text-center flex flex-col items-center justify-center gap-3">
+                              <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-slate-500">
+                                <Bell size={20} />
+                              </div>
+                              <p className="text-slate-500 text-sm font-medium">Nenhuma notificação</p>
+                              <p className="text-[10px] text-slate-600 uppercase tracking-widest">Tudo em dia!</p>
                             </div>
-                            <p className="text-slate-500 text-sm font-medium">Nenhuma notificação</p>
-                            <p className="text-[10px] text-slate-600 uppercase tracking-widest">Tudo em dia!</p>
-                          </div>
+                          ) : (
+                            <>
+                              {overdueDebts.map(p => (
+                                <div key={p.id} className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex flex-col gap-1 cursor-pointer hover:bg-rose-500/20 transition-colors" onClick={() => { setActiveScreen('client-payments'); setShowNotifications(false); }}>
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-rose-500 uppercase tracking-widest">Vencido</span>
+                                    <span className="text-[10px] text-slate-400">{format(parseISO(p.dueDate), 'dd/MM')}</span>
+                                  </div>
+                                  <p className="text-sm font-bold truncate">{p.customerName}</p>
+                                  <p className="text-xs text-slate-300 truncate">{p.description}</p>
+                                  <p className="text-sm font-black text-rose-500">{formatCurrency(p.totalAmount - p.paidAmount)}</p>
+                                </div>
+                              ))}
+                              {dueTodayDebts.map(p => (
+                                <div key={p.id} className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col gap-1 cursor-pointer hover:bg-amber-500/20 transition-colors" onClick={() => { setActiveScreen('client-payments'); setShowNotifications(false); }}>
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Vence Hoje</span>
+                                    <span className="text-[10px] text-slate-400">{format(parseISO(p.dueDate), 'dd/MM')}</span>
+                                  </div>
+                                  <p className="text-sm font-bold truncate">{p.customerName}</p>
+                                  <p className="text-xs text-slate-300 truncate">{p.description}</p>
+                                  <p className="text-sm font-black text-amber-500">{formatCurrency(p.totalAmount - p.paidAmount)}</p>
+                                </div>
+                              ))}
+                              {upcomingDebts.map(p => (
+                                <div key={p.id} className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex flex-col gap-1 cursor-pointer hover:bg-yellow-500/20 transition-colors" onClick={() => { setActiveScreen('client-payments'); setShowNotifications(false); }}>
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-yellow-500 uppercase tracking-widest">Vence em Breve</span>
+                                    <span className="text-[10px] text-slate-400">{format(parseISO(p.dueDate), 'dd/MM')}</span>
+                                  </div>
+                                  <p className="text-sm font-bold truncate">{p.customerName}</p>
+                                  <p className="text-xs text-slate-300 truncate">{p.description}</p>
+                                  <p className="text-sm font-black text-yellow-500">{formatCurrency(p.totalAmount - p.paidAmount)}</p>
+                                </div>
+                              ))}
+                            </>
+                          )
                         ) : (
-                          <>
-                            {overdueDebts.map(p => (
-                              <div key={p.id} className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex flex-col gap-1 cursor-pointer hover:bg-rose-500/20 transition-colors" onClick={() => { setActiveScreen('client-payments'); setShowNotifications(false); }}>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs font-bold text-rose-500 uppercase tracking-widest">Vencido</span>
-                                  <span className="text-[10px] text-slate-400">{format(parseISO(p.dueDate), 'dd/MM')}</span>
-                                </div>
-                                <p className="text-sm font-bold truncate">{p.customerName}</p>
-                                <p className="text-xs text-slate-300 truncate">{p.description}</p>
-                                <p className="text-sm font-black text-rose-500">{formatCurrency(p.totalAmount - p.paidAmount)}</p>
+                          totalServiceOrderNotifications === 0 ? (
+                            <div className="p-8 text-center flex flex-col items-center justify-center gap-3">
+                              <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-slate-500">
+                                <Bell size={20} />
                               </div>
-                            ))}
-                            {dueTodayDebts.map(p => (
-                              <div key={p.id} className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col gap-1 cursor-pointer hover:bg-amber-500/20 transition-colors" onClick={() => { setActiveScreen('client-payments'); setShowNotifications(false); }}>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Vence Hoje</span>
-                                  <span className="text-[10px] text-slate-400">{format(parseISO(p.dueDate), 'dd/MM')}</span>
+                              <p className="text-slate-500 text-sm font-medium">Nenhuma notificação</p>
+                              <p className="text-[10px] text-slate-600 uppercase tracking-widest">Tudo em dia!</p>
+                            </div>
+                          ) : (
+                            <>
+                              {overdueServiceOrders.map(o => (
+                                <div key={o.id} className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex flex-col gap-1 cursor-pointer hover:bg-rose-500/20 transition-colors" onClick={() => { setActiveScreen('service-orders'); setShowNotifications(false); }}>
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-rose-500 uppercase tracking-widest">Atrasado</span>
+                                    <span className="text-[10px] text-slate-400">{o.analysisPrediction && format(parseISO(o.analysisPrediction), 'dd/MM')}</span>
+                                  </div>
+                                  <p className="text-sm font-bold truncate">OS #{o.id.toString().padStart(4, '0')} - {o.firstName} {o.lastName}</p>
+                                  <p className="text-xs text-slate-300 truncate">{o.equipmentBrand} {o.equipmentModel}</p>
+                                  <p className="text-xs font-bold text-slate-400">{o.status}</p>
                                 </div>
-                                <p className="text-sm font-bold truncate">{p.customerName}</p>
-                                <p className="text-xs text-slate-300 truncate">{p.description}</p>
-                                <p className="text-sm font-black text-amber-500">{formatCurrency(p.totalAmount - p.paidAmount)}</p>
-                              </div>
-                            ))}
-                            {upcomingDebts.map(p => (
-                              <div key={p.id} className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex flex-col gap-1 cursor-pointer hover:bg-yellow-500/20 transition-colors" onClick={() => { setActiveScreen('client-payments'); setShowNotifications(false); }}>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs font-bold text-yellow-500 uppercase tracking-widest">Vence em Breve</span>
-                                  <span className="text-[10px] text-slate-400">{format(parseISO(p.dueDate), 'dd/MM')}</span>
+                              ))}
+                              {dueTodayServiceOrders.map(o => (
+                                <div key={o.id} className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col gap-1 cursor-pointer hover:bg-amber-500/20 transition-colors" onClick={() => { setActiveScreen('service-orders'); setShowNotifications(false); }}>
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Previsão Hoje</span>
+                                    <span className="text-[10px] text-slate-400">{o.analysisPrediction && format(parseISO(o.analysisPrediction), 'dd/MM')}</span>
+                                  </div>
+                                  <p className="text-sm font-bold truncate">OS #{o.id.toString().padStart(4, '0')} - {o.firstName} {o.lastName}</p>
+                                  <p className="text-xs text-slate-300 truncate">{o.equipmentBrand} {o.equipmentModel}</p>
+                                  <p className="text-xs font-bold text-slate-400">{o.status}</p>
                                 </div>
-                                <p className="text-sm font-bold truncate">{p.customerName}</p>
-                                <p className="text-xs text-slate-300 truncate">{p.description}</p>
-                                <p className="text-sm font-black text-yellow-500">{formatCurrency(p.totalAmount - p.paidAmount)}</p>
-                              </div>
-                            ))}
-                          </>
+                              ))}
+                              {upcomingServiceOrders.map(o => (
+                                <div key={o.id} className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex flex-col gap-1 cursor-pointer hover:bg-yellow-500/20 transition-colors" onClick={() => { setActiveScreen('service-orders'); setShowNotifications(false); }}>
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-yellow-500 uppercase tracking-widest">Previsão em Breve</span>
+                                    <span className="text-[10px] text-slate-400">{o.analysisPrediction && format(parseISO(o.analysisPrediction), 'dd/MM')}</span>
+                                  </div>
+                                  <p className="text-sm font-bold truncate">OS #{o.id.toString().padStart(4, '0')} - {o.firstName} {o.lastName}</p>
+                                  <p className="text-xs text-slate-300 truncate">{o.equipmentBrand} {o.equipmentModel}</p>
+                                  <p className="text-xs font-bold text-slate-400">{o.status}</p>
+                                </div>
+                              ))}
+                            </>
+                          )
                         )}
                       </div>
-                      {totalNotifications > 0 && (
-                        <div className="p-3 border-t border-white/5 bg-white/5">
+                      <div className="p-3 border-t border-white/5 bg-white/5">
+                        {notificationTab === 'payments' ? (
                           <button 
                             onClick={() => { setActiveScreen('client-payments'); setShowNotifications(false); }}
                             className="w-full py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-colors"
                           >
                             Ver Todos os Pagamentos
                           </button>
-                        </div>
-                      )}
+                        ) : (
+                          <button 
+                            onClick={() => { setActiveScreen('service-orders'); setShowNotifications(false); }}
+                            className="w-full py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-colors"
+                          >
+                            Ver Todas as Ordens de Serviço
+                          </button>
+                        )}
+                      </div>
                     </motion.div>
                 )}
               </AnimatePresence>
@@ -2545,6 +2852,13 @@ export default function App() {
               setIsAdding={setIsAdding}
               setTransactionToDelete={setTransactionToDelete}
               handleDuplicateTransaction={handleDuplicateTransaction}
+              pagination={{
+                currentPage: transactions.meta.page,
+                totalPages: transactions.meta.totalPages,
+                totalItems: transactions.meta.total,
+                limit: transactions.meta.limit
+              }}
+              onPageChange={setTransactionsPage}
             />
           ) : activeScreen === 'reports' ? (
             <Reports 
@@ -2552,7 +2866,7 @@ export default function App() {
               reportView={reportView}
               setReportView={setReportView}
               categories={categories}
-              transactions={transactions}
+              transactions={transactions.data}
               chartData={chartData}
               handleChartClick={handleChartClick}
               reportMonth={reportMonth}
@@ -2567,7 +2881,7 @@ export default function App() {
               setNewCustomer={setNewCustomer}
               setIsAddingCustomer={setIsAddingCustomer}
               onDelete={(id) => {
-                const customer = customers.find(c => c.id === id);
+                const customer = customers.data.find(c => c.id === id);
                 if (customer) handleDeleteCustomer(customer);
               }}
               onAddPayment={(customer) => {
@@ -2579,6 +2893,9 @@ export default function App() {
                 setHistoryCustomer(customer);
                 setShowHistoryModal(true);
               }}
+              searchTerm={customerSearchTerm}
+              setSearchTerm={setCustomerSearchTerm}
+              onPageChange={setCustomersPage}
             />
           ) : activeScreen === 'client-payments' ? (
             <ClientPayments 
@@ -2598,14 +2915,24 @@ export default function App() {
               generateReceipt={generateReceipt}
               sendWhatsAppReminder={sendWhatsAppReminder}
               handleDeleteClientPayment={handleDeleteClientPayment}
+              handleDeleteClientPaymentGroup={handleDeleteClientPaymentGroup}
               handleRecordPayment={handleRecordPayment}
               paymentAmount={paymentAmount}
               setPaymentAmount={setPaymentAmount}
-              customers={customers}
+              paymentDate={paymentDate}
+              setPaymentDate={setPaymentDate}
+              customers={customers.data}
               newClientPayment={newClientPayment}
               setNewClientPayment={setNewClientPayment}
               handleAddClientPayment={handleAddClientPayment}
               isSaving={isSaving}
+              pagination={{
+                currentPage: clientPayments.meta.page,
+                totalPages: clientPayments.meta.totalPages,
+                totalItems: clientPayments.meta.total,
+                limit: clientPayments.meta.limit
+              }}
+              onPageChange={setPaymentsPage}
             />
           ) : activeScreen === 'service-orders' ? (
             <ServiceOrders 
@@ -2648,6 +2975,15 @@ export default function App() {
               settings={settings}
               isAdding={isAddingServiceOrder}
               setIsAdding={setIsAddingServiceOrder}
+              searchTerm={osSearchTerm}
+              setSearchTerm={setOsSearchTerm}
+              pagination={{
+                currentPage: serviceOrders.meta.page,
+                totalPages: serviceOrders.meta.totalPages,
+                totalItems: serviceOrders.meta.total,
+                limit: serviceOrders.meta.limit
+              }}
+              onPageChange={setServiceOrdersPage}
             />
           ) : activeScreen === 'inventory' ? (
             <Inventory
@@ -2672,9 +3008,9 @@ export default function App() {
               updateUser={handleUpdateUser}
               deleteUser={handleDeleteUser}
               auditLogs={auditLogs}
-              transactions={transactions}
-              customers={customers}
-              clientPayments={clientPayments}
+              transactions={transactions.data}
+              customers={customers.data}
+              clientPayments={clientPayments.data}
               brands={brands}
               models={models}
               addBrand={handleAddBrand}
@@ -2826,6 +3162,14 @@ export default function App() {
           }
         }}
       />
+
+      <DeleteConfirmationModal 
+        isOpen={clientPaymentToDelete !== null}
+        onClose={() => setClientPaymentToDelete(null)}
+        onConfirm={confirmDeleteClientPayment}
+        title="Excluir Venda/Pagamento"
+        message="Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita e afetará o saldo do cliente."
+      />
       </div>
 
 
@@ -2840,8 +3184,8 @@ export default function App() {
         isOpen={showHistoryModal}
         onClose={() => setShowHistoryModal(false)}
         customer={historyCustomer}
-        clientPayments={clientPayments}
-        serviceOrders={serviceOrders}
+        clientPayments={clientPayments.data}
+        serviceOrders={serviceOrders.data}
       />
 
       <ConfirmModal

@@ -8,7 +8,7 @@ interface AddClientPaymentModalProps {
   onClose: () => void;
   customers: any[];
   newClientPayment: {
-    customerId: string;
+    customerId: number;
     description: string;
     totalAmount: string;
     paidAmount: string;
@@ -16,6 +16,7 @@ interface AddClientPaymentModalProps {
     dueDate: string;
     paymentMethod: string;
     installmentsCount: number;
+    installmentInterval?: string;
   };
   setNewClientPayment: (payment: any) => void;
   onAdd: () => void;
@@ -105,7 +106,9 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Data de Vencimento</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                  {newClientPayment.installmentsCount > 1 ? 'Vencimento da 1ª Parcela' : 'Data de Vencimento'}
+                </label>
                 <input 
                   type="date"
                   value={newClientPayment.dueDate}
@@ -137,6 +140,20 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                   min="1"
                 />
               </div>
+              {newClientPayment.installmentsCount > 1 && (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Intervalo das Parcelas</label>
+                  <select 
+                    value={newClientPayment.installmentInterval || 'monthly'}
+                    onChange={(e) => setNewClientPayment({...newClientPayment, installmentInterval: e.target.value})}
+                    className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
+                  >
+                    <option value="monthly">Mensal</option>
+                    <option value="15days">A cada 15 dias</option>
+                    <option value="weekly">Semanal</option>
+                  </select>
+                </div>
+              )}
             </div>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6 md:pt-8">
               <button 

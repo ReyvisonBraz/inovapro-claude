@@ -15,7 +15,7 @@ interface InventoryProps {
   onAddItem: (item: any) => void;
   onUpdateItem: (id: number, item: any) => void;
   onDeleteItem: (id: number) => void;
-  openConfirm: (options: { title: string; message: string; onConfirm: () => void; type?: 'danger' | 'warning' | 'info' }) => void;
+  openConfirm: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
   isAdding?: boolean;
   setIsAdding?: (value: boolean) => void;
 }
@@ -195,12 +195,12 @@ export const Inventory: React.FC<InventoryProps> = ({
                   </button>
                   <button 
                     onClick={() => {
-                      openConfirm({
-                        title: 'Excluir Item',
-                        message: `Tem certeza que deseja excluir o item "${item.name}"?`,
-                        onConfirm: () => onDeleteItem(item.id),
-                        type: 'danger'
-                      });
+                      openConfirm(
+                        'Excluir Item',
+                        `Tem certeza que deseja excluir o item "${item.name}"?`,
+                        () => onDeleteItem(item.id),
+                        'danger'
+                      );
                     }}
                     className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
                   >

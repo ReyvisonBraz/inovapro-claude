@@ -12,7 +12,7 @@ interface CustomersProps {
   onAdd: (customer: Omit<Customer, 'id'>) => Promise<boolean>;
   onUpdate: (id: number, customer: Partial<Customer>) => Promise<boolean>;
   onDelete: (id: number) => Promise<boolean>;
-  openConfirm: (options: { title: string; message: string; onConfirm: () => void; type?: 'danger' | 'warning' | 'info' }) => void;
+  openConfirm: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
 }
 
 const Customers: React.FC<CustomersProps> = ({
@@ -32,12 +32,12 @@ const Customers: React.FC<CustomersProps> = ({
   };
 
   const handleDeleteCustomer = async (customer: Customer) => {
-    openConfirm({
-      title: 'Excluir Cliente',
-      message: `Tem certeza que deseja excluir o cliente ${customer.firstName}?`,
-      onConfirm: () => onDelete(customer.id),
-      type: 'danger'
-    });
+    openConfirm(
+      'Excluir Cliente',
+      `Tem certeza que deseja excluir o cliente ${customer.firstName}?`,
+      () => onDelete(customer.id),
+      'danger'
+    );
   };
 
   const printCustomerStatement = (customer: Customer) => {

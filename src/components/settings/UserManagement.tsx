@@ -41,7 +41,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
     username: '', 
     password: '', 
     name: '', 
-    role: 'employee' as const,
+    role: 'employee' as 'owner' | 'manager' | 'employee',
     permissions: [] as string[]
   });
 
@@ -75,7 +75,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
 
   const resetForm = () => {
     setEditingUserId(null);
-    setNewUser({ username: '', password: '', name: '', role: 'employee', permissions: [] });
+    setNewUser({ username: '', password: '', name: '', role: 'employee' as 'owner' | 'manager' | 'employee', permissions: [] });
   };
 
   const togglePermission = (permissionId: string) => {

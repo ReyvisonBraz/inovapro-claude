@@ -5,6 +5,8 @@ import { Search, Plus, Filter, MoreVertical, Phone, MessageCircle, History, Cred
 import { format, parseISO } from 'date-fns';
 import { WhatsAppModal } from './WhatsAppModal';
 
+import { Pagination } from '../ui/Pagination';
+
 interface CustomerListProps {
   settings: AppSettings;
   customers: Customer[];
@@ -13,6 +15,15 @@ interface CustomerListProps {
   onDelete: (id: number) => void;
   onAddPayment: (customer: Customer) => void;
   onViewHistory: (customer: Customer) => void;
+  searchTerm: string;
+  setSearchTerm: (val: string) => void;
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    limit: number;
+  };
+  onPageChange: (page: number) => void;
 }
 
 export const CustomerList: React.FC<CustomerListProps> = ({ 
@@ -22,9 +33,12 @@ export const CustomerList: React.FC<CustomerListProps> = ({
   onEdit, 
   onDelete, 
   onAddPayment, 
-  onViewHistory 
+  onViewHistory,
+  searchTerm,
+  setSearchTerm,
+  pagination,
+  onPageChange
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
   const [filterDebt, setFilterDebt] = useState(false);
   const [sortMode, setSortMode] = useState<'name' | 'debt'>('name');
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
@@ -246,6 +260,14 @@ export const CustomerList: React.FC<CustomerListProps> = ({
           </div>
         )}
       </div>
+
+      <Pagination 
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        limit={pagination.limit}
+        onPageChange={onPageChange}
+      />
 
       {selectedCustomerForWhatsApp && (
         <WhatsAppModal 

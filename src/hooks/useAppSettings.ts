@@ -1,8 +1,10 @@
 import { useState, useCallback } from 'react';
 import { AppSettings } from '../types';
 import { api } from '../services/api';
+import { useToast } from '../components/ui/Toast';
 
 export const useAppSettings = () => {
+  const { showToast } = useToast();
   const [settings, setSettings] = useState<AppSettings>({
     appName: 'Financeiro Pro',
     fiscalYear: '2024',
@@ -32,8 +34,9 @@ export const useAppSettings = () => {
       if (data) setSettings(data);
     } catch (err) {
       console.error("Failed to fetch settings", err);
+      showToast("Erro ao carregar configurações.", "error");
     }
-  }, []);
+  }, [showToast]);
 
   const updateSettings = useCallback(async (newSettings: AppSettings) => {
     try {
@@ -42,9 +45,10 @@ export const useAppSettings = () => {
       return true;
     } catch (err) {
       console.error("Failed to update settings", err);
+      showToast("Erro ao atualizar configurações.", "error");
       return false;
     }
-  }, []);
+  }, [showToast]);
 
   return { settings, setSettings, fetchSettings, updateSettings };
 };
