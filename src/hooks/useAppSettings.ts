@@ -25,7 +25,9 @@ export const useAppSettings = () => {
     receiptCnpj: '',
     receiptAddress: '',
     receiptPixKey: '',
-    receiptQrCode: ''
+    receiptQrCode: '',
+    showPostCustomerActionPrompt: true,
+    showWhatsAppPrompt: true
   });
 
   const fetchSettings = useCallback(async () => {

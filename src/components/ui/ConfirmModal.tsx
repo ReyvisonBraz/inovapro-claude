@@ -6,12 +6,13 @@ import { cn } from '../../lib/utils';
 interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (dontShowAgain?: boolean) => void;
   title: string;
   message: string;
   confirmText?: string;
   cancelText?: string;
   type?: 'danger' | 'warning' | 'info';
+  showDontShowAgain?: boolean;
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -22,8 +23,18 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   message,
   confirmText = 'Confirmar',
   cancelText = 'Cancelar',
-  type = 'warning'
+  type = 'warning',
+  showDontShowAgain = false
 }) => {
+  const [dontShowAgain, setDontShowAgain] = React.useState(false);
+
+  // Reset state when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setDontShowAgain(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -59,6 +70,20 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             </div>
           </div>
           
+          {showDontShowAgain && (
+            <div className="px-6 pb-2">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input 
+                  type="checkbox" 
+                  checked={dontShowAgain}
+                  onChange={(e) => setDontShowAgain(e.target.checked)}
+                  className="w-4 h-4 rounded-md bg-white/5 border border-white/10 text-primary focus:ring-primary outline-none transition-all"
+                />
+                <span className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors">Não exibir esta mensagem novamente</span>
+              </label>
+            </div>
+          )}
+
           <div className="flex items-center gap-3 p-4 bg-white/5 border-t border-white/10">
             <button
               onClick={onClose}
@@ -68,7 +93,11 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             </button>
             <button
               onClick={() => {
-                onConfirm();
+                if (showDontShowAgain) {
+                  onConfirm(dontShowAgain); // Since JS doesn't strictly check arity for callbacks if not explicitly typed differently, we can just pass it
+                } else {
+                  onConfirm();
+                }
                 onClose();
               }}
               className={cn(

@@ -70,6 +70,7 @@ import { Login } from './components/Login';
 import { ServiceOrders } from './components/ServiceOrders';
 import { Inventory } from './components/Inventory';
 import { CustomerSearchSelect } from './components/CustomerSearchSelect';
+import { clearToken } from './services/api';
 
 import { SidebarItem } from './components/SidebarItem';
 import { StatCard } from './components/StatCard';
@@ -81,6 +82,7 @@ import { ClientPayments } from './components/ClientPayments';
 import { PasswordModal } from './components/modals/PasswordModal';
 import { WarningModal } from './components/modals/WarningModal';
 import { CustomerModal } from './components/modals/CustomerModal';
+import { PostCustomerActionModal } from './components/modals/PostCustomerActionModal';
 import { CustomerWarningModal } from './components/modals/CustomerWarningModal';
 import { CustomerDeleteWarningModal } from './components/modals/CustomerDeleteWarningModal';
 import { AddTransactionModal } from './components/modals/AddTransactionModal';
@@ -88,6 +90,16 @@ import { DeleteConfirmationModal } from './components/modals/DeleteConfirmationM
 import { AddClientPaymentModal } from './components/modals/AddClientPaymentModal';
 import { RecordPaymentModal } from './components/modals/RecordPaymentModal';
 import { CustomerHistoryModal } from './components/modals/CustomerHistoryModal';
+
+// --- Auth-aware fetch wrapper ---
+function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = localStorage.getItem('financeflow_token');
+  const headers = new Headers(options.headers || {});
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  return fetch(url, { ...options, headers });
+}
 
 // --- Aplicativo Principal ---
 
@@ -305,18 +317,20 @@ export default function App() {
     isOpen: boolean;
     title: string;
     message: string;
-    onConfirm: () => void;
+    onConfirm: (dontShowAgain?: boolean) => void;
     type?: 'danger' | 'warning' | 'info';
+    showDontShowAgain?: boolean;
   }>({
     isOpen: false,
     title: '',
     message: '',
     onConfirm: () => {},
-    type: 'warning'
+    type: 'warning',
+    showDontShowAgain: false
   });
 
-  const openConfirm = (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning' | 'info' = 'warning') => {
-    setConfirmModal({ isOpen: true, title, message, onConfirm, type });
+  const openConfirm = (title: string, message: string, onConfirm: (dontShowAgain?: boolean) => void, type: 'danger' | 'warning' | 'info' = 'warning', options?: { showDontShowAgain?: boolean }) => {
+    setConfirmModal({ isOpen: true, title, message, onConfirm, type, showDontShowAgain: options?.showDontShowAgain });
   };
 
   // Configurações do App
@@ -396,6 +410,9 @@ export default function App() {
     observation: '',
     creditLimit: ''
   });
+
+  const [postCustomerData, setPostCustomerData] = useState<{id: number, name: string} | null>(null);
+  const [newOsCustomerId, setNewOsCustomerId] = useState<number | undefined>(undefined);
 
   const [newClientPayment, setNewClientPayment] = useState({
     customerId: 0,
@@ -518,7 +535,7 @@ export default function App() {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('/api/stats');
+      const res = await fetchWithAuth('/api/stats');
       const data = await res.json();
       setStats(data);
     } catch (err) {
@@ -528,7 +545,7 @@ export default function App() {
 
   const fetchEquipmentTypes = async () => {
     try {
-      const res = await fetch('/api/equipment-types');
+      const res = await fetchWithAuth('/api/equipment-types');
       const data = await res.json();
       setEquipmentTypes(data);
     } catch (err) {
@@ -539,7 +556,7 @@ export default function App() {
 
   const fetchBrands = async () => {
     try {
-      const res = await fetch('/api/brands');
+      const res = await fetchWithAuth('/api/brands');
       const data = await res.json();
       setBrands(data);
     } catch (err) {
@@ -550,7 +567,7 @@ export default function App() {
 
   const fetchModels = async () => {
     try {
-      const res = await fetch('/api/models');
+      const res = await fetchWithAuth('/api/models');
       const data = await res.json();
       setModels(data);
     } catch (err) {
@@ -561,7 +578,7 @@ export default function App() {
 
   const fetchServiceOrderStatuses = async () => {
     try {
-      const res = await fetch('/api/service-order-statuses');
+      const res = await fetchWithAuth('/api/service-order-statuses');
       const data = await res.json();
       setServiceOrderStatuses(data);
     } catch (err) {
@@ -572,7 +589,7 @@ export default function App() {
 
   const fetchInventoryItems = async () => {
     try {
-      const res = await fetch('/api/inventory');
+      const res = await fetchWithAuth('/api/inventory');
       const data = await res.json();
       setInventoryItems(data);
     } catch (err) {
@@ -583,7 +600,7 @@ export default function App() {
 
   const fetchServiceOrders = async () => {
     try {
-      const res = await fetch(`/api/service-orders?page=${serviceOrdersPage}&limit=20&search=${osSearchTerm}`);
+      const res = await fetchWithAuth(`/api/service-orders?page=${serviceOrdersPage}&limit=20&search=${osSearchTerm}`);
       const data = await res.json();
       setServiceOrders(data);
     } catch (err) {
@@ -594,7 +611,7 @@ export default function App() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/users');
+      const res = await fetchWithAuth('/api/users');
       const data = await res.json();
       setUsers(data);
     } catch (err) {
@@ -605,7 +622,7 @@ export default function App() {
 
   const fetchAuditLogs = async () => {
     try {
-      const res = await fetch('/api/audit-logs');
+      const res = await fetchWithAuth('/api/audit-logs');
       const data = await res.json();
       setAuditLogs(data);
     } catch (err) {
@@ -616,7 +633,7 @@ export default function App() {
 
   const handleAddUser = async (user: any) => {
     try {
-      const res = await fetch('/api/users', {
+      const res = await fetchWithAuth('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(user)
@@ -636,7 +653,7 @@ export default function App() {
 
   const handleUpdateUser = async (id: number, user: any) => {
     try {
-      const res = await fetch(`/api/users/${id}`, {
+      const res = await fetchWithAuth(`/api/users/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(user)
@@ -660,7 +677,7 @@ export default function App() {
       'Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.',
       async () => {
         try {
-          const res = await fetch(`/api/users/${id}`, {
+          const res = await fetchWithAuth(`/api/users/${id}`, {
             method: 'DELETE'
           });
           if (res.ok) {
@@ -681,7 +698,7 @@ export default function App() {
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch(`/api/customers?page=${customersPage}&limit=20&search=${customerSearchTerm}`);
+      const res = await fetchWithAuth(`/api/customers?page=${customersPage}&limit=20&search=${customerSearchTerm}`);
       const data = await res.json();
       setCustomers(data);
     } catch (err) {
@@ -692,7 +709,7 @@ export default function App() {
 
   const handleAddBrand = async (name: string, equipmentType: string) => {
     try {
-      const res = await fetch('/api/brands', {
+      const res = await fetchWithAuth('/api/brands', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, equipmentType })
@@ -711,7 +728,7 @@ export default function App() {
 
   const handleAddEquipmentType = async (name: string, icon?: string) => {
     try {
-      const res = await fetch('/api/equipment-types', {
+      const res = await fetchWithAuth('/api/equipment-types', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, icon })
@@ -734,7 +751,7 @@ export default function App() {
       'Tem certeza que deseja excluir este tipo? Isso não afetará as marcas e modelos já cadastrados, mas eles não aparecerão mais nesta categoria.',
       async () => {
         try {
-          const res = await fetch(`/api/equipment-types/${id}`, { method: 'DELETE' });
+          const res = await fetchWithAuth(`/api/equipment-types/${id}`, { method: 'DELETE' });
           if (res.ok) {
             fetchEquipmentTypes();
             showToast('Tipo de equipamento removido!', 'info');
@@ -756,7 +773,7 @@ export default function App() {
       'Tem certeza que deseja excluir esta marca? Todos os modelos vinculados também serão excluídos.',
       async () => {
         try {
-          const res = await fetch(`/api/brands/${id}`, { method: 'DELETE' });
+          const res = await fetchWithAuth(`/api/brands/${id}`, { method: 'DELETE' });
           if (res.ok) {
             fetchBrands();
             fetchModels();
@@ -775,7 +792,7 @@ export default function App() {
 
   const handleAddModel = async (brandId: number, name: string) => {
     try {
-      const res = await fetch('/api/models', {
+      const res = await fetchWithAuth('/api/models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ brandId, name })
@@ -798,7 +815,7 @@ export default function App() {
       'Tem certeza que deseja excluir este modelo?',
       async () => {
         try {
-          const res = await fetch(`/api/models/${id}`, { method: 'DELETE' });
+          const res = await fetchWithAuth(`/api/models/${id}`, { method: 'DELETE' });
           if (res.ok) {
             fetchModels();
             showToast('Modelo excluído com sucesso!', 'success');
@@ -816,7 +833,7 @@ export default function App() {
 
   const fetchClientPayments = async () => {
     try {
-      const res = await fetch(`/api/client-payments?page=${paymentsPage}&limit=20&search=${paymentSearchTerm}`);
+      const res = await fetchWithAuth(`/api/client-payments?page=${paymentsPage}&limit=20&search=${paymentSearchTerm}`);
       const data = await res.json();
       setClientPayments(data);
     } catch (err) {
@@ -856,7 +873,7 @@ export default function App() {
         const url = editingCustomer ? `/api/customers/${editingCustomer.id}` : '/api/customers';
         const method = editingCustomer ? 'PUT' : 'POST';
         
-        const res = await fetch(url, {
+        const res = await fetchWithAuth(url, {
           method,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -885,19 +902,9 @@ export default function App() {
         fetchAuditLogs();
 
         if (method === 'POST') {
-          // Use a small delay to ensure the modal is closed before showing the confirm
-          setTimeout(() => {
-            openConfirm(
-              'Lançar Pagamento',
-              'Cliente cadastrado com sucesso! Deseja lançar um pagamento/parcelamento para este cliente agora?',
-              () => {
-                setNewClientPayment(prev => ({ ...prev, customerId: data.id }));
-                setActiveScreen('client-payments');
-                setIsAddingClientPayment(true);
-              },
-              'info'
-            );
-          }, 500);
+          if (settings.showPostCustomerActionPrompt !== false) {
+            setPostCustomerData({ id: data.id, name: `${data.firstName} ${data.lastName}`.trim() });
+          }
         }
       } catch (err) {
         console.error("Failed to add customer", err);
@@ -1035,7 +1042,7 @@ export default function App() {
   const confirmDeleteClientPayment = async () => {
     if (!clientPaymentToDelete) return;
     try {
-      const res = await fetch(`/api/client-payments/${clientPaymentToDelete}`, { method: 'DELETE' });
+      const res = await fetchWithAuth(`/api/client-payments/${clientPaymentToDelete}`, { method: 'DELETE' });
       if (res.ok) {
         fetchClientPayments();
         fetchAuditLogs();
@@ -1055,7 +1062,7 @@ export default function App() {
       async () => {
         try {
           // We need a new endpoint or just loop. Let's add a query param to delete by saleId.
-          const res = await fetch(`/api/client-payments/group/${saleId}`, { method: 'DELETE' });
+          const res = await fetchWithAuth(`/api/client-payments/group/${saleId}`, { method: 'DELETE' });
           if (res.ok) {
             fetchClientPayments();
             fetchAuditLogs();
@@ -1096,7 +1103,7 @@ export default function App() {
     }];
 
     try {
-      await fetch(`/api/client-payments/${isRecordingPayment.id}`, {
+      await fetchWithAuth(`/api/client-payments/${isRecordingPayment.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1145,7 +1152,7 @@ export default function App() {
 
   const handleDeleteCustomer = async (customer: Customer) => {
     try {
-      const res = await fetch(`/api/customers/${customer.id}/payments`);
+      const res = await fetchWithAuth(`/api/customers/${customer.id}/payments`);
       const payments = await res.json();
       
       setCustomerToDelete(customer);
@@ -1159,7 +1166,7 @@ export default function App() {
   const confirmDeleteCustomerWithPayments = async () => {
     if (!customerToDelete) return;
     try {
-      await fetch(`/api/customers/${customerToDelete.id}`, { method: 'DELETE' });
+      await fetchWithAuth(`/api/customers/${customerToDelete.id}`, { method: 'DELETE' });
       fetchCustomers();
       fetchClientPayments();
       setCustomerToDelete(null);
@@ -1638,7 +1645,7 @@ export default function App() {
 
     // Salvar recibo no banco de dados
     try {
-      await fetch('/api/receipts', {
+      await fetchWithAuth('/api/receipts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1658,7 +1665,7 @@ export default function App() {
   const fetchTransactions = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/transactions?page=${transactionsPage}&limit=20&search=${searchTerm}`);
+      const res = await fetchWithAuth(`/api/transactions?page=${transactionsPage}&limit=20&search=${searchTerm}`);
       const data = await res.json();
       setTransactions(data);
     } catch (err) {
@@ -1671,7 +1678,7 @@ export default function App() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch('/api/categories');
+      const res = await fetchWithAuth('/api/categories');
       const data = await res.json();
       setCategories(data);
     } catch (err) {
@@ -1682,7 +1689,7 @@ export default function App() {
 
   const addCategory = async (name: string, type: 'income' | 'expense') => {
     try {
-      await fetch('/api/categories', {
+      await fetchWithAuth('/api/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, type })
@@ -1696,7 +1703,7 @@ export default function App() {
 
   const deleteCategory = async (id: number) => {
     try {
-      await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+      await fetchWithAuth(`/api/categories/${id}`, { method: 'DELETE' });
       fetchCategories();
     } catch (err) {
       console.error("Failed to delete category", err);
@@ -1706,7 +1713,7 @@ export default function App() {
 
   const fetchSettings = async () => {
     try {
-      const res = await fetch('/api/settings');
+      const res = await fetchWithAuth('/api/settings');
       const data = await res.json();
       if (data) {
         setSettings(prev => ({
@@ -1724,7 +1731,7 @@ export default function App() {
 
   const updateSettings = async (newSettings: AppSettings) => {
     try {
-      await fetch('/api/settings', {
+      await fetchWithAuth('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSettings)
@@ -1767,7 +1774,7 @@ export default function App() {
 
   const handleDeleteTransaction = async (id: number) => {
     try {
-      await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+      await fetchWithAuth(`/api/transactions/${id}`, { method: 'DELETE' });
       setTransactionToDelete(null);
       fetchTransactions();
     } catch (err) {
@@ -1795,7 +1802,7 @@ export default function App() {
       const url = editingTransaction ? `/api/transactions/${editingTransaction.id}` : '/api/transactions';
       const method = editingTransaction ? 'PUT' : 'POST';
       
-      await fetch(url, {
+      await fetchWithAuth(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1828,7 +1835,7 @@ export default function App() {
 
   const handleDuplicateTransaction = async (tx: Transaction) => {
     try {
-      await fetch('/api/transactions', {
+      await fetchWithAuth('/api/transactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2068,6 +2075,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    clearToken();
     setCurrentUser(null);
     setIsAuthenticated(false);
     setActiveScreen('dashboard');
@@ -2081,7 +2089,7 @@ export default function App() {
 
   const handleAddInventoryItem = async (item: any) => {
     try {
-      const res = await fetch('/api/inventory', {
+      const res = await fetchWithAuth('/api/inventory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...item, createdBy: currentUser?.id })
@@ -2098,7 +2106,7 @@ export default function App() {
 
   const handleUpdateInventoryItem = async (id: number, item: any) => {
     try {
-      const res = await fetch(`/api/inventory/${id}`, {
+      const res = await fetchWithAuth(`/api/inventory/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...item, updatedBy: currentUser?.id })
@@ -2115,7 +2123,7 @@ export default function App() {
 
   const handleDeleteInventoryItem = async (id: number) => {
     try {
-      const res = await fetch(`/api/inventory/${id}`, { method: 'DELETE' });
+      const res = await fetchWithAuth(`/api/inventory/${id}`, { method: 'DELETE' });
       if (res.ok) {
         fetchInventoryItems();
         fetchAuditLogs();
@@ -2128,7 +2136,7 @@ export default function App() {
 
   const handleAddServiceOrder = async (order: any) => {
     try {
-      const res = await fetch('/api/service-orders', {
+      const res = await fetchWithAuth('/api/service-orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...order, createdBy: currentUser?.id })
@@ -2155,7 +2163,7 @@ export default function App() {
 
   const handleUpdateServiceOrder = async (id: number, order: any) => {
     try {
-      const res = await fetch(`/api/service-orders/${id}`, {
+      const res = await fetchWithAuth(`/api/service-orders/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...order, updatedBy: currentUser?.id })
@@ -2182,7 +2190,7 @@ export default function App() {
 
   const handleAddServiceOrderStatus = async (status: any) => {
     try {
-      const res = await fetch('/api/service-order-statuses', {
+      const res = await fetchWithAuth('/api/service-order-statuses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(status)
@@ -2198,7 +2206,7 @@ export default function App() {
 
   const handleDeleteServiceOrderStatus = async (id: number) => {
     try {
-      const res = await fetch(`/api/service-order-statuses/${id}`, {
+      const res = await fetchWithAuth(`/api/service-order-statuses/${id}`, {
         method: 'DELETE'
       });
       if (res.ok) {
@@ -2212,7 +2220,7 @@ export default function App() {
 
   const handleDeleteServiceOrder = async (id: number) => {
     try {
-      const res = await fetch(`/api/service-orders/${id}`, { method: 'DELETE' });
+      const res = await fetchWithAuth(`/api/service-orders/${id}`, { method: 'DELETE' });
       if (res.ok) {
         fetchServiceOrders();
         fetchAuditLogs();
@@ -2989,8 +2997,10 @@ export default function App() {
               onClearDirectOsId={() => setDirectOsId(null)}
               currentUser={currentUser}
               settings={settings}
+              updateSettings={updateSettings}
               isAdding={isAddingServiceOrder}
               setIsAdding={setIsAddingServiceOrder}
+              initialCustomerId={newOsCustomerId}
               searchTerm={osSearchTerm}
               setSearchTerm={setOsSearchTerm}
               pagination={{
@@ -3186,6 +3196,28 @@ export default function App() {
         title="Excluir Venda/Pagamento"
         message="Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita e afetará o saldo do cliente."
       />
+
+      <PostCustomerActionModal
+        isOpen={!!postCustomerData}
+        customerName={postCustomerData?.name || ''}
+        onClose={() => setPostCustomerData(null)}
+        onAction={(action, dontShowAgain) => {
+          if (dontShowAgain) {
+            updateSettings({ ...settings, showPostCustomerActionPrompt: false });
+          }
+          if (action === 'payment' && postCustomerData) {
+            setNewClientPayment(prev => ({ ...prev, customerId: postCustomerData.id }));
+            setActiveScreen('client-payments');
+            setIsAddingClientPayment(true);
+          } else if (action === 'os' && postCustomerData) {
+            setNewOsCustomerId(postCustomerData.id);
+            setActiveScreen('service-orders');
+            setIsAddingServiceOrder(true);
+          }
+          setPostCustomerData(null);
+        }}
+      />
+
       </div>
 
 
@@ -3211,6 +3243,7 @@ export default function App() {
         title={confirmModal.title}
         message={confirmModal.message}
         type={confirmModal.type}
+        showDontShowAgain={confirmModal.showDontShowAgain}
       />
     </div>
   );

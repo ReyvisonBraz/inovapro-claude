@@ -42,11 +42,12 @@ interface ServiceOrdersProps {
   onAddModel: (brandId: number, name: string) => void;
   onTriggerAddCustomer: () => void;
   onPrintBlankForm: () => void;
-  openConfirm: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
+  openConfirm: (title: string, message: string, onConfirm: (dontShowAgain?: boolean) => void, type?: 'danger' | 'warning' | 'info', options?: { showDontShowAgain?: boolean }) => void;
   directOsId: number | null;
   directMode: string | null;
   onClearDirectOsId: () => void;
   settings: AppSettings;
+  updateSettings: (newSettings: AppSettings) => void;
   isAdding?: boolean;
   setIsAdding?: (value: boolean) => void;
   searchTerm: string;
@@ -58,6 +59,7 @@ interface ServiceOrdersProps {
     limit: number;
   };
   onPageChange: (page: number) => void;
+  initialCustomerId?: number;
 }
 
 export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
@@ -85,12 +87,14 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   directMode,
   onClearDirectOsId,
   settings,
+  updateSettings,
   isAdding: isAddingProp,
   setIsAdding: setIsAddingProp,
   searchTerm,
   setSearchTerm,
   pagination,
-  onPageChange
+  onPageChange,
+  initialCustomerId
 }) => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -137,6 +141,12 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     services: [] as ServiceOrderItem[],
     arrivalPhotoBase64: ''
   });
+
+  React.useEffect(() => {
+    if (isAdding && initialCustomerId && !editingOrder) {
+      setNewOrder(prev => ({ ...prev, customerId: initialCustomerId }));
+    }
+  }, [isAdding, initialCustomerId, editingOrder]);
 
   const { showToast } = useToast();
 
@@ -355,15 +365,20 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     });
 
     // Option to send via WhatsApp after saving
-    openConfirm(
-      'Enviar via WhatsApp',
-      'Deseja enviar a Ordem de Serviço via WhatsApp agora?',
-      () => {
-        // We need the ID of the newly created order, but onAddOrder is async and doesn't return it here easily
-        // For now, we'll just close. In a real app, we'd wait for the response.
-      },
-      'info'
-    );
+    if (settings.showWhatsAppPrompt !== false) {
+      openConfirm(
+        'Enviar via WhatsApp',
+        'Deseja enviar a Ordem de Serviço via WhatsApp agora?',
+        (dontShowAgain) => {
+          if (dontShowAgain) {
+            updateSettings({ ...settings, showWhatsAppPrompt: false });
+          }
+          // We need the ID of the newly created order, but onAddOrder is async and doesn't return it here easily
+        },
+        'info',
+        { showDontShowAgain: true }
+      );
+    }
   };
 
   const handleDirectOsSearch = (e: React.FormEvent) => {
