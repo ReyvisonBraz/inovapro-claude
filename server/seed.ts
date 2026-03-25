@@ -46,7 +46,9 @@ export function initializeDatabase(): void {
       whatsappOSTemplate TEXT,
       sendPulseClientId TEXT,
       sendPulseClientSecret TEXT,
-      sendPulseTemplateId TEXT
+      sendPulseTemplateId TEXT,
+      telegramBotToken TEXT,
+      telegramChatId TEXT
     );
 
     CREATE TABLE IF NOT EXISTS customers (
@@ -202,6 +204,8 @@ export function initializeDatabase(): void {
   // --- Run column migrations ---
   const migrations = [
     { name: "icon", table: "equipment_types", type: "TEXT" },
+    { name: "telegramBotToken", table: "settings", type: "TEXT" },
+    { name: "telegramChatId", table: "settings", type: "TEXT" },
   ];
 
   migrations.forEach((m) => {

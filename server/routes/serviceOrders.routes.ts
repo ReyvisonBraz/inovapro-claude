@@ -6,6 +6,53 @@ import { logAudit, getPaginatedData } from "../helpers.js";
 
 const router = Router();
 
+// --- Public OS Status (No Auth Required) ---
+router.post("/public/:id/status", (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { cpfPrefix } = req.body;
+    if (!cpfPrefix || typeof cpfPrefix !== 'string' || cpfPrefix.length < 4) {
+      return res.status(400).json({ error: "Prefixo do CPF inválido. É necessário informar os 4 primeiros dígitos." });
+    }
+
+    // Buscar a OS e os dados do cliente
+    const osData = db.prepare(`
+      SELECT 
+        so.id, so.status, so.reportedProblem, so.technicalAnalysis, so.equipmentType, 
+        so.equipmentBrand, so.equipmentModel, so.entryDate, so.analysisPrediction,
+        so.totalAmount, so.createdAt, so.updatedAt,
+        c.cpf, c.firstName, c.lastName
+      FROM service_orders so
+      JOIN customers c ON so.customerId = c.id
+      WHERE so.id = ?
+    `).get(req.params.id) as any;
+
+    if (!osData) {
+      return res.status(404).json({ error: "Ordem de serviço não encontrada." });
+    }
+
+    // Verificar se o CPF bate
+    if (!osData.cpf) {
+      // Se o cliente não tem CPF cadastrado, nós exigimos os 4 primeiros dígitos do telefone
+      // Como fallback de segurança, evite o acesso.
+      return res.status(403).json({ error: "Cliente não possui CPF cadastrado. Acesse via painel." });
+    }
+
+    const cleanCpf = osData.cpf.replace(/\D/g, ''); // Remover não-numéricos
+    const cleanPrefix = cpfPrefix.replace(/\D/g, '').substring(0, 4);
+
+    if (!cleanCpf.startsWith(cleanPrefix)) {
+      return res.status(401).json({ error: "CPF incorreto. Verifique os dados e tente novamente." });
+    }
+
+    // Se bateu, remove os dados sensíveis do cliente (ex: CPF completo)
+    delete osData.cpf;
+
+    res.json(osData);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // --- List Service Orders (paginated) ---
 router.get("/", requireAuth, (req: Request, res: Response, next: NextFunction) => {
   try {

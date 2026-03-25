@@ -27,7 +27,9 @@ export const useAppSettings = () => {
     receiptPixKey: '',
     receiptQrCode: '',
     showPostCustomerActionPrompt: true,
-    showWhatsAppPrompt: true
+    showWhatsAppPrompt: true,
+    telegramBotToken: '',
+    telegramChatId: ''
   });
 
   const fetchSettings = useCallback(async () => {

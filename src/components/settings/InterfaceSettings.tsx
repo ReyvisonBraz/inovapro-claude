@@ -167,6 +167,31 @@ export const InterfaceSettings: React.FC<InterfaceSettingsProps> = ({ settings, 
           </div>
         </div>
       </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Telegram Bot Token (Feedback Testers)</label>
+          <div className="relative">
+            <input 
+              value={settings.telegramBotToken || ''}
+              onChange={(e) => updateSettings({...settings, telegramBotToken: e.target.value})}
+              placeholder="Ex: 123456789:ABCdefg..."
+              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Telegram Chat ID (Feedback Testers)</label>
+          <div className="relative">
+            <input 
+              value={settings.telegramChatId || ''}
+              onChange={(e) => updateSettings({...settings, telegramChatId: e.target.value})}
+              placeholder="Ex: -10012345678"
+              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

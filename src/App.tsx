@@ -83,6 +83,8 @@ import { PasswordModal } from './components/modals/PasswordModal';
 import { WarningModal } from './components/modals/WarningModal';
 import { CustomerModal } from './components/modals/CustomerModal';
 import { PostCustomerActionModal } from './components/modals/PostCustomerActionModal';
+import { FeedbackBubble } from './components/ui/FeedbackBubble';
+import { StatusPage } from './components/StatusPage';
 import { CustomerWarningModal } from './components/modals/CustomerWarningModal';
 import { CustomerDeleteWarningModal } from './components/modals/CustomerDeleteWarningModal';
 import { AddTransactionModal } from './components/modals/AddTransactionModal';
@@ -2294,6 +2296,10 @@ export default function App() {
     }
   };
 
+  if (directMode === 'status' && directOsId) {
+    return <StatusPage osId={directOsId} />;
+  }
+
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
   }
@@ -3218,6 +3224,7 @@ export default function App() {
         }}
       />
 
+      <FeedbackBubble />
       </div>
 
 

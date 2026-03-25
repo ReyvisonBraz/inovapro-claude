@@ -35,7 +35,8 @@ router.post("/settings", requireAuth, (req: Request, res: Response, next: NextFu
           profileName = ?, profileAvatar = ?,
           initialBalance = ?, showWarnings = ?, hiddenColumns = ?,
           settingsPassword = ?, receiptLayout = ?, receiptLogo = ?,
-          sendPulseClientId = ?, sendPulseClientSecret = ?, sendPulseTemplateId = ?
+          sendPulseClientId = ?, sendPulseClientSecret = ?, sendPulseTemplateId = ?,
+          telegramBotToken = ?, telegramChatId = ?
       WHERE id = 1
     `).run(
       data.appName, data.appVersion, data.fiscalYear, data.primaryColor,
@@ -43,7 +44,8 @@ router.post("/settings", requireAuth, (req: Request, res: Response, next: NextFu
       data.profileName, data.profileAvatar,
       data.initialBalance, data.showWarnings ? 1 : 0, JSON.stringify(data.hiddenColumns || []),
       data.settingsPassword, data.receiptLayout || "a4", data.receiptLogo || "",
-      data.sendPulseClientId || "", data.sendPulseClientSecret || "", data.sendPulseTemplateId || ""
+      data.sendPulseClientId || "", data.sendPulseClientSecret || "", data.sendPulseTemplateId || "",
+      data.telegramBotToken || null, data.telegramChatId || null
     );
     res.json({ success: true });
   } catch (err) { next(err); }

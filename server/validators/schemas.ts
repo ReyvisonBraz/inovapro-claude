@@ -129,6 +129,8 @@ export const SettingsSchema = z.object({
   sendPulseClientId: z.string().optional(),
   sendPulseClientSecret: z.string().optional(),
   sendPulseTemplateId: z.string().optional(),
+  telegramBotToken: z.string().optional(),
+  telegramChatId: z.string().optional(),
 });
 
 // --- Categories ---

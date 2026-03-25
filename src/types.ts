@@ -99,6 +99,8 @@ export interface AppSettings {
   sendPulseTemplateId?: string;
   showPostCustomerActionPrompt?: boolean;
   showWhatsAppPrompt?: boolean;
+  telegramBotToken?: string;
+  telegramChatId?: string;
 }
 
 export interface InventoryItem {
