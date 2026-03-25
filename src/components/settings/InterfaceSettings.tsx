@@ -80,6 +80,24 @@ export const InterfaceSettings: React.FC<InterfaceSettingsProps> = ({ settings, 
               />
               <span className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors uppercase tracking-widest">Exibir avisos de campos incompletos</span>
             </label>
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <input 
+                type="checkbox" 
+                checked={settings.showPostCustomerActionPrompt !== false}
+                onChange={(e) => updateSettings({ ...settings, showPostCustomerActionPrompt: e.target.checked })}
+                className="w-5 h-5 rounded-lg bg-white/5 border border-white/10 text-primary focus:ring-primary outline-none transition-all"
+              />
+              <span className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors uppercase tracking-widest">Ações rápidas após cadastro de cliente</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <input 
+                type="checkbox" 
+                checked={settings.showWhatsAppPrompt !== false}
+                onChange={(e) => updateSettings({ ...settings, showWhatsAppPrompt: e.target.checked })}
+                className="w-5 h-5 rounded-lg bg-white/5 border border-white/10 text-primary focus:ring-primary outline-none transition-all"
+              />
+              <span className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors uppercase tracking-widest">Sugerir envio de WhatsApp ao salvar OS</span>
+            </label>
           </div>
         </div>
         <div className="space-y-4">

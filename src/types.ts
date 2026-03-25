@@ -97,6 +97,8 @@ export interface AppSettings {
   sendPulseClientId?: string;
   sendPulseClientSecret?: string;
   sendPulseTemplateId?: string;
+  showPostCustomerActionPrompt?: boolean;
+  showWhatsAppPrompt?: boolean;
 }
 
 export interface InventoryItem {
