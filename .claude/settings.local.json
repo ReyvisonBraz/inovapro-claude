@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(md|txt|doc\\)$|README\")",
+      "Bash(grep -E '\\\\.\\(md|ts|json|html\\)$')"
+    ]
+  }
+}
