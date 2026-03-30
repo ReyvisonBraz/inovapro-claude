@@ -11,7 +11,7 @@ class Logger {
   private logs: LogEntry[] = [];
   private maxLogs = 2000;
 
-  addLog(level: LogLevel, message: string, data?: any) {
+  addLog(level: LogLevel, message: string, data?: unknown) {
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -25,7 +25,7 @@ class Logger {
     }
   }
 
-  private safeStringify(obj: any): string {
+  private safeStringify(obj: unknown): string {
     try {
       const cache = new Set();
       return JSON.stringify(obj, (key, value) => {

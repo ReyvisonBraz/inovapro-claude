@@ -22,8 +22,8 @@ declare global {
  * Generate a JWT token for a user
  */
 export function generateToken(payload: JwtPayload): string {
-  return jwt.sign(payload, config.jwtSecret, {
-    expiresIn: config.jwtExpiresIn,
+  return jwt.sign(payload, config.jwtSecret as string, {
+    expiresIn: config.jwtExpiresIn as jwt.SignOptions['expiresIn'],
   });
 }
 

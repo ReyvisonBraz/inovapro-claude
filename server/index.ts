@@ -7,6 +7,7 @@ import { initializeDatabase } from "./seed.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { apiLimiter } from "./middleware/rateLimiter.js";
 import routes from "./routes/index.js";
+import cors from "cors";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,8 +19,12 @@ async function startServer() {
   const app = express();
 
   // --- Global Middleware ---
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  app.use(cors({
+    origin: config.cors.origin,
+    credentials: config.cors.credentials,
+  }));
+  app.use(express.json({ limit: config.bodyLimit }));
+  app.use(express.urlencoded({ limit: config.bodyLimit, extended: true }));
   app.use(apiLimiter);
 
   // --- API Routes ---

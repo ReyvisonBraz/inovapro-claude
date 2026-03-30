@@ -39,7 +39,7 @@ export const useTransactions = () => {
     }
   }, [showToast]);
 
-  const addTransaction = useCallback(async (tx: any) => {
+  const addTransaction = useCallback(async (tx: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
       await api.post('/api/transactions', tx);
       fetchTransactions();
@@ -52,7 +52,7 @@ export const useTransactions = () => {
     }
   }, [fetchTransactions, fetchAuditLogs, showToast]);
 
-  const updateTransaction = useCallback(async (id: number, tx: any) => {
+  const updateTransaction = useCallback(async (id: number, tx: Partial<Transaction>) => {
     try {
       await api.put(`/api/transactions/${id}`, tx);
       fetchTransactions();

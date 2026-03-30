@@ -29,9 +29,9 @@
 
 ### Arquitetura (RECOMENDADO)
 
-- [ ] **Implementar React Router** - URLs reais para navegacao
-- [ ] **Implementar React Context** - Eliminar props drilling do App.tsx
-- [ ] **Modularizar componentes grandes** - ServiceOrders.tsx, ClientPayments.tsx
+- [x] **Implementar React Router** - URLs reais para navegacao (Fase 2)
+- [x] **Implementar React Context** - AuthContext, DataContext, SettingsContext (Fase 2)
+- [ ] **Modularizar componentes grandes** - ServiceOrders.tsx, ClientPayments.tsx (Fase 3)
 
 ---
 
@@ -102,6 +102,15 @@ DATABASE_URL=<se-migrar-para-postgresql>
 |------------|-------|----------------|
 | Bloqueante | Seguranca (JWT, senhas, CORS, HTTPS) | 1-2 horas |
 | Alta | Remover legado, duplicatas, console.logs | 2-4 horas |
-| Media | React Router + Context | 2-3 dias |
-| Media | Modularizar componentes | 1-2 dias |
-| Baixa | Testes, ESLint, PWA | 3-5 dias |
+| Media | Modularizar componentes | 1-2 dias (Fase 3) |
+| Baixa | Testes, ESLint, PWA | 3-5 dias (Fase 4) |
+
+## Progresso Atual
+
+| Fase | Status | Concluido em |
+|------|--------|--------------|
+| Fase 1: Backend Modular | ✅ CONCLUIDA | 2026-03 |
+| Fase 2: Router + Contexts | ✅ INTEGRADA | 2026-03 |
+| Fase 3: Modularizacao | ⏳ PENDENTE | - |
+| Fase 4: Qualidade e Testes | ⏳ PENDENTE | - |
+| Fase 5: Cloud Deploy | ⏳ PENDENTE | - |

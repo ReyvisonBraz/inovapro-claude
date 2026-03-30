@@ -28,7 +28,7 @@ export const useCustomers = () => {
     }
   }, [showToast]);
 
-  const addCustomer = useCallback(async (customer: any) => {
+  const addCustomer = useCallback(async (customer: Omit<Customer, 'id' | 'createdAt' | 'updatedBy' | 'createdBy'>) => {
     try {
       const data = await api.post('/api/customers', customer);
       fetchCustomers();
@@ -40,7 +40,7 @@ export const useCustomers = () => {
     }
   }, [fetchCustomers, showToast]);
 
-  const updateCustomer = useCallback(async (id: number, customer: any) => {
+  const updateCustomer = useCallback(async (id: number, customer: Partial<Customer>) => {
     try {
       await api.put(`/api/customers/${id}`, customer);
       fetchCustomers();
@@ -65,7 +65,7 @@ export const useCustomers = () => {
     }
   }, [fetchCustomers, fetchClientPayments, showToast]);
 
-  const addClientPayment = useCallback(async (payment: any) => {
+  const addClientPayment = useCallback(async (payment: Omit<ClientPayment, 'id'>) => {
     try {
       await api.post('/api/client-payments', payment);
       fetchClientPayments();
@@ -77,7 +77,7 @@ export const useCustomers = () => {
     }
   }, [fetchClientPayments, showToast]);
 
-  const updateClientPayment = useCallback(async (id: number, payment: any) => {
+  const updateClientPayment = useCallback(async (id: number, payment: Partial<ClientPayment>) => {
     try {
       await api.patch(`/api/client-payments/${id}`, payment);
       fetchClientPayments();
