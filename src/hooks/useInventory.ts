@@ -61,7 +61,7 @@ export const useInventory = () => {
     }
   }, [showToast]);
 
-  const addInventoryItem = useCallback(async (item: any) => {
+  const addInventoryItem = useCallback(async (item: Omit<InventoryItem, 'id'>) => {
     try {
       await api.post('/api/inventory', item);
       fetchInventory();
@@ -73,7 +73,7 @@ export const useInventory = () => {
     }
   }, [fetchInventory, showToast]);
 
-  const updateInventoryItem = useCallback(async (id: number, item: any) => {
+  const updateInventoryItem = useCallback(async (id: number, item: Partial<InventoryItem>) => {
     try {
       await api.put(`/api/inventory/${id}`, item);
       fetchInventory();
@@ -97,7 +97,7 @@ export const useInventory = () => {
     }
   }, [fetchInventory, showToast]);
 
-  const addServiceOrder = useCallback(async (so: any) => {
+  const addServiceOrder = useCallback(async (so: Omit<ServiceOrder, 'id'>) => {
     try {
       await api.post('/api/service-orders', so);
       fetchServiceOrders();
@@ -109,7 +109,7 @@ export const useInventory = () => {
     }
   }, [fetchServiceOrders, showToast]);
 
-  const updateServiceOrder = useCallback(async (id: number, so: any) => {
+  const updateServiceOrder = useCallback(async (id: number, so: Partial<ServiceOrder>) => {
     try {
       await api.put(`/api/service-orders/${id}`, so);
       fetchServiceOrders();

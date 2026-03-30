@@ -93,6 +93,10 @@ import { AddClientPaymentModal } from './components/modals/AddClientPaymentModal
 import { RecordPaymentModal } from './components/modals/RecordPaymentModal';
 import { CustomerHistoryModal } from './components/modals/CustomerHistoryModal';
 
+// Contextos configurados e prontos para migração progressiva (ver PLANO-MIGRACAO-APPTX.md)
+import { useData } from './contexts/DataContext';
+import { useFilter } from './contexts/FilterContext';
+
 // --- Auth-aware fetch wrapper ---
 function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
   const token = localStorage.getItem('financeflow_token');
@@ -106,10 +110,18 @@ function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response
 // --- Aplicativo Principal ---
 
 export default function App() {
+  // ==========================================================================
+  // MIGRAÇÃO PROGRESSIVA: Usar contextos gradualmente
+  // Ver PLANO-MIGRACAO-APPTX.md para detalhes
+  // ==========================================================================
+  const dataContext = useData();
+  const filterContext = useFilter();
+
+  // Por enquanto, manter estados locais para compatibilidade
+  // Gradualmente substituir por: const transactions = dataContext.transactions
   const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
   const [transactions, setTransactions] = useState<{ data: Transaction[], meta: any }>({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } });
   const [transactionsPage, setTransactionsPage] = useState(1);
-  const [stats, setStats] = useState({ totalIncome: 0, totalExpense: 0, balance: 0, pendingPayments: 0, activeOS: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [isAddingServiceOrder, setIsAddingServiceOrder] = useState(false);
@@ -123,6 +135,9 @@ export default function App() {
     const saved = localStorage.getItem('app_font_size');
     return saved ? parseInt(saved, 10) : 16;
   });
+
+  // MIGRAÇÃO: Usar stats do DataContext
+  const stats = dataContext.stats;
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}px`;
@@ -380,7 +395,6 @@ export default function App() {
   const [customersPage, setCustomersPage] = useState(1);
   const [clientPayments, setClientPayments] = useState<{ data: ClientPayment[], meta: any }>({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } });
   const [paymentsPage, setPaymentsPage] = useState(1);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [serviceOrders, setServiceOrders] = useState<{ data: ServiceOrder[], meta: any }>({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } });
@@ -392,6 +406,10 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+
+  // MIGRAÇÃO: Usar states do DataContext
+  const categories = dataContext.categories;
+  // users e auditLogs mantidos localmente por terem muitas referências
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [isAddingClientPayment, setIsAddingClientPayment] = useState(false);
   const [isRecordingPayment, setIsRecordingPayment] = useState<ClientPayment | null>(null);
@@ -518,12 +536,12 @@ export default function App() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchStats();
+      dataContext.fetchStats();
       fetchTransactions();
       fetchSettings();
       fetchCustomers();
       fetchClientPayments();
-      fetchCategories();
+      dataContext.fetchCategories();
       fetchUsers();
       fetchAuditLogs();
       fetchInventoryItems();
@@ -535,15 +553,7 @@ export default function App() {
     }
   }, [isAuthenticated, transactionsPage, customersPage, paymentsPage, serviceOrdersPage, searchTerm, customerSearchTerm, paymentSearchTerm, osSearchTerm]);
 
-  const fetchStats = async () => {
-    try {
-      const res = await fetchWithAuth('/api/stats');
-      const data = await res.json();
-      setStats(data);
-    } catch (err) {
-      console.error("Failed to fetch stats", err);
-    }
-  };
+  // REMOVIDO: fetchStats agora vem do DataContext (dataContext.fetchStats)
 
   const fetchEquipmentTypes = async () => {
     try {
@@ -1678,16 +1688,7 @@ export default function App() {
     }
   };
 
-  const fetchCategories = async () => {
-    try {
-      const res = await fetchWithAuth('/api/categories');
-      const data = await res.json();
-      setCategories(data);
-    } catch (err) {
-      console.error("Failed to fetch categories", err);
-      showToast('Erro ao carregar categorias.', 'error');
-    }
-  };
+  // REMOVIDO: fetchCategories agora vem do DataContext
 
   const addCategory = async (name: string, type: 'income' | 'expense') => {
     try {
@@ -1696,7 +1697,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, type })
       });
-      fetchCategories();
+      dataContext.fetchCategories();
     } catch (err) {
       console.error("Failed to add category", err);
       showToast('Erro ao adicionar categoria.', 'error');
@@ -1706,7 +1707,7 @@ export default function App() {
   const deleteCategory = async (id: number) => {
     try {
       await fetchWithAuth(`/api/categories/${id}`, { method: 'DELETE' });
-      fetchCategories();
+      dataContext.fetchCategories();
     } catch (err) {
       console.error("Failed to delete category", err);
       showToast('Erro ao excluir categoria.', 'error');
