@@ -92,15 +92,12 @@ export interface AppSettings {
   receiptAddress?: string;
   receiptPixKey?: string;
   receiptQrCode?: string;
+  receiptTerms?: string;
   whatsappBillingTemplate?: string;
   whatsappOSTemplate?: string;
   sendPulseClientId?: string;
   sendPulseClientSecret?: string;
   sendPulseTemplateId?: string;
-  showPostCustomerActionPrompt?: boolean;
-  showWhatsAppPrompt?: boolean;
-  telegramBotToken?: string;
-  telegramChatId?: string;
 }
 
 export interface InventoryItem {

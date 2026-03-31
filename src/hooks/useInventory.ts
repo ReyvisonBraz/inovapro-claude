@@ -1,154 +1,48 @@
 import { useState, useCallback } from 'react';
-import { InventoryItem, ServiceOrder, ServiceOrderStatus, Brand, Model } from '../types';
-import { api } from '../services/api';
-import { useToast } from '../components/ui/Toast';
+import { InventoryItem } from '../types';
 
-export const useInventory = () => {
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
-  const [serviceOrderStatuses, setServiceOrderStatuses] = useState<ServiceOrderStatus[]>([]);
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [models, setModels] = useState<Model[]>([]);
-  const { showToast } = useToast();
+export function useInventory(showToast: (message: string, type: 'success' | 'error') => void) {
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
 
-  const fetchInventory = useCallback(async () => {
+  const fetchInventoryItems = useCallback(async () => {
     try {
-      const data = await api.get('/api/inventory');
-      setInventory(data);
+      const res = await fetch('/api/inventory');
+      if (!res.ok) throw new Error('Failed to fetch inventory');
+      const data = await res.json();
+      setInventoryItems(data);
     } catch (err) {
       console.error("Failed to fetch inventory", err);
-      showToast("Erro ao carregar inventário.", "error");
+      showToast('Erro ao carregar estoque.', 'error');
     }
   }, [showToast]);
 
-  const fetchServiceOrders = useCallback(async () => {
-    try {
-      const data = await api.get('/api/service-orders');
-      setServiceOrders(data);
-    } catch (err) {
-      console.error("Failed to fetch service orders", err);
-      showToast("Erro ao carregar ordens de serviço.", "error");
+  const saveInventoryItemAPI = useCallback(async (item: Partial<InventoryItem>, id?: number) => {
+    const url = id ? `/api/inventory/${id}` : '/api/inventory';
+    const method = id ? 'PUT' : 'POST';
+    
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item)
+    });
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => null);
+      throw new Error(errorData?.error || 'Failed to save inventory item');
     }
-  }, [showToast]);
+    
+    return await res.json();
+  }, []);
 
-  const fetchServiceOrderStatuses = useCallback(async () => {
-    try {
-      const data = await api.get('/api/service-order-statuses');
-      setServiceOrderStatuses(data);
-    } catch (err) {
-      console.error("Failed to fetch service order statuses", err);
-      showToast("Erro ao carregar status de ordens de serviço.", "error");
-    }
-  }, [showToast]);
+  const deleteInventoryItemAPI = useCallback(async (id: number) => {
+    const res = await fetch(`/api/inventory/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete inventory item');
+  }, []);
 
-  const fetchBrands = useCallback(async () => {
-    try {
-      const data = await api.get('/api/brands');
-      setBrands(data);
-    } catch (err) {
-      console.error("Failed to fetch brands", err);
-      showToast("Erro ao carregar marcas.", "error");
-    }
-  }, [showToast]);
-
-  const fetchModels = useCallback(async () => {
-    try {
-      const data = await api.get('/api/models');
-      setModels(data);
-    } catch (err) {
-      console.error("Failed to fetch models", err);
-      showToast("Erro ao carregar modelos.", "error");
-    }
-  }, [showToast]);
-
-  const addInventoryItem = useCallback(async (item: Omit<InventoryItem, 'id'>) => {
-    try {
-      await api.post('/api/inventory', item);
-      fetchInventory();
-      return true;
-    } catch (err) {
-      console.error("Failed to add inventory item", err);
-      showToast("Erro ao adicionar item ao inventário.", "error");
-      return false;
-    }
-  }, [fetchInventory, showToast]);
-
-  const updateInventoryItem = useCallback(async (id: number, item: Partial<InventoryItem>) => {
-    try {
-      await api.put(`/api/inventory/${id}`, item);
-      fetchInventory();
-      return true;
-    } catch (err) {
-      console.error("Failed to update inventory item", err);
-      showToast("Erro ao atualizar item do inventário.", "error");
-      return false;
-    }
-  }, [fetchInventory, showToast]);
-
-  const deleteInventoryItem = useCallback(async (id: number) => {
-    try {
-      await api.delete(`/api/inventory/${id}`);
-      fetchInventory();
-      return true;
-    } catch (err) {
-      console.error("Failed to delete inventory item", err);
-      showToast("Erro ao excluir item do inventário.", "error");
-      return false;
-    }
-  }, [fetchInventory, showToast]);
-
-  const addServiceOrder = useCallback(async (so: Omit<ServiceOrder, 'id'>) => {
-    try {
-      await api.post('/api/service-orders', so);
-      fetchServiceOrders();
-      return true;
-    } catch (err) {
-      console.error("Failed to add service order", err);
-      showToast("Erro ao adicionar ordem de serviço.", "error");
-      return false;
-    }
-  }, [fetchServiceOrders, showToast]);
-
-  const updateServiceOrder = useCallback(async (id: number, so: Partial<ServiceOrder>) => {
-    try {
-      await api.put(`/api/service-orders/${id}`, so);
-      fetchServiceOrders();
-      return true;
-    } catch (err) {
-      console.error("Failed to update service order", err);
-      showToast("Erro ao atualizar ordem de serviço.", "error");
-      return false;
-    }
-  }, [fetchServiceOrders, showToast]);
-
-  const deleteServiceOrder = useCallback(async (id: number) => {
-    try {
-      await api.delete(`/api/service-orders/${id}`);
-      fetchServiceOrders();
-      return true;
-    } catch (err) {
-      console.error("Failed to delete service order", err);
-      showToast("Erro ao excluir ordem de serviço.", "error");
-      return false;
-    }
-  }, [fetchServiceOrders, showToast]);
-
-  return { 
-    inventory, 
-    serviceOrders, 
-    serviceOrderStatuses, 
-    brands, 
-    models,
-    fetchInventory,
-    fetchServiceOrders,
-    fetchServiceOrderStatuses,
-    fetchBrands,
-    fetchModels,
-    addInventoryItem,
-    updateInventoryItem,
-    deleteInventoryItem,
-    addServiceOrder,
-    updateServiceOrder,
-    deleteServiceOrder
+  return {
+    inventoryItems,
+    fetchInventoryItems,
+    saveInventoryItemAPI,
+    deleteInventoryItemAPI
   };
-};
+}

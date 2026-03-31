@@ -45,17 +45,17 @@ export const CustomerList: React.FC<CustomerListProps> = ({
   const [selectedCustomerForWhatsApp, setSelectedCustomerForWhatsApp] = useState<Customer | null>(null);
   const [selectedDebtForWhatsApp, setSelectedDebtForWhatsApp] = useState(0);
 
-  const filteredCustomers = customers.filter(c => {
+  const filteredCustomers = (customers || []).filter(c => {
     const matchesSearch = 
-      c.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.phone.includes(searchTerm) ||
+      (c.firstName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (c.lastName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (c.phone || '').includes(searchTerm) ||
       (c.companyName && c.companyName.toLowerCase().includes(searchTerm.toLowerCase()));
     
     if (!matchesSearch) return false;
 
     if (filterDebt) {
-      const debt = clientPayments
+      const debt = (clientPayments || [])
         .filter(p => p.customerId === c.id && p.status !== 'paid')
         .reduce((acc, p) => acc + (p.totalAmount - p.paidAmount), 0);
       return debt > 0;
@@ -64,22 +64,22 @@ export const CustomerList: React.FC<CustomerListProps> = ({
     return true;
   }).sort((a, b) => {
     if (sortMode === 'name') {
-      return a.firstName.localeCompare(b.firstName);
+      return (a.firstName || '').localeCompare(b.firstName || '');
     } else {
-      const debtA = clientPayments.filter(p => p.customerId === a.id && p.status !== 'paid').reduce((acc, p) => acc + (p.totalAmount - p.paidAmount), 0);
-      const debtB = clientPayments.filter(p => p.customerId === b.id && p.status !== 'paid').reduce((acc, p) => acc + (p.totalAmount - p.paidAmount), 0);
+      const debtA = (clientPayments || []).filter(p => p.customerId === a.id && p.status !== 'paid').reduce((acc, p) => acc + (p.totalAmount - p.paidAmount), 0);
+      const debtB = (clientPayments || []).filter(p => p.customerId === b.id && p.status !== 'paid').reduce((acc, p) => acc + (p.totalAmount - p.paidAmount), 0);
       return debtB - debtA;
     }
   });
 
   const getCustomerDebt = (customerId: number) => {
-    return clientPayments
+    return (clientPayments || [])
       .filter(p => p.customerId === customerId && p.status !== 'paid')
       .reduce((acc, p) => acc + (p.totalAmount - p.paidAmount), 0);
   };
 
   const getLastPurchase = (customerId: number) => {
-    const payments = clientPayments
+    const payments = (clientPayments || [])
       .filter(p => p.customerId === customerId)
       .sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime());
     return payments.length > 0 ? payments[0].purchaseDate : null;

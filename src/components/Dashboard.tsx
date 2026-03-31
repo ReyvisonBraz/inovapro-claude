@@ -11,35 +11,31 @@ import {
 import { StatCard } from './StatCard';
 import { formatCurrency, formatMonthYear } from '../lib/utils';
 
+import { useFilterStore } from '../store/useFilterStore';
+import { useSettingsStore } from '../store/useSettingsStore';
+
 interface DashboardProps {
-  settings: {
-    initialBalance: number;
-  };
   totalIncome: number;
   totalExpenses: number;
   netBalance: number;
   chartData: any[];
   handleChartClick: (data: any) => void;
-  dashboardMonth: string;
-  handlePrevMonth: () => void;
-  handleNextMonth: () => void;
   sortedIncomeRanking: [string, number][];
   sortedExpenseRanking: [string, number][];
 }
 
 export const Dashboard = ({
-  settings,
   totalIncome,
   totalExpenses,
   netBalance,
   chartData,
   handleChartClick,
-  dashboardMonth,
-  handlePrevMonth,
-  handleNextMonth,
   sortedIncomeRanking,
   sortedExpenseRanking
 }: DashboardProps) => {
+  const { settings } = useSettingsStore();
+  const { dashboardMonth, handlePrevMonth, handleNextMonth } = useFilterStore();
+
   return (
     <>
       {/* Stats Grid */}

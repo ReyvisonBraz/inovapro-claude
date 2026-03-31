@@ -11,31 +11,28 @@ import { AppSettings, Category, User as UserType } from '../../types';
 import AuditLogs from '../audit/AuditLogs';
 import { useToast } from '../ui/Toast';
 
+import { useSettingsStore } from '../../store/useSettingsStore';
+import { useAuthStore } from '../../store/useAuthStore';
+
 interface SettingsProps {
-  settings: AppSettings;
-  updateSettings: (newSettings: Partial<AppSettings>) => void;
   categories: Category[];
   addCategory: (name: string, type: 'income' | 'expense') => void;
   deleteCategory: (id: number) => void;
-  users: UserType[];
   addUser: (user: Omit<UserType, 'id'>) => void;
   updateUser: (id: number, user: Partial<UserType>) => void;
   deleteUser: (id: number) => void;
-  auditLogs: any[];
 }
 
 const Settings: React.FC<SettingsProps> = ({
-  settings = {} as AppSettings,
-  updateSettings,
   categories,
   addCategory,
   deleteCategory,
-  users,
   addUser,
   updateUser,
-  deleteUser,
-  auditLogs
+  deleteUser
 }) => {
+  const { settings, setSettings: updateSettings } = useSettingsStore();
+  const { users, auditLogs } = useAuthStore();
   const [activeTab, setActiveTab] = React.useState('general');
   const [newCategoryName, setNewCategoryName] = React.useState('');
   const [newCategoryType, setNewCategoryType] = React.useState<'income' | 'expense'>('income');

@@ -9,32 +9,19 @@ import { RecordPaymentModal } from './modals/RecordPaymentModal';
 
 import { Pagination } from './ui/Pagination';
 
+import { useAppStore } from '../store/useAppStore';
+import { useFilterStore } from '../store/useFilterStore';
+import { useModalStore } from '../store/useModalStore';
+import { useFormStore } from '../store/useFormStore';
+
 interface ClientPaymentsProps {
   filteredClientPayments: ClientPayment[];
-  setIsAddingClientPayment: (isAdding: boolean) => void;
-  isAddingClientPayment: boolean;
-  paymentSearchTerm: string;
-  setPaymentSearchTerm: (term: string) => void;
-  paymentFilterStatus: string;
-  setPaymentFilterStatus: (status: string) => void;
-  paymentSortMode: 'date' | 'amount' | 'alphabetical';
-  setPaymentSortMode: (mode: 'date' | 'amount' | 'alphabetical') => void;
-  togglePaymentExpansion: (id: number) => void;
-  expandedPayments: number[];
-  isRecordingPayment: ClientPayment | null;
-  setIsRecordingPayment: (payment: ClientPayment | null) => void;
   generateReceipt: (payment: ClientPayment, type: 'simple' | 'a4') => void;
   sendWhatsAppReminder: (payment: ClientPayment) => void;
   handleDeleteClientPayment: (payment: ClientPayment) => void;
   handleDeleteClientPaymentGroup: (saleId: string) => void;
   handleRecordPayment: () => void;
-  paymentAmount: string;
-  setPaymentAmount: (amount: string) => void;
-  paymentDate: string;
-  setPaymentDate: (date: string) => void;
   customers: Customer[];
-  newClientPayment: any;
-  setNewClientPayment: (payment: any) => void;
   handleAddClientPayment: () => void;
   isSaving?: boolean;
   pagination: {
@@ -48,35 +35,33 @@ interface ClientPaymentsProps {
 
 export const ClientPayments = ({
   filteredClientPayments,
-  setIsAddingClientPayment,
-  isAddingClientPayment,
-  paymentSearchTerm,
-  setPaymentSearchTerm,
-  paymentFilterStatus,
-  setPaymentFilterStatus,
-  paymentSortMode,
-  setPaymentSortMode,
-  togglePaymentExpansion,
-  expandedPayments,
-  isRecordingPayment,
-  setIsRecordingPayment,
   generateReceipt,
   sendWhatsAppReminder,
   handleDeleteClientPayment,
   handleDeleteClientPaymentGroup,
   handleRecordPayment,
-  paymentAmount,
-  setPaymentAmount,
-  paymentDate,
-  setPaymentDate,
   customers,
-  newClientPayment,
-  setNewClientPayment,
   handleAddClientPayment,
   isSaving,
   pagination,
   onPageChange
 }: ClientPaymentsProps) => {
+  const { 
+    isAddingClientPayment, setIsAddingClientPayment,
+    expandedPayments, togglePaymentExpansion
+  } = useAppStore();
+  const {
+    paymentSearchTerm, setPaymentSearchTerm,
+    paymentFilterStatus, setPaymentFilterStatus,
+    paymentSortMode, setPaymentSortMode
+  } = useFilterStore();
+  const {
+    isRecordingPayment, setIsRecordingPayment,
+    paymentAmount, setPaymentAmount,
+    paymentDate, setPaymentDate
+  } = useModalStore();
+  const { newClientPayment, setNewClientPayment } = useFormStore();
+
   const groupedPayments = React.useMemo(() => {
     const groups: { [key: string]: ClientPayment[] } = {};
     const result: (ClientPayment | { isGroup: true, payments: ClientPayment[], saleId: string })[] = [];

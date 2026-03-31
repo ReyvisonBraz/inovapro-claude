@@ -12,17 +12,16 @@ import { SystemUpdate } from './SystemUpdate';
 import { ProjectOverview } from './ProjectOverview';
 import { Brand, Model } from '../../types';
 
+import { useSettingsStore } from '../../store/useSettingsStore';
+import { useAuthStore } from '../../store/useAuthStore';
+
 interface SettingsLayoutProps {
-  settings: AppSettings;
-  updateSettings: (newSettings: AppSettings) => void;
   categories: Category[];
   addCategory: (name: string, type: 'income' | 'expense') => void;
   deleteCategory: (id: number) => void;
-  users: User[];
   addUser: (user: any) => void;
   updateUser: (id: number, user: any) => void;
   deleteUser: (id: number) => void;
-  auditLogs: AuditLog[];
   transactions: Transaction[];
   customers: Customer[];
   clientPayments: ClientPayment[];
@@ -38,6 +37,8 @@ interface SettingsLayoutProps {
 }
 
 export const SettingsLayout: React.FC<SettingsLayoutProps> = (props) => {
+  const { settings, setSettings: updateSettings } = useSettingsStore();
+  const { users, auditLogs } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'print' | 'interface' | 'categories' | 'users' | 'whatsapp' | 'equipment' | 'updates' | 'overview'>('overview');
 
   return (
@@ -85,7 +86,7 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = (props) => {
             <List size={18} />
             Categorias
           </button>
-
+          
           <button
             onClick={() => setActiveTab('equipment')}
             className={cn(
@@ -154,10 +155,10 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = (props) => {
 
         {/* Conteúdo Principal */}
         <div className="flex-1 glass-card p-8 min-h-[600px]">
-          {activeTab === 'interface' && <InterfaceSettings {...props} />}
-          {activeTab === 'print' && <PrintLayout {...props} />}
-          {activeTab === 'categories' && <CategorySettings {...props} />}
-          {activeTab === 'whatsapp' && <WhatsAppSettings settings={props.settings} updateSettings={props.updateSettings} />}
+          {activeTab === 'interface' && <InterfaceSettings settings={settings} updateSettings={updateSettings} />}
+          {activeTab === 'print' && <PrintLayout settings={settings} updateSettings={updateSettings} />}
+          {activeTab === 'categories' && <CategorySettings categories={props.categories} addCategory={props.addCategory} deleteCategory={props.deleteCategory} />}
+          {activeTab === 'whatsapp' && <WhatsAppSettings settings={settings} updateSettings={updateSettings} />}
           {activeTab === 'equipment' && (
             <EquipmentSettings 
               brands={props.brands}
@@ -173,11 +174,11 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = (props) => {
           )}
           {activeTab === 'users' && (
             <UserManagement 
-              users={props.users}
+              users={users}
               addUser={props.addUser}
               updateUser={props.updateUser}
               deleteUser={props.deleteUser}
-              auditLogs={props.auditLogs}
+              auditLogs={auditLogs}
               transactions={props.transactions}
               customers={props.customers}
               clientPayments={props.clientPayments}
