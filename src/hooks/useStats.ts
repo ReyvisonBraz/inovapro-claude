@@ -1,10 +1,17 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useFilterStore } from '../store/useFilterStore';
 
 export const useStats = () => {
+  const navigate = useNavigate();
+  const { setDateFilterMode } = useFilterStore();
   const [stats, setStats] = useState({ 
     totalIncome: 0, 
-    totalExpense: 0, 
-    balance: 0, 
+    totalExpenses: 0, 
+    netBalance: 0, 
+    chartData: [],
+    sortedIncomeRanking: [],
+    sortedExpenseRanking: [],
     pendingPayments: 0, 
     activeOS: 0 
   });
@@ -27,10 +34,18 @@ export const useStats = () => {
     }
   }, []);
 
+  const handleChartClick = useCallback((data: any) => {
+    if (data && data.activeLabel) {
+      setDateFilterMode('month');
+      navigate('/transactions');
+    }
+  }, [navigate, setDateFilterMode]);
+
   return {
     stats,
     isLoading,
     error,
-    fetchStats
+    fetchStats,
+    handleChartClick
   };
 };

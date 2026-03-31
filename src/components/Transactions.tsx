@@ -11,11 +11,6 @@ import { Transaction, Category, AppSettings } from '../types';
 
 import { Pagination } from './ui/Pagination';
 
-import { useSettingsStore } from '../store/useSettingsStore';
-import { useFilterStore } from '../store/useFilterStore';
-import { useModalStore } from '../store/useModalStore';
-import { useAppStore } from '../store/useAppStore';
-
 interface TransactionsProps {
   categories: Category[];
   filteredTransactions: Transaction[];
@@ -27,6 +22,33 @@ interface TransactionsProps {
     limit: number;
   };
   onPageChange: (page: number) => void;
+  settings: AppSettings;
+  onUpdateSettings: (settings: AppSettings) => void;
+  searchTerm: string;
+  onSearchChange: (term: string) => void;
+  dateFilterMode: 'day' | 'month' | 'range' | 'all';
+  onDateFilterModeChange: (mode: 'day' | 'month' | 'range' | 'all') => void;
+  selectedDate: string;
+  onSelectedDateChange: (date: string) => void;
+  selectedMonth: string;
+  onSelectedMonthChange: (month: string) => void;
+  startDate: string;
+  onStartDateChange: (date: string) => void;
+  endDate: string;
+  onEndDateChange: (date: string) => void;
+  filterType: 'all' | 'income' | 'expense';
+  onFilterTypeChange: (type: 'all' | 'income' | 'expense') => void;
+  filterCategory: string;
+  onFilterCategoryChange: (category: string) => void;
+  filterMinAmount: string;
+  onFilterMinAmountChange: (amount: string) => void;
+  filterMaxAmount: string;
+  onFilterMaxAmountChange: (amount: string) => void;
+  showFilters: boolean;
+  onShowFiltersChange: (show: boolean) => void;
+  onEditTransaction: (tx: Transaction) => void;
+  onDeleteTransaction: (id: number) => void;
+  onAddNewTransaction: () => void;
 }
 
 export const Transactions = ({
@@ -34,25 +56,35 @@ export const Transactions = ({
   filteredTransactions,
   handleDuplicateTransaction,
   pagination,
-  onPageChange
+  onPageChange,
+  settings,
+  onUpdateSettings,
+  searchTerm,
+  onSearchChange,
+  dateFilterMode,
+  onDateFilterModeChange,
+  selectedDate,
+  onSelectedDateChange,
+  selectedMonth,
+  onSelectedMonthChange,
+  startDate,
+  onStartDateChange,
+  endDate,
+  onEndDateChange,
+  filterType,
+  onFilterTypeChange,
+  filterCategory,
+  onFilterCategoryChange,
+  filterMinAmount,
+  onFilterMinAmountChange,
+  filterMaxAmount,
+  onFilterMaxAmountChange,
+  showFilters,
+  onShowFiltersChange,
+  onEditTransaction,
+  onDeleteTransaction,
+  onAddNewTransaction
 }: TransactionsProps) => {
-  const { settings, setSettings: updateSettings } = useSettingsStore();
-  const {
-    searchTerm, setSearchTerm,
-    dateFilterMode, setDateFilterMode,
-    selectedDate, setSelectedDate,
-    selectedMonth, setSelectedMonth,
-    startDate, setStartDate,
-    endDate, setEndDate,
-    filterType, setFilterType,
-    filterCategory, setFilterCategory,
-    filterMinAmount, setFilterMinAmount,
-    filterMaxAmount, setFilterMaxAmount,
-    showFilters, setShowFilters
-  } = useFilterStore();
-  const { setEditingTransaction, setTransactionToDelete } = useModalStore();
-  const { setIsAdding } = useAppStore();
-
   return (
     <div className="space-y-6 md:space-y-8 p-4 md:p-6 lg:p-10">
       <div className="flex flex-col gap-6 md:gap-8">
@@ -63,7 +95,7 @@ export const Transactions = ({
               className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-14 pr-6 text-sm font-bold focus:ring-2 focus:ring-primary/50 outline-none transition-all placeholder:text-slate-600 shadow-inner"
               placeholder="Pesquisar transações..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => onSearchChange(e.target.value)}
             />
           </div>
           
@@ -77,7 +109,7 @@ export const Transactions = ({
               ].map(mode => (
                 <button 
                   key={mode.id}
-                  onClick={() => setDateFilterMode(mode.id as any)}
+                  onClick={() => onDateFilterModeChange(mode.id as any)}
                   className={cn(
                     "flex-1 md:flex-none px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300",
                     dateFilterMode === mode.id 
@@ -93,7 +125,7 @@ export const Transactions = ({
             <div className="h-10 w-px bg-white/5 hidden lg:block" />
 
             <button 
-              onClick={() => setShowFilters(!showFilters)}
+              onClick={() => onShowFiltersChange(!showFilters)}
               className={cn(
                 "flex-1 md:flex-none flex items-center justify-center gap-3 px-6 h-12 md:h-14 rounded-2xl border text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300",
                 showFilters 
@@ -127,12 +159,12 @@ export const Transactions = ({
                       <input 
                         type="date"
                         value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
+                        onChange={(e) => onSelectedDateChange(e.target.value)}
                         className="bg-transparent border-none outline-none text-lg font-black text-slate-100 cursor-pointer [color-scheme:dark] focus:ring-0"
                       />
                     </div>
                     <button 
-                      onClick={() => setSelectedDate(format(new Date(), 'yyyy-MM-dd'))}
+                      onClick={() => onSelectedDateChange(format(new Date(), 'yyyy-MM-dd'))}
                       className="ml-4 px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-[10px] font-black uppercase tracking-widest text-primary transition-all border border-primary/10"
                     >
                       Hoje
@@ -150,12 +182,12 @@ export const Transactions = ({
                       <input 
                         type="month"
                         value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        onChange={(e) => onSelectedMonthChange(e.target.value)}
                         className="bg-transparent border-none outline-none text-lg font-black text-slate-100 cursor-pointer [color-scheme:dark] focus:ring-0"
                       />
                     </div>
                     <button 
-                      onClick={() => setSelectedMonth(format(new Date(), 'yyyy-MM'))}
+                      onClick={() => onSelectedMonthChange(format(new Date(), 'yyyy-MM'))}
                       className="ml-4 px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-[10px] font-black uppercase tracking-widest text-primary transition-all border border-primary/10"
                     >
                       Este Mês
@@ -174,7 +206,7 @@ export const Transactions = ({
                         <input 
                           type="date"
                           value={startDate}
-                          onChange={(e) => setStartDate(e.target.value)}
+                          onChange={(e) => onStartDateChange(e.target.value)}
                           className="bg-transparent border-none outline-none text-lg font-black text-slate-100 cursor-pointer [color-scheme:dark] focus:ring-0 w-40"
                         />
                       </div>
@@ -187,7 +219,7 @@ export const Transactions = ({
                       <input 
                         type="date"
                         value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
+                        onChange={(e) => onEndDateChange(e.target.value)}
                         className="bg-transparent border-none outline-none text-lg font-black text-slate-100 cursor-pointer [color-scheme:dark] focus:ring-0 w-40"
                       />
                     </div>
@@ -212,7 +244,7 @@ export const Transactions = ({
                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Tipo</label>
                 <select 
                   value={filterType}
-                  onChange={(e: any) => setFilterType(e.target.value)}
+                  onChange={(e: any) => onFilterTypeChange(e.target.value)}
                   className="w-full bg-slate-800 border border-white/10 rounded-xl py-2 px-4 text-sm outline-none focus:ring-1 focus:ring-primary [&>option]:bg-slate-900"
                 >
                   <option value="all">Todos</option>
@@ -224,7 +256,7 @@ export const Transactions = ({
                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Categoria</label>
                 <select 
                   value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
+                  onChange={(e) => onFilterCategoryChange(e.target.value)}
                   className="w-full bg-slate-800 border border-white/10 rounded-xl py-2 px-4 text-sm outline-none focus:ring-1 focus:ring-primary [&>option]:bg-slate-900"
                 >
                   <option value="all">Todas</option>
@@ -245,7 +277,7 @@ export const Transactions = ({
                 <input 
                   type="number"
                   value={filterMinAmount}
-                  onChange={(e) => setFilterMinAmount(e.target.value)}
+                  onChange={(e) => onFilterMinAmountChange(e.target.value)}
                   placeholder="R$ 0,00"
                   className="w-full bg-slate-800 border border-white/10 rounded-xl py-2 px-4 text-sm outline-none focus:ring-1 focus:ring-primary"
                 />
@@ -255,7 +287,7 @@ export const Transactions = ({
                 <input 
                   type="number"
                   value={filterMaxAmount}
-                  onChange={(e) => setFilterMaxAmount(e.target.value)}
+                  onChange={(e) => onFilterMaxAmountChange(e.target.value)}
                   placeholder="R$ 10.000,00"
                   className="w-full bg-slate-800 border border-white/10 rounded-xl py-2 px-4 text-sm outline-none focus:ring-1 focus:ring-primary"
                 />
@@ -284,8 +316,8 @@ export const Transactions = ({
                           } else if (range.currentYear) {
                             start = new Date(end.getFullYear(), 0, 1);
                           }
-                          setStartDate(format(start, 'yyyy-MM-dd'));
-                          setEndDate(format(end, 'yyyy-MM-dd'));
+                          onStartDateChange(format(start, 'yyyy-MM-dd'));
+                          onEndDateChange(format(end, 'yyyy-MM-dd'));
                         }}
                         className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-white/5 border border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-all"
                       >
@@ -307,7 +339,7 @@ export const Transactions = ({
                         const newHidden = settings.hiddenColumns.includes(col)
                           ? settings.hiddenColumns.filter(c => c !== col)
                           : [...settings.hiddenColumns, col];
-                        updateSettings({ ...settings, hiddenColumns: newHidden });
+                        onUpdateSettings({ ...settings, hiddenColumns: newHidden });
                       }}
                       className={cn(
                         "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all",
@@ -325,12 +357,12 @@ export const Transactions = ({
               <div className="col-span-full pt-6 border-t border-white/5 flex justify-end">
                 <button 
                   onClick={() => {
-                    setSearchTerm('');
-                    setFilterType('all');
-                    setFilterCategory('all');
-                    setFilterMinAmount('');
-                    setFilterMaxAmount('');
-                    setDateFilterMode('all');
+                    onSearchChange('');
+                    onFilterTypeChange('all');
+                    onFilterCategoryChange('all');
+                    onFilterMinAmountChange('');
+                    onFilterMaxAmountChange('');
+                    onDateFilterModeChange('all');
                   }}
                   className="px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-slate-200 transition-all border border-white/10 flex items-center gap-2"
                 >
@@ -387,7 +419,7 @@ export const Transactions = ({
                 </div>
                 <div className="flex items-center gap-2">
                   <button 
-                    onClick={() => setEditingTransaction(tx)}
+                    onClick={() => onEditTransaction(tx)}
                     className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
                     title="Editar"
                   >
@@ -401,7 +433,7 @@ export const Transactions = ({
                     <Copy size={16} />
                   </button>
                   <button 
-                    onClick={() => setTransactionToDelete(tx.id)}
+                    onClick={() => onDeleteTransaction(tx.id)}
                     className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
                     title="Excluir"
                   >
@@ -422,7 +454,7 @@ export const Transactions = ({
                   <p className="text-[10px] text-slate-600 uppercase tracking-widest mt-1">Ajuste seus filtros</p>
                 </div>
                 <button 
-                  onClick={() => setIsAdding(true)}
+                  onClick={() => onAddNewTransaction()}
                   className="mt-2 px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-primary/20"
                 >
                   Nova Transação
@@ -512,7 +544,7 @@ export const Transactions = ({
                   <td className="px-8 py-6 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
                       <button 
-                        onClick={() => setEditingTransaction(tx)}
+                        onClick={() => onEditTransaction(tx)}
                         className="p-2.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
                         title="Editar"
                       >
@@ -526,7 +558,7 @@ export const Transactions = ({
                         <Copy size={16} />
                       </button>
                       <button 
-                        onClick={() => setTransactionToDelete(tx.id)}
+                        onClick={() => onDeleteTransaction(tx.id)}
                         className="p-2.5 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
                         title="Excluir"
                       >
@@ -548,7 +580,7 @@ export const Transactions = ({
                         <p className="text-xs text-slate-600 uppercase tracking-widest mt-1">Tente ajustar seus filtros de busca</p>
                       </div>
                       <button 
-                        onClick={() => setIsAdding(true)}
+                        onClick={() => onAddNewTransaction()}
                         className="mt-4 px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-primary/20"
                       >
                         Nova Transação

@@ -8,17 +8,24 @@ import {
 } from 'lucide-react';
 import { cn, formatCurrency } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { useToast } from './ui/Toast';
-
-import { useAppStore } from '../store/useAppStore';
-import { useFilterStore } from '../store/useFilterStore';
-import { useModalStore } from '../store/useModalStore';
 
 interface InventoryProps {
   items: InventoryItem[];
   onAddItem: (item: any) => void;
   onUpdateItem: (id: number, item: any) => void;
   onDeleteItem: (id: number) => void;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  categoryFilter: string;
+  onCategoryFilterChange: (value: string) => void;
+  isAdding: boolean;
+  setIsAdding: (value: boolean) => void;
+  onOpenConfirm: (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning' | 'info' | 'success') => void;
+  editingItem: InventoryItem | null;
+  setEditingItem: (item: InventoryItem | null) => void;
+  newItem: any;
+  setNewItem: (item: any) => void;
+  showToast: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
 }
 
 export const Inventory: React.FC<InventoryProps> = ({
@@ -26,26 +33,19 @@ export const Inventory: React.FC<InventoryProps> = ({
   onAddItem,
   onUpdateItem,
   onDeleteItem,
+  searchTerm,
+  onSearchChange,
+  categoryFilter,
+  onCategoryFilterChange,
+  isAdding,
+  setIsAdding,
+  onOpenConfirm,
+  editingItem,
+  setEditingItem,
+  newItem,
+  setNewItem,
+  showToast,
 }) => {
-  const { showToast } = useToast();
-  const { 
-    inventorySearchTerm: searchTerm, setInventorySearchTerm: setSearchTerm,
-    inventoryCategoryFilter: categoryFilter, setInventoryCategoryFilter: setCategoryFilter
-  } = useFilterStore();
-  const { isAddingInventoryItem: isAdding, setIsAddingInventoryItem: setIsAdding } = useAppStore();
-  const { openConfirm } = useModalStore();
-
-  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
-
-  // Form state
-  const [newItem, setNewItem] = useState({
-    name: '',
-    category: 'product' as 'product' | 'service',
-    sku: '',
-    unitPrice: '',
-    stockLevel: ''
-  });
-
   const filteredItems = items.filter(item => {
     const matchesSearch = 
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -157,13 +157,13 @@ export const Inventory: React.FC<InventoryProps> = ({
             type="text"
             placeholder="Buscar por nome ou SKU..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value)}
             className="w-full h-12 pl-12 pr-4 bg-white/5 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
           />
         </div>
         <select
           value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value as any)}
+          onChange={(e) => onCategoryFilterChange(e.target.value as any)}
           className="h-12 px-4 bg-white/5 border border-white/10 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
         >
           <option value="all">Todos os Itens</option>
@@ -193,7 +193,7 @@ export const Inventory: React.FC<InventoryProps> = ({
                   </button>
                   <button 
                     onClick={() => {
-                      openConfirm(
+                      onOpenConfirm(
                         'Excluir Item',
                         `Tem certeza que deseja excluir o item "${item.name}"?`,
                         () => onDeleteItem(item.id),

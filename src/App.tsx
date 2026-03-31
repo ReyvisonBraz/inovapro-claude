@@ -1,71 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { 
-  LayoutDashboard, 
-  ReceiptText, 
-  BarChart3, 
-  Settings, 
   Plus, 
-  Bell, 
-  TrendingUp, 
-  TrendingDown, 
-  Wallet,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  ChevronUp,
-  Calendar,
-  Filter,
-  MoreVertical,
-  ShoppingBag,
-  Briefcase,
-  Zap,
-  Coffee,
-  Car,
-  X,
   Download,
   Printer,
-  Trash2,
-  AlertTriangle,
-  Palette,
   Package,
   CreditCard,
-  Users,
-  Wrench,
-  Tag,
-  User as UserIcon,
-  MessageCircle,
-  ImageIcon,
-  Edit,
-  Copy,
-  CheckCircle2,
-  LayoutGrid,
-  List as ListIcon,
-  LogOut
+  Users
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { useToast } from './components/ui/Toast';
 import { ConfirmModal } from './components/ui/ConfirmModal';
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  Cell,
-  PieChart,
-  Pie,
-  Legend
-} from 'recharts';
-import { format, parseISO, isSameMonth, isSameDay, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { cn, formatCurrency, formatMonthYear } from './lib/utils';
+import { format, parseISO } from 'date-fns';
+import { formatCurrency } from './lib/utils';
 import { printBlankForm } from './lib/printUtils';
-import { Transaction, Screen, AppSettings, Customer, ClientPayment, Category, User, AuditLog, InventoryItem, ServiceOrder, ServiceOrderStatus, Brand, Model } from './types';
+import { Transaction, Customer, ClientPayment, User } from './types';
 import { SettingsLayout } from './components/settings/SettingsLayout';
 import { Login } from './components/Login';
 import { ServiceOrders } from './components/ServiceOrders';
@@ -83,9 +30,14 @@ import { useFilterStore } from './store/useFilterStore';
 import { useModalStore } from './store/useModalStore';
 import { useFormStore } from './store/useFormStore';
 import { useStats } from './hooks/useStats';
+import { useFilteredData } from './hooks/useFilteredData';
+import { useNotifications } from './hooks/useNotifications';
 
-import { SidebarItem } from './components/SidebarItem';
-import { StatCard } from './components/StatCard';
+import { useExportData } from './hooks/useExportData';
+import { useDashboardStats } from './hooks/useDashboardStats';
+import { Sidebar } from './components/Sidebar';
+import { Header } from './components/Header';
+import { MobileNav } from './components/MobileNav';
 import { Dashboard } from './components/Dashboard';
 import { Transactions } from './components/Transactions';
 import { Reports } from './components/Reports';
@@ -98,8 +50,6 @@ import { CustomerWarningModal } from './components/modals/CustomerWarningModal';
 import { CustomerDeleteWarningModal } from './components/modals/CustomerDeleteWarningModal';
 import { AddTransactionModal } from './components/modals/AddTransactionModal';
 import { DeleteConfirmationModal } from './components/modals/DeleteConfirmationModal';
-import { AddClientPaymentModal } from './components/modals/AddClientPaymentModal';
-import { RecordPaymentModal } from './components/modals/RecordPaymentModal';
 import { CustomerHistoryModal } from './components/modals/CustomerHistoryModal';
 
 // --- Aplicativo Principal ---
@@ -272,61 +222,17 @@ export default function App() {
     printBlankForm(settings);
   };
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const upcomingDebts = clientPayments.data.filter(p => {
-    if (p.status === 'paid') return false;
-    const dueDate = parseISO(p.dueDate);
-    dueDate.setHours(0, 0, 0, 0);
-    const diffTime = dueDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 && diffDays <= 3;
-  });
-
-  const dueTodayDebts = clientPayments.data.filter(p => {
-    if (p.status === 'paid') return false;
-    const dueDate = parseISO(p.dueDate);
-    dueDate.setHours(0, 0, 0, 0);
-    return dueDate.getTime() === today.getTime();
-  });
-
-  const overdueDebts = clientPayments.data.filter(p => {
-    if (p.status === 'paid') return false;
-    const dueDate = parseISO(p.dueDate);
-    dueDate.setHours(0, 0, 0, 0);
-    return dueDate.getTime() < today.getTime();
-  });
-
-  const overdueServiceOrders = serviceOrders.data.filter(o => {
-    if (o.status === 'Concluído' || o.status === 'Entregue' || o.status === 'Cancelado') return false;
-    if (!o.analysisPrediction) return false;
-    const predictionDate = parseISO(o.analysisPrediction);
-    predictionDate.setHours(0, 0, 0, 0);
-    return predictionDate.getTime() < today.getTime();
-  });
-
-  const dueTodayServiceOrders = serviceOrders.data.filter(o => {
-    if (o.status === 'Concluído' || o.status === 'Entregue' || o.status === 'Cancelado') return false;
-    if (!o.analysisPrediction) return false;
-    const predictionDate = parseISO(o.analysisPrediction);
-    predictionDate.setHours(0, 0, 0, 0);
-    return predictionDate.getTime() === today.getTime();
-  });
-
-  const upcomingServiceOrders = serviceOrders.data.filter(o => {
-    if (o.status === 'Concluído' || o.status === 'Entregue' || o.status === 'Cancelado') return false;
-    if (!o.analysisPrediction) return false;
-    const predictionDate = parseISO(o.analysisPrediction);
-    predictionDate.setHours(0, 0, 0, 0);
-    const diffTime = predictionDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 && diffDays <= 3;
-  });
-
-  const totalPaymentNotifications = upcomingDebts.length + dueTodayDebts.length + overdueDebts.length;
-  const totalServiceOrderNotifications = overdueServiceOrders.length + dueTodayServiceOrders.length + upcomingServiceOrders.length;
-  const totalNotifications = totalPaymentNotifications + totalServiceOrderNotifications;
+  const { 
+    upcomingDebts,
+    dueTodayDebts,
+    overdueDebts,
+    overdueServiceOrders,
+    dueTodayServiceOrders,
+    upcomingServiceOrders,
+    totalPaymentNotifications,
+    totalServiceOrderNotifications,
+    totalNotifications
+  } = useNotifications(clientPayments.data, serviceOrders.data);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1405,87 +1311,13 @@ export default function App() {
     }
   };
 
-  const downloadCSV = (headers: string[], rows: any[][], filename: string) => {
-    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const exportToCSV = () => {
-    const headers = ["Descrição", "Categoria", "Tipo", "Valor", "Data", "Status"];
-    const rows = transactions.data.map(t => [
-      t.description,
-      t.category,
-      t.type,
-      t.amount,
-      t.date,
-      t.status
-    ]);
-    downloadCSV(headers, rows, `relatorio_financeiro_${format(new Date(), 'yyyy-MM-dd')}.csv`);
-  };
-
-  const exportServiceOrdersToCSV = () => {
-    const headers = ["ID", "Cliente", "Equipamento", "Status", "Prioridade", "Data Entrada", "Total"];
-    const rows = serviceOrders.data.map(o => {
-      const customer = customers.data.find(c => c.id === o.customerId);
-      return [
-        `#OS-${o.id}`,
-        `${customer?.firstName} ${customer?.lastName}`,
-        `${o.equipmentBrand} ${o.equipmentModel}`,
-        o.status,
-        o.priority,
-        o.entryDate || format(parseISO(o.createdAt), 'yyyy-MM-dd'),
-        o.totalAmount
-      ];
-    });
-    downloadCSV(headers, rows, `ordens_de_servico_${format(new Date(), 'yyyy-MM-dd')}.csv`);
-  };
-
-  const exportCustomersToCSV = () => {
-    const headers = ["Nome", "Apelido", "CPF", "Empresa", "Telefone", "Limite de Crédito"];
-    const rows = customers.data.map(c => [
-      `${c.firstName} ${c.lastName}`,
-      c.nickname || '-',
-      c.cpf || '-',
-      c.companyName || '-',
-      c.phone || '-',
-      c.creditLimit || '0'
-    ]);
-    downloadCSV(headers, rows, `clientes_${format(new Date(), 'yyyy-MM-dd')}.csv`);
-  };
-
-  const exportInventoryToCSV = () => {
-    const headers = ["Nome", "Categoria", "SKU", "Preço Unitário", "Estoque"];
-    const rows = inventoryItems.map(i => [
-      i.name,
-      i.category === 'product' ? 'Produto' : 'Serviço',
-      i.sku || '-',
-      i.unitPrice,
-      i.stockLevel || '0'
-    ]);
-    downloadCSV(headers, rows, `estoque_${format(new Date(), 'yyyy-MM-dd')}.csv`);
-  };
-
-  const exportPaymentsToCSV = () => {
-    const headers = ["Cliente", "Descrição", "Valor Total", "Valor Pago", "Saldo Devedor", "Vencimento", "Status"];
-    const rows = clientPayments.data.map(p => [
-      p.customerName,
-      p.description,
-      p.totalAmount,
-      p.paidAmount,
-      p.totalAmount - p.paidAmount,
-      p.dueDate,
-      p.status
-    ]);
-    downloadCSV(headers, rows, `pagamentos_clientes_${format(new Date(), 'yyyy-MM-dd')}.csv`);
-  };
+  const {
+    exportTransactionsToCSV,
+    exportServiceOrdersToCSV,
+    exportCustomersToCSV,
+    exportInventoryToCSV,
+    exportPaymentsToCSV
+  } = useExportData();
 
   const printReport = () => {
     window.print();
@@ -1525,98 +1357,21 @@ export default function App() {
   const totalExpenses = stats.totalExpense;
   const netBalance = settings.initialBalance + stats.balance;
 
-  // Rankings do Dashboard
-  const dashboardTransactions = transactions.data.filter(t => format(parseISO(t.date), 'yyyy-MM') === dashboardMonth);
-  
-  const incomeByCategory = dashboardTransactions
-    .filter(t => t.type === 'income')
-    .reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount;
-      return acc;
-    }, {} as Record<string, number>);
+  const { sortedIncomeRanking, sortedExpenseRanking, chartData } = useDashboardStats(transactions.data, dashboardMonth);
 
-  const expenseByCategory = dashboardTransactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
-  const sortedIncomeRanking = Object.entries(incomeByCategory)
-    .sort(([, a], [, b]) => (b as number) - (a as number)) as [string, number][];
-
-  const sortedExpenseRanking = Object.entries(expenseByCategory)
-    .sort(([, a], [, b]) => (b as number) - (a as number)) as [string, number][];
-
-  // Transações Filtradas
-  const filteredTransactions = transactions.data.filter(tx => {
-    const matchesSearch = tx.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         tx.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tx.amount.toString().includes(searchTerm);
-    const matchesType = filterType === 'all' || tx.type === filterType;
-    const matchesCategory = filterCategory === 'all' || tx.category === filterCategory;
-    const matchesMin = filterMinAmount === '' || tx.amount >= parseFloat(filterMinAmount.toString().replace(',', '.'));
-    const matchesMax = filterMaxAmount === '' || tx.amount <= parseFloat(filterMaxAmount.toString().replace(',', '.'));
-    
-    let matchesDate = true;
-    if (dateFilterMode === 'day') {
-      matchesDate = isSameDay(parseISO(tx.date), parseISO(selectedDate));
-    } else if (dateFilterMode === 'month') {
-      matchesDate = format(parseISO(tx.date), 'yyyy-MM') === selectedMonth;
-    } else if (dateFilterMode === 'range') {
-      const txDate = parseISO(tx.date);
-      const start = parseISO(startDate);
-      const end = parseISO(endDate);
-      matchesDate = txDate >= start && txDate <= end;
-    }
-
-    return matchesSearch && matchesType && matchesCategory && matchesMin && matchesMax && matchesDate;
-  });
-
-  const filteredClientPayments = clientPayments.data.filter(payment => {
-    const matchesSearch = payment.customerName.toLowerCase().includes(paymentSearchTerm.toLowerCase()) || 
-                          payment.description.toLowerCase().includes(paymentSearchTerm.toLowerCase());
-    
-    if (!matchesSearch) return false;
-
-    const isOverdue = new Date(payment.dueDate) < new Date() && payment.status !== 'paid';
-
-    switch (paymentFilterStatus) {
-      case 'paid': return payment.status === 'paid';
-      case 'partial': return payment.status === 'partial';
-      case 'pending': return payment.status === 'pending' && !isOverdue;
-      case 'overdue': return isOverdue;
-      default: return true;
-    }
-  }).sort((a, b) => {
-    if (paymentSortMode === 'amount') {
-      return b.totalAmount - a.totalAmount;
-    } else if (paymentSortMode === 'alphabetical') {
-      return a.customerName.localeCompare(b.customerName);
-    } else {
-      // Default: date (newest first)
-      return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
-    }
-  });
-
-  // Gerar dados dinâmicos para o gráfico com base nos últimos 6 meses
-  const last6Months = eachMonthOfInterval({
-    start: subMonths(new Date(), 5),
-    end: new Date()
-  });
-
-  const chartData = last6Months.map(month => {
-    const monthName = format(month, 'MMM', { locale: ptBR });
-    const monthTransactions = transactions.data.filter(t => isSameMonth(parseISO(t.date), month));
-    
-    return {
-      name: monthName.charAt(0).toUpperCase() + monthName.slice(1),
-      fullName: format(month, 'MMMM yyyy', { locale: ptBR }),
-      renda: monthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0),
-      despesa: monthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0),
-      date: month
-    };
-  });
+  const { 
+    filteredTransactions,
+    filteredClientPayments,
+    filteredCustomers,
+    filteredServiceOrders,
+    filteredInventory
+  } = useFilteredData(
+    transactions.data,
+    clientPayments.data,
+    customers.data,
+    serviceOrders.data,
+    inventoryItems
+  );
 
   const handleLogin = (user: User) => {
     login(user);
@@ -1728,19 +1483,19 @@ export default function App() {
       case 'transactions':
         return { 
           title: 'Transações Diárias',
-          export: { label: 'Exportar CSV', icon: Download, onClick: exportToCSV },
+          export: { label: 'Exportar CSV', icon: Download, onClick: () => exportTransactionsToCSV(transactions.data) },
           newButton: { label: 'Nova Entrada', icon: Plus, onClick: () => setIsAdding(true) }
         };
       case 'service-orders':
         return { 
           title: 'Ordens de Serviço',
-          export: { label: 'Exportar CSV', icon: Download, onClick: exportServiceOrdersToCSV },
+          export: { label: 'Exportar CSV', icon: Download, onClick: () => exportServiceOrdersToCSV(serviceOrders.data, customers.data) },
           newButton: { label: 'Nova Ordem', icon: Plus, onClick: () => setIsAddingServiceOrder(true) }
         };
       case 'customers':
         return { 
           title: 'Gestão de Clientes',
-          export: { label: 'Exportar CSV', icon: Download, onClick: exportCustomersToCSV },
+          export: { label: 'Exportar CSV', icon: Download, onClick: () => exportCustomersToCSV(customers.data) },
           newButton: { 
             label: 'Novo Cliente', 
             icon: Users, 
@@ -1763,13 +1518,13 @@ export default function App() {
       case 'inventory':
         return { 
           title: 'Produtos & Serviços',
-          export: { label: 'Exportar CSV', icon: Download, onClick: exportInventoryToCSV },
+          export: { label: 'Exportar CSV', icon: Download, onClick: () => exportInventoryToCSV(inventoryItems) },
           newButton: { label: 'Novo Item', icon: Package, onClick: () => setIsAddingInventoryItem(true) }
         };
       case 'client-payments':
         return { 
           title: 'Vendas e Pagamentos',
-          export: { label: 'Exportar CSV', icon: Download, onClick: exportPaymentsToCSV },
+          export: { label: 'Exportar CSV', icon: Download, onClick: () => exportPaymentsToCSV(clientPayments.data) },
           newButton: { label: 'Novo Pagamento', icon: CreditCard, onClick: () => setIsAddingClientPayment(true) }
         };
       case 'reports':
@@ -1791,533 +1546,47 @@ export default function App() {
   return (
     <div className="flex min-h-screen bg-bg-dark text-slate-100 selection:bg-primary/30">
       <div className="flex flex-1 app-main-wrapper">
-        {/* Mobile Sidebar Overlay */}
-      <AnimatePresence>
-        {isSidebarOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 z-50 bg-bg-dark/80 backdrop-blur-sm lg:hidden"
-          />
-        )}
-      </AnimatePresence>
 
-      {/* Global Notification Overlay */}
-      <AnimatePresence>
-        {showNotifications && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-bg-dark/40 backdrop-blur-sm" 
-            onClick={() => setShowNotifications(false)}
-          />
-        )}
-      </AnimatePresence>
+        <Sidebar 
+          activeScreen={activeScreen}
+          setActiveScreen={setActiveScreen}
+          isSidebarCollapsed={isSidebarCollapsed}
+          setIsSidebarCollapsed={setIsSidebarCollapsed}
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+          currentUser={currentUser}
+          logout={handleLogout}
+          hasPermission={hasPermission}
+        />
 
-      {/* Sidebar */}
-      <aside 
-        className={cn(
-          "border-r border-white/5 flex flex-col bg-slate-900/50 backdrop-blur-xl fixed lg:sticky top-0 h-screen z-50 transition-all duration-300 lg:translate-x-0",
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full",
-          isSidebarCollapsed ? "w-20 overflow-visible" : "w-72"
-        )}
-      >
-        <div className={cn(
-          "flex items-center transition-all duration-300",
-          isSidebarCollapsed ? "p-4 justify-center" : "p-8 justify-between"
-        )}>
-          <div className={cn(
-            "flex items-center gap-4 transition-all duration-300",
-            isSidebarCollapsed ? "gap-0" : "gap-4"
-          )}>
-            <div className={cn(
-              "h-12 w-12 shrink-0 rounded-2xl bg-primary flex items-center justify-center text-white shadow-[0_0_20px_rgba(17,82,212,0.3)] transition-all duration-300",
-              isSidebarCollapsed && "scale-90"
-            )}>
-              <Wallet size={24} />
-            </div>
-            <AnimatePresence mode="wait">
-              {!isSidebarCollapsed && (
-                <motion.div
-                  initial={{ opacity: 0, width: 0, x: -10 }}
-                  animate={{ opacity: 1, width: "auto", x: 0 }}
-                  exit={{ opacity: 0, width: 0, x: -10 }}
-                  className="whitespace-nowrap overflow-hidden"
-                >
-                  <h1 className="font-bold text-xl tracking-tight">{settings.appName}</h1>
-                  <p className="text-[10px] font-bold text-primary uppercase tracking-widest opacity-70">{settings.appVersion}</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-          
-          {!isSidebarCollapsed && (
-            <div className="flex items-center gap-1">
-              <button 
-                onClick={() => setIsSidebarCollapsed(true)} 
-                className="hidden lg:flex p-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-xl transition-all"
-                title="Recolher Menu"
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-slate-500">
-                <X size={20} />
-              </button>
-            </div>
-          )}
-          
-          {isSidebarCollapsed && (
-            <button 
-              onClick={() => setIsSidebarCollapsed(false)}
-              className="absolute -right-3 top-10 h-6 w-6 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border border-white/10 hover:scale-110 transition-all z-[60]"
-            >
-              <ChevronRight size={14} />
-            </button>
-          )}
-        </div>
 
-        <nav className={cn(
-          "flex-1 transition-all duration-300",
-          isSidebarCollapsed ? "px-2 py-2 space-y-0.5 overflow-visible" : "px-4 py-4 space-y-2 overflow-y-auto custom-scrollbar"
-        )}>
-          {hasPermission('view_dashboard') && (
-            <SidebarItem 
-              icon={LayoutDashboard} 
-              label="Painel" 
-              active={activeScreen === 'dashboard'} 
-              collapsed={isSidebarCollapsed}
-              onClick={() => { setActiveScreen('dashboard'); setIsSidebarOpen(false); }} 
-            />
-          )}
-
-          <div className={cn(
-            "px-4 overflow-hidden transition-all duration-300",
-            isSidebarCollapsed ? "pt-4 pb-2" : "pt-8 pb-4"
-          )}>
-            {isSidebarCollapsed ? (
-              <div className="h-px bg-white/5 w-full" />
-            ) : (
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">Operacional</p>
-            )}
-          </div>
-
-          <SidebarItem 
-            icon={Briefcase} 
-            label="Ordens de Serviço" 
-            active={activeScreen === 'service-orders'} 
-            collapsed={isSidebarCollapsed}
-            onClick={() => { setActiveScreen('service-orders'); setIsSidebarOpen(false); }} 
-          />
-
-          <SidebarItem 
-            icon={ShoppingBag} 
-            label="Produtos & Serviços" 
-            active={activeScreen === 'inventory'} 
-            collapsed={isSidebarCollapsed}
-            onClick={() => { setActiveScreen('inventory'); setIsSidebarOpen(false); }} 
-          />
-
-          <div className={cn(
-            "px-4 overflow-hidden transition-all duration-300",
-            isSidebarCollapsed ? "pt-4 pb-2" : "pt-8 pb-4"
-          )}>
-            {isSidebarCollapsed ? (
-              <div className="h-px bg-white/5 w-full" />
-            ) : (
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">Financeiro</p>
-            )}
-          </div>
-
-          {hasPermission('manage_transactions') && (
-            <SidebarItem 
-              icon={ReceiptText} 
-              label="Transações Diárias" 
-              active={activeScreen === 'transactions'} 
-              collapsed={isSidebarCollapsed}
-              onClick={() => { setActiveScreen('transactions'); setIsSidebarOpen(false); }} 
-            />
-          )}
-
-          {hasPermission('view_reports') && (
-            <SidebarItem 
-              icon={BarChart3} 
-              label="Relatórios" 
-              active={activeScreen === 'reports'} 
-              collapsed={isSidebarCollapsed}
-              onClick={() => { setActiveScreen('reports'); setIsSidebarOpen(false); }} 
-            />
-          )}
-          
-          {(hasPermission('manage_customers') || hasPermission('manage_payments')) && (
-            <div className={cn(
-              "px-4 overflow-hidden transition-all duration-300",
-              isSidebarCollapsed ? "pt-4 pb-2" : "pt-8 pb-4"
-            )}>
-              {isSidebarCollapsed ? (
-                <div className="h-px bg-white/5 w-full" />
-              ) : (
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">Clientes</p>
-              )}
-            </div>
-          )}
-
-          {hasPermission('manage_customers') && (
-            <SidebarItem 
-              icon={Users} 
-              label="Gestão de Clientes" 
-              active={activeScreen === 'customers'} 
-              collapsed={isSidebarCollapsed}
-              onClick={() => { setActiveScreen('customers'); setIsSidebarOpen(false); }} 
-            />
-          )}
-
-          {hasPermission('manage_payments') && (
-            <SidebarItem 
-              icon={CreditCard} 
-              label="Vendas e Pagamentos" 
-              active={activeScreen === 'client-payments'} 
-              collapsed={isSidebarCollapsed}
-              onClick={() => { setActiveScreen('client-payments'); setIsSidebarOpen(false); }} 
-            />
-          )}
-          
-          <div className={cn(
-            "px-4 overflow-hidden transition-all duration-300",
-            isSidebarCollapsed ? "pt-4 pb-2" : "pt-8 pb-4"
-          )}>
-            {isSidebarCollapsed ? (
-              <div className="h-px bg-white/5 w-full" />
-            ) : (
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">Sistema</p>
-            )}
-          </div>
-          
-          {hasPermission('manage_settings') && (
-            <SidebarItem 
-              icon={Settings} 
-              label="Configurações" 
-              active={activeScreen === 'settings'} 
-              collapsed={isSidebarCollapsed}
-              onClick={() => { 
-                if (isSettingsUnlocked) {
-                  setActiveScreen('settings'); 
-                } else {
-                  setShowPasswordModal(true);
-                }
-                setIsSidebarOpen(false); 
-              }} 
-            />
-          )}
-
-          <button
-            onClick={handleLogout}
-            className={cn(
-              "flex items-center gap-3 w-full px-4 py-3 rounded-2xl transition-all duration-300 text-rose-500 hover:bg-rose-500/10 hover:text-rose-400 group relative",
-              isSidebarCollapsed && "justify-center px-0 py-2.5"
-            )}
-          >
-            <LogOut size={20} className="shrink-0" />
-            <AnimatePresence mode="wait">
-              {!isSidebarCollapsed && (
-                <motion.span 
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: "auto" }}
-                  exit={{ opacity: 0, width: 0 }}
-                  className="font-bold text-sm tracking-tight whitespace-nowrap overflow-hidden"
-                >
-                  Sair
-                </motion.span>
-              )}
-            </AnimatePresence>
-            {isSidebarCollapsed && (
-              <div className="absolute left-full ml-4 px-3 py-2 bg-slate-800 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-[100] border border-white/10 shadow-2xl translate-x-2 group-hover:translate-x-0">
-                Sair
-                <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-800 border-l border-b border-white/10 rotate-45" />
-              </div>
-            )}
-          </button>
-        </nav>
-
-        <div className={cn(
-          "border-t border-white/5 transition-all duration-300",
-          isSidebarCollapsed ? "p-2" : "p-6"
-        )}>
-          <div className={cn(
-            "flex items-center gap-4 rounded-2xl bg-white/5 border border-white/5 relative group hover:bg-white/10 transition-all",
-            isSidebarCollapsed ? "justify-center p-1.5" : "p-3"
-          )}>
-            <div className={cn(
-              "shrink-0 rounded-full bg-slate-700 overflow-hidden border-2 border-primary/20 transition-all",
-              isSidebarCollapsed ? "h-9 w-9" : "h-10 w-10"
-            )}>
-              <img 
-                src={settings.profileAvatar} 
-                alt="Perfil" 
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-            <AnimatePresence mode="wait">
-              {!isSidebarCollapsed && (
-                <motion.div 
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: "auto" }}
-                  exit={{ opacity: 0, width: 0 }}
-                  className="flex-1 min-w-0 overflow-hidden"
-                >
-                  <p className="text-sm font-bold truncate">{currentUser?.name || settings.profileName}</p>
-                  <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
-                    {currentUser?.role === 'owner' ? 'Admin' : currentUser?.role === 'manager' ? 'Gerente' : 'Funcionário'}
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            {isSidebarCollapsed && (
-              <div className="absolute left-full ml-4 px-3 py-2 bg-slate-800 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-[100] border border-white/10 shadow-2xl translate-x-2 group-hover:translate-x-0">
-                {currentUser?.name || settings.profileName}
-                <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-800 border-l border-b border-white/10 rotate-45" />
-              </div>
-            )}
-          </div>
-        </div>
-      </aside>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
-        <header className={cn(
-          "h-20 border-b border-white/5 flex items-center justify-between px-6 lg:px-10 bg-bg-dark/80 backdrop-blur-md sticky top-0 transition-all",
-          showNotifications ? "z-[60]" : "z-30"
-        )}>
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 text-slate-400 hover:bg-white/5 rounded-xl transition-colors"
-            >
-              <LayoutDashboard size={20} />
-            </button>
-            <h2 className="text-xl font-bold tracking-tight">
-              {getHeaderConfig().title}
-            </h2>
-            <span className="hidden sm:inline-block px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              Ano Fiscal {settings.fiscalYear}
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl p-1">
-              <button
-                onClick={() => setFontSize(Math.max(fontSize - 2, 12))}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                title="Diminuir fonte"
-              >
-                <span className="text-sm font-bold">A-</span>
-              </button>
-              <button
-                onClick={() => setFontSize(16)}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                title="Tamanho original"
-              >
-                <span className="text-sm font-bold">A</span>
-              </button>
-              <button
-                onClick={() => setFontSize(Math.min(fontSize + 2, 24))}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                title="Aumentar fonte"
-              >
-                <span className="text-sm font-bold">A+</span>
-              </button>
-            </div>
-
-            <div className="relative">
-              <button 
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2.5 text-slate-400 hover:bg-white/5 rounded-xl transition-colors relative z-50"
-              >
-                <Bell size={20} />
-                {totalNotifications > 0 && (
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-bg-dark"></span>
-                )}
-              </button>
-
-              <AnimatePresence>
-                {showNotifications && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 mt-2 w-80 glass-card border border-white/10 shadow-2xl z-50 overflow-hidden"
-                  >
-                      <div className="p-4 border-b border-white/5 bg-white/5">
-                        <h3 className="font-bold text-sm tracking-tight mb-3">Notificações</h3>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setNotificationTab('payments')}
-                            className={cn(
-                              "flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-colors relative",
-                              notificationTab === 'payments' ? "bg-primary/20 text-primary" : "text-slate-400 hover:bg-white/5"
-                            )}
-                          >
-                            Pagamentos
-                            {totalPaymentNotifications > 0 && (
-                              <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
-                            )}
-                          </button>
-                          <button
-                            onClick={() => setNotificationTab('service-orders')}
-                            className={cn(
-                              "flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-colors relative",
-                              notificationTab === 'service-orders' ? "bg-primary/20 text-primary" : "text-slate-400 hover:bg-white/5"
-                            )}
-                          >
-                            Ordens de Serviço
-                            {totalServiceOrderNotifications > 0 && (
-                              <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="max-h-96 overflow-y-auto p-2 space-y-1">
-                        {notificationTab === 'payments' ? (
-                          totalPaymentNotifications === 0 ? (
-                            <div className="p-8 text-center flex flex-col items-center justify-center gap-3">
-                              <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-slate-500">
-                                <Bell size={20} />
-                              </div>
-                              <p className="text-slate-500 text-sm font-medium">Nenhuma notificação</p>
-                              <p className="text-[10px] text-slate-600 uppercase tracking-widest">Tudo em dia!</p>
-                            </div>
-                          ) : (
-                            <>
-                              {overdueDebts.map(p => (
-                                <div key={p.id} className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex flex-col gap-1 cursor-pointer hover:bg-rose-500/20 transition-colors" onClick={() => { setActiveScreen('client-payments'); setShowNotifications(false); }}>
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-xs font-bold text-rose-500 uppercase tracking-widest">Vencido</span>
-                                    <span className="text-[10px] text-slate-400">{format(parseISO(p.dueDate), 'dd/MM')}</span>
-                                  </div>
-                                  <p className="text-sm font-bold truncate">{p.customerName}</p>
-                                  <p className="text-xs text-slate-300 truncate">{p.description}</p>
-                                  <p className="text-sm font-black text-rose-500">{formatCurrency(p.totalAmount - p.paidAmount)}</p>
-                                </div>
-                              ))}
-                              {dueTodayDebts.map(p => (
-                                <div key={p.id} className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col gap-1 cursor-pointer hover:bg-amber-500/20 transition-colors" onClick={() => { setActiveScreen('client-payments'); setShowNotifications(false); }}>
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Vence Hoje</span>
-                                    <span className="text-[10px] text-slate-400">{format(parseISO(p.dueDate), 'dd/MM')}</span>
-                                  </div>
-                                  <p className="text-sm font-bold truncate">{p.customerName}</p>
-                                  <p className="text-xs text-slate-300 truncate">{p.description}</p>
-                                  <p className="text-sm font-black text-amber-500">{formatCurrency(p.totalAmount - p.paidAmount)}</p>
-                                </div>
-                              ))}
-                              {upcomingDebts.map(p => (
-                                <div key={p.id} className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex flex-col gap-1 cursor-pointer hover:bg-yellow-500/20 transition-colors" onClick={() => { setActiveScreen('client-payments'); setShowNotifications(false); }}>
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-xs font-bold text-yellow-500 uppercase tracking-widest">Vence em Breve</span>
-                                    <span className="text-[10px] text-slate-400">{format(parseISO(p.dueDate), 'dd/MM')}</span>
-                                  </div>
-                                  <p className="text-sm font-bold truncate">{p.customerName}</p>
-                                  <p className="text-xs text-slate-300 truncate">{p.description}</p>
-                                  <p className="text-sm font-black text-yellow-500">{formatCurrency(p.totalAmount - p.paidAmount)}</p>
-                                </div>
-                              ))}
-                            </>
-                          )
-                        ) : (
-                          totalServiceOrderNotifications === 0 ? (
-                            <div className="p-8 text-center flex flex-col items-center justify-center gap-3">
-                              <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-slate-500">
-                                <Bell size={20} />
-                              </div>
-                              <p className="text-slate-500 text-sm font-medium">Nenhuma notificação</p>
-                              <p className="text-[10px] text-slate-600 uppercase tracking-widest">Tudo em dia!</p>
-                            </div>
-                          ) : (
-                            <>
-                              {overdueServiceOrders.map(o => (
-                                <div key={o.id} className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex flex-col gap-1 cursor-pointer hover:bg-rose-500/20 transition-colors" onClick={() => { setActiveScreen('service-orders'); setShowNotifications(false); }}>
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-xs font-bold text-rose-500 uppercase tracking-widest">Atrasado</span>
-                                    <span className="text-[10px] text-slate-400">{o.analysisPrediction && format(parseISO(o.analysisPrediction), 'dd/MM')}</span>
-                                  </div>
-                                  <p className="text-sm font-bold truncate">OS #{o.id.toString().padStart(4, '0')} - {o.firstName} {o.lastName}</p>
-                                  <p className="text-xs text-slate-300 truncate">{o.equipmentBrand} {o.equipmentModel}</p>
-                                  <p className="text-xs font-bold text-slate-400">{o.status}</p>
-                                </div>
-                              ))}
-                              {dueTodayServiceOrders.map(o => (
-                                <div key={o.id} className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col gap-1 cursor-pointer hover:bg-amber-500/20 transition-colors" onClick={() => { setActiveScreen('service-orders'); setShowNotifications(false); }}>
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Previsão Hoje</span>
-                                    <span className="text-[10px] text-slate-400">{o.analysisPrediction && format(parseISO(o.analysisPrediction), 'dd/MM')}</span>
-                                  </div>
-                                  <p className="text-sm font-bold truncate">OS #{o.id.toString().padStart(4, '0')} - {o.firstName} {o.lastName}</p>
-                                  <p className="text-xs text-slate-300 truncate">{o.equipmentBrand} {o.equipmentModel}</p>
-                                  <p className="text-xs font-bold text-slate-400">{o.status}</p>
-                                </div>
-                              ))}
-                              {upcomingServiceOrders.map(o => (
-                                <div key={o.id} className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex flex-col gap-1 cursor-pointer hover:bg-yellow-500/20 transition-colors" onClick={() => { setActiveScreen('service-orders'); setShowNotifications(false); }}>
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-xs font-bold text-yellow-500 uppercase tracking-widest">Previsão em Breve</span>
-                                    <span className="text-[10px] text-slate-400">{o.analysisPrediction && format(parseISO(o.analysisPrediction), 'dd/MM')}</span>
-                                  </div>
-                                  <p className="text-sm font-bold truncate">OS #{o.id.toString().padStart(4, '0')} - {o.firstName} {o.lastName}</p>
-                                  <p className="text-xs text-slate-300 truncate">{o.equipmentBrand} {o.equipmentModel}</p>
-                                  <p className="text-xs font-bold text-slate-400">{o.status}</p>
-                                </div>
-                              ))}
-                            </>
-                          )
-                        )}
-                      </div>
-                      <div className="p-3 border-t border-white/5 bg-white/5">
-                        {notificationTab === 'payments' ? (
-                          <button 
-                            onClick={() => { setActiveScreen('client-payments'); setShowNotifications(false); }}
-                            className="w-full py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-colors"
-                          >
-                            Ver Todos os Pagamentos
-                          </button>
-                        ) : (
-                          <button 
-                            onClick={() => { setActiveScreen('service-orders'); setShowNotifications(false); }}
-                            className="w-full py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/10 transition-colors"
-                          >
-                            Ver Todas as Ordens de Serviço
-                          </button>
-                        )}
-                      </div>
-                    </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-            <div className="h-8 w-[1px] bg-white/10 mx-2 hidden sm:block"></div>
-            <div className="flex gap-2">
-               {getHeaderConfig().export && (
-                 <button 
-                  onClick={getHeaderConfig().export?.onClick}
-                  className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-400 hover:text-slate-200 hover:bg-white/[0.03] border border-white/10 transition-all hover:border-white/20"
-                >
-                  {React.createElement(getHeaderConfig().export?.icon || Download, { size: 16 })}
-                  {getHeaderConfig().export?.label || 'Exportar'}
-                </button>
-               )}
-               {getHeaderConfig().newButton && (
-                <button 
-                  onClick={getHeaderConfig().newButton?.onClick}
-                  className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-[0_10px_20px_-5px_rgba(17,82,212,0.4)] hover:shadow-[0_15px_25px_-5px_rgba(17,82,212,0.5)] hover:scale-[1.02] active:scale-95"
-                >
-                  {React.createElement(getHeaderConfig().newButton?.icon || Plus, { size: 18 })}
-                  {getHeaderConfig().newButton?.label}
-                </button>
-               )}
-            </div>
-          </div>
-        </header>
+        <Header 
+          activeScreen={activeScreen}
+          setActiveScreen={setActiveScreen}
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          fontSize={fontSize}
+          setFontSize={setFontSize}
+          showNotifications={showNotifications}
+          setShowNotifications={setShowNotifications}
+          notificationTab={notificationTab}
+          setNotificationTab={setNotificationTab}
+          totalNotifications={totalNotifications}
+          totalPaymentNotifications={totalPaymentNotifications}
+          totalServiceOrderNotifications={totalServiceOrderNotifications}
+          overdueDebts={overdueDebts}
+          dueTodayDebts={dueTodayDebts}
+          upcomingDebts={upcomingDebts}
+          overdueServiceOrders={overdueServiceOrders}
+          dueTodayServiceOrders={dueTodayServiceOrders}
+          upcomingServiceOrders={upcomingServiceOrders}
+          getHeaderConfig={getHeaderConfig}
+        />
 
         <div className="p-6 lg:p-10 max-w-7xl mx-auto w-full space-y-10">
           {activeScreen === 'dashboard' ? (
@@ -2352,7 +1621,7 @@ export default function App() {
             />
           ) : activeScreen === 'customers' ? (
             <Customers 
-              customers={customers}
+              customers={{ ...customers, data: filteredCustomers }}
               clientPayments={clientPayments}
               onDelete={(id) => {
                 const customer = customers.data.find(c => c.id === id);
@@ -2390,7 +1659,7 @@ export default function App() {
             />
           ) : activeScreen === 'service-orders' ? (
             <ServiceOrders 
-              orders={serviceOrders}
+              orders={{ ...serviceOrders, data: filteredServiceOrders }}
               customers={customers}
               inventoryItems={inventoryItems}
               statuses={serviceOrderStatuses}
@@ -2431,7 +1700,7 @@ export default function App() {
             />
           ) : activeScreen === 'inventory' ? (
             <Inventory
-              items={inventoryItems}
+              items={filteredInventory}
               onAddItem={handleAddInventoryItem}
               onUpdateItem={handleUpdateInventoryItem}
               onDeleteItem={handleDeleteInventoryItem}
@@ -2462,58 +1731,7 @@ export default function App() {
         </div>
 
         {/* Mobile Bottom Navigation */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-bg-dark/80 backdrop-blur-xl border-t border-white/10 px-4 py-2 flex items-center justify-around pb-safe">
-          <button 
-            onClick={() => setActiveScreen('dashboard')}
-            className={cn(
-              "flex flex-col items-center gap-1 p-2 transition-all",
-              activeScreen === 'dashboard' ? "text-primary" : "text-slate-500"
-            )}
-          >
-            <LayoutDashboard size={20} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Início</span>
-          </button>
-          <button 
-            onClick={() => setActiveScreen('service-orders')}
-            className={cn(
-              "flex flex-col items-center gap-1 p-2 transition-all",
-              activeScreen === 'service-orders' ? "text-primary" : "text-slate-500"
-            )}
-          >
-            <Briefcase size={20} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Ordens</span>
-          </button>
-          <button 
-            onClick={() => setActiveScreen('client-payments')}
-            className={cn(
-              "flex flex-col items-center gap-1 p-2 transition-all",
-              activeScreen === 'client-payments' ? "text-primary" : "text-slate-500"
-            )}
-          >
-            <CreditCard size={20} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Vendas</span>
-          </button>
-          <button 
-            onClick={() => setActiveScreen('customers')}
-            className={cn(
-              "flex flex-col items-center gap-1 p-2 transition-all",
-              activeScreen === 'customers' ? "text-primary" : "text-slate-500"
-            )}
-          >
-            <Users size={20} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Clientes</span>
-          </button>
-          <button 
-            onClick={() => setActiveScreen('inventory')}
-            className={cn(
-              "flex flex-col items-center gap-1 p-2 transition-all",
-              activeScreen === 'inventory' ? "text-primary" : "text-slate-500"
-            )}
-          >
-            <Package size={20} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Estoque</span>
-          </button>
-        </div>
+        <MobileNav activeScreen={activeScreen} setActiveScreen={setActiveScreen} />
 
         <footer className="py-10 px-10 text-center border-t border-white/5">
           <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">© 2024 FinanceFlow Inc. Todos os direitos reservados.</p>

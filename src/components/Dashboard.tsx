@@ -11,9 +11,6 @@ import {
 import { StatCard } from './StatCard';
 import { formatCurrency, formatMonthYear } from '../lib/utils';
 
-import { useFilterStore } from '../store/useFilterStore';
-import { useSettingsStore } from '../store/useSettingsStore';
-
 interface DashboardProps {
   totalIncome: number;
   totalExpenses: number;
@@ -22,6 +19,10 @@ interface DashboardProps {
   handleChartClick: (data: any) => void;
   sortedIncomeRanking: [string, number][];
   sortedExpenseRanking: [string, number][];
+  initialBalance: number;
+  dashboardMonth: string;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
 }
 
 export const Dashboard = ({
@@ -31,10 +32,12 @@ export const Dashboard = ({
   chartData,
   handleChartClick,
   sortedIncomeRanking,
-  sortedExpenseRanking
+  sortedExpenseRanking,
+  initialBalance,
+  dashboardMonth,
+  onPrevMonth,
+  onNextMonth
 }: DashboardProps) => {
-  const { settings } = useSettingsStore();
-  const { dashboardMonth, handlePrevMonth, handleNextMonth } = useFilterStore();
 
   return (
     <>
@@ -42,7 +45,7 @@ export const Dashboard = ({
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard 
           title="Saldo Inicial" 
-          value={settings.initialBalance} 
+          value={initialBalance} 
           change="Configurado" 
           trend="up" 
           icon={Briefcase} 
@@ -184,13 +187,13 @@ export const Dashboard = ({
               <p className="text-[10px] md:text-xs text-slate-500 font-medium">Categorias mais rentáveis</p>
             </div>
             <div className="flex items-center justify-between sm:justify-center gap-2 bg-white/5 rounded-xl border border-white/10 p-1 w-full sm:w-auto">
-              <button onClick={handlePrevMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
+              <button onClick={onPrevMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
                 <ChevronLeft size={16} />
               </button>
               <span className="text-xs font-bold uppercase tracking-widest min-w-[100px] text-center">
                 {formatMonthYear(dashboardMonth)}
               </span>
-              <button onClick={handleNextMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
+              <button onClick={onNextMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
                 <ChevronRight size={16} />
               </button>
             </div>
@@ -233,13 +236,13 @@ export const Dashboard = ({
               <p className="text-[10px] md:text-xs text-slate-500 font-medium">Maiores despesas por categoria</p>
             </div>
             <div className="flex items-center justify-between sm:justify-center gap-2 bg-white/5 rounded-xl border border-white/10 p-1 w-full sm:w-auto">
-              <button onClick={handlePrevMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
+              <button onClick={onPrevMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
                 <ChevronLeft size={16} />
               </button>
               <span className="text-xs font-bold uppercase tracking-widest min-w-[100px] text-center">
                 {formatMonthYear(dashboardMonth)}
               </span>
-              <button onClick={handleNextMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
+              <button onClick={onNextMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
                 <ChevronRight size={16} />
               </button>
             </div>

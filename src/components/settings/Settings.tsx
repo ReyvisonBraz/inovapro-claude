@@ -15,24 +15,30 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { useAuthStore } from '../../store/useAuthStore';
 
 interface SettingsProps {
+  settings: AppSettings;
+  onUpdateSettings: (settings: Partial<AppSettings>) => void;
   categories: Category[];
-  addCategory: (name: string, type: 'income' | 'expense') => void;
-  deleteCategory: (id: number) => void;
-  addUser: (user: Omit<UserType, 'id'>) => void;
-  updateUser: (id: number, user: Partial<UserType>) => void;
-  deleteUser: (id: number) => void;
+  onAddCategory: (name: string, type: 'income' | 'expense') => void;
+  onDeleteCategory: (id: number) => void;
+  users: UserType[];
+  onAddUser: (user: Omit<UserType, 'id'>) => void;
+  onUpdateUser: (id: number, user: Partial<UserType>) => void;
+  onDeleteUser: (id: number) => void;
+  auditLogs: any[];
 }
 
 const Settings: React.FC<SettingsProps> = ({
+  settings,
+  onUpdateSettings,
   categories,
-  addCategory,
-  deleteCategory,
-  addUser,
-  updateUser,
-  deleteUser
+  onAddCategory,
+  onDeleteCategory,
+  users,
+  onAddUser,
+  onUpdateUser,
+  onDeleteUser,
+  auditLogs
 }) => {
-  const { settings, setSettings: updateSettings } = useSettingsStore();
-  const { users, auditLogs } = useAuthStore();
   const [activeTab, setActiveTab] = React.useState('general');
   const [newCategoryName, setNewCategoryName] = React.useState('');
   const [newCategoryType, setNewCategoryType] = React.useState<'income' | 'expense'>('income');
@@ -65,7 +71,7 @@ const Settings: React.FC<SettingsProps> = ({
   ];
 
   const handleUpdatePassword = () => {
-    updateSettings({ settingsPassword: localPassword });
+    onUpdateSettings({ settingsPassword: localPassword });
     showToast('Senha de configurações atualizada!', 'success');
   };
 
@@ -104,10 +110,10 @@ const Settings: React.FC<SettingsProps> = ({
     }
 
     if (editingUser) {
-      updateUser(editingUser.id, userForm);
+      onUpdateUser(editingUser.id, userForm);
       showToast('Usuário atualizado!', 'success');
     } else {
-      addUser(userForm);
+      onAddUser(userForm);
       showToast('Usuário adicionado!', 'success');
     }
 
@@ -158,7 +164,7 @@ const Settings: React.FC<SettingsProps> = ({
                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Nome do Aplicativo</label>
                     <input 
                       value={settings.appName}
-                      onChange={(e) => updateSettings({ appName: e.target.value })}
+                      onChange={(e) => onUpdateSettings({ appName: e.target.value })}
                       className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
                     />
                   </div>
@@ -166,7 +172,7 @@ const Settings: React.FC<SettingsProps> = ({
                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Moeda</label>
                     <select 
                       value={settings.currency}
-                      onChange={(e) => updateSettings({ currency: e.target.value })}
+                      onChange={(e) => onUpdateSettings({ currency: e.target.value })}
                       className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
                     >
                       <option value="BRL">Real (R$)</option>
@@ -182,7 +188,7 @@ const Settings: React.FC<SettingsProps> = ({
                     <p className="text-xs text-slate-500">Mostrar avisos de sistema</p>
                   </div>
                   <button 
-                    onClick={() => updateSettings({ showWarnings: !settings.showWarnings })}
+                    onClick={() => onUpdateSettings({ showWarnings: !settings.showWarnings })}
                     className={cn(
                       "w-12 h-6 rounded-full transition-all relative",
                       settings.showWarnings ? "bg-primary" : "bg-slate-700"
@@ -217,7 +223,7 @@ const Settings: React.FC<SettingsProps> = ({
                   <button 
                     onClick={() => {
                       if (newCategoryName) {
-                        addCategory(newCategoryName, newCategoryType);
+                        onAddCategory(newCategoryName, newCategoryType);
                         setNewCategoryName('');
                         showToast('Categoria adicionada!', 'success');
                       }
@@ -240,7 +246,7 @@ const Settings: React.FC<SettingsProps> = ({
                       </div>
                       <button 
                         onClick={() => {
-                          deleteCategory(cat.id);
+                          onDeleteCategory(cat.id);
                           showToast('Categoria removida!', 'info');
                         }}
                         className="p-2 text-slate-500 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
@@ -270,7 +276,7 @@ const Settings: React.FC<SettingsProps> = ({
                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Client ID</label>
                     <input 
                       value={settings.sendPulseClientId || ''}
-                      onChange={(e) => updateSettings({ sendPulseClientId: e.target.value })}
+                      onChange={(e) => onUpdateSettings({ sendPulseClientId: e.target.value })}
                       placeholder="Seu Client ID da SendPulse"
                       className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
                     />
@@ -280,7 +286,7 @@ const Settings: React.FC<SettingsProps> = ({
                     <input 
                       type="password"
                       value={settings.sendPulseClientSecret || ''}
-                      onChange={(e) => updateSettings({ sendPulseClientSecret: e.target.value })}
+                      onChange={(e) => onUpdateSettings({ sendPulseClientSecret: e.target.value })}
                       placeholder="Seu Client Secret da SendPulse"
                       className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
                     />
@@ -289,7 +295,7 @@ const Settings: React.FC<SettingsProps> = ({
                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Template ID (WhatsApp)</label>
                     <input 
                       value={settings.sendPulseTemplateId || ''}
-                      onChange={(e) => updateSettings({ sendPulseTemplateId: e.target.value })}
+                      onChange={(e) => onUpdateSettings({ sendPulseTemplateId: e.target.value })}
                       placeholder="ID do Template de Mensagem"
                       className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
                     />
@@ -414,7 +420,7 @@ const Settings: React.FC<SettingsProps> = ({
                             <Edit2 size={16} />
                           </button>
                           <button 
-                            onClick={() => deleteUser(user.id)}
+                            onClick={() => onDeleteUser(user.id)}
                             className="p-2 text-slate-500 hover:text-rose-500 transition-all"
                           >
                             <Trash2 size={16} />

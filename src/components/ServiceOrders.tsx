@@ -22,13 +22,6 @@ import { ServiceOrderItem } from '../types';
 
 import { Pagination } from './ui/Pagination';
 
-import { useSettingsStore } from '../store/useSettingsStore';
-import { useAppStore } from '../store/useAppStore';
-import { useFilterStore } from '../store/useFilterStore';
-import { useModalStore } from '../store/useModalStore';
-import { useAuthStore } from '../store/useAuthStore';
-import { useFormStore } from '../store/useFormStore';
-
 interface ServiceOrdersProps {
   orders: { data: ServiceOrder[], meta: any };
   customers: { data: Customer[], meta: any };
@@ -47,7 +40,6 @@ interface ServiceOrdersProps {
   onAddBrand: (name: string, equipmentType: string) => void;
   onAddModel: (brandId: number, name: string) => void;
   onPrintBlankForm: () => void;
-  onTriggerAddCustomer: () => void;
   pagination: {
     currentPage: number;
     totalPages: number;
@@ -55,6 +47,23 @@ interface ServiceOrdersProps {
     limit: number;
   };
   onPageChange: (page: number) => void;
+  settings: AppSettings;
+  isAdding: boolean;
+  setIsAdding: (isAdding: boolean) => void;
+  directOsId: number | null;
+  setDirectOsId: (id: number | null) => void;
+  directMode: string | null;
+  searchTerm: string;
+  onSearchChange: (term: string) => void;
+  statusFilter: string;
+  onStatusFilterChange: (status: string) => void;
+  priorityFilter: string;
+  onPriorityFilterChange: (priority: string) => void;
+  sortBy: string;
+  onSortByChange: (sortBy: string) => void;
+  onOpenConfirm: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
+  onTriggerAddCustomer: () => void;
+  currentUser: User | null;
 }
 
 export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
@@ -76,27 +85,25 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   onAddModel,
   onPrintBlankForm,
   pagination,
-  onPageChange
+  onPageChange,
+  settings,
+  isAdding,
+  setIsAdding,
+  directOsId,
+  setDirectOsId,
+  directMode,
+  searchTerm,
+  onSearchChange,
+  statusFilter,
+  onStatusFilterChange,
+  priorityFilter,
+  onPriorityFilterChange,
+  sortBy,
+  onSortByChange,
+  onOpenConfirm,
+  onTriggerAddCustomer,
+  currentUser
 }) => {
-  const { settings } = useSettingsStore();
-  const { 
-    isAddingServiceOrder: isAdding, 
-    setIsAddingServiceOrder: setIsAdding,
-    directOsId,
-    directMode,
-    setDirectOsId,
-    setIsAddingCustomer
-  } = useAppStore();
-  const { 
-    osSearchTerm: searchTerm, setOsSearchTerm: setSearchTerm,
-    osStatusFilter: statusFilter, setOsStatusFilter: setStatusFilter,
-    osPriorityFilter: priorityFilter, setOsPriorityFilter: setPriorityFilter,
-    osSortBy: sortBy, setOsSortBy: setSortBy
-  } = useFilterStore();
-  const { openConfirm, setEditingCustomer } = useModalStore();
-  const { currentUser } = useAuthStore();
-  const { setNewCustomer } = useFormStore();
-
   const [editingOrder, setEditingOrder] = useState<ServiceOrder | null>(null);
   const [showStatusManager, setShowStatusManager] = useState(false);
   const [isAddingStatus, setIsAddingStatus] = useState(false);
@@ -223,21 +230,6 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   }, [directOsId, orders, directMode]);
 
   const onClearDirectOsId = () => setDirectOsId(null);
-
-  const onTriggerAddCustomer = () => {
-    setEditingCustomer(null);
-    setNewCustomer({
-      firstName: '',
-      lastName: '',
-      nickname: '',
-      cpf: '',
-      companyName: '',
-      phone: '',
-      observation: '',
-      creditLimit: ''
-    });
-    setIsAddingCustomer(true);
-  };
 
   // New states for Print and WhatsApp
   const [showPrintModal, setShowPrintModal] = useState(false);
@@ -369,7 +361,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     });
 
     // Option to send via WhatsApp after saving
-    openConfirm(
+    onOpenConfirm(
       'Enviar via WhatsApp',
       'Deseja enviar a Ordem de Serviço via WhatsApp agora?',
       () => {
@@ -940,7 +932,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                 type="text"
                 placeholder="Buscar por cliente, equipamento ou número da OS..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => onSearchChange(e.target.value)}
                 className="w-full h-12 pl-12 pr-4 bg-white/5 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
               />
             </div>
@@ -955,7 +947,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
           <div className="flex flex-wrap gap-2 w-full md:w-auto">
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => onStatusFilterChange(e.target.value)}
               className="flex-1 md:w-auto h-12 px-4 bg-white/5 border border-white/10 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
             >
               <option value="all">Todos os Status</option>
@@ -966,7 +958,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
 
             <select
               value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
+              onChange={(e) => onPriorityFilterChange(e.target.value)}
               className="flex-1 md:w-auto h-12 px-4 bg-white/5 border border-white/10 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
             >
               <option value="all">Todas Prioridades</option>
@@ -977,7 +969,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
 
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              onChange={(e) => onSortByChange(e.target.value)}
               className="flex-1 md:w-auto h-12 px-4 bg-white/5 border border-white/10 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
             >
               <option value="newest">Mais Recentes</option>
@@ -1189,7 +1181,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
                         warningMessage += `\n\n⚠️ ATENÇÃO: Existem pagamentos registrados para esta Ordem de Serviço no módulo de Contas a Receber. Recomenda-se verificar antes de excluir.`;
                       }
 
-                      openConfirm(
+                      onOpenConfirm(
                         'Excluir Ordem de Serviço',
                         warningMessage,
                         () => onDeleteOrder(order.id),

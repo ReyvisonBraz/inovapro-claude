@@ -69,6 +69,7 @@ export interface Category {
   id: number;
   name: string;
   type: 'income' | 'expense';
+  limit?: number;
 }
 
 export interface AppSettings {

@@ -9,11 +9,6 @@ import { RecordPaymentModal } from './modals/RecordPaymentModal';
 
 import { Pagination } from './ui/Pagination';
 
-import { useAppStore } from '../store/useAppStore';
-import { useFilterStore } from '../store/useFilterStore';
-import { useModalStore } from '../store/useModalStore';
-import { useFormStore } from '../store/useFormStore';
-
 interface ClientPaymentsProps {
   filteredClientPayments: ClientPayment[];
   generateReceipt: (payment: ClientPayment, type: 'simple' | 'a4') => void;
@@ -31,6 +26,24 @@ interface ClientPaymentsProps {
     limit: number;
   };
   onPageChange: (page: number) => void;
+  isAddingClientPayment: boolean;
+  setIsAddingClientPayment: (value: boolean) => void;
+  expandedPayments: number[];
+  togglePaymentExpansion: (id: number) => void;
+  paymentSearchTerm: string;
+  setPaymentSearchTerm: (value: string) => void;
+  paymentFilterStatus: string;
+  setPaymentFilterStatus: (value: string) => void;
+  paymentSortMode: string;
+  setPaymentSortMode: (value: string) => void;
+  isRecordingPayment: ClientPayment | null;
+  setIsRecordingPayment: (payment: ClientPayment | null) => void;
+  paymentAmount: string;
+  setPaymentAmount: (value: string) => void;
+  paymentDate: string;
+  setPaymentDate: (value: string) => void;
+  newClientPayment: any;
+  setNewClientPayment: (payment: any) => void;
 }
 
 export const ClientPayments = ({
@@ -44,23 +57,26 @@ export const ClientPayments = ({
   handleAddClientPayment,
   isSaving,
   pagination,
-  onPageChange
+  onPageChange,
+  isAddingClientPayment,
+  setIsAddingClientPayment,
+  expandedPayments,
+  togglePaymentExpansion,
+  paymentSearchTerm,
+  setPaymentSearchTerm,
+  paymentFilterStatus,
+  setPaymentFilterStatus,
+  paymentSortMode,
+  setPaymentSortMode,
+  isRecordingPayment,
+  setIsRecordingPayment,
+  paymentAmount,
+  setPaymentAmount,
+  paymentDate,
+  setPaymentDate,
+  newClientPayment,
+  setNewClientPayment
 }: ClientPaymentsProps) => {
-  const { 
-    isAddingClientPayment, setIsAddingClientPayment,
-    expandedPayments, togglePaymentExpansion
-  } = useAppStore();
-  const {
-    paymentSearchTerm, setPaymentSearchTerm,
-    paymentFilterStatus, setPaymentFilterStatus,
-    paymentSortMode, setPaymentSortMode
-  } = useFilterStore();
-  const {
-    isRecordingPayment, setIsRecordingPayment,
-    paymentAmount, setPaymentAmount,
-    paymentDate, setPaymentDate
-  } = useModalStore();
-  const { newClientPayment, setNewClientPayment } = useFormStore();
 
   const groupedPayments = React.useMemo(() => {
     const groups: { [key: string]: ClientPayment[] } = {};
