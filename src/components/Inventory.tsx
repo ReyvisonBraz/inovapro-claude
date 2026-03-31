@@ -10,14 +10,15 @@ import { cn, formatCurrency } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useToast } from './ui/Toast';
 
+import { useAppStore } from '../store/useAppStore';
+import { useFilterStore } from '../store/useFilterStore';
+import { useModalStore } from '../store/useModalStore';
+
 interface InventoryProps {
   items: InventoryItem[];
   onAddItem: (item: any) => void;
   onUpdateItem: (id: number, item: any) => void;
   onDeleteItem: (id: number) => void;
-  openConfirm: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
-  isAdding?: boolean;
-  setIsAdding?: (value: boolean) => void;
 }
 
 export const Inventory: React.FC<InventoryProps> = ({
@@ -25,17 +26,14 @@ export const Inventory: React.FC<InventoryProps> = ({
   onAddItem,
   onUpdateItem,
   onDeleteItem,
-  openConfirm,
-  isAdding: isAddingProp,
-  setIsAdding: setIsAddingProp,
 }) => {
   const { showToast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'product' | 'service'>('all');
-  const [isAddingLocal, setIsAddingLocal] = useState(false);
-  
-  const isAdding = isAddingProp !== undefined ? isAddingProp : isAddingLocal;
-  const setIsAdding = setIsAddingProp !== undefined ? setIsAddingProp : setIsAddingLocal;
+  const { 
+    inventorySearchTerm: searchTerm, setInventorySearchTerm: setSearchTerm,
+    inventoryCategoryFilter: categoryFilter, setInventoryCategoryFilter: setCategoryFilter
+  } = useFilterStore();
+  const { isAddingInventoryItem: isAdding, setIsAddingInventoryItem: setIsAdding } = useAppStore();
+  const { openConfirm } = useModalStore();
 
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
 

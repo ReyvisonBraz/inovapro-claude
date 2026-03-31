@@ -3,35 +3,34 @@ import { Plus, Printer } from 'lucide-react';
 import { CustomerList } from './customers/CustomerList';
 import { Customer, ClientPayment, AppSettings } from '../types';
 
+import { useSettingsStore } from '../store/useSettingsStore';
+import { useFilterStore } from '../store/useFilterStore';
+import { useModalStore } from '../store/useModalStore';
+import { useAppStore } from '../store/useAppStore';
+import { useFormStore } from '../store/useFormStore';
+
 interface CustomersProps {
-  settings: AppSettings;
   customers: { data: Customer[], meta: any };
   clientPayments: { data: ClientPayment[], meta: any };
-  setEditingCustomer: (customer: Customer | null) => void;
-  setNewCustomer: (customer: any) => void;
-  setIsAddingCustomer: (isAdding: boolean) => void;
   onDelete: (id: number) => void;
   onAddPayment: (customer: Customer) => void;
   onViewHistory: (customer: Customer) => void;
-  searchTerm: string;
-  setSearchTerm: (val: string) => void;
   onPageChange: (page: number) => void;
 }
 
 export const Customers = ({
-  settings,
   customers,
   clientPayments,
-  setEditingCustomer,
-  setNewCustomer,
-  setIsAddingCustomer,
   onDelete,
   onAddPayment,
   onViewHistory,
-  searchTerm,
-  setSearchTerm,
   onPageChange
 }: CustomersProps) => {
+  const { settings } = useSettingsStore();
+  const { customerSearchTerm, setCustomerSearchTerm } = useFilterStore();
+  const { setEditingCustomer } = useModalStore();
+  const { setIsAddingCustomer } = useAppStore();
+  const { setNewCustomer } = useFormStore();
   return (
     <div className="p-6 lg:p-10 space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -45,8 +44,8 @@ export const Customers = ({
         settings={settings}
         customers={customers.data}
         clientPayments={clientPayments.data}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
+        searchTerm={customerSearchTerm}
+        setSearchTerm={setCustomerSearchTerm}
         pagination={{
           currentPage: customers.meta.page,
           totalPages: customers.meta.totalPages,

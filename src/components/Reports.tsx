@@ -10,29 +10,25 @@ import { ptBR } from 'date-fns/locale';
 import { cn, formatCurrency } from '../lib/utils';
 import { Transaction, Category, AppSettings } from '../types';
 
+import { useSettingsStore } from '../store/useSettingsStore';
+import { useAppStore } from '../store/useAppStore';
+import { useFilterStore } from '../store/useFilterStore';
+
 interface ReportsProps {
-  settings: AppSettings;
-  reportView: 'charts' | 'table';
-  setReportView: (view: 'charts' | 'table') => void;
-  categories: Category[];
-  transactions: Transaction[];
   chartData: any[];
   handleChartClick: (data: any) => void;
-  reportMonth: string | null;
-  setReportMonth: (month: string | null) => void;
+  categories: Category[];
+  transactions: Transaction[];
 }
 
 export const Reports = ({
-  settings,
-  reportView,
-  setReportView,
-  categories,
-  transactions,
   chartData,
   handleChartClick,
-  reportMonth,
-  setReportMonth
+  categories,
+  transactions,
 }: ReportsProps) => {
+  const { settings } = useSettingsStore();
+  const { reportView, setReportView, reportMonth, setReportMonth } = useFilterStore();
   return (
     <div className="space-y-10">
       <div className="flex flex-col md:flex-row items-center justify-between gap-6">

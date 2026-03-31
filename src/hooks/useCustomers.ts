@@ -1,116 +1,66 @@
 import { useState, useCallback } from 'react';
-import { Customer, ClientPayment } from '../types';
-import { api } from '../services/api';
+import { Customer } from '../types';
 import { useToast } from '../components/ui/Toast';
 
 export const useCustomers = () => {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [clientPayments, setClientPayments] = useState<ClientPayment[]>([]);
+  const [customers, setCustomers] = useState<{ data: Customer[], meta: any }>({ 
+    data: [], 
+    meta: { total: 0, page: 1, limit: 20, totalPages: 0 } 
+  });
+  const [customersPage, setCustomersPage] = useState(1);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState<string>('');
   const { showToast } = useToast();
 
   const fetchCustomers = useCallback(async () => {
     try {
-      const data = await api.get('/api/customers');
+      const res = await fetch(`/api/customers?page=${customersPage}&limit=20&search=${customerSearchTerm}`);
+      if (!res.ok) throw new Error('Failed to fetch customers');
+      const data = await res.json();
       setCustomers(data);
     } catch (err) {
       console.error("Failed to fetch customers", err);
-      showToast("Erro ao carregar clientes.", "error");
+      showToast('Erro ao carregar clientes.', 'error');
     }
-  }, [showToast]);
+  }, [customersPage, customerSearchTerm, showToast]);
 
-  const fetchClientPayments = useCallback(async () => {
-    try {
-      const data = await api.get('/api/client-payments');
-      setClientPayments(data);
-    } catch (err) {
-      console.error("Failed to fetch client payments", err);
-      showToast("Erro ao carregar pagamentos de clientes.", "error");
+  const saveCustomerAPI = useCallback(async (customer: Partial<Customer>, id?: number) => {
+    const url = id ? `/api/customers/${id}` : '/api/customers';
+    const method = id ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(customer)
+    });
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => null);
+      console.error("API Error:", errorData);
+      throw new Error(errorData?.error || 'Failed to save customer');
     }
-  }, [showToast]);
+    
+    return await res.json();
+  }, []);
 
-  const addCustomer = useCallback(async (customer: Omit<Customer, 'id' | 'createdAt' | 'updatedBy' | 'createdBy'>) => {
-    try {
-      const data = await api.post('/api/customers', customer);
-      fetchCustomers();
-      return data;
-    } catch (err) {
-      console.error("Failed to add customer", err);
-      showToast("Erro ao adicionar cliente.", "error");
-      throw err;
-    }
-  }, [fetchCustomers, showToast]);
+  const deleteCustomerAPI = useCallback(async (id: number) => {
+    const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete customer');
+  }, []);
 
-  const updateCustomer = useCallback(async (id: number, customer: Partial<Customer>) => {
-    try {
-      await api.put(`/api/customers/${id}`, customer);
-      fetchCustomers();
-      return true;
-    } catch (err) {
-      console.error("Failed to update customer", err);
-      showToast("Erro ao atualizar cliente.", "error");
-      return false;
-    }
-  }, [fetchCustomers, showToast]);
-
-  const deleteCustomer = useCallback(async (id: number) => {
-    try {
-      await api.delete(`/api/customers/${id}`);
-      fetchCustomers();
-      fetchClientPayments();
-      return true;
-    } catch (err) {
-      console.error("Failed to delete customer", err);
-      showToast("Erro ao excluir cliente.", "error");
-      return false;
-    }
-  }, [fetchCustomers, fetchClientPayments, showToast]);
-
-  const addClientPayment = useCallback(async (payment: Omit<ClientPayment, 'id'>) => {
-    try {
-      await api.post('/api/client-payments', payment);
-      fetchClientPayments();
-      return true;
-    } catch (err) {
-      console.error("Failed to add client payment", err);
-      showToast("Erro ao adicionar pagamento de cliente.", "error");
-      return false;
-    }
-  }, [fetchClientPayments, showToast]);
-
-  const updateClientPayment = useCallback(async (id: number, payment: Partial<ClientPayment>) => {
-    try {
-      await api.patch(`/api/client-payments/${id}`, payment);
-      fetchClientPayments();
-      return true;
-    } catch (err) {
-      console.error("Failed to update client payment", err);
-      showToast("Erro ao atualizar pagamento de cliente.", "error");
-      return false;
-    }
-  }, [fetchClientPayments, showToast]);
-
-  const deleteClientPayment = useCallback(async (id: number) => {
-    try {
-      await api.delete(`/api/client-payments/${id}`);
-      fetchClientPayments();
-      return true;
-    } catch (err) {
-      console.error("Failed to delete client payment", err);
-      showToast("Erro ao excluir pagamento de cliente.", "error");
-      return false;
-    }
-  }, [fetchClientPayments, showToast]);
+  const checkCustomerPaymentsAPI = useCallback(async (id: number) => {
+    const res = await fetch(`/api/customers/${id}/payments`);
+    if (!res.ok) throw new Error('Failed to fetch customer payments');
+    return await res.json();
+  }, []);
 
   return { 
     customers, 
-    clientPayments, 
+    customersPage,
+    setCustomersPage,
+    customerSearchTerm,
+    setCustomerSearchTerm,
     fetchCustomers, 
-    fetchClientPayments,
-    addCustomer,
-    updateCustomer,
-    deleteCustomer,
-    addClientPayment,
-    updateClientPayment,
-    deleteClientPayment
+    saveCustomerAPI,
+    deleteCustomerAPI,
+    checkCustomerPaymentsAPI
   };
 };

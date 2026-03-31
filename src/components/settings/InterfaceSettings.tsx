@@ -80,24 +80,6 @@ export const InterfaceSettings: React.FC<InterfaceSettingsProps> = ({ settings, 
               />
               <span className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors uppercase tracking-widest">Exibir avisos de campos incompletos</span>
             </label>
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <input 
-                type="checkbox" 
-                checked={settings.showPostCustomerActionPrompt !== false}
-                onChange={(e) => updateSettings({ ...settings, showPostCustomerActionPrompt: e.target.checked })}
-                className="w-5 h-5 rounded-lg bg-white/5 border border-white/10 text-primary focus:ring-primary outline-none transition-all"
-              />
-              <span className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors uppercase tracking-widest">Ações rápidas após cadastro de cliente</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <input 
-                type="checkbox" 
-                checked={settings.showWhatsAppPrompt !== false}
-                onChange={(e) => updateSettings({ ...settings, showWhatsAppPrompt: e.target.checked })}
-                className="w-5 h-5 rounded-lg bg-white/5 border border-white/10 text-primary focus:ring-primary outline-none transition-all"
-              />
-              <span className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors uppercase tracking-widest">Sugerir envio de WhatsApp ao salvar OS</span>
-            </label>
           </div>
         </div>
         <div className="space-y-4">
@@ -164,31 +146,6 @@ export const InterfaceSettings: React.FC<InterfaceSettingsProps> = ({ settings, 
             <div className="flex-1 h-12 bg-white/5 border border-white/10 rounded-xl flex items-center px-4 text-xs font-mono text-slate-400">
               {settings.primaryColor}
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Telegram Bot Token (Feedback Testers)</label>
-          <div className="relative">
-            <input 
-              value={settings.telegramBotToken || ''}
-              onChange={(e) => updateSettings({...settings, telegramBotToken: e.target.value})}
-              placeholder="Ex: 123456789:ABCdefg..."
-              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
-            />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Telegram Chat ID (Feedback Testers)</label>
-          <div className="relative">
-            <input 
-              value={settings.telegramChatId || ''}
-              onChange={(e) => updateSettings({...settings, telegramChatId: e.target.value})}
-              placeholder="Ex: -10012345678"
-              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none transition-all"
-            />
           </div>
         </div>
       </div>

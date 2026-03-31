@@ -11,36 +11,14 @@ import { Transaction, Category, AppSettings } from '../types';
 
 import { Pagination } from './ui/Pagination';
 
+import { useSettingsStore } from '../store/useSettingsStore';
+import { useFilterStore } from '../store/useFilterStore';
+import { useModalStore } from '../store/useModalStore';
+import { useAppStore } from '../store/useAppStore';
+
 interface TransactionsProps {
-  searchTerm: string;
-  setSearchTerm: (val: string) => void;
-  dateFilterMode: 'day' | 'month' | 'range' | 'all';
-  setDateFilterMode: (mode: 'day' | 'month' | 'range' | 'all') => void;
-  showFilters: boolean;
-  setShowFilters: (val: boolean) => void;
-  selectedDate: string;
-  setSelectedDate: (val: string) => void;
-  selectedMonth: string;
-  setSelectedMonth: (val: string) => void;
-  startDate: string;
-  setStartDate: (val: string) => void;
-  endDate: string;
-  setEndDate: (val: string) => void;
-  filterType: string;
-  setFilterType: (val: any) => void;
-  filterCategory: string;
-  setFilterCategory: (val: string) => void;
-  filterMinAmount: string;
-  setFilterMinAmount: (val: string) => void;
-  filterMaxAmount: string;
-  setFilterMaxAmount: (val: string) => void;
   categories: Category[];
-  settings: AppSettings;
-  updateSettings: (settings: AppSettings) => void;
   filteredTransactions: Transaction[];
-  setEditingTransaction: (tx: Transaction | null) => void;
-  setIsAdding: (val: boolean) => void;
-  setTransactionToDelete: (id: number | null) => void;
   handleDuplicateTransaction: (tx: Transaction) => void;
   pagination: {
     currentPage: number;
@@ -52,39 +30,29 @@ interface TransactionsProps {
 }
 
 export const Transactions = ({
-  searchTerm,
-  setSearchTerm,
-  dateFilterMode,
-  setDateFilterMode,
-  showFilters,
-  setShowFilters,
-  selectedDate,
-  setSelectedDate,
-  selectedMonth,
-  setSelectedMonth,
-  startDate,
-  setStartDate,
-  endDate,
-  setEndDate,
-  filterType,
-  setFilterType,
-  filterCategory,
-  setFilterCategory,
-  filterMinAmount,
-  setFilterMinAmount,
-  filterMaxAmount,
-  setFilterMaxAmount,
   categories,
-  settings,
-  updateSettings,
   filteredTransactions,
-  setEditingTransaction,
-  setIsAdding,
-  setTransactionToDelete,
   handleDuplicateTransaction,
   pagination,
   onPageChange
 }: TransactionsProps) => {
+  const { settings, setSettings: updateSettings } = useSettingsStore();
+  const {
+    searchTerm, setSearchTerm,
+    dateFilterMode, setDateFilterMode,
+    selectedDate, setSelectedDate,
+    selectedMonth, setSelectedMonth,
+    startDate, setStartDate,
+    endDate, setEndDate,
+    filterType, setFilterType,
+    filterCategory, setFilterCategory,
+    filterMinAmount, setFilterMinAmount,
+    filterMaxAmount, setFilterMaxAmount,
+    showFilters, setShowFilters
+  } = useFilterStore();
+  const { setEditingTransaction, setTransactionToDelete } = useModalStore();
+  const { setIsAdding } = useAppStore();
+
   return (
     <div className="space-y-6 md:space-y-8 p-4 md:p-6 lg:p-10">
       <div className="flex flex-col gap-6 md:gap-8">

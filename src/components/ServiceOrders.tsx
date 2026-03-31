@@ -22,6 +22,13 @@ import { ServiceOrderItem } from '../types';
 
 import { Pagination } from './ui/Pagination';
 
+import { useSettingsStore } from '../store/useSettingsStore';
+import { useAppStore } from '../store/useAppStore';
+import { useFilterStore } from '../store/useFilterStore';
+import { useModalStore } from '../store/useModalStore';
+import { useAuthStore } from '../store/useAuthStore';
+import { useFormStore } from '../store/useFormStore';
+
 interface ServiceOrdersProps {
   orders: { data: ServiceOrder[], meta: any };
   customers: { data: Customer[], meta: any };
@@ -31,7 +38,6 @@ interface ServiceOrdersProps {
   brands: Brand[];
   models: Model[];
   clientPayments: { data: any[], meta: any };
-  currentUser: User | null;
   onAddOrder: (order: any) => Promise<number | null>;
   onUpdateOrder: (id: number, order: any) => Promise<boolean>;
   onDeleteOrder: (id: number) => void;
@@ -40,18 +46,8 @@ interface ServiceOrdersProps {
   onAddEquipmentType: (name: string) => void;
   onAddBrand: (name: string, equipmentType: string) => void;
   onAddModel: (brandId: number, name: string) => void;
-  onTriggerAddCustomer: () => void;
   onPrintBlankForm: () => void;
-  openConfirm: (title: string, message: string, onConfirm: (dontShowAgain?: boolean) => void, type?: 'danger' | 'warning' | 'info', options?: { showDontShowAgain?: boolean }) => void;
-  directOsId: number | null;
-  directMode: string | null;
-  onClearDirectOsId: () => void;
-  settings: AppSettings;
-  updateSettings: (newSettings: AppSettings) => void;
-  isAdding?: boolean;
-  setIsAdding?: (value: boolean) => void;
-  searchTerm: string;
-  setSearchTerm: (val: string) => void;
+  onTriggerAddCustomer: () => void;
   pagination: {
     currentPage: number;
     totalPages: number;
@@ -59,7 +55,6 @@ interface ServiceOrdersProps {
     limit: number;
   };
   onPageChange: (page: number) => void;
-  initialCustomerId?: number;
 }
 
 export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
@@ -71,7 +66,6 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   brands,
   models,
   clientPayments,
-  currentUser,
   onAddOrder,
   onUpdateOrder,
   onDeleteOrder,
@@ -80,29 +74,28 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   onAddEquipmentType,
   onAddBrand,
   onAddModel,
-  onTriggerAddCustomer,
   onPrintBlankForm,
-  openConfirm,
-  directOsId,
-  directMode,
-  onClearDirectOsId,
-  settings,
-  updateSettings,
-  isAdding: isAddingProp,
-  setIsAdding: setIsAddingProp,
-  searchTerm,
-  setSearchTerm,
   pagination,
-  onPageChange,
-  initialCustomerId
+  onPageChange
 }) => {
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('newest');
-  const [isAddingLocal, setIsAddingLocal] = useState(false);
-  
-  const isAdding = isAddingProp !== undefined ? isAddingProp : isAddingLocal;
-  const setIsAdding = setIsAddingProp !== undefined ? setIsAddingProp : setIsAddingLocal;
+  const { settings } = useSettingsStore();
+  const { 
+    isAddingServiceOrder: isAdding, 
+    setIsAddingServiceOrder: setIsAdding,
+    directOsId,
+    directMode,
+    setDirectOsId,
+    setIsAddingCustomer
+  } = useAppStore();
+  const { 
+    osSearchTerm: searchTerm, setOsSearchTerm: setSearchTerm,
+    osStatusFilter: statusFilter, setOsStatusFilter: setStatusFilter,
+    osPriorityFilter: priorityFilter, setOsPriorityFilter: setPriorityFilter,
+    osSortBy: sortBy, setOsSortBy: setSortBy
+  } = useFilterStore();
+  const { openConfirm, setEditingCustomer } = useModalStore();
+  const { currentUser } = useAuthStore();
+  const { setNewCustomer } = useFormStore();
 
   const [editingOrder, setEditingOrder] = useState<ServiceOrder | null>(null);
   const [showStatusManager, setShowStatusManager] = useState(false);
@@ -141,12 +134,6 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     services: [] as ServiceOrderItem[],
     arrivalPhotoBase64: ''
   });
-
-  React.useEffect(() => {
-    if (isAdding && initialCustomerId && !editingOrder) {
-      setNewOrder(prev => ({ ...prev, customerId: initialCustomerId }));
-    }
-  }, [isAdding, initialCustomerId, editingOrder]);
 
   const { showToast } = useToast();
 
@@ -234,6 +221,23 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
       onClearDirectOsId();
     }
   }, [directOsId, orders, directMode]);
+
+  const onClearDirectOsId = () => setDirectOsId(null);
+
+  const onTriggerAddCustomer = () => {
+    setEditingCustomer(null);
+    setNewCustomer({
+      firstName: '',
+      lastName: '',
+      nickname: '',
+      cpf: '',
+      companyName: '',
+      phone: '',
+      observation: '',
+      creditLimit: ''
+    });
+    setIsAddingCustomer(true);
+  };
 
   // New states for Print and WhatsApp
   const [showPrintModal, setShowPrintModal] = useState(false);
@@ -365,20 +369,15 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     });
 
     // Option to send via WhatsApp after saving
-    if (settings.showWhatsAppPrompt !== false) {
-      openConfirm(
-        'Enviar via WhatsApp',
-        'Deseja enviar a Ordem de Serviço via WhatsApp agora?',
-        (dontShowAgain) => {
-          if (dontShowAgain) {
-            updateSettings({ ...settings, showWhatsAppPrompt: false });
-          }
-          // We need the ID of the newly created order, but onAddOrder is async and doesn't return it here easily
-        },
-        'info',
-        { showDontShowAgain: true }
-      );
-    }
+    openConfirm(
+      'Enviar via WhatsApp',
+      'Deseja enviar a Ordem de Serviço via WhatsApp agora?',
+      () => {
+        // We need the ID of the newly created order, but onAddOrder is async and doesn't return it here easily
+        // For now, we'll just close. In a real app, we'd wait for the response.
+      },
+      'info'
+    );
   };
 
   const handleDirectOsSearch = (e: React.FormEvent) => {

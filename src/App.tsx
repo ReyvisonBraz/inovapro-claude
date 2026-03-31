@@ -64,13 +64,25 @@ import {
 import { format, parseISO, isSameMonth, isSameDay, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn, formatCurrency, formatMonthYear } from './lib/utils';
+import { printBlankForm } from './lib/printUtils';
 import { Transaction, Screen, AppSettings, Customer, ClientPayment, Category, User, AuditLog, InventoryItem, ServiceOrder, ServiceOrderStatus, Brand, Model } from './types';
 import { SettingsLayout } from './components/settings/SettingsLayout';
 import { Login } from './components/Login';
 import { ServiceOrders } from './components/ServiceOrders';
 import { Inventory } from './components/Inventory';
-import { CustomerSearchSelect } from './components/CustomerSearchSelect';
-import { clearToken } from './services/api';
+import { useCustomers } from './hooks/useCustomers';
+import { useServiceOrders } from './hooks/useServiceOrders';
+import { useTransactions } from './hooks/useTransactions';
+import { useAuth } from './hooks/useAuth';
+import { useClientPayments } from './hooks/useClientPayments';
+import { useInventory } from './hooks/useInventory';
+import { useSettings } from './hooks/useSettings';
+import { useSettingsStore } from './store/useSettingsStore';
+import { useAppStore } from './store/useAppStore';
+import { useFilterStore } from './store/useFilterStore';
+import { useModalStore } from './store/useModalStore';
+import { useFormStore } from './store/useFormStore';
+import { useStats } from './hooks/useStats';
 
 import { SidebarItem } from './components/SidebarItem';
 import { StatCard } from './components/StatCard';
@@ -82,9 +94,6 @@ import { ClientPayments } from './components/ClientPayments';
 import { PasswordModal } from './components/modals/PasswordModal';
 import { WarningModal } from './components/modals/WarningModal';
 import { CustomerModal } from './components/modals/CustomerModal';
-import { PostCustomerActionModal } from './components/modals/PostCustomerActionModal';
-import { FeedbackBubble } from './components/ui/FeedbackBubble';
-import { StatusPage } from './components/StatusPage';
 import { CustomerWarningModal } from './components/modals/CustomerWarningModal';
 import { CustomerDeleteWarningModal } from './components/modals/CustomerDeleteWarningModal';
 import { AddTransactionModal } from './components/modals/AddTransactionModal';
@@ -93,51 +102,166 @@ import { AddClientPaymentModal } from './components/modals/AddClientPaymentModal
 import { RecordPaymentModal } from './components/modals/RecordPaymentModal';
 import { CustomerHistoryModal } from './components/modals/CustomerHistoryModal';
 
-// Contextos configurados e prontos para migração progressiva (ver PLANO-MIGRACAO-APPTX.md)
-import { useData } from './contexts/DataContext';
-import { useFilter } from './contexts/FilterContext';
-
-// --- Auth-aware fetch wrapper ---
-function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
-  const token = localStorage.getItem('financeflow_token');
-  const headers = new Headers(options.headers || {});
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-  return fetch(url, { ...options, headers });
-}
-
 // --- Aplicativo Principal ---
 
 export default function App() {
-  // ==========================================================================
-  // MIGRAÇÃO PROGRESSIVA: Usar contextos gradualmente
-  // Ver PLANO-MIGRACAO-APPTX.md para detalhes
-  // ==========================================================================
-  const dataContext = useData();
-  const filterContext = useFilter();
+  const {
+    activeScreen, setActiveScreen,
+    isSidebarOpen, setIsSidebarOpen,
+    isSidebarCollapsed, setIsSidebarCollapsed,
+    fontSize, setFontSize,
+    showNotifications, setShowNotifications,
+    notificationTab, setNotificationTab,
+    isAdding, setIsAdding,
+    isAddingServiceOrder, setIsAddingServiceOrder,
+    isAddingInventoryItem, setIsAddingInventoryItem,
+    isAddingCustomer, setIsAddingCustomer,
+    isAddingClientPayment, setIsAddingClientPayment,
+    isSaving, setIsSaving,
+    directOsId, setDirectOsId,
+    directMode, setDirectMode
+  } = useAppStore();
 
-  // Por enquanto, manter estados locais para compatibilidade
-  // Gradualmente substituir por: const transactions = dataContext.transactions
-  const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
-  const [transactions, setTransactions] = useState<{ data: Transaction[], meta: any }>({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } });
-  const [transactionsPage, setTransactionsPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAdding, setIsAdding] = useState(false);
-  const [isAddingServiceOrder, setIsAddingServiceOrder] = useState(false);
-  const [isAddingInventoryItem, setIsAddingInventoryItem] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [notificationTab, setNotificationTab] = useState<'payments' | 'service-orders'>('payments');
-  const [fontSize, setFontSize] = useState<number>(() => {
-    const saved = localStorage.getItem('app_font_size');
-    return saved ? parseInt(saved, 10) : 16;
-  });
+  const {
+    searchTerm, setSearchTerm,
+    dateFilterMode, setDateFilterMode,
+    selectedDate, setSelectedDate,
+    selectedMonth, setSelectedMonth,
+    startDate, setStartDate,
+    endDate, setEndDate,
+    filterType, setFilterType,
+    filterCategory, setFilterCategory,
+    filterMinAmount, setFilterMinAmount,
+    filterMaxAmount, setFilterMaxAmount,
+    showFilters, setShowFilters,
+    paymentSearchTerm, setPaymentSearchTerm,
+    paymentFilterStatus, setPaymentFilterStatus,
+    paymentSortMode, setPaymentSortMode,
+    osSearchTerm, setOsSearchTerm,
+    reportMonth, setReportMonth,
+    reportView, setReportView,
+    dashboardMonth, setDashboardMonth
+  } = useFilterStore();
 
-  // MIGRAÇÃO: Usar stats do DataContext
-  const stats = dataContext.stats;
+  const {
+    confirmModal, openConfirm, closeConfirm,
+    showPasswordModal, setShowPasswordModal,
+    isSettingsUnlocked, setIsSettingsUnlocked,
+    passwordInput, setPasswordInput,
+    showWarningModal, setShowWarningModal,
+    warningType, setWarningType,
+    showCustomerWarningModal, setShowCustomerWarningModal,
+    customerWarningType, setCustomerWarningType,
+    editingTransaction, setEditingTransaction,
+    transactionToDelete, setTransactionToDelete,
+    editingCustomer, setEditingCustomer,
+    customerToDelete, setCustomerToDelete,
+    customerPaymentsWarning, setCustomerPaymentsWarning,
+    clientPaymentToDelete, setClientPaymentToDelete,
+    isRecordingPayment, setIsRecordingPayment,
+    paymentAmount, setPaymentAmount,
+    paymentDate, setPaymentDate,
+    showHistoryModal, setShowHistoryModal,
+    historyCustomer, setHistoryCustomer
+  } = useModalStore();
+
+  const {
+    newTx, setNewTx,
+    newCustomer, setNewCustomer,
+    newClientPayment, setNewClientPayment,
+  } = useFormStore();
+
+  const { stats, fetchStats } = useStats();
+  const { showToast } = useToast();
+
+  const {
+    settings,
+    setSettings,
+    categories,
+    setCategories,
+    fetchSettings,
+    fetchCategories,
+    saveSettingsAPI: updateSettings,
+    addCategory,
+    deleteCategory
+  } = useSettings(showToast);
+
+  const {
+    transactions,
+    transactionsPage,
+    setTransactionsPage,
+    fetchTransactions,
+    saveTransactionAPI,
+    deleteTransactionAPI
+  } = useTransactions(showToast);
+
+  const {
+    customers,
+    customersPage,
+    setCustomersPage,
+    customerSearchTerm,
+    setCustomerSearchTerm,
+    fetchCustomers,
+    saveCustomerAPI,
+    deleteCustomerAPI,
+    checkCustomerPaymentsAPI
+  } = useCustomers();
+
+  const {
+    serviceOrders,
+    serviceOrdersPage,
+    setServiceOrdersPage,
+    serviceOrderStatuses,
+    equipmentTypes,
+    brands,
+    models,
+    fetchServiceOrders,
+    fetchServiceOrderStatuses,
+    fetchEquipmentTypes,
+    fetchBrands,
+    fetchModels,
+    saveServiceOrderAPI,
+    deleteServiceOrderAPI,
+    addServiceOrderStatusAPI,
+    deleteServiceOrderStatusAPI,
+    addEquipmentTypeAPI,
+    deleteEquipmentTypeAPI,
+    addBrandAPI,
+    deleteBrandAPI,
+    addModelAPI,
+    deleteModelAPI
+  } = useServiceOrders();
+
+  const {
+    clientPayments,
+    paymentsPage,
+    setPaymentsPage,
+    fetchClientPayments,
+    saveClientPaymentAPI,
+    deleteClientPaymentAPI,
+    recordPaymentAPI
+  } = useClientPayments(showToast);
+
+  const {
+    inventoryItems,
+    fetchInventoryItems,
+    saveInventoryItemAPI,
+    deleteInventoryItemAPI
+  } = useInventory(showToast);
+
+  const {
+    isAuthenticated,
+    currentUser,
+    users,
+    auditLogs,
+    login,
+    logout,
+    hasPermission,
+    fetchUsers,
+    fetchAuditLogs,
+    saveUserAPI,
+    deleteUserAPI
+  } = useAuth(showToast);
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}px`;
@@ -145,326 +269,7 @@ export default function App() {
   }, [fontSize]);
 
   const handlePrintBlankForm = () => {
-    console.log("Directly triggering print via new window...");
-    
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    const content = `
-      <html>
-        <head>
-          <title>Ficha em Branco - ${settings.appName || 'FinanceFlow'}</title>
-          <style>
-            @page { size: A4 portrait; margin: 0; }
-            body { 
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-              padding: 0; 
-              color: #000; 
-              background: #fff; 
-              margin: 0;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: flex-start;
-              height: 100vh;
-            }
-            .form-container { 
-              width: 210mm; 
-              height: 148mm; 
-              border-bottom: 2px dashed #000; 
-              padding: 30px 40px; 
-              box-sizing: border-box;
-              background: #fff;
-              overflow: hidden;
-            }
-            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #000; padding-bottom: 15px; margin-bottom: 25px; }
-            .header-left { display: flex; align-items: center; gap: 20px; }
-            .logo { max-height: 60px; max-width: 120px; object-fit: contain; }
-            .title h1 { margin: 0; font-size: 32px; font-weight: 900; text-transform: uppercase; line-height: 1; }
-            .title p { margin: 5px 0 0 0; font-size: 13px; font-weight: 800; color: #374151; text-transform: uppercase; letter-spacing: 1.5px; }
-            .entry-date { text-align: right; }
-            .entry-date p { margin: 0; font-size: 11px; font-weight: 800; color: #4b5563; text-transform: uppercase; }
-            .date-line { width: 130px; height: 26px; border-bottom: 2px solid #000; margin-top: 4px; }
-            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 25px; }
-            .section-title { font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.2px; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 12px; }
-            .field { margin-bottom: 12px; }
-            .field label { display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #374151; margin-bottom: 3px; }
-            .field-line { width: 100%; height: 22px; border-bottom: 1px solid #9ca3af; }
-            .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-            .problem-section { margin-bottom: 25px; }
-            .problem-box { width: 100%; height: 70px; border: 2px solid #e5e7eb; border-radius: 8px; }
-            .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; margin-top: 45px; }
-            .sig-box { border-top: 2px solid #000; text-align: center; padding-top: 6px; }
-            .sig-box p { margin: 0; font-size: 11px; font-weight: 800; text-transform: uppercase; }
-            .footer-note { margin-top: 20px; text-align: center; font-size: 9px; color: #6b7280; font-style: italic; text-transform: uppercase; letter-spacing: 1.2px; }
-          </style>
-        </head>
-        <body>
-          <div class="form-container">
-            <div class="header">
-              <div class="header-left">
-                ${settings.receiptLogo ? `<img src="${settings.receiptLogo}" class="logo" />` : ''}
-                <div class="title">
-                  <h1>${settings.appName || 'FinanceFlow Inc.'}</h1>
-                  <p>Ficha de Entrada de Equipamento</p>
-                </div>
-              </div>
-              <div class="entry-date">
-                <p>Data de Entrada</p>
-                <div class="date-line"></div>
-              </div>
-            </div>
-            <div class="grid">
-              <div class="section">
-                <div class="section-title">Dados do Cliente</div>
-                <div class="field">
-                  <label>Nome Completo</label>
-                  <div class="field-line"></div>
-                </div>
-                <div class="field-grid">
-                  <div class="field">
-                    <label>Telefone / WhatsApp</label>
-                    <div class="field-line"></div>
-                  </div>
-                  <div class="field">
-                    <label>CPF / CNPJ</label>
-                    <div class="field-line"></div>
-                  </div>
-                </div>
-                <div class="field">
-                  <label>Endereço</label>
-                  <div class="field-line"></div>
-                </div>
-              </div>
-              <div class="section">
-                <div class="section-title">Dados do Equipamento</div>
-                <div class="field-grid">
-                  <div class="field">
-                    <label>Marca</label>
-                    <div class="field-line"></div>
-                  </div>
-                  <div class="field">
-                    <label>Modelo</label>
-                    <div class="field-line"></div>
-                  </div>
-                </div>
-                <div class="field-grid">
-                  <div class="field">
-                    <label>Nº de Série</label>
-                    <div class="field-line"></div>
-                  </div>
-                  <div class="field">
-                    <label>Cor / Acessórios</label>
-                    <div class="field-line"></div>
-                  </div>
-                </div>
-                <div class="field">
-                  <label>Senha do Equipamento</label>
-                  <div class="field-line"></div>
-                </div>
-              </div>
-            </div>
-            <div class="problem-section">
-              <div class="section-title">Relato do Problema / Defeito</div>
-              <div class="problem-box"></div>
-            </div>
-            <div class="signatures">
-              <div class="sig-box">
-                <p>Assinatura do Cliente</p>
-              </div>
-              <div class="sig-box">
-                <p>Responsável pelo Recebimento</p>
-              </div>
-            </div>
-            <div class="footer-note">
-              Esta ficha deve ser grampeada ou fixada ao equipamento para identificação interna.
-            </div>
-          </div>
-          <script>window.onload = () => { window.print(); setTimeout(() => window.close(), 500); }</script>
-        </body>
-      </html>
-    `;
-
-    printWindow.document.write(content);
-    printWindow.document.close();
-  };
-  const [expandedPayments, setExpandedPayments] = useState<number[]>([]);
-  const [paymentFilterStatus, setPaymentFilterStatus] = useState<string>('all');
-  const [paymentSearchTerm, setPaymentSearchTerm] = useState<string>('');
-  const [customerSearchTerm, setCustomerSearchTerm] = useState<string>('');
-  const [osSearchTerm, setOsSearchTerm] = useState<string>('');
-  const [paymentSortMode, setPaymentSortMode] = useState<'date' | 'amount' | 'alphabetical'>('date');
-
-  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
-  const [customerPaymentsWarning, setCustomerPaymentsWarning] = useState<any[]>([]);
-  const [transactionToDelete, setTransactionToDelete] = useState<number | null>(null);
-  const [clientPaymentToDelete, setClientPaymentToDelete] = useState<number | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
-  const [dateFilterMode, setDateFilterMode] = useState<'day' | 'month' | 'range' | 'all'>('day');
-  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
-  const [startDate, setStartDate] = useState<string>(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
-  const [endDate, setEndDate] = useState<string>(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
-  const [reportMonth, setReportMonth] = useState<string | null>(null);
-  const [reportView, setReportView] = useState<'charts' | 'table'>('charts');
-
-  // Filtros e Busca
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [filterMinAmount, setFilterMinAmount] = useState('');
-  const [filterMaxAmount, setFilterMaxAmount] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-
-  // Segurança
-  const [isSettingsUnlocked, setIsSettingsUnlocked] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-
-  // Avisos
-  const [showWarningModal, setShowWarningModal] = useState(false);
-  const [warningType, setWarningType] = useState<'category' | 'description' | 'both'>('both');
-
-  const [showCustomerWarningModal, setShowCustomerWarningModal] = useState(false);
-  const [customerWarningType, setCustomerWarningType] = useState<'cpf' | 'phone' | 'both'>('both');
-
-  const { showToast } = useToast();
-
-  // Estados para Modais de Confirmação
-  const [confirmModal, setConfirmModal] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: (dontShowAgain?: boolean) => void;
-    type?: 'danger' | 'warning' | 'info';
-    showDontShowAgain?: boolean;
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    onConfirm: () => {},
-    type: 'warning',
-    showDontShowAgain: false
-  });
-
-  const openConfirm = (title: string, message: string, onConfirm: (dontShowAgain?: boolean) => void, type: 'danger' | 'warning' | 'info' = 'warning', options?: { showDontShowAgain?: boolean }) => {
-    setConfirmModal({ isOpen: true, title, message, onConfirm, type, showDontShowAgain: options?.showDontShowAgain });
-  };
-
-  // Configurações do App
-  const [settings, setSettings] = useState<AppSettings>({
-    appName: 'Financeiro Pro',
-    fiscalYear: '2024',
-    primaryColor: '#1152d4',
-    categories: 'Alimentação,Trabalho,Utilidades,Viagem,Lazer,Outros',
-    incomeCategories: 'Salário,Vendas,Serviços,Investimentos,Outros',
-    expenseCategories: 'Alimentação,Trabalho,Utilidades,Viagem,Lazer,Outros',
-    profileName: 'Inova Informática',
-    profileAvatar: 'https://picsum.photos/seed/inova/100/100',
-    appVersion: 'Versão Empresarial',
-    initialBalance: 0,
-    showWarnings: true,
-    currency: 'BRL',
-    hiddenColumns: [],
-    settingsPassword: '1234',
-    receiptLayout: 'a4',
-    receiptLogo: '',
-    receiptCnpj: '',
-    receiptAddress: '',
-    receiptPixKey: '',
-    receiptQrCode: '',
-    sendPulseClientId: '',
-    sendPulseClientSecret: '',
-    sendPulseTemplateId: ''
-  });
-
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [dashboardMonth, setDashboardMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
-  
-  // Estado do formulário de nova transação
-  const [newTx, setNewTx] = useState({
-    description: '',
-    category: '',
-    type: 'expense' as 'income' | 'expense',
-    amount: '',
-    date: format(new Date(), 'yyyy-MM-dd')
-  });
-
-  // Clientes e Pagamentos
-  const [customers, setCustomers] = useState<{ data: Customer[], meta: any }>({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } });
-  const [customersPage, setCustomersPage] = useState(1);
-  const [clientPayments, setClientPayments] = useState<{ data: ClientPayment[], meta: any }>({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } });
-  const [paymentsPage, setPaymentsPage] = useState(1);
-  const [users, setUsers] = useState<User[]>([]);
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
-  const [serviceOrders, setServiceOrders] = useState<{ data: ServiceOrder[], meta: any }>({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } });
-  const [serviceOrdersPage, setServiceOrdersPage] = useState(1);
-  const [serviceOrderStatuses, setServiceOrderStatuses] = useState<ServiceOrderStatus[]>([]);
-  const [equipmentTypes, setEquipmentTypes] = useState<{id: number, name: string}[]>([]);
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [models, setModels] = useState<Model[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-
-  // MIGRAÇÃO: Usar states do DataContext
-  const categories = dataContext.categories;
-  // users e auditLogs mantidos localmente por terem muitas referências
-  const [isAddingCustomer, setIsAddingCustomer] = useState(false);
-  const [isAddingClientPayment, setIsAddingClientPayment] = useState(false);
-  const [isRecordingPayment, setIsRecordingPayment] = useState<ClientPayment | null>(null);
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
-  const [directOsId, setDirectOsId] = useState<number | null>(null);
-  const [directMode, setDirectMode] = useState<string | null>(null);
-  
-  const [newCustomer, setNewCustomer] = useState({
-    firstName: '',
-    lastName: '',
-    nickname: '',
-    cpf: '',
-    companyName: '',
-    phone: '+55',
-    observation: '',
-    creditLimit: ''
-  });
-
-  const [postCustomerData, setPostCustomerData] = useState<{id: number, name: string} | null>(null);
-  const [newOsCustomerId, setNewOsCustomerId] = useState<number | undefined>(undefined);
-
-  const [newClientPayment, setNewClientPayment] = useState({
-    customerId: 0,
-    description: '',
-    totalAmount: '',
-    paidAmount: '',
-    purchaseDate: format(new Date(), 'yyyy-MM-dd'),
-    dueDate: format(new Date(), 'yyyy-MM-dd'),
-    paymentMethod: 'Dinheiro',
-    installmentsCount: 1,
-    installmentInterval: 'monthly',
-    type: 'income' as 'income' | 'expense'
-  });
-
-  const togglePaymentExpansion = (id: number) => {
-    setExpandedPayments(prev => 
-      prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]
-    );
-  };
-
-  const handlePrevMonth = () => {
-    const [year, month] = dashboardMonth.split('-');
-    const d = new Date(parseInt(year), parseInt(month) - 1, 1);
-    d.setMonth(d.getMonth() - 1);
-    setDashboardMonth(format(d, 'yyyy-MM'));
-  };
-
-  const handleNextMonth = () => {
-    const [year, month] = dashboardMonth.split('-');
-    const d = new Date(parseInt(year), parseInt(month) - 1, 1);
-    d.setMonth(d.getMonth() + 1);
-    setDashboardMonth(format(d, 'yyyy-MM'));
+    printBlankForm(settings);
   };
 
   const today = new Date();
@@ -536,12 +341,12 @@ export default function App() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      dataContext.fetchStats();
-      fetchTransactions();
+      fetchStats();
+      fetchTransactions(transactionsPage, searchTerm);
       fetchSettings();
       fetchCustomers();
-      fetchClientPayments();
-      dataContext.fetchCategories();
+      fetchClientPayments(paymentsPage, paymentSearchTerm);
+      fetchCategories();
       fetchUsers();
       fetchAuditLogs();
       fetchInventoryItems();
@@ -553,110 +358,12 @@ export default function App() {
     }
   }, [isAuthenticated, transactionsPage, customersPage, paymentsPage, serviceOrdersPage, searchTerm, customerSearchTerm, paymentSearchTerm, osSearchTerm]);
 
-  // REMOVIDO: fetchStats agora vem do DataContext (dataContext.fetchStats)
-
-  const fetchEquipmentTypes = async () => {
-    try {
-      const res = await fetchWithAuth('/api/equipment-types');
-      const data = await res.json();
-      setEquipmentTypes(data);
-    } catch (err) {
-      console.error("Failed to fetch equipment types", err);
-      showToast('Erro ao carregar tipos de equipamento.', 'error');
-    }
-  };
-
-  const fetchBrands = async () => {
-    try {
-      const res = await fetchWithAuth('/api/brands');
-      const data = await res.json();
-      setBrands(data);
-    } catch (err) {
-      console.error("Failed to fetch brands", err);
-      showToast('Erro ao carregar marcas.', 'error');
-    }
-  };
-
-  const fetchModels = async () => {
-    try {
-      const res = await fetchWithAuth('/api/models');
-      const data = await res.json();
-      setModels(data);
-    } catch (err) {
-      console.error("Failed to fetch models", err);
-      showToast('Erro ao carregar modelos.', 'error');
-    }
-  };
-
-  const fetchServiceOrderStatuses = async () => {
-    try {
-      const res = await fetchWithAuth('/api/service-order-statuses');
-      const data = await res.json();
-      setServiceOrderStatuses(data);
-    } catch (err) {
-      console.error("Failed to fetch service order statuses", err);
-      showToast('Erro ao carregar status de OS.', 'error');
-    }
-  };
-
-  const fetchInventoryItems = async () => {
-    try {
-      const res = await fetchWithAuth('/api/inventory');
-      const data = await res.json();
-      setInventoryItems(data);
-    } catch (err) {
-      console.error("Failed to fetch inventory items", err);
-      showToast('Erro ao carregar itens do estoque.', 'error');
-    }
-  };
-
-  const fetchServiceOrders = async () => {
-    try {
-      const res = await fetchWithAuth(`/api/service-orders?page=${serviceOrdersPage}&limit=20&search=${osSearchTerm}`);
-      const data = await res.json();
-      setServiceOrders(data);
-    } catch (err) {
-      console.error("Failed to fetch service orders", err);
-      showToast('Erro ao carregar ordens de serviço.', 'error');
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const res = await fetchWithAuth('/api/users');
-      const data = await res.json();
-      setUsers(data);
-    } catch (err) {
-      console.error("Failed to fetch users", err);
-      showToast('Erro ao carregar usuários.', 'error');
-    }
-  };
-
-  const fetchAuditLogs = async () => {
-    try {
-      const res = await fetchWithAuth('/api/audit-logs');
-      const data = await res.json();
-      setAuditLogs(data);
-    } catch (err) {
-      console.error("Failed to fetch audit logs", err);
-      showToast('Erro ao carregar logs de auditoria.', 'error');
-    }
-  };
-
   const handleAddUser = async (user: any) => {
     try {
-      const res = await fetchWithAuth('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(user)
-      });
-      if (res.ok) {
-        fetchUsers();
-        fetchAuditLogs();
-        showToast('Usuário criado com sucesso!', 'success');
-      } else {
-        showToast('Erro ao criar usuário.', 'error');
-      }
+      await saveUserAPI(user);
+      fetchUsers();
+      fetchAuditLogs();
+      showToast('Usuário criado com sucesso!', 'success');
     } catch (err) {
       console.error("Failed to add user", err);
       showToast('Erro ao criar usuário.', 'error');
@@ -665,18 +372,10 @@ export default function App() {
 
   const handleUpdateUser = async (id: number, user: any) => {
     try {
-      const res = await fetchWithAuth(`/api/users/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(user)
-      });
-      if (res.ok) {
-        fetchUsers();
-        fetchAuditLogs();
-        showToast('Usuário atualizado com sucesso!', 'success');
-      } else {
-        showToast('Erro ao atualizar usuário.', 'error');
-      }
+      await saveUserAPI(user, id);
+      fetchUsers();
+      fetchAuditLogs();
+      showToast('Usuário atualizado com sucesso!', 'success');
     } catch (err) {
       console.error("Failed to update user", err);
       showToast('Erro ao atualizar usuário.', 'error');
@@ -689,16 +388,10 @@ export default function App() {
       'Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.',
       async () => {
         try {
-          const res = await fetchWithAuth(`/api/users/${id}`, {
-            method: 'DELETE'
-          });
-          if (res.ok) {
-            fetchUsers();
-            fetchAuditLogs();
-            showToast('Usuário excluído com sucesso!', 'success');
-          } else {
-            showToast('Erro ao excluir usuário.', 'error');
-          }
+          await deleteUserAPI(id);
+          fetchUsers();
+          fetchAuditLogs();
+          showToast('Usuário excluído com sucesso!', 'success');
         } catch (err) {
           console.error("Failed to delete user", err);
           showToast('Erro de conexão ao excluir usuário.', 'error');
@@ -708,30 +401,11 @@ export default function App() {
     );
   };
 
-  const fetchCustomers = async () => {
-    try {
-      const res = await fetchWithAuth(`/api/customers?page=${customersPage}&limit=20&search=${customerSearchTerm}`);
-      const data = await res.json();
-      setCustomers(data);
-    } catch (err) {
-      console.error("Failed to fetch customers", err);
-      showToast('Erro ao carregar clientes.', 'error');
-    }
-  };
-
   const handleAddBrand = async (name: string, equipmentType: string) => {
     try {
-      const res = await fetchWithAuth('/api/brands', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, equipmentType })
-      });
-      if (res.ok) {
-        fetchBrands();
-        showToast('Marca adicionada com sucesso!', 'success');
-      } else {
-        showToast('Erro ao adicionar marca.', 'error');
-      }
+      await addBrandAPI(name, equipmentType);
+      fetchBrands();
+      showToast('Marca adicionada com sucesso!', 'success');
     } catch (err) {
       console.error("Failed to add brand", err);
       showToast('Erro ao adicionar marca.', 'error');
@@ -740,17 +414,9 @@ export default function App() {
 
   const handleAddEquipmentType = async (name: string, icon?: string) => {
     try {
-      const res = await fetchWithAuth('/api/equipment-types', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, icon })
-      });
-      if (res.ok) {
-        fetchEquipmentTypes();
-        showToast('Tipo de equipamento adicionado!', 'success');
-      } else {
-        showToast('Erro ao adicionar tipo de equipamento.', 'error');
-      }
+      await addEquipmentTypeAPI(name, icon);
+      fetchEquipmentTypes();
+      showToast('Tipo de equipamento adicionado!', 'success');
     } catch (err) {
       console.error("Failed to add equipment type", err);
       showToast('Erro ao adicionar tipo de equipamento.', 'error');
@@ -763,13 +429,9 @@ export default function App() {
       'Tem certeza que deseja excluir este tipo? Isso não afetará as marcas e modelos já cadastrados, mas eles não aparecerão mais nesta categoria.',
       async () => {
         try {
-          const res = await fetchWithAuth(`/api/equipment-types/${id}`, { method: 'DELETE' });
-          if (res.ok) {
-            fetchEquipmentTypes();
-            showToast('Tipo de equipamento removido!', 'info');
-          } else {
-            showToast('Erro ao remover tipo de equipamento.', 'error');
-          }
+          await deleteEquipmentTypeAPI(id);
+          fetchEquipmentTypes();
+          showToast('Tipo de equipamento removido!', 'info');
         } catch (err) {
           console.error("Failed to delete equipment type", err);
           showToast('Erro ao remover tipo de equipamento.', 'error');
@@ -785,14 +447,10 @@ export default function App() {
       'Tem certeza que deseja excluir esta marca? Todos os modelos vinculados também serão excluídos.',
       async () => {
         try {
-          const res = await fetchWithAuth(`/api/brands/${id}`, { method: 'DELETE' });
-          if (res.ok) {
-            fetchBrands();
-            fetchModels();
-            showToast('Marca excluída com sucesso!', 'success');
-          } else {
-            showToast('Erro ao excluir marca.', 'error');
-          }
+          await deleteBrandAPI(id);
+          fetchBrands();
+          fetchModels();
+          showToast('Marca excluída com sucesso!', 'success');
         } catch (err) {
           console.error("Failed to delete brand", err);
           showToast('Erro ao excluir marca.', 'error');
@@ -804,17 +462,9 @@ export default function App() {
 
   const handleAddModel = async (brandId: number, name: string) => {
     try {
-      const res = await fetchWithAuth('/api/models', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brandId, name })
-      });
-      if (res.ok) {
-        fetchModels();
-        showToast('Modelo adicionado com sucesso!', 'success');
-      } else {
-        showToast('Erro ao adicionar modelo.', 'error');
-      }
+      await addModelAPI(brandId, name);
+      fetchModels();
+      showToast('Modelo adicionado com sucesso!', 'success');
     } catch (err) {
       console.error("Failed to add model", err);
       showToast('Erro ao adicionar modelo.', 'error');
@@ -827,13 +477,9 @@ export default function App() {
       'Tem certeza que deseja excluir este modelo?',
       async () => {
         try {
-          const res = await fetchWithAuth(`/api/models/${id}`, { method: 'DELETE' });
-          if (res.ok) {
-            fetchModels();
-            showToast('Modelo excluído com sucesso!', 'success');
-          } else {
-            showToast('Erro ao excluir modelo.', 'error');
-          }
+          await deleteModelAPI(id);
+          fetchModels();
+          showToast('Modelo excluído com sucesso!', 'success');
         } catch (err) {
           console.error("Failed to delete model", err);
           showToast('Erro ao excluir modelo.', 'error');
@@ -843,27 +489,16 @@ export default function App() {
     );
   };
 
-  const fetchClientPayments = async () => {
-    try {
-      const res = await fetchWithAuth(`/api/client-payments?page=${paymentsPage}&limit=20&search=${paymentSearchTerm}`);
-      const data = await res.json();
-      setClientPayments(data);
-    } catch (err) {
-      console.error("Failed to fetch client payments", err);
-      showToast('Erro ao carregar pagamentos.', 'error');
-    }
-  };
-
   const handleAddCustomer = async (force: boolean = false) => {
     if (isSaving) return;
-    if (!newCustomer.firstName) {
-      showToast("Por favor, preencha o nome do cliente.", 'warning');
+    if (!newCustomer.firstName || !newCustomer.lastName) {
+      showToast("Por favor, preencha o nome e sobrenome do cliente.", 'warning');
       return;
     }
 
     if (!force && settings.showWarnings) {
       const missingCpf = !newCustomer.cpf;
-      const missingPhone = !newCustomer.phone;
+      const missingPhone = !newCustomer.phone || newCustomer.phone === '+55';
 
       if (missingCpf || missingPhone) {
         setCustomerWarningType(missingCpf && missingPhone ? 'both' : missingCpf ? 'cpf' : 'phone');
@@ -873,29 +508,21 @@ export default function App() {
     }
 
     // Verificar similaridade
-    const similarity = customers.data.find(c => 
-      (newCustomer.nickname && c.nickname?.toLowerCase() === newCustomer.nickname.toLowerCase()) ||
-      (newCustomer.companyName && c.companyName?.toLowerCase() === newCustomer.companyName.toLowerCase()) ||
-      (c.firstName.toLowerCase() === newCustomer.firstName.toLowerCase() && c.lastName.toLowerCase() === newCustomer.lastName.toLowerCase())
+    const similarity = customers.data?.find(c => 
+      (newCustomer.nickname && c.nickname?.toLowerCase() === newCustomer.nickname?.toLowerCase()) ||
+      (newCustomer.companyName && c.companyName?.toLowerCase() === newCustomer.companyName?.toLowerCase()) ||
+      (c.firstName?.toLowerCase() === newCustomer.firstName?.toLowerCase() && c.lastName?.toLowerCase() === newCustomer.lastName?.toLowerCase())
     );
 
     const saveCustomer = async () => {
       setIsSaving(true);
       try {
-        const url = editingCustomer ? `/api/customers/${editingCustomer.id}` : '/api/customers';
-        const method = editingCustomer ? 'PUT' : 'POST';
-        
-        const res = await fetchWithAuth(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...newCustomer,
-            creditLimit: parseFloat(newCustomer.creditLimit.toString().replace(',', '.')) || 0,
-            createdBy: !editingCustomer ? currentUser?.id : undefined,
-            updatedBy: currentUser?.id
-          })
-        });
-        const data = await res.json();
+        const data = await saveCustomerAPI({
+          ...newCustomer,
+          creditLimit: parseFloat(newCustomer.creditLimit.toString().replace(',', '.')) || 0,
+          createdBy: !editingCustomer ? currentUser?.id : undefined,
+          updatedBy: currentUser?.id
+        }, editingCustomer?.id);
         
         setIsAddingCustomer(false);
         setShowCustomerWarningModal(false);
@@ -913,14 +540,24 @@ export default function App() {
         fetchCustomers();
         fetchAuditLogs();
 
-        if (method === 'POST') {
-          if (settings.showPostCustomerActionPrompt !== false) {
-            setPostCustomerData({ id: data.id, name: `${data.firstName} ${data.lastName}`.trim() });
-          }
+        if (!editingCustomer) {
+          // Use a small delay to ensure the modal is closed before showing the confirm
+          setTimeout(() => {
+            openConfirm(
+              'Lançar Pagamento',
+              'Cliente cadastrado com sucesso! Deseja lançar um pagamento/parcelamento para este cliente agora?',
+              () => {
+                setNewClientPayment(prev => ({ ...prev, customerId: data.id }));
+                setActiveScreen('client-payments');
+                setIsAddingClientPayment(true);
+              },
+              'info'
+            );
+          }, 500);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to add customer", err);
-        showToast('Erro ao adicionar cliente.', 'error');
+        showToast(err.message || 'Erro ao adicionar cliente.', 'error');
       } finally {
         setIsSaving(false);
       }
@@ -968,20 +605,16 @@ export default function App() {
 
       // 1. Criar a Entrada se houver
       if (paid > 0) {
-        promises.push(fetch('/api/client-payments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...newClientPayment,
-            description: `ENTRADA: ${newClientPayment.description}`,
-            totalAmount: paid,
-            paidAmount: paid,
-            dueDate: newClientPayment.purchaseDate,
-            status: 'paid',
-            installmentsCount: 1,
-            saleId,
-            createdBy: currentUser?.id
-          })
+        promises.push(saveClientPaymentAPI({
+          ...newClientPayment,
+          description: `ENTRADA: ${newClientPayment.description}`,
+          totalAmount: paid,
+          paidAmount: paid,
+          dueDate: newClientPayment.purchaseDate,
+          status: 'paid',
+          installmentsCount: 1,
+          saleId,
+          createdBy: currentUser?.id
         }));
       }
 
@@ -994,30 +627,28 @@ export default function App() {
           let dueDate = new Date(newClientPayment.dueDate + 'T12:00:00');
           if (interval === 'monthly') {
             dueDate.setMonth(dueDate.getMonth() + i);
-          } else if (interval === '15days') {
+          } else if (interval === 'biweekly') {
             dueDate.setDate(dueDate.getDate() + (i * 15));
           } else if (interval === 'weekly') {
             dueDate.setDate(dueDate.getDate() + (i * 7));
+          } else if (interval === 'daily') {
+            dueDate.setDate(dueDate.getDate() + i);
           }
 
           const description = installmentsCount > 1 
             ? `${newClientPayment.description} (Parcela ${i + 1}/${installmentsCount})`
             : newClientPayment.description;
 
-          promises.push(fetch('/api/client-payments', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              ...newClientPayment,
-              description,
-              totalAmount: installmentAmount,
-              paidAmount: 0,
-              dueDate: format(dueDate, 'yyyy-MM-dd'),
-              status: 'pending',
-              installmentsCount: 1,
-              saleId,
-              createdBy: currentUser?.id
-            })
+          promises.push(saveClientPaymentAPI({
+            ...newClientPayment,
+            description,
+            totalAmount: installmentAmount,
+            paidAmount: 0,
+            dueDate: format(dueDate, 'yyyy-MM-dd'),
+            status: 'pending',
+            installmentsCount: 1,
+            saleId,
+            createdBy: currentUser?.id
           }));
         }
       }
@@ -1037,7 +668,7 @@ export default function App() {
         installmentInterval: 'monthly',
         type: 'income'
       });
-      fetchClientPayments();
+      fetchClientPayments(paymentsPage, paymentSearchTerm);
       fetchAuditLogs();
     } catch (err) {
       console.error("Failed to add client payment", err);
@@ -1054,11 +685,9 @@ export default function App() {
   const confirmDeleteClientPayment = async () => {
     if (!clientPaymentToDelete) return;
     try {
-      const res = await fetchWithAuth(`/api/client-payments/${clientPaymentToDelete}`, { method: 'DELETE' });
-      if (res.ok) {
-        fetchClientPayments();
-        fetchAuditLogs();
-      }
+      await deleteClientPaymentAPI(clientPaymentToDelete);
+      fetchClientPayments(paymentsPage, paymentSearchTerm);
+      fetchAuditLogs();
     } catch (err) {
       console.error("Failed to delete client payment", err);
       showToast('Erro ao excluir pagamento de cliente.', 'error');
@@ -1074,9 +703,9 @@ export default function App() {
       async () => {
         try {
           // We need a new endpoint or just loop. Let's add a query param to delete by saleId.
-          const res = await fetchWithAuth(`/api/client-payments/group/${saleId}`, { method: 'DELETE' });
+          const res = await fetch(`/api/client-payments/group/${saleId}`, { method: 'DELETE' });
           if (res.ok) {
-            fetchClientPayments();
+            fetchClientPayments(paymentsPage, paymentSearchTerm);
             fetchAuditLogs();
             showToast('Venda excluída com sucesso.', 'success');
           }
@@ -1115,19 +744,15 @@ export default function App() {
     }];
 
     try {
-      await fetchWithAuth(`/api/client-payments/${isRecordingPayment.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paidAmount: newPaidAmount,
-          status: newStatus,
-          paymentHistory: newHistory,
-          updatedBy: currentUser?.id
-        })
-      });
+      await saveClientPaymentAPI({
+        paidAmount: newPaidAmount,
+        status: newStatus,
+        paymentHistory: JSON.stringify(newHistory),
+        updatedBy: currentUser?.id
+      }, isRecordingPayment.id);
       setIsRecordingPayment(null);
       setPaymentAmount('');
-      fetchClientPayments();
+      fetchClientPayments(paymentsPage, paymentSearchTerm);
       fetchAuditLogs();
     } catch (err) {
       console.error("Failed to record payment", err);
@@ -1164,23 +789,22 @@ export default function App() {
 
   const handleDeleteCustomer = async (customer: Customer) => {
     try {
-      const res = await fetchWithAuth(`/api/customers/${customer.id}/payments`);
-      const payments = await res.json();
+      const payments = await checkCustomerPaymentsAPI(customer.id);
       
       setCustomerToDelete(customer);
       setCustomerPaymentsWarning(payments);
     } catch (err) {
-      console.error("Failed to delete customer", err);
-      showToast('Erro ao excluir cliente.', 'error');
+      console.error("Failed to check customer payments", err);
+      showToast('Erro ao verificar pagamentos do cliente.', 'error');
     }
   };
 
   const confirmDeleteCustomerWithPayments = async () => {
     if (!customerToDelete) return;
     try {
-      await fetchWithAuth(`/api/customers/${customerToDelete.id}`, { method: 'DELETE' });
+      await deleteCustomerAPI(customerToDelete.id);
       fetchCustomers();
-      fetchClientPayments();
+      fetchClientPayments(paymentsPage, paymentSearchTerm);
       setCustomerToDelete(null);
       setCustomerPaymentsWarning([]);
     } catch (err) {
@@ -1657,7 +1281,7 @@ export default function App() {
 
     // Salvar recibo no banco de dados
     try {
-      await fetchWithAuth('/api/receipts', {
+      await fetch('/api/receipts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1674,77 +1298,11 @@ export default function App() {
     printWindow.document.close();
   };
 
-  const fetchTransactions = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetchWithAuth(`/api/transactions?page=${transactionsPage}&limit=20&search=${searchTerm}`);
-      const data = await res.json();
-      setTransactions(data);
-    } catch (err) {
-      console.error("Failed to fetch transactions", err);
-      showToast('Erro ao carregar transações.', 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Removed redundant fetchCategories definition
 
-  // REMOVIDO: fetchCategories agora vem do DataContext
+  // Removed redundant addCategory definition
 
-  const addCategory = async (name: string, type: 'income' | 'expense') => {
-    try {
-      await fetchWithAuth('/api/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, type })
-      });
-      dataContext.fetchCategories();
-    } catch (err) {
-      console.error("Failed to add category", err);
-      showToast('Erro ao adicionar categoria.', 'error');
-    }
-  };
-
-  const deleteCategory = async (id: number) => {
-    try {
-      await fetchWithAuth(`/api/categories/${id}`, { method: 'DELETE' });
-      dataContext.fetchCategories();
-    } catch (err) {
-      console.error("Failed to delete category", err);
-      showToast('Erro ao excluir categoria.', 'error');
-    }
-  };
-
-  const fetchSettings = async () => {
-    try {
-      const res = await fetchWithAuth('/api/settings');
-      const data = await res.json();
-      if (data) {
-        setSettings(prev => ({
-          ...prev,
-          ...data,
-          // Garantir que hiddenColumns seja sempre um array
-          hiddenColumns: Array.isArray(data.hiddenColumns) ? data.hiddenColumns : []
-        }));
-      }
-    } catch (err) {
-      console.error("Failed to fetch settings", err);
-      showToast('Erro ao carregar configurações.', 'error');
-    }
-  };
-
-  const updateSettings = async (newSettings: AppSettings) => {
-    try {
-      await fetchWithAuth('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSettings)
-      });
-      setSettings(newSettings);
-    } catch (err) {
-      console.error("Failed to update settings", err);
-      showToast('Erro ao atualizar configurações.', 'error');
-    }
-  };
+  // Removed redundant deleteCategory definition
 
   const getAllMovements = () => {
     const movements: any[] = [...transactions.data.map(t => ({...t, source: 'transaction', clientName: '-'}))];
@@ -1777,9 +1335,9 @@ export default function App() {
 
   const handleDeleteTransaction = async (id: number) => {
     try {
-      await fetchWithAuth(`/api/transactions/${id}`, { method: 'DELETE' });
+      await deleteTransactionAPI(id);
       setTransactionToDelete(null);
-      fetchTransactions();
+      fetchTransactions(transactionsPage, searchTerm);
     } catch (err) {
       console.error("Failed to delete", err);
       showToast('Erro ao excluir transação.', 'error');
@@ -1802,21 +1360,14 @@ export default function App() {
     }
 
     try {
-      const url = editingTransaction ? `/api/transactions/${editingTransaction.id}` : '/api/transactions';
-      const method = editingTransaction ? 'PUT' : 'POST';
-      
-      await fetchWithAuth(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...newTx,
-          amount: parseFloat(newTx.amount.toString().replace(',', '.')) || 0,
-          category: newTx.category || 'Outros',
-          description: newTx.description || 'Sem descrição',
-          createdBy: !editingTransaction ? currentUser?.id : undefined,
-          updatedBy: currentUser?.id
-        })
-      });
+      await saveTransactionAPI({
+        ...newTx,
+        amount: parseFloat(newTx.amount.toString().replace(',', '.')) || 0,
+        category: newTx.category || 'Outros',
+        description: newTx.description || 'Sem descrição',
+        createdBy: !editingTransaction ? currentUser?.id : undefined,
+        updatedBy: currentUser?.id
+      }, editingTransaction?.id);
       
       setIsAdding(false);
       setShowWarningModal(false);
@@ -1828,7 +1379,7 @@ export default function App() {
         amount: '',
         date: format(new Date(), 'yyyy-MM-dd')
       });
-      fetchTransactions();
+      fetchTransactions(transactionsPage, searchTerm);
       fetchAuditLogs();
     } catch (err) {
       console.error("Failed to save", err);
@@ -1838,19 +1389,15 @@ export default function App() {
 
   const handleDuplicateTransaction = async (tx: Transaction) => {
     try {
-      await fetchWithAuth('/api/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          description: `${tx.description} (Cópia)`,
-          category: tx.category,
-          type: tx.type,
-          amount: tx.amount,
-          date: format(new Date(), 'yyyy-MM-dd'),
-          createdBy: currentUser?.id
-        })
+      await saveTransactionAPI({
+        description: `${tx.description} (Cópia)`,
+        category: tx.category,
+        type: tx.type,
+        amount: tx.amount,
+        date: format(new Date(), 'yyyy-MM-dd'),
+        createdBy: currentUser?.id
       });
-      fetchTransactions();
+      fetchTransactions(transactionsPage, searchTerm);
       fetchAuditLogs();
     } catch (err) {
       console.error("Failed to duplicate", err);
@@ -2072,35 +1619,20 @@ export default function App() {
   });
 
   const handleLogin = (user: User) => {
-    setCurrentUser(user);
-    setIsAuthenticated(true);
+    login(user);
     setActiveScreen('dashboard');
   };
 
   const handleLogout = () => {
-    clearToken();
-    setCurrentUser(null);
-    setIsAuthenticated(false);
+    logout();
     setActiveScreen('dashboard');
-  };
-
-  const hasPermission = (permission: string) => {
-    if (!currentUser) return false;
-    if (currentUser.role === 'owner') return true;
-    return currentUser.permissions?.includes(permission);
   };
 
   const handleAddInventoryItem = async (item: any) => {
     try {
-      const res = await fetchWithAuth('/api/inventory', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...item, createdBy: currentUser?.id })
-      });
-      if (res.ok) {
-        fetchInventoryItems();
-        fetchAuditLogs();
-      }
+      await saveInventoryItemAPI({ ...item, createdBy: currentUser?.id });
+      fetchInventoryItems();
+      fetchAuditLogs();
     } catch (err) {
       console.error("Failed to add inventory item", err);
       showToast('Erro ao adicionar item ao estoque.', 'error');
@@ -2109,15 +1641,9 @@ export default function App() {
 
   const handleUpdateInventoryItem = async (id: number, item: any) => {
     try {
-      const res = await fetchWithAuth(`/api/inventory/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...item, updatedBy: currentUser?.id })
-      });
-      if (res.ok) {
-        fetchInventoryItems();
-        fetchAuditLogs();
-      }
+      await saveInventoryItemAPI({ ...item, updatedBy: currentUser?.id }, id);
+      fetchInventoryItems();
+      fetchAuditLogs();
     } catch (err) {
       console.error("Failed to update inventory item", err);
       showToast('Erro ao atualizar item do estoque.', 'error');
@@ -2126,11 +1652,9 @@ export default function App() {
 
   const handleDeleteInventoryItem = async (id: number) => {
     try {
-      const res = await fetchWithAuth(`/api/inventory/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        fetchInventoryItems();
-        fetchAuditLogs();
-      }
+      await deleteInventoryItemAPI(id);
+      fetchInventoryItems();
+      fetchAuditLogs();
     } catch (err) {
       console.error("Failed to delete inventory item", err);
       showToast('Erro ao excluir item do estoque.', 'error');
@@ -2139,68 +1663,37 @@ export default function App() {
 
   const handleAddServiceOrder = async (order: any) => {
     try {
-      const res = await fetchWithAuth('/api/service-orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...order, createdBy: currentUser?.id })
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        fetchServiceOrders();
-        fetchAuditLogs();
-        showToast('Ordem de serviço adicionada com sucesso!', 'success');
-        return data.id;
-      } else {
-        const errorData = await res.json();
-        console.error("Failed to add service order", errorData);
-        showToast(`Erro ao adicionar: ${errorData.error || 'Erro desconhecido'}`, 'error');
-        return null;
-      }
-    } catch (err) {
+      const data = await saveServiceOrderAPI({ ...order, createdBy: currentUser?.id });
+      fetchServiceOrders();
+      fetchAuditLogs();
+      showToast('Ordem de serviço adicionada com sucesso!', 'success');
+      return data.id;
+    } catch (err: any) {
       console.error("Failed to add service order", err);
-      showToast('Erro de rede ao adicionar ordem de serviço.', 'error');
+      showToast(`Erro ao adicionar: ${err.message || 'Erro desconhecido'}`, 'error');
       return null;
     }
   };
 
   const handleUpdateServiceOrder = async (id: number, order: any) => {
     try {
-      const res = await fetchWithAuth(`/api/service-orders/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...order, updatedBy: currentUser?.id })
-      });
-      
-      if (res.ok) {
-        fetchServiceOrders();
-        fetchInventoryItems(); // Refresh inventory as stock might have changed
-        fetchAuditLogs();
-        showToast('Ordem de serviço atualizada com sucesso!', 'success');
-        return true;
-      } else {
-        const errorData = await res.json();
-        console.error("Failed to update service order", errorData);
-        showToast(`Erro ao atualizar: ${errorData.error || 'Erro desconhecido'}`, 'error');
-        return false;
-      }
-    } catch (err) {
+      await saveServiceOrderAPI({ ...order, updatedBy: currentUser?.id }, id);
+      fetchServiceOrders();
+      fetchInventoryItems(); // Refresh inventory as stock might have changed
+      fetchAuditLogs();
+      showToast('Ordem de serviço atualizada com sucesso!', 'success');
+      return true;
+    } catch (err: any) {
       console.error("Failed to update service order", err);
-      showToast('Erro de rede ao atualizar ordem de serviço.', 'error');
+      showToast(`Erro ao atualizar: ${err.message || 'Erro desconhecido'}`, 'error');
       return false;
     }
   };
 
   const handleAddServiceOrderStatus = async (status: any) => {
     try {
-      const res = await fetchWithAuth('/api/service-order-statuses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(status)
-      });
-      if (res.ok) {
-        fetchServiceOrderStatuses();
-      }
+      await addServiceOrderStatusAPI(status);
+      fetchServiceOrderStatuses();
     } catch (err) {
       console.error("Failed to add service order status", err);
       showToast('Erro ao adicionar status da OS.', 'error');
@@ -2209,12 +1702,8 @@ export default function App() {
 
   const handleDeleteServiceOrderStatus = async (id: number) => {
     try {
-      const res = await fetchWithAuth(`/api/service-order-statuses/${id}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) {
-        fetchServiceOrderStatuses();
-      }
+      await deleteServiceOrderStatusAPI(id);
+      fetchServiceOrderStatuses();
     } catch (err) {
       console.error("Failed to delete service order status", err);
       showToast('Erro ao excluir status da OS.', 'error');
@@ -2223,11 +1712,9 @@ export default function App() {
 
   const handleDeleteServiceOrder = async (id: number) => {
     try {
-      const res = await fetchWithAuth(`/api/service-orders/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        fetchServiceOrders();
-        fetchAuditLogs();
-      }
+      await deleteServiceOrderAPI(id);
+      fetchServiceOrders();
+      fetchAuditLogs();
     } catch (err) {
       console.error("Failed to delete service order", err);
       showToast('Erro ao excluir ordem de serviço.', 'error');
@@ -2296,10 +1783,6 @@ export default function App() {
         return { title: 'FinanceFlow' };
     }
   };
-
-  if (directMode === 'status' && directOsId) {
-    return <StatusPage osId={directOsId} />;
-  }
 
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
@@ -2626,7 +2109,7 @@ export default function App() {
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl p-1">
               <button
-                onClick={() => setFontSize(prev => Math.max(prev - 2, 12))}
+                onClick={() => setFontSize(Math.max(fontSize - 2, 12))}
                 className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                 title="Diminuir fonte"
               >
@@ -2640,7 +2123,7 @@ export default function App() {
                 <span className="text-sm font-bold">A</span>
               </button>
               <button
-                onClick={() => setFontSize(prev => Math.min(prev + 2, 24))}
+                onClick={() => setFontSize(Math.min(fontSize + 2, 24))}
                 className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                 title="Aumentar fonte"
               >
@@ -2839,49 +2322,18 @@ export default function App() {
         <div className="p-6 lg:p-10 max-w-7xl mx-auto w-full space-y-10">
           {activeScreen === 'dashboard' ? (
             <Dashboard 
-              settings={settings}
               totalIncome={totalIncome}
               totalExpenses={totalExpenses}
               netBalance={netBalance}
               chartData={chartData}
               handleChartClick={handleChartClick}
-              dashboardMonth={dashboardMonth}
-              handlePrevMonth={handlePrevMonth}
-              handleNextMonth={handleNextMonth}
               sortedIncomeRanking={sortedIncomeRanking}
               sortedExpenseRanking={sortedExpenseRanking}
             />
           ) : activeScreen === 'transactions' ? (
             <Transactions 
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              dateFilterMode={dateFilterMode}
-              setDateFilterMode={setDateFilterMode}
-              showFilters={showFilters}
-              setShowFilters={setShowFilters}
-              selectedDate={selectedDate}
-              setSelectedDate={setSelectedDate}
-              selectedMonth={selectedMonth}
-              setSelectedMonth={setSelectedMonth}
-              startDate={startDate}
-              setStartDate={setStartDate}
-              endDate={endDate}
-              setEndDate={setEndDate}
-              filterType={filterType}
-              setFilterType={setFilterType}
-              filterCategory={filterCategory}
-              setFilterCategory={setFilterCategory}
-              filterMinAmount={filterMinAmount}
-              setFilterMinAmount={setFilterMinAmount}
-              filterMaxAmount={filterMaxAmount}
-              setFilterMaxAmount={setFilterMaxAmount}
               categories={categories}
-              settings={settings}
-              updateSettings={updateSettings}
               filteredTransactions={filteredTransactions}
-              setEditingTransaction={setEditingTransaction}
-              setIsAdding={setIsAdding}
-              setTransactionToDelete={setTransactionToDelete}
               handleDuplicateTransaction={handleDuplicateTransaction}
               pagination={{
                 currentPage: transactions.meta.page,
@@ -2893,30 +2345,21 @@ export default function App() {
             />
           ) : activeScreen === 'reports' ? (
             <Reports 
-              settings={settings}
-              reportView={reportView}
-              setReportView={setReportView}
-              categories={categories}
-              transactions={transactions.data}
               chartData={chartData}
               handleChartClick={handleChartClick}
-              reportMonth={reportMonth}
-              setReportMonth={setReportMonth}
+              categories={categories}
+              transactions={transactions.data}
             />
           ) : activeScreen === 'customers' ? (
             <Customers 
-              settings={settings}
               customers={customers}
               clientPayments={clientPayments}
-              setEditingCustomer={setEditingCustomer}
-              setNewCustomer={setNewCustomer}
-              setIsAddingCustomer={setIsAddingCustomer}
               onDelete={(id) => {
                 const customer = customers.data.find(c => c.id === id);
                 if (customer) handleDeleteCustomer(customer);
               }}
               onAddPayment={(customer) => {
-                setNewClientPayment(prev => ({ ...prev, customerId: customer.id }));
+                setNewClientPayment({ ...newClientPayment, customerId: customer.id });
                 setActiveScreen('client-payments');
                 setIsAddingClientPayment(true);
               }}
@@ -2924,37 +2367,17 @@ export default function App() {
                 setHistoryCustomer(customer);
                 setShowHistoryModal(true);
               }}
-              searchTerm={customerSearchTerm}
-              setSearchTerm={setCustomerSearchTerm}
               onPageChange={setCustomersPage}
             />
           ) : activeScreen === 'client-payments' ? (
             <ClientPayments 
               filteredClientPayments={filteredClientPayments}
-              setIsAddingClientPayment={setIsAddingClientPayment}
-              isAddingClientPayment={isAddingClientPayment}
-              paymentSearchTerm={paymentSearchTerm}
-              setPaymentSearchTerm={setPaymentSearchTerm}
-              paymentFilterStatus={paymentFilterStatus}
-              setPaymentFilterStatus={setPaymentFilterStatus}
-              paymentSortMode={paymentSortMode}
-              setPaymentSortMode={setPaymentSortMode}
-              togglePaymentExpansion={togglePaymentExpansion}
-              expandedPayments={expandedPayments}
-              isRecordingPayment={isRecordingPayment}
-              setIsRecordingPayment={setIsRecordingPayment}
               generateReceipt={generateReceipt}
               sendWhatsAppReminder={sendWhatsAppReminder}
               handleDeleteClientPayment={handleDeleteClientPayment}
               handleDeleteClientPaymentGroup={handleDeleteClientPaymentGroup}
               handleRecordPayment={handleRecordPayment}
-              paymentAmount={paymentAmount}
-              setPaymentAmount={setPaymentAmount}
-              paymentDate={paymentDate}
-              setPaymentDate={setPaymentDate}
               customers={customers.data}
-              newClientPayment={newClientPayment}
-              setNewClientPayment={setNewClientPayment}
               handleAddClientPayment={handleAddClientPayment}
               isSaving={isSaving}
               pagination={{
@@ -2984,7 +2407,6 @@ export default function App() {
               onAddBrand={handleAddBrand}
               onAddModel={handleAddModel}
               onPrintBlankForm={handlePrintBlankForm}
-              openConfirm={openConfirm}
               onTriggerAddCustomer={() => {
                 setEditingCustomer(null);
                 setNewCustomer({
@@ -2999,17 +2421,6 @@ export default function App() {
                 });
                 setIsAddingCustomer(true);
               }}
-              directOsId={directOsId}
-              directMode={directMode}
-              onClearDirectOsId={() => setDirectOsId(null)}
-              currentUser={currentUser}
-              settings={settings}
-              updateSettings={updateSettings}
-              isAdding={isAddingServiceOrder}
-              setIsAdding={setIsAddingServiceOrder}
-              initialCustomerId={newOsCustomerId}
-              searchTerm={osSearchTerm}
-              setSearchTerm={setOsSearchTerm}
               pagination={{
                 currentPage: serviceOrders.meta.page,
                 totalPages: serviceOrders.meta.totalPages,
@@ -3024,23 +2435,16 @@ export default function App() {
               onAddItem={handleAddInventoryItem}
               onUpdateItem={handleUpdateInventoryItem}
               onDeleteItem={handleDeleteInventoryItem}
-              openConfirm={openConfirm}
-              isAdding={isAddingInventoryItem}
-              setIsAdding={setIsAddingInventoryItem}
             />
           ) : (
             /* Settings Screen */
             <SettingsLayout 
-              settings={settings}
-              updateSettings={updateSettings}
               categories={categories}
               addCategory={addCategory}
               deleteCategory={deleteCategory}
-              users={users}
               addUser={handleAddUser}
               updateUser={handleUpdateUser}
               deleteUser={handleDeleteUser}
-              auditLogs={auditLogs}
               transactions={transactions.data}
               customers={customers.data}
               clientPayments={clientPayments.data}
@@ -3203,29 +2607,6 @@ export default function App() {
         title="Excluir Venda/Pagamento"
         message="Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita e afetará o saldo do cliente."
       />
-
-      <PostCustomerActionModal
-        isOpen={!!postCustomerData}
-        customerName={postCustomerData?.name || ''}
-        onClose={() => setPostCustomerData(null)}
-        onAction={(action, dontShowAgain) => {
-          if (dontShowAgain) {
-            updateSettings({ ...settings, showPostCustomerActionPrompt: false });
-          }
-          if (action === 'payment' && postCustomerData) {
-            setNewClientPayment(prev => ({ ...prev, customerId: postCustomerData.id }));
-            setActiveScreen('client-payments');
-            setIsAddingClientPayment(true);
-          } else if (action === 'os' && postCustomerData) {
-            setNewOsCustomerId(postCustomerData.id);
-            setActiveScreen('service-orders');
-            setIsAddingServiceOrder(true);
-          }
-          setPostCustomerData(null);
-        }}
-      />
-
-      <FeedbackBubble />
       </div>
 
 
@@ -3246,12 +2627,11 @@ export default function App() {
 
       <ConfirmModal
         isOpen={confirmModal.isOpen}
-        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onClose={closeConfirm}
         onConfirm={confirmModal.onConfirm}
         title={confirmModal.title}
         message={confirmModal.message}
         type={confirmModal.type}
-        showDontShowAgain={confirmModal.showDontShowAgain}
       />
     </div>
   );

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { User } from '../types';
 import { Wallet, Lock, User as UserIcon, AlertCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { setToken } from '../services/api';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -27,12 +26,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        // Store JWT token for authenticated API requests
-        if (data.token) {
-          setToken(data.token);
-        }
-        onLogin(data);
+        const user = await response.json();
+        onLogin(user);
       } else {
         const data = await response.json();
         setError(data.error || 'Falha no login');

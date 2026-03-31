@@ -12,8 +12,9 @@ import { formatCurrency } from '../../lib/utils';
 import StatCard from '../ui/StatCard';
 import { AppSettings } from '../../types';
 
+import { useSettingsStore } from '../../store/useSettingsStore';
+
 interface DashboardProps {
-  settings: AppSettings;
   totalIncome: number;
   totalExpenses: number;
   netBalance: number;
@@ -28,7 +29,6 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
-  settings = { initialBalance: 0 } as AppSettings,
   totalIncome,
   totalExpenses,
   netBalance,
@@ -41,6 +41,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   formatMonthYear,
   handleChartClick
 }) => {
+  const { settings } = useSettingsStore();
   return (
     <div className="space-y-10">
       {/* Stats Grid */}
