@@ -22,7 +22,7 @@ export function MobileNav({ activeScreen, setActiveScreen }: MobileNavProps) {
         )}
       >
         <LayoutDashboard size={20} />
-        <span className="text-[8px] font-black uppercase tracking-widest">Início</span>
+        <span className="text-xs font-black uppercase tracking-widest">Início</span>
       </button>
       
       {hasPermission('service-orders') && (
@@ -34,7 +34,7 @@ export function MobileNav({ activeScreen, setActiveScreen }: MobileNavProps) {
           )}
         >
           <Briefcase size={20} />
-          <span className="text-[8px] font-black uppercase tracking-widest">Ordens</span>
+          <span className="text-xs font-black uppercase tracking-widest">Ordens</span>
         </button>
       )}
 
@@ -47,7 +47,7 @@ export function MobileNav({ activeScreen, setActiveScreen }: MobileNavProps) {
           )}
         >
           <CreditCard size={20} />
-          <span className="text-[8px] font-black uppercase tracking-widest">Vendas</span>
+          <span className="text-xs font-black uppercase tracking-widest">Vendas</span>
         </button>
       )}
 
@@ -60,7 +60,7 @@ export function MobileNav({ activeScreen, setActiveScreen }: MobileNavProps) {
           )}
         >
           <Users size={20} />
-          <span className="text-[8px] font-black uppercase tracking-widest">Clientes</span>
+          <span className="text-xs font-black uppercase tracking-widest">Clientes</span>
         </button>
       )}
 
@@ -73,7 +73,7 @@ export function MobileNav({ activeScreen, setActiveScreen }: MobileNavProps) {
           )}
         >
           <Package size={20} />
-          <span className="text-[8px] font-black uppercase tracking-widest">Estoque</span>
+          <span className="text-xs font-black uppercase tracking-widest">Estoque</span>
         </button>
       )}
     </div>

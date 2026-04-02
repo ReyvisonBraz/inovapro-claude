@@ -44,29 +44,29 @@ export const Sidebar = ({
   return (
     <aside 
       className={cn(
-        "border-r border-white/5 flex flex-col bg-slate-900/50 backdrop-blur-xl fixed lg:sticky top-0 h-screen z-50 transition-all duration-300 lg:translate-x-0",
+        "border-r border-slate-200/10 flex flex-col bg-[#0f172a] fixed lg:sticky top-0 h-screen z-50 transition-all duration-300 lg:translate-x-0",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full",
-        isSidebarCollapsed ? "w-20 overflow-visible" : "w-72"
+        isSidebarCollapsed ? "w-20" : "w-72"
       )}
     >
       <div className={cn(
-        "p-6 flex items-center justify-between border-b border-white/5",
+        "p-6 flex items-center justify-between border-b border-slate-200/5",
         isSidebarCollapsed ? "px-4 justify-center" : "px-6"
       )}>
         {!isSidebarCollapsed && (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center shadow-lg shadow-primary/20">
-              <span className="font-black text-xl text-white tracking-tighter italic">FF</span>
+            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+              <span className="font-black text-lg text-white italic">FF</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-black text-lg tracking-tighter leading-none italic">Finance<span className="text-primary">Flow</span></span>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Gestão Pro</span>
+              <span className="font-bold text-base tracking-tight leading-none text-white">Finance<span className="text-primary">Flow</span></span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-1">Sistemas de Gestão</span>
             </div>
           </div>
         )}
         {isSidebarCollapsed && (
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center shadow-lg shadow-primary/20">
-            <span className="font-black text-xl text-white tracking-tighter italic">FF</span>
+          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+            <span className="font-black text-xl text-white italic">FF</span>
           </div>
         )}
         <button 
@@ -152,26 +152,26 @@ export const Sidebar = ({
         )}
       </nav>
 
-      <div className="p-4 border-t border-white/5 space-y-4">
+      <div className="p-4 border-t border-slate-200/5">
         {!isSidebarCollapsed && (
-          <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+          <div className="p-3 rounded-xl bg-white/5 border border-white/5">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
                 {currentUser?.name.charAt(0)}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-bold truncate">{currentUser?.name}</span>
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate">
+                <span className="text-xs font-bold text-white truncate">{currentUser?.name}</span>
+                <span className="text-xs text-slate-500 font-bold uppercase tracking-widest truncate">
                   {currentUser?.role === 'owner' ? 'Proprietário' : currentUser?.role === 'manager' ? 'Gerente' : 'Funcionário'}
                 </span>
               </div>
             </div>
             <button 
               onClick={logout}
-              className="w-full flex items-center gap-2 p-2.5 text-xs font-bold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all group"
+              className="w-full flex items-center gap-2 p-2 text-xs font-bold text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all group"
             >
-              <LogOut size={16} className="group-hover:translate-x-0.5 transition-transform" />
-              Sair da Conta
+              <LogOut size={14} className="group-hover:translate-x-0.5 transition-transform" />
+              Sair
             </button>
           </div>
         )}

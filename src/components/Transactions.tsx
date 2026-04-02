@@ -111,7 +111,7 @@ export const Transactions = ({
                   key={mode.id}
                   onClick={() => onDateFilterModeChange(mode.id as any)}
                   className={cn(
-                    "flex-1 md:flex-none px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300",
+                    "flex-1 md:flex-none px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-xs font-black uppercase tracking-[0.15em] transition-all duration-300",
                     dateFilterMode === mode.id 
                       ? "bg-primary text-white shadow-[0_10px_20px_-5px_rgba(17,82,212,0.4)] md:scale-105" 
                       : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
@@ -127,7 +127,7 @@ export const Transactions = ({
             <button 
               onClick={() => onShowFiltersChange(!showFilters)}
               className={cn(
-                "flex-1 md:flex-none flex items-center justify-center gap-3 px-6 h-12 md:h-14 rounded-2xl border text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300",
+                "flex-1 md:flex-none flex items-center justify-center gap-3 px-6 h-12 md:h-14 rounded-2xl border text-xs font-black uppercase tracking-[0.2em] transition-all duration-300",
                 showFilters 
                   ? "bg-primary/20 border-primary text-primary shadow-[0_0_30px_rgba(17,82,212,0.1)]" 
                   : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20"
@@ -155,7 +155,7 @@ export const Transactions = ({
                       <Calendar size={20} />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Data Selecionada</span>
+                      <span className="text-xs font-black uppercase tracking-widest text-primary/60">Data Selecionada</span>
                       <input 
                         type="date"
                         value={selectedDate}
@@ -165,7 +165,7 @@ export const Transactions = ({
                     </div>
                     <button 
                       onClick={() => onSelectedDateChange(format(new Date(), 'yyyy-MM-dd'))}
-                      className="ml-4 px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-[10px] font-black uppercase tracking-widest text-primary transition-all border border-primary/10"
+                      className="ml-4 px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-xs font-black uppercase tracking-widest text-primary transition-all border border-primary/10"
                     >
                       Hoje
                     </button>
@@ -178,7 +178,7 @@ export const Transactions = ({
                       <Calendar size={20} />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Mês de Referência</span>
+                      <span className="text-xs font-black uppercase tracking-widest text-primary/60">Mês de Referência</span>
                       <input 
                         type="month"
                         value={selectedMonth}
@@ -188,7 +188,7 @@ export const Transactions = ({
                     </div>
                     <button 
                       onClick={() => onSelectedMonthChange(format(new Date(), 'yyyy-MM'))}
-                      className="ml-4 px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-[10px] font-black uppercase tracking-widest text-primary transition-all border border-primary/10"
+                      className="ml-4 px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-xs font-black uppercase tracking-widest text-primary transition-all border border-primary/10"
                     >
                       Este Mês
                     </button>
@@ -202,7 +202,7 @@ export const Transactions = ({
                         <Calendar size={20} />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Início</span>
+                        <span className="text-xs font-black uppercase tracking-widest text-primary/60">Início</span>
                         <input 
                           type="date"
                           value={startDate}
@@ -215,7 +215,7 @@ export const Transactions = ({
                     <div className="h-8 w-px bg-primary/20" />
 
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Fim</span>
+                      <span className="text-xs font-black uppercase tracking-widest text-primary/60">Fim</span>
                       <input 
                         type="date"
                         value={endDate}
@@ -241,7 +241,7 @@ export const Transactions = ({
           >
             <div className="glass-card p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Tipo</label>
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Tipo</label>
                 <select 
                   value={filterType}
                   onChange={(e: any) => onFilterTypeChange(e.target.value)}
@@ -253,7 +253,7 @@ export const Transactions = ({
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Categoria</label>
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Categoria</label>
                 <select 
                   value={filterCategory}
                   onChange={(e) => onFilterCategoryChange(e.target.value)}
@@ -273,7 +273,7 @@ export const Transactions = ({
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor Mínimo</label>
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Valor Mínimo</label>
                 <input 
                   type="number"
                   value={filterMinAmount}
@@ -283,7 +283,7 @@ export const Transactions = ({
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor Máximo</label>
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Valor Máximo</label>
                 <input 
                   type="number"
                   value={filterMaxAmount}
@@ -296,7 +296,7 @@ export const Transactions = ({
               {/* Quick Date Ranges */}
               {dateFilterMode === 'range' && (
                 <div className="col-span-full pt-4 border-t border-white/5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3 block">Atalhos de Período</label>
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3 block">Atalhos de Período</label>
                   <div className="flex flex-wrap gap-2">
                     {[
                       { label: 'Últimos 7 dias', days: 7 },
@@ -319,7 +319,7 @@ export const Transactions = ({
                           onStartDateChange(format(start, 'yyyy-MM-dd'));
                           onEndDateChange(format(end, 'yyyy-MM-dd'));
                         }}
-                        className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-white/5 border border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-all"
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest bg-white/5 border border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-all"
                       >
                         {range.label}
                       </button>
@@ -330,7 +330,7 @@ export const Transactions = ({
 
               {/* Column Visibility Toggles in Filters */}
               <div className="col-span-full pt-4 border-t border-white/5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3 block">Exibir Colunas</label>
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3 block">Exibir Colunas</label>
                 <div className="flex flex-wrap gap-2">
                   {['Descrição', 'Categoria', 'Tipo', 'Valor', 'Status'].map(col => (
                     <button
@@ -342,7 +342,7 @@ export const Transactions = ({
                         onUpdateSettings({ ...settings, hiddenColumns: newHidden });
                       }}
                       className={cn(
-                        "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all",
+                        "px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border transition-all",
                         !settings.hiddenColumns.includes(col) 
                           ? "bg-primary/10 border-primary/20 text-primary" 
                           : "bg-white/5 border-white/10 text-slate-500 hover:text-slate-300"
@@ -392,7 +392,7 @@ export const Transactions = ({
                   </div>
                   <div>
                     <p className="text-sm font-bold">{tx.description}</p>
-                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">
+                    <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-0.5">
                       {format(new Date(tx.date), 'dd/MM/yyyy')} • {tx.category}
                     </p>
                   </div>
@@ -405,7 +405,7 @@ export const Transactions = ({
                     {tx.type === 'income' ? '+' : '-'} {formatCurrency(tx.amount)}
                   </span>
                   <span className={cn(
-                    "text-[10px] font-black uppercase tracking-widest",
+                    "text-xs font-black uppercase tracking-widest",
                     tx.type === 'income' ? "text-emerald-500" : "text-rose-500"
                   )}>
                     {tx.type === 'income' ? 'Entrada' : 'Saída'}
@@ -415,7 +415,7 @@ export const Transactions = ({
               <div className="flex items-center justify-between pt-2 border-t border-white/5">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 w-fit">
                   <div className="w-1 h-1 rounded-full bg-emerald-500" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">{tx.status}</span>
+                  <span className="text-xs font-black uppercase tracking-widest text-emerald-500">{tx.status}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button 
@@ -451,11 +451,11 @@ export const Transactions = ({
                 </div>
                 <div>
                   <p className="text-slate-400 font-bold">Nenhuma transação encontrada</p>
-                  <p className="text-[10px] text-slate-600 uppercase tracking-widest mt-1">Ajuste seus filtros</p>
+                  <p className="text-xs text-slate-600 uppercase tracking-widest mt-1">Ajuste seus filtros</p>
                 </div>
                 <button 
                   onClick={() => onAddNewTransaction()}
-                  className="mt-2 px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-primary/20"
+                  className="mt-2 px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black uppercase tracking-widest rounded-xl transition-all border border-primary/20"
                 >
                   Nova Transação
                 </button>
@@ -469,12 +469,12 @@ export const Transactions = ({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-white/5 border-b border-white/5">
-                {!settings.hiddenColumns.includes('Descrição') && <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Descrição</th>}
-                {!settings.hiddenColumns.includes('Categoria') && <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Categoria</th>}
-                {!settings.hiddenColumns.includes('Tipo') && <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Tipo</th>}
-                {!settings.hiddenColumns.includes('Valor') && <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Valor</th>}
-                {!settings.hiddenColumns.includes('Status') && <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>}
-                <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Ações</th>
+                {!settings.hiddenColumns.includes('Descrição') && <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Descrição</th>}
+                {!settings.hiddenColumns.includes('Categoria') && <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Categoria</th>}
+                {!settings.hiddenColumns.includes('Tipo') && <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Tipo</th>}
+                {!settings.hiddenColumns.includes('Valor') && <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Valor</th>}
+                {!settings.hiddenColumns.includes('Status') && <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Status</th>}
+                <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -493,7 +493,7 @@ export const Transactions = ({
                         </div>
                         <div>
                           <p className="text-sm font-bold">{tx.description}</p>
-                          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">
+                          <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-0.5">
                             {format(new Date(tx.date), 'hh:mm a')} • {tx.category}
                           </p>
                         </div>
@@ -502,7 +502,7 @@ export const Transactions = ({
                   )}
                   {!settings.hiddenColumns.includes('Categoria') && (
                     <td className="px-8 py-6">
-                      <span className="px-3 py-1 rounded-lg bg-white/5 border border-white/5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      <span className="px-3 py-1 rounded-lg bg-white/5 border border-white/5 text-xs font-bold uppercase tracking-widest text-slate-400">
                         {tx.category}
                       </span>
                     </td>
@@ -515,7 +515,7 @@ export const Transactions = ({
                           tx.type === 'income' ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]"
                         )} />
                         <span className={cn(
-                          "text-[10px] font-black uppercase tracking-widest",
+                          "text-xs font-black uppercase tracking-widest",
                           tx.type === 'income' ? "text-emerald-500" : "text-rose-500"
                         )}>
                           {tx.type === 'income' ? 'Entrada' : 'Saída'}
@@ -537,7 +537,7 @@ export const Transactions = ({
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 w-fit">
                         <div className="w-1 h-1 rounded-full bg-emerald-500" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">{tx.status}</span>
+                        <span className="text-xs font-black uppercase tracking-widest text-emerald-500">{tx.status}</span>
                       </div>
                     </td>
                   )}
@@ -581,7 +581,7 @@ export const Transactions = ({
                       </div>
                       <button 
                         onClick={() => onAddNewTransaction()}
-                        className="mt-4 px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-primary/20"
+                        className="mt-4 px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black uppercase tracking-widest rounded-xl transition-all border border-primary/20"
                       >
                         Nova Transação
                       </button>

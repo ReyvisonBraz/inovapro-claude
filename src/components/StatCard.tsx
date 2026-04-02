@@ -24,7 +24,7 @@ export const StatCard = ({ title, value, change, trend, icon: Icon, color }: Sta
         <Icon size={24} />
       </div>
       <div className={cn(
-        "px-3 py-1.5 rounded-full text-[10px] font-black tracking-widest flex items-center gap-1.5 shadow-sm",
+        "px-3 py-1.5 rounded-full text-xs font-black tracking-widest flex items-center gap-1.5 shadow-sm",
         trend === 'up' ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-rose-500/10 text-rose-500 border border-rose-500/20"
       )}>
         {trend === 'up' ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
@@ -38,7 +38,7 @@ export const StatCard = ({ title, value, change, trend, icon: Icon, color }: Sta
         <div className="h-1 w-12 bg-white/5 rounded-full overflow-hidden">
           <div className={cn("h-full rounded-full", trend === 'up' ? "bg-emerald-500" : "bg-rose-500")} style={{ width: '60%' }}></div>
         </div>
-        <p className="text-slate-600 text-[10px] font-bold uppercase tracking-widest">vs mês anterior</p>
+        <p className="text-slate-600 text-xs font-bold uppercase tracking-widest">vs mês anterior</p>
       </div>
     </div>
   </motion.div>

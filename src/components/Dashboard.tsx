@@ -11,6 +11,10 @@ import {
 import { StatCard } from './StatCard';
 import { formatCurrency, formatMonthYear } from '../lib/utils';
 
+import { useFilterStore } from '../store/useFilterStore';
+import { useSettingsStore } from '../store/useSettingsStore';
+import { useAppStore } from '../store/useAppStore';
+
 interface DashboardProps {
   totalIncome: number;
   totalExpenses: number;
@@ -19,10 +23,6 @@ interface DashboardProps {
   handleChartClick: (data: any) => void;
   sortedIncomeRanking: [string, number][];
   sortedExpenseRanking: [string, number][];
-  initialBalance: number;
-  dashboardMonth: string;
-  onPrevMonth: () => void;
-  onNextMonth: () => void;
 }
 
 export const Dashboard = ({
@@ -32,12 +32,11 @@ export const Dashboard = ({
   chartData,
   handleChartClick,
   sortedIncomeRanking,
-  sortedExpenseRanking,
-  initialBalance,
-  dashboardMonth,
-  onPrevMonth,
-  onNextMonth
+  sortedExpenseRanking
 }: DashboardProps) => {
+  const { settings } = useSettingsStore();
+  const { fontSize } = useAppStore();
+  const { dashboardMonth, handlePrevMonth, handleNextMonth } = useFilterStore();
 
   return (
     <>
@@ -45,7 +44,7 @@ export const Dashboard = ({
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard 
           title="Saldo Inicial" 
-          value={initialBalance} 
+          value={settings.initialBalance} 
           change="Configurado" 
           trend="up" 
           icon={Briefcase} 
@@ -87,15 +86,15 @@ export const Dashboard = ({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
             <div>
               <h4 className="text-base md:text-lg font-bold">Tendência de Fluxo de Caixa</h4>
-              <p className="text-[10px] md:text-xs text-slate-500 font-medium">Desempenho de flutuação mensal</p>
+              <p className="text-xs text-slate-500 font-medium">Desempenho de flutuação mensal</p>
             </div>
-            <select className="bg-slate-800 border border-white/10 rounded-xl text-[10px] font-bold uppercase tracking-widest py-2 px-4 focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900 w-full sm:w-auto">
+            <select className="bg-slate-800 border border-white/10 rounded-xl text-xs font-bold uppercase tracking-widest py-2 px-4 focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900 w-full sm:w-auto">
               <option>Últimos 12 Meses</option>
               <option>Últimos 6 Meses</option>
             </select>
           </div>
           <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={0}>
               <AreaChart data={chartData} onClick={handleChartClick}>
                 <defs>
                   <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
@@ -108,13 +107,13 @@ export const Dashboard = ({
                   dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 10, fontWeight: 600 }} 
+                  tick={{ fill: '#64748b', fontSize: Math.max(10, fontSize * 0.625), fontWeight: 600 }} 
                   dy={10}
                 />
                 <YAxis hide />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#1a2235', border: '1px solid #ffffff10', borderRadius: '12px' }}
-                  itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                  itemStyle={{ fontSize: `${Math.max(12, fontSize * 0.75)}px`, fontWeight: 'bold' }}
                 />
                 <Area 
                   type="monotone" 
@@ -137,9 +136,9 @@ export const Dashboard = ({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
             <div>
               <h4 className="text-base md:text-lg font-bold">Comparação Mensal</h4>
-              <p className="text-[10px] md:text-xs text-slate-500 font-medium">Detalhamento de Renda vs Despesas</p>
+              <p className="text-xs text-slate-500 font-medium">Detalhamento de Renda vs Despesas</p>
             </div>
-            <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest">
+            <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-widest">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-primary"></span>
                 <span className="text-slate-400">Renda</span>
@@ -151,20 +150,21 @@ export const Dashboard = ({
             </div>
           </div>
           <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={0}>
               <BarChart data={chartData} onClick={handleChartClick}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" />
                 <XAxis 
                   dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 10, fontWeight: 600 }} 
+                  tick={{ fill: '#64748b', fontSize: Math.max(10, fontSize * 0.625), fontWeight: 600 }} 
                   dy={10}
                 />
                 <YAxis hide />
                 <Tooltip 
                   cursor={{ fill: '#ffffff05' }}
                   contentStyle={{ backgroundColor: '#1a2235', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                  itemStyle={{ fontSize: `${Math.max(12, fontSize * 0.75)}px`, fontWeight: 'bold' }}
                 />
                 <Bar dataKey="renda" fill="#1152d4" radius={[4, 4, 0, 0]} barSize={12} />
                 <Bar dataKey="despesa" fill="#ffffff10" radius={[4, 4, 0, 0]} barSize={12} />
@@ -184,16 +184,16 @@ export const Dashboard = ({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
             <div>
               <h4 className="text-base md:text-lg font-bold">Ranking de Entradas</h4>
-              <p className="text-[10px] md:text-xs text-slate-500 font-medium">Categorias mais rentáveis</p>
+              <p className="text-xs text-slate-500 font-medium">Categorias mais rentáveis</p>
             </div>
             <div className="flex items-center justify-between sm:justify-center gap-2 bg-white/5 rounded-xl border border-white/10 p-1 w-full sm:w-auto">
-              <button onClick={onPrevMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
+              <button onClick={handlePrevMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
                 <ChevronLeft size={16} />
               </button>
               <span className="text-xs font-bold uppercase tracking-widest min-w-[100px] text-center">
                 {formatMonthYear(dashboardMonth)}
               </span>
-              <button onClick={onNextMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
+              <button onClick={handleNextMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
                 <ChevronRight size={16} />
               </button>
             </div>
@@ -233,16 +233,16 @@ export const Dashboard = ({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
             <div>
               <h4 className="text-base md:text-lg font-bold">Ranking de Saídas</h4>
-              <p className="text-[10px] md:text-xs text-slate-500 font-medium">Maiores despesas por categoria</p>
+              <p className="text-xs text-slate-500 font-medium">Maiores despesas por categoria</p>
             </div>
             <div className="flex items-center justify-between sm:justify-center gap-2 bg-white/5 rounded-xl border border-white/10 p-1 w-full sm:w-auto">
-              <button onClick={onPrevMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
+              <button onClick={handlePrevMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
                 <ChevronLeft size={16} />
               </button>
               <span className="text-xs font-bold uppercase tracking-widest min-w-[100px] text-center">
                 {formatMonthYear(dashboardMonth)}
               </span>
-              <button onClick={onNextMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
+              <button onClick={handleNextMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
                 <ChevronRight size={16} />
               </button>
             </div>

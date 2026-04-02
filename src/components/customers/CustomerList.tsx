@@ -157,11 +157,11 @@ export const CustomerList: React.FC<CustomerListProps> = ({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1">
                     <h3 className="text-lg font-bold text-white truncate flex items-center gap-2">
-                      <span className="text-[10px] font-mono text-slate-500 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">ID: {customer.id}</span>
+                      <span className="text-xs font-mono text-slate-500 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">ID: {customer.id}</span>
                       {customer.firstName} {customer.lastName}
                     </h3>
                     {customer.nickname && (
-                      <span className="px-2 py-0.5 rounded-md bg-white/10 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      <span className="px-2 py-0.5 rounded-md bg-white/10 text-xs font-bold text-slate-400 uppercase tracking-widest">
                         {customer.nickname}
                       </span>
                     )}
@@ -190,7 +190,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({
                 {/* Status Financeiro */}
                 <div className="flex items-center gap-4 sm:gap-8 w-full lg:w-auto bg-black/20 p-3 rounded-xl border border-white/5 mt-4 lg:mt-0">
                   <div className="flex-1 sm:flex-none">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Pendências</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-0.5">Pendências</p>
                     <p className={cn(
                       "text-lg font-black tracking-tight",
                       debt > 0 ? "text-rose-500" : "text-emerald-500"
@@ -200,7 +200,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({
                   </div>
                   <div className="h-8 w-px bg-white/10" />
                   <div className="flex-1 sm:flex-none">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Limite</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-0.5">Limite</p>
                     <p className="text-lg font-bold text-slate-300 tracking-tight">
                       {formatCurrency(customer.creditLimit || 0)}
                     </p>

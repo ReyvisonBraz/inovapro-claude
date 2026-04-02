@@ -1,10 +1,12 @@
 # Arquitetura do Projeto
 
-Este documento descreve a estrutura técnica e as decisões arquiteturais do sistema. O projeto é um SPA (Single Page Application) construído com React, TypeScript, Vite e Tailwind CSS.
+Este documento descreve a estrutura técnica e as decisões arquiteturais do sistema. O projeto é uma aplicação **Full-Stack** construída com React, TypeScript, Vite, Tailwind CSS no frontend, e Express com SQLite no backend.
 
-## 1. Estrutura de Diretórios (`/src`)
+## 1. Estrutura de Diretórios
 
-A separação de responsabilidades é o pilar desta arquitetura.
+A separação de responsabilidades é o pilar desta arquitetura, abrangendo tanto o cliente quanto o servidor.
+
+### Frontend (`/src`)
 
 *   **`/components/`**: Camada de Apresentação (UI). Componentes React "burros" (dumb components) ou que consomem hooks específicos.
     *   `/modals/`: Janelas sobrepostas (formulários de criação, confirmações de exclusão).
@@ -15,15 +17,21 @@ A separação de responsabilidades é o pilar desta arquitetura.
 *   **`/lib/`**: Camada de Utilitários. Funções puras, helpers e configurações (ex: `utils.ts` para formatação, `printUtils.ts` para geração de PDFs/impressão).
 *   **`/types/`** ou `types.ts`: Contratos de dados. Definições de interfaces TypeScript que garantem a tipagem forte em toda a aplicação.
 
+### Backend (Raiz)
+
+*   **`server.ts`**: O ponto de entrada do servidor Express. Gerencia as rotas da API, a conexão com o banco de dados e serve os arquivos estáticos do frontend em produção.
+*   **`prisma/`**: (Se presente) Contém o esquema do banco de dados e as migrações. O projeto utiliza **SQLite** (`better-sqlite3`) para persistência local rápida e simples.
+
 ## 2. Fluxo de Dados (Data Flow)
 
-O projeto segue um fluxo de dados unidirecional, típico do React, mas aprimorado com Zustand e Custom Hooks.
+O projeto segue um fluxo de dados unidirecional, integrado entre o cliente e o servidor.
 
 1.  **Ação do Usuário:** O usuário interage com a UI (ex: clica em "Salvar Cliente" no `CustomerModal`).
-2.  **Chamada ao Hook/Store:** O componente chama uma função exposta por um custom hook (ex: `addCustomer` do `useCustomers`) ou atualiza um estado no Zustand.
-3.  **Processamento/API:** O hook processa a requisição (ex: salva no banco de dados via Firebase/API).
-4.  **Atualização de Estado:** O hook atualiza seu estado interno (ou o estado global do Zustand) com os novos dados.
-5.  **Re-renderização:** O React detecta a mudança de estado e re-renderiza apenas os componentes que dependem daquela informação.
+2.  **Chamada ao Hook/Store:** O componente chama uma função exposta por um custom hook (ex: `addCustomer` do `useCustomers`).
+3.  **Requisição API:** O hook faz uma requisição HTTP (POST/PUT/DELETE) para o servidor Express (`/api/...`).
+4.  **Processamento no Servidor:** O `server.ts` recebe a requisição, valida os dados e executa a operação no banco de dados SQLite.
+5.  **Resposta e Atualização:** O servidor retorna o resultado. O hook atualiza seu estado interno (ou o estado global do Zustand) com os novos dados.
+6.  **Re-renderização:** O React detecta a mudança de estado e re-renderiza apenas os componentes que dependem daquela informação.
 
 ## 3. O Papel do `App.tsx` (Orquestrador)
 

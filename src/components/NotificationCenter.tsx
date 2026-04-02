@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, parseISO } from 'date-fns';
@@ -38,11 +38,29 @@ export const NotificationCenter = ({
   upcomingServiceOrders,
   setActiveScreen
 }: NotificationCenterProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+
+    if (showNotifications) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotifications, setShowNotifications]);
+
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button 
         onClick={() => setShowNotifications(!showNotifications)}
-        className="p-2.5 text-slate-400 hover:bg-white/5 rounded-xl transition-colors relative z-50"
+        className="p-2.5 text-slate-400 bg-slate-900 hover:bg-slate-800 border border-white/5 rounded-xl transition-colors relative z-50"
       >
         <Bell size={20} />
         {totalNotifications > 0 && (
@@ -56,7 +74,7 @@ export const NotificationCenter = ({
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className="absolute right-0 mt-2 w-80 glass-card border border-white/10 shadow-2xl z-50 overflow-hidden"
+            className="absolute right-0 mt-2 w-80 bg-slate-900 border border-white/10 shadow-2xl z-50 overflow-hidden rounded-3xl"
           >
               <div className="p-4 border-b border-white/5 bg-white/5">
                 <h3 className="font-bold text-sm tracking-tight mb-3">Notificações</h3>

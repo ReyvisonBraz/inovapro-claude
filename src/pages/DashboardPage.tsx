@@ -18,10 +18,6 @@ export const DashboardPage: React.FC = () => {
       handleChartClick={handleChartClick}
       sortedIncomeRanking={stats.sortedIncomeRanking}
       sortedExpenseRanking={stats.sortedExpenseRanking}
-      initialBalance={settings.initialBalance}
-      dashboardMonth={dashboardMonth}
-      onPrevMonth={handlePrevMonth}
-      onNextMonth={handleNextMonth}
     />
   );
 };
