@@ -38,9 +38,9 @@ interface AppState {
   directMode: string | null;
   setDirectMode: (mode: string | null) => void;
 
-  expandedPayments: number[];
-  setExpandedPayments: (ids: number[]) => void;
-  togglePaymentExpansion: (id: number) => void;
+  expandedPayments: (number | string)[];
+  setExpandedPayments: (ids: (number | string)[]) => void;
+  togglePaymentExpansion: (id: number | string) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({

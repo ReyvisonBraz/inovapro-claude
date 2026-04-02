@@ -69,7 +69,8 @@ export default function App() {
     isAddingClientPayment, setIsAddingClientPayment,
     isSaving, setIsSaving,
     directOsId, setDirectOsId,
-    directMode, setDirectMode
+    directMode, setDirectMode,
+    expandedPayments, togglePaymentExpansion
   } = useAppStore();
 
   const {
@@ -198,6 +199,15 @@ export default function App() {
     saveInventoryItemAPI,
     deleteInventoryItemAPI
   } = useInventory(showToast);
+
+  const [editingInventoryItem, setEditingInventoryItem] = React.useState<any>(null);
+  const [newInventoryItem, setNewInventoryItem] = React.useState<any>({
+    name: '',
+    category: 'product',
+    sku: '',
+    unitPrice: '',
+    stockLevel: ''
+  });
 
   const {
     isAuthenticated,
@@ -1354,8 +1364,8 @@ export default function App() {
   };
 
   const totalIncome = stats.totalIncome;
-  const totalExpenses = stats.totalExpense;
-  const netBalance = settings.initialBalance + stats.balance;
+  const totalExpenses = stats.totalExpenses;
+  const netBalance = settings.initialBalance + stats.netBalance;
 
   const { sortedIncomeRanking, sortedExpenseRanking, chartData } = useDashboardStats(transactions.data, dashboardMonth);
 
@@ -1611,6 +1621,53 @@ export default function App() {
                 limit: transactions.meta.limit
               }}
               onPageChange={setTransactionsPage}
+              settings={settings}
+              onUpdateSettings={updateSettings}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              dateFilterMode={dateFilterMode}
+              onDateFilterModeChange={setDateFilterMode}
+              selectedDate={selectedDate}
+              onSelectedDateChange={setSelectedDate}
+              selectedMonth={selectedMonth}
+              onSelectedMonthChange={setSelectedMonth}
+              startDate={startDate}
+              onStartDateChange={setStartDate}
+              endDate={endDate}
+              onEndDateChange={setEndDate}
+              filterType={filterType}
+              onFilterTypeChange={setFilterType}
+              filterCategory={filterCategory}
+              onFilterCategoryChange={setFilterCategory}
+              filterMinAmount={filterMinAmount}
+              onFilterMinAmountChange={setFilterMinAmount}
+              filterMaxAmount={filterMaxAmount}
+              onFilterMaxAmountChange={setFilterMaxAmount}
+              showFilters={showFilters}
+              onShowFiltersChange={setShowFilters}
+              onEditTransaction={(tx) => {
+                setEditingTransaction(tx);
+                setNewTx({
+                  description: tx.description,
+                  category: tx.category,
+                  type: tx.type,
+                  amount: tx.amount.toString(),
+                  date: tx.date
+                });
+                setIsAdding(true);
+              }}
+              onDeleteTransaction={(id) => setTransactionToDelete(id)}
+              onAddNewTransaction={() => {
+                setEditingTransaction(null);
+                setNewTx({
+                  description: '',
+                  category: '',
+                  type: 'expense',
+                  amount: '',
+                  date: format(new Date(), 'yyyy-MM-dd')
+                });
+                setIsAdding(true);
+              }}
             />
           ) : activeScreen === 'reports' ? (
             <Reports 
@@ -1637,6 +1694,23 @@ export default function App() {
                 setShowHistoryModal(true);
               }}
               onPageChange={setCustomersPage}
+              settings={settings}
+              searchTerm={customerSearchTerm}
+              onSearchChange={setCustomerSearchTerm}
+              onEdit={(customer) => {
+                setEditingCustomer(customer);
+                setNewCustomer({
+                  firstName: customer.firstName,
+                  lastName: customer.lastName,
+                  nickname: customer.nickname || '',
+                  cpf: customer.cpf || '',
+                  companyName: customer.companyName || '',
+                  phone: customer.phone || '',
+                  observation: customer.observation || '',
+                  creditLimit: customer.creditLimit?.toString() || ''
+                });
+                setIsAddingCustomer(true);
+              }}
             />
           ) : activeScreen === 'client-payments' ? (
             <ClientPayments 
@@ -1656,6 +1730,24 @@ export default function App() {
                 limit: clientPayments.meta.limit
               }}
               onPageChange={setPaymentsPage}
+              isAddingClientPayment={isAddingClientPayment}
+              setIsAddingClientPayment={setIsAddingClientPayment}
+              expandedPayments={expandedPayments}
+              togglePaymentExpansion={togglePaymentExpansion}
+              paymentSearchTerm={paymentSearchTerm}
+              setPaymentSearchTerm={setPaymentSearchTerm}
+              paymentFilterStatus={paymentFilterStatus}
+              setPaymentFilterStatus={setPaymentFilterStatus}
+              paymentSortMode={paymentSortMode}
+              setPaymentSortMode={setPaymentSortMode}
+              isRecordingPayment={isRecordingPayment}
+              setIsRecordingPayment={setIsRecordingPayment}
+              paymentAmount={paymentAmount}
+              setPaymentAmount={setPaymentAmount}
+              paymentDate={paymentDate}
+              setPaymentDate={setPaymentDate}
+              newClientPayment={newClientPayment}
+              setNewClientPayment={setNewClientPayment}
             />
           ) : activeScreen === 'service-orders' ? (
             <ServiceOrders 
@@ -1697,6 +1789,22 @@ export default function App() {
                 limit: serviceOrders.meta.limit
               }}
               onPageChange={setServiceOrdersPage}
+              settings={settings}
+              isAdding={isAddingServiceOrder}
+              setIsAdding={setIsAddingServiceOrder}
+              directOsId={directOsId}
+              setDirectOsId={setDirectOsId}
+              directMode={directMode}
+              searchTerm={osSearchTerm}
+              onSearchChange={setOsSearchTerm}
+              statusFilter={paymentFilterStatus} // using paymentFilterStatus as a placeholder for statusFilter
+              onStatusFilterChange={setPaymentFilterStatus}
+              priorityFilter={paymentSortMode} // using paymentSortMode as a placeholder for priorityFilter
+              onPriorityFilterChange={setPaymentSortMode}
+              sortBy={paymentSortMode} // using paymentSortMode as a placeholder for sortBy
+              onSortByChange={setPaymentSortMode}
+              onOpenConfirm={openConfirm}
+              currentUser={currentUser}
             />
           ) : activeScreen === 'inventory' ? (
             <Inventory
@@ -1704,6 +1812,18 @@ export default function App() {
               onAddItem={handleAddInventoryItem}
               onUpdateItem={handleUpdateInventoryItem}
               onDeleteItem={handleDeleteInventoryItem}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              categoryFilter={filterCategory}
+              onCategoryFilterChange={setFilterCategory}
+              isAdding={isAddingInventoryItem}
+              setIsAdding={setIsAddingInventoryItem}
+              onOpenConfirm={openConfirm}
+              editingItem={editingInventoryItem}
+              setEditingItem={setEditingInventoryItem}
+              newItem={newInventoryItem}
+              setNewItem={setNewInventoryItem}
+              showToast={showToast}
             />
           ) : (
             /* Settings Screen */

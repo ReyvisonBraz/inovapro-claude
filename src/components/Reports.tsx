@@ -28,6 +28,7 @@ export const Reports = ({
   transactions,
 }: ReportsProps) => {
   const { settings } = useSettingsStore();
+  const { fontSize } = useAppStore();
   const { reportView, setReportView, reportMonth, setReportMonth } = useFilterStore();
   return (
     <div className="space-y-10">
@@ -41,7 +42,7 @@ export const Reports = ({
             <button 
               onClick={() => setReportView('charts')}
               className={cn(
-                "px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+                "px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all",
                 reportView === 'charts' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:text-slate-300"
               )}
             >
@@ -50,7 +51,7 @@ export const Reports = ({
             <button 
               onClick={() => setReportView('table')}
               className={cn(
-                "px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+                "px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all",
                 reportView === 'table' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:text-slate-300"
               )}
             >
@@ -70,7 +71,7 @@ export const Reports = ({
             >
               <h4 className="text-lg font-bold mb-6">Gastos por Categoria</h4>
               <div className="h-80 w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minHeight={0}>
                   <PieChart>
                     <Pie
                       data={categories.filter(c => c.type === 'expense').map(cat => ({
@@ -90,7 +91,7 @@ export const Reports = ({
                     </Pie>
                     <Tooltip 
                       contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', color: '#f1f5f9' }}
-                      itemStyle={{ color: '#f1f5f9' }}
+                      itemStyle={{ color: '#f1f5f9', fontSize: `${Math.max(12, fontSize * 0.75)}px`, fontWeight: 'bold' }}
                     />
                     <Legend verticalAlign="bottom" height={36}/>
                   </PieChart>
@@ -105,12 +106,15 @@ export const Reports = ({
             >
               <h4 className="text-lg font-bold mb-6">Comparativo de Fluxo</h4>
               <div className="h-80 w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minHeight={0}>
                   <BarChart data={chartData} onClick={handleChartClick}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: Math.max(10, fontSize * 0.625), fontWeight: 600 }} />
                     <YAxis hide />
-                    <Tooltip contentStyle={{ backgroundColor: '#1a2235', border: '1px solid #ffffff10', borderRadius: '12px' }} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#1a2235', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                      itemStyle={{ fontSize: `${Math.max(12, fontSize * 0.75)}px`, fontWeight: 'bold' }}
+                    />
                     <Bar dataKey="renda" fill="#1152d4" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="despesa" fill="#ef4444" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -133,7 +137,7 @@ export const Reports = ({
                 </div>
                 <button 
                   onClick={() => setReportMonth(null)}
-                  className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-300"
+                  className="text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-slate-300"
                 >
                   Limpar Filtro
                 </button>
@@ -143,10 +147,10 @@ export const Reports = ({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-white/5 border-b border-white/5">
-                      <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Data</th>
-                      <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Descrição</th>
-                      <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Categoria</th>
-                      <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Valor</th>
+                      <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-500">Data</th>
+                      <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-500">Descrição</th>
+                      <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-500">Categoria</th>
+                      <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-500 text-right">Valor</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -162,7 +166,7 @@ export const Reports = ({
                             {tx.description}
                           </td>
                           <td className="px-4 py-3">
-                            <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                            <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-slate-500">
                               {tx.category}
                             </span>
                           </td>
@@ -186,10 +190,10 @@ export const Reports = ({
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-white/5 border-b border-white/5">
-                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Período</th>
-                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Entradas</th>
-                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Saídas</th>
-                  <th className="px-8 py-5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Saldo</th>
+                  <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Período</th>
+                  <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Entradas</th>
+                  <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Saídas</th>
+                  <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Saldo</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">

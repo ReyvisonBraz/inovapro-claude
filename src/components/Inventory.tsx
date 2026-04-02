@@ -219,12 +219,12 @@ export const Inventory: React.FC<InventoryProps> = ({
             
             <div className="flex justify-between items-end pt-4 border-t border-white/5">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Preço</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Preço</p>
                 <p className="font-bold text-primary">{formatCurrency(item.unitPrice)}</p>
               </div>
               {item.category === 'product' && (
                 <div className="text-right">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Estoque</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Estoque</p>
                   <p className={cn(
                     "font-bold",
                     item.stockLevel <= 5 ? "text-rose-500" : "text-slate-300"
@@ -271,7 +271,7 @@ export const Inventory: React.FC<InventoryProps> = ({
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Tipo</label>
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Tipo</label>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setNewItem({...newItem, category: 'product'})}
@@ -299,7 +299,7 @@ export const Inventory: React.FC<InventoryProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Nome</label>
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Nome</label>
                   <input 
                     value={newItem.name}
                     onChange={(e) => setNewItem({...newItem, name: e.target.value})}
@@ -310,7 +310,7 @@ export const Inventory: React.FC<InventoryProps> = ({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">SKU / Código</label>
+                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500">SKU / Código</label>
                     <input 
                       value={newItem.sku}
                       onChange={(e) => setNewItem({...newItem, sku: e.target.value})}
@@ -319,7 +319,7 @@ export const Inventory: React.FC<InventoryProps> = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Preço (R$)</label>
+                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Preço (R$)</label>
                     <input 
                       type="number"
                       step="0.01"
@@ -333,7 +333,7 @@ export const Inventory: React.FC<InventoryProps> = ({
 
                 {newItem.category === 'product' && (
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Quantidade em Estoque</label>
+                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Quantidade em Estoque</label>
                     <input 
                       type="number"
                       value={newItem.stockLevel}
