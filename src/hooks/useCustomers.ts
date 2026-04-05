@@ -1,14 +1,15 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Customer } from '../types';
 import { useToast } from '../components/ui/Toast';
+import { useCustomerStore } from '../store/useCustomerStore';
+import { useFilterStore } from '../store/useFilterStore';
 
 export const useCustomers = () => {
-  const [customers, setCustomers] = useState<{ data: Customer[], meta: any }>({ 
-    data: [], 
-    meta: { total: 0, page: 1, limit: 20, totalPages: 0 } 
-  });
-  const [customersPage, setCustomersPage] = useState(1);
-  const [customerSearchTerm, setCustomerSearchTerm] = useState<string>('');
+  const { 
+    customers, setCustomers, 
+    customersPage, setCustomersPage
+  } = useCustomerStore();
+  const { customerSearchTerm, setCustomerSearchTerm } = useFilterStore();
   const { showToast } = useToast();
 
   const fetchCustomers = useCallback(async () => {
@@ -21,7 +22,7 @@ export const useCustomers = () => {
       console.error("Failed to fetch customers", err);
       showToast('Erro ao carregar clientes.', 'error');
     }
-  }, [customersPage, customerSearchTerm, showToast]);
+  }, [customersPage, customerSearchTerm, showToast, setCustomers]);
 
   const saveCustomerAPI = useCallback(async (customer: Partial<Customer>, id?: number) => {
     const url = id ? `/api/customers/${id}` : '/api/customers';

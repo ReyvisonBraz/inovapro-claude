@@ -1,22 +1,24 @@
 import React, { useEffect } from 'react';
+import { useLocation, useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import { 
   Plus, 
   Download,
   Printer,
   Package,
   CreditCard,
-  Users
+  Users,
+  Search
 } from 'lucide-react';
 import { useToast } from './components/ui/Toast';
-import { ConfirmModal } from './components/ui/ConfirmModal';
+import { ConfirmModal } from './components/ui/modals/ConfirmModal';
 import { format, parseISO } from 'date-fns';
 import { formatCurrency } from './lib/utils';
 import { printBlankForm } from './lib/printUtils';
-import { Transaction, Customer, ClientPayment, User } from './types';
+import { Transaction, Customer, ClientPayment, User, Screen } from './types';
 import { SettingsLayout } from './components/settings/SettingsLayout';
-import { Login } from './components/Login';
-import { ServiceOrders } from './components/ServiceOrders';
-import { Inventory } from './components/Inventory';
+import { Login } from './components/auth/Login';
+import { ServiceOrders } from './components/service-orders/ServiceOrders';
+import { Inventory } from './components/inventory/Inventory';
 import { useCustomers } from './hooks/useCustomers';
 import { useServiceOrders } from './hooks/useServiceOrders';
 import { useTransactions } from './hooks/useTransactions';
@@ -35,22 +37,33 @@ import { useNotifications } from './hooks/useNotifications';
 
 import { useExportData } from './hooks/useExportData';
 import { useDashboardStats } from './hooks/useDashboardStats';
-import { Sidebar } from './components/Sidebar';
-import { Header } from './components/Header';
-import { MobileNav } from './components/MobileNav';
-import { Dashboard } from './components/Dashboard';
-import { Transactions } from './components/Transactions';
-import { Reports } from './components/Reports';
-import { Customers } from './components/Customers';
-import { ClientPayments } from './components/ClientPayments';
-import { PasswordModal } from './components/modals/PasswordModal';
-import { WarningModal } from './components/modals/WarningModal';
-import { CustomerModal } from './components/modals/CustomerModal';
-import { CustomerWarningModal } from './components/modals/CustomerWarningModal';
-import { CustomerDeleteWarningModal } from './components/modals/CustomerDeleteWarningModal';
-import { AddTransactionModal } from './components/modals/AddTransactionModal';
-import { DeleteConfirmationModal } from './components/modals/DeleteConfirmationModal';
-import { CustomerHistoryModal } from './components/modals/CustomerHistoryModal';
+import { Sidebar } from './components/layout/Sidebar';
+import { Header } from './components/layout/Header';
+import { MobileNav } from './components/layout/MobileNav';
+import { Dashboard } from './components/dashboard/Dashboard';
+import { Transactions } from './components/transactions/Transactions';
+import { Reports } from './components/reports/Reports';
+import { Customers } from './components/customers/Customers';
+import { ClientPayments } from './components/payments/ClientPayments';
+import { PasswordModal } from './components/ui/modals/PasswordModal';
+import { WarningModal } from './components/ui/modals/WarningModal';
+import { CustomerModal } from './components/customers/modals/CustomerModal';
+import { CustomerWarningModal } from './components/customers/modals/CustomerWarningModal';
+import { CustomerSuccessModal } from './components/customers/modals/CustomerSuccessModal';
+import { CustomerDeleteWarningModal } from './components/customers/modals/CustomerDeleteWarningModal';
+import { AddTransactionModal } from './components/transactions/modals/AddTransactionModal';
+import { DeleteConfirmationModal } from './components/ui/modals/DeleteConfirmationModal';
+import { CustomerHistoryModal } from './components/customers/modals/CustomerHistoryModal';
+import { DirectOsSearchModal } from './components/service-orders/modals/DirectOsSearchModal';
+
+import { DashboardPage } from './pages/DashboardPage';
+import { TransactionsPage } from './pages/TransactionsPage';
+import { ReportsPage } from './pages/ReportsPage';
+import { CustomersPage } from './pages/CustomersPage';
+import { ClientPaymentsPage } from './pages/ClientPaymentsPage';
+import { ServiceOrdersPage } from './pages/ServiceOrdersPage';
+import { InventoryPage } from './pages/InventoryPage';
+import { SettingsPage } from './pages/SettingsPage';
 
 // --- Aplicativo Principal ---
 
@@ -66,8 +79,10 @@ export default function App() {
     isAddingServiceOrder, setIsAddingServiceOrder,
     isAddingInventoryItem, setIsAddingInventoryItem,
     isAddingCustomer, setIsAddingCustomer,
+    customerRegistrationSource, setCustomerRegistrationSource,
     isAddingClientPayment, setIsAddingClientPayment,
     isSaving, setIsSaving,
+    isSearchingOS, setIsSearchingOS,
     directOsId, setDirectOsId,
     directMode, setDirectMode,
     expandedPayments, togglePaymentExpansion
@@ -103,6 +118,8 @@ export default function App() {
     warningType, setWarningType,
     showCustomerWarningModal, setShowCustomerWarningModal,
     customerWarningType, setCustomerWarningType,
+    showCustomerSuccessModal, setShowCustomerSuccessModal,
+    lastAddedCustomerId, setLastAddedCustomerId,
     editingTransaction, setEditingTransaction,
     transactionToDelete, setTransactionToDelete,
     editingCustomer, setEditingCustomer,
@@ -116,10 +133,37 @@ export default function App() {
     historyCustomer, setHistoryCustomer
   } = useModalStore();
 
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Sincronizar URL com activeScreen
+  useEffect(() => {
+    const path = location.pathname;
+    const screenMap: Record<string, Screen> = {
+      '/dashboard': 'dashboard',
+      '/transactions': 'transactions',
+      '/vendas': 'client-payments',
+      '/ordens': 'service-orders',
+      '/clientes': 'customers',
+      '/estoque': 'inventory',
+      '/relatorios': 'reports',
+      '/configuracoes': 'settings'
+    };
+
+    const targetScreen = screenMap[path];
+    if (targetScreen && activeScreen !== targetScreen) {
+      setActiveScreen(targetScreen);
+    } else if (path === '/' && activeScreen !== 'dashboard') {
+      setActiveScreen('dashboard');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [location.pathname, activeScreen, setActiveScreen, navigate]);
+
   const {
     newTx, setNewTx,
     newCustomer, setNewCustomer,
     newClientPayment, setNewClientPayment,
+    newServiceOrder, setNewServiceOrder,
   } = useFormStore();
 
   const { stats, fetchStats } = useStats();
@@ -251,9 +295,21 @@ export default function App() {
     if (osId) {
       setDirectOsId(parseInt(osId));
       setDirectMode(mode);
-      setActiveScreen('service-orders');
+      navigate('/ordens');
     }
   }, []);
+
+  useEffect(() => {
+    if (editingTransaction) {
+      setNewTx({
+        description: editingTransaction.description,
+        category: editingTransaction.category,
+        type: editingTransaction.type,
+        amount: editingTransaction.amount.toString(),
+        date: editingTransaction.date
+      });
+    }
+  }, [editingTransaction]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -266,13 +322,13 @@ export default function App() {
       fetchUsers();
       fetchAuditLogs();
       fetchInventoryItems();
-      fetchServiceOrders();
+      // Service orders are handled by ServiceOrdersPage
       fetchServiceOrderStatuses();
       fetchEquipmentTypes();
       fetchBrands();
       fetchModels();
     }
-  }, [isAuthenticated, transactionsPage, customersPage, paymentsPage, serviceOrdersPage, searchTerm, customerSearchTerm, paymentSearchTerm, osSearchTerm]);
+  }, [isAuthenticated, transactionsPage, customersPage, paymentsPage, searchTerm, customerSearchTerm, paymentSearchTerm]);
 
   const handleAddUser = async (user: any) => {
     try {
@@ -459,16 +515,14 @@ export default function App() {
         if (!editingCustomer) {
           // Use a small delay to ensure the modal is closed before showing the confirm
           setTimeout(() => {
-            openConfirm(
-              'Lançar Pagamento',
-              'Cliente cadastrado com sucesso! Deseja lançar um pagamento/parcelamento para este cliente agora?',
-              () => {
-                setNewClientPayment(prev => ({ ...prev, customerId: data.id }));
-                setActiveScreen('client-payments');
-                setIsAddingClientPayment(true);
-              },
-              'info'
-            );
+            if (customerRegistrationSource === 'customers') {
+              setLastAddedCustomerId(data.id);
+              setShowCustomerSuccessModal(true);
+            } else if (customerRegistrationSource === 'service-orders') {
+              setNewServiceOrder({ ...newServiceOrder, customerId: data.id });
+            } else if (customerRegistrationSource === 'payments') {
+              setNewClientPayment({ ...newClientPayment, customerId: data.id });
+            }
           }, 500);
         }
       } catch (err: any) {
@@ -1337,7 +1391,7 @@ export default function App() {
     if (passwordInput === settings.settingsPassword) {
       setIsSettingsUnlocked(true);
       setShowPasswordModal(false);
-      setActiveScreen('settings');
+      navigate('/configuracoes');
       setPasswordInput('');
       showToast('Acesso autorizado!', 'success');
     } else {
@@ -1352,14 +1406,14 @@ export default function App() {
       
       setSelectedMonth(monthStr);
       setDateFilterMode('month');
-      setActiveScreen('transactions');
+      navigate('/transactions');
     }
   };
 
   const handleTransactionClick = (tx: Transaction) => {
     setSelectedDate(tx.date);
     setDateFilterMode('day');
-    setActiveScreen('transactions');
+    navigate('/transactions');
     // Opcional: Adicionar um pequeno delay para scroll ou highlight
   };
 
@@ -1385,12 +1439,12 @@ export default function App() {
 
   const handleLogin = (user: User) => {
     login(user);
-    setActiveScreen('dashboard');
+    navigate('/dashboard');
   };
 
   const handleLogout = () => {
     logout();
-    setActiveScreen('dashboard');
+    navigate('/dashboard');
   };
 
   const handleAddInventoryItem = async (item: any) => {
@@ -1494,12 +1548,20 @@ export default function App() {
         return { 
           title: 'Transações Diárias',
           export: { label: 'Exportar CSV', icon: Download, onClick: () => exportTransactionsToCSV(transactions.data) },
-          newButton: { label: 'Nova Entrada', icon: Plus, onClick: () => setIsAdding(true) }
+          newButton: { 
+            label: 'Nova Entrada', 
+            icon: Plus, 
+            onClick: () => {
+              setEditingTransaction(null);
+              setIsAdding(true);
+            } 
+          }
         };
       case 'service-orders':
         return { 
           title: 'Ordens de Serviço',
           export: { label: 'Exportar CSV', icon: Download, onClick: () => exportServiceOrdersToCSV(serviceOrders.data, customers.data) },
+          searchButton: { label: 'Buscar OS', icon: Search, onClick: () => setIsSearchingOS(true) },
           newButton: { label: 'Nova Ordem', icon: Plus, onClick: () => setIsAddingServiceOrder(true) }
         };
       case 'customers':
@@ -1521,6 +1583,7 @@ export default function App() {
                 observation: '',
                 creditLimit: ''
               });
+              setCustomerRegistrationSource('customers');
               setIsAddingCustomer(true);
             } 
           }
@@ -1567,6 +1630,7 @@ export default function App() {
           currentUser={currentUser}
           logout={handleLogout}
           hasPermission={hasPermission}
+          setIsSearchingOS={setIsSearchingOS}
         />
 
 
@@ -1599,255 +1663,17 @@ export default function App() {
         />
 
         <div className="p-6 lg:p-10 max-w-7xl mx-auto w-full space-y-10">
-          {activeScreen === 'dashboard' ? (
-            <Dashboard 
-              totalIncome={totalIncome}
-              totalExpenses={totalExpenses}
-              netBalance={netBalance}
-              chartData={chartData}
-              handleChartClick={handleChartClick}
-              sortedIncomeRanking={sortedIncomeRanking}
-              sortedExpenseRanking={sortedExpenseRanking}
-            />
-          ) : activeScreen === 'transactions' ? (
-            <Transactions 
-              categories={categories}
-              filteredTransactions={filteredTransactions}
-              handleDuplicateTransaction={handleDuplicateTransaction}
-              pagination={{
-                currentPage: transactions.meta.page,
-                totalPages: transactions.meta.totalPages,
-                totalItems: transactions.meta.total,
-                limit: transactions.meta.limit
-              }}
-              onPageChange={setTransactionsPage}
-              settings={settings}
-              onUpdateSettings={updateSettings}
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              dateFilterMode={dateFilterMode}
-              onDateFilterModeChange={setDateFilterMode}
-              selectedDate={selectedDate}
-              onSelectedDateChange={setSelectedDate}
-              selectedMonth={selectedMonth}
-              onSelectedMonthChange={setSelectedMonth}
-              startDate={startDate}
-              onStartDateChange={setStartDate}
-              endDate={endDate}
-              onEndDateChange={setEndDate}
-              filterType={filterType}
-              onFilterTypeChange={setFilterType}
-              filterCategory={filterCategory}
-              onFilterCategoryChange={setFilterCategory}
-              filterMinAmount={filterMinAmount}
-              onFilterMinAmountChange={setFilterMinAmount}
-              filterMaxAmount={filterMaxAmount}
-              onFilterMaxAmountChange={setFilterMaxAmount}
-              showFilters={showFilters}
-              onShowFiltersChange={setShowFilters}
-              onEditTransaction={(tx) => {
-                setEditingTransaction(tx);
-                setNewTx({
-                  description: tx.description,
-                  category: tx.category,
-                  type: tx.type,
-                  amount: tx.amount.toString(),
-                  date: tx.date
-                });
-                setIsAdding(true);
-              }}
-              onDeleteTransaction={(id) => setTransactionToDelete(id)}
-              onAddNewTransaction={() => {
-                setEditingTransaction(null);
-                setNewTx({
-                  description: '',
-                  category: '',
-                  type: 'expense',
-                  amount: '',
-                  date: format(new Date(), 'yyyy-MM-dd')
-                });
-                setIsAdding(true);
-              }}
-            />
-          ) : activeScreen === 'reports' ? (
-            <Reports 
-              chartData={chartData}
-              handleChartClick={handleChartClick}
-              categories={categories}
-              transactions={transactions.data}
-            />
-          ) : activeScreen === 'customers' ? (
-            <Customers 
-              customers={{ ...customers, data: filteredCustomers }}
-              clientPayments={clientPayments}
-              onDelete={(id) => {
-                const customer = customers.data.find(c => c.id === id);
-                if (customer) handleDeleteCustomer(customer);
-              }}
-              onAddPayment={(customer) => {
-                setNewClientPayment({ ...newClientPayment, customerId: customer.id });
-                setActiveScreen('client-payments');
-                setIsAddingClientPayment(true);
-              }}
-              onViewHistory={(customer) => {
-                setHistoryCustomer(customer);
-                setShowHistoryModal(true);
-              }}
-              onPageChange={setCustomersPage}
-              settings={settings}
-              searchTerm={customerSearchTerm}
-              onSearchChange={setCustomerSearchTerm}
-              onEdit={(customer) => {
-                setEditingCustomer(customer);
-                setNewCustomer({
-                  firstName: customer.firstName,
-                  lastName: customer.lastName,
-                  nickname: customer.nickname || '',
-                  cpf: customer.cpf || '',
-                  companyName: customer.companyName || '',
-                  phone: customer.phone || '',
-                  observation: customer.observation || '',
-                  creditLimit: customer.creditLimit?.toString() || ''
-                });
-                setIsAddingCustomer(true);
-              }}
-            />
-          ) : activeScreen === 'client-payments' ? (
-            <ClientPayments 
-              filteredClientPayments={filteredClientPayments}
-              generateReceipt={generateReceipt}
-              sendWhatsAppReminder={sendWhatsAppReminder}
-              handleDeleteClientPayment={handleDeleteClientPayment}
-              handleDeleteClientPaymentGroup={handleDeleteClientPaymentGroup}
-              handleRecordPayment={handleRecordPayment}
-              customers={customers.data}
-              handleAddClientPayment={handleAddClientPayment}
-              isSaving={isSaving}
-              pagination={{
-                currentPage: clientPayments.meta.page,
-                totalPages: clientPayments.meta.totalPages,
-                totalItems: clientPayments.meta.total,
-                limit: clientPayments.meta.limit
-              }}
-              onPageChange={setPaymentsPage}
-              isAddingClientPayment={isAddingClientPayment}
-              setIsAddingClientPayment={setIsAddingClientPayment}
-              expandedPayments={expandedPayments}
-              togglePaymentExpansion={togglePaymentExpansion}
-              paymentSearchTerm={paymentSearchTerm}
-              setPaymentSearchTerm={setPaymentSearchTerm}
-              paymentFilterStatus={paymentFilterStatus}
-              setPaymentFilterStatus={setPaymentFilterStatus}
-              paymentSortMode={paymentSortMode}
-              setPaymentSortMode={setPaymentSortMode}
-              isRecordingPayment={isRecordingPayment}
-              setIsRecordingPayment={setIsRecordingPayment}
-              paymentAmount={paymentAmount}
-              setPaymentAmount={setPaymentAmount}
-              paymentDate={paymentDate}
-              setPaymentDate={setPaymentDate}
-              newClientPayment={newClientPayment}
-              setNewClientPayment={setNewClientPayment}
-            />
-          ) : activeScreen === 'service-orders' ? (
-            <ServiceOrders 
-              orders={{ ...serviceOrders, data: filteredServiceOrders }}
-              customers={customers}
-              inventoryItems={inventoryItems}
-              statuses={serviceOrderStatuses}
-              equipmentTypes={equipmentTypes}
-              brands={brands}
-              models={models}
-              clientPayments={clientPayments}
-              onAddOrder={handleAddServiceOrder}
-              onUpdateOrder={handleUpdateServiceOrder}
-              onDeleteOrder={handleDeleteServiceOrder}
-              onAddStatus={handleAddServiceOrderStatus}
-              onDeleteStatus={handleDeleteServiceOrderStatus}
-              onAddEquipmentType={handleAddEquipmentType}
-              onAddBrand={handleAddBrand}
-              onAddModel={handleAddModel}
-              onPrintBlankForm={handlePrintBlankForm}
-              onTriggerAddCustomer={() => {
-                setEditingCustomer(null);
-                setNewCustomer({
-                  firstName: '',
-                  lastName: '',
-                  nickname: '',
-                  cpf: '',
-                  companyName: '',
-                  phone: '',
-                  observation: '',
-                  creditLimit: ''
-                });
-                setIsAddingCustomer(true);
-              }}
-              pagination={{
-                currentPage: serviceOrders.meta.page,
-                totalPages: serviceOrders.meta.totalPages,
-                totalItems: serviceOrders.meta.total,
-                limit: serviceOrders.meta.limit
-              }}
-              onPageChange={setServiceOrdersPage}
-              settings={settings}
-              isAdding={isAddingServiceOrder}
-              setIsAdding={setIsAddingServiceOrder}
-              directOsId={directOsId}
-              setDirectOsId={setDirectOsId}
-              directMode={directMode}
-              searchTerm={osSearchTerm}
-              onSearchChange={setOsSearchTerm}
-              statusFilter={paymentFilterStatus} // using paymentFilterStatus as a placeholder for statusFilter
-              onStatusFilterChange={setPaymentFilterStatus}
-              priorityFilter={paymentSortMode} // using paymentSortMode as a placeholder for priorityFilter
-              onPriorityFilterChange={setPaymentSortMode}
-              sortBy={paymentSortMode} // using paymentSortMode as a placeholder for sortBy
-              onSortByChange={setPaymentSortMode}
-              onOpenConfirm={openConfirm}
-              currentUser={currentUser}
-            />
-          ) : activeScreen === 'inventory' ? (
-            <Inventory
-              items={filteredInventory}
-              onAddItem={handleAddInventoryItem}
-              onUpdateItem={handleUpdateInventoryItem}
-              onDeleteItem={handleDeleteInventoryItem}
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              categoryFilter={filterCategory}
-              onCategoryFilterChange={setFilterCategory}
-              isAdding={isAddingInventoryItem}
-              setIsAdding={setIsAddingInventoryItem}
-              onOpenConfirm={openConfirm}
-              editingItem={editingInventoryItem}
-              setEditingItem={setEditingInventoryItem}
-              newItem={newInventoryItem}
-              setNewItem={setNewInventoryItem}
-              showToast={showToast}
-            />
-          ) : (
-            /* Settings Screen */
-            <SettingsLayout 
-              categories={categories}
-              addCategory={addCategory}
-              deleteCategory={deleteCategory}
-              addUser={handleAddUser}
-              updateUser={handleUpdateUser}
-              deleteUser={handleDeleteUser}
-              transactions={transactions.data}
-              customers={customers.data}
-              clientPayments={clientPayments.data}
-              brands={brands}
-              models={models}
-              addBrand={handleAddBrand}
-              deleteBrand={handleDeleteBrand}
-              addModel={handleAddModel}
-              deleteModel={handleDeleteModel}
-              equipmentTypes={equipmentTypes}
-              addEquipmentType={handleAddEquipmentType}
-              deleteEquipmentType={handleDeleteEquipmentType}
-            />
-          )}
+          <Routes>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/transactions" element={<TransactionsPage />} />
+            <Route path="/vendas" element={<ClientPaymentsPage />} />
+            <Route path="/ordens" element={<ServiceOrdersPage />} />
+            <Route path="/clientes" element={<CustomersPage />} />
+            <Route path="/estoque" element={<InventoryPage />} />
+            <Route path="/relatorios" element={<ReportsPage />} />
+            <Route path="/configuracoes" element={<SettingsPage />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
         </div>
 
         {/* Mobile Bottom Navigation */}
@@ -1878,6 +1704,13 @@ export default function App() {
         onConfirm={() => handleAddCustomer(true)}
       />
 
+      <CustomerSuccessModal
+        isOpen={showCustomerSuccessModal}
+        onClose={() => setShowCustomerSuccessModal(false)}
+        customerId={lastAddedCustomerId}
+        source={customerRegistrationSource}
+      />
+
       <CustomerDeleteWarningModal 
         customer={customerToDelete}
         paymentsWarning={customerPaymentsWarning}
@@ -1885,7 +1718,7 @@ export default function App() {
         onConfirm={confirmDeleteCustomerWithPayments}
         onGoToPayments={() => {
           setCustomerToDelete(null);
-          setActiveScreen('client-payments');
+          navigate('/vendas');
         }}
         formatCurrency={formatCurrency}
       />
@@ -1970,6 +1803,17 @@ export default function App() {
         title={confirmModal.title}
         message={confirmModal.message}
         type={confirmModal.type}
+      />
+
+      <DirectOsSearchModal 
+        show={isSearchingOS}
+        onClose={() => setIsSearchingOS(false)}
+        orders={serviceOrders.data}
+        handleEdit={(order) => {
+          setDirectOsId(order.id);
+          setDirectMode('edit');
+          navigate('/ordens');
+        }}
       />
     </div>
   );

@@ -36,6 +36,9 @@ interface FormState {
     type: 'income' | 'expense';
   };
   setNewClientPayment: (payment: any) => void;
+
+  newServiceOrder: any;
+  setNewServiceOrder: (order: any) => void;
 }
 
 export const useFormStore = create<FormState>((set) => ({
@@ -73,4 +76,7 @@ export const useFormStore = create<FormState>((set) => ({
     type: 'income'
   },
   setNewClientPayment: (payment) => set((state) => ({ newClientPayment: { ...state.newClientPayment, ...payment } })),
+
+  newServiceOrder: null,
+  setNewServiceOrder: (order) => set({ newServiceOrder: order }),
 }));

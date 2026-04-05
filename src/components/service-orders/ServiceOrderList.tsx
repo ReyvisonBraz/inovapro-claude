@@ -1,7 +1,9 @@
 import React from 'react';
 import { Briefcase } from 'lucide-react';
+import { motion } from 'motion/react';
 import { ServiceOrderCard } from './ServiceOrderCard';
 import { Pagination } from '../ui/Pagination';
+import { cn } from '../../lib/utils';
 
 interface ServiceOrderListProps {
   filteredOrders: any[];
@@ -20,6 +22,7 @@ interface ServiceOrderListProps {
   onOpenConfirm: (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning') => void;
   onDeleteOrder: (id: number) => void;
   clientPayments: any;
+  viewMode: 'grid' | 'list';
   pagination: {
     currentPage: number;
     totalPages: number;
@@ -27,6 +30,7 @@ interface ServiceOrderListProps {
     limit: number;
   };
   onPageChange: (page: number) => void;
+  onGeneratePayment?: (order: any) => void;
 }
 
 export const ServiceOrderList: React.FC<ServiceOrderListProps> = ({
@@ -46,32 +50,46 @@ export const ServiceOrderList: React.FC<ServiceOrderListProps> = ({
   onOpenConfirm,
   onDeleteOrder,
   clientPayments,
+  viewMode,
   pagination,
-  onPageChange
+  onPageChange,
+  onGeneratePayment
 }) => {
   return (
     <>
-      <div className="grid grid-cols-1 gap-4">
-        {filteredOrders.map(order => (
-          <ServiceOrderCard 
+      <div className={cn(
+        "grid gap-4",
+        viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
+      )}>
+        {filteredOrders.map((order, index) => (
+          <motion.div
             key={order.id}
-            order={order}
-            visibleColumns={visibleColumns}
-            quickStatusOrder={quickStatusOrder}
-            setQuickStatusOrder={setQuickStatusOrder}
-            getStatusColor={getStatusColor}
-            statuses={statuses}
-            handleUpdateStatus={handleUpdateStatus}
-            formatCurrency={formatCurrency}
-            setSelectedOrder={setSelectedOrder}
-            setShowQRCodeModal={setShowQRCodeModal}
-            setShowWhatsAppModal={setShowWhatsAppModal}
-            setShowPrintModal={setShowPrintModal}
-            handleEdit={handleEdit}
-            onOpenConfirm={onOpenConfirm}
-            onDeleteOrder={onDeleteOrder}
-            clientPayments={clientPayments}
-          />
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+          >
+            <ServiceOrderCard 
+              order={order}
+              visibleColumns={visibleColumns}
+              quickStatusOrder={quickStatusOrder}
+              setQuickStatusOrder={setQuickStatusOrder}
+              getStatusColor={getStatusColor}
+              statuses={statuses}
+              handleUpdateStatus={handleUpdateStatus}
+              formatCurrency={formatCurrency}
+              setSelectedOrder={setSelectedOrder}
+              setShowQRCodeModal={setShowQRCodeModal}
+              setShowWhatsAppModal={setShowWhatsAppModal}
+              setShowPrintModal={setShowPrintModal}
+              handleEdit={handleEdit}
+              onOpenConfirm={onOpenConfirm}
+              onDeleteOrder={onDeleteOrder}
+              clientPayments={clientPayments}
+              viewMode={viewMode}
+              // @ts-ignore
+              onGeneratePayment={onGeneratePayment}
+            />
+          </motion.div>
         ))}
         
         {filteredOrders.length === 0 && (

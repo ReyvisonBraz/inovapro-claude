@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { InventoryItem } from '../types';
+import { useInventoryStore } from '../store/useInventoryStore';
 
 export function useInventory(showToast: (message: string, type: 'success' | 'error') => void) {
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const { inventoryItems, setInventoryItems } = useInventoryStore();
 
   const fetchInventoryItems = useCallback(async () => {
     try {
@@ -14,7 +15,7 @@ export function useInventory(showToast: (message: string, type: 'success' | 'err
       console.error("Failed to fetch inventory", err);
       showToast('Erro ao carregar estoque.', 'error');
     }
-  }, [showToast]);
+  }, [showToast, setInventoryItems]);
 
   const saveInventoryItemAPI = useCallback(async (item: Partial<InventoryItem>, id?: number) => {
     const url = id ? `/api/inventory/${id}` : '/api/inventory';

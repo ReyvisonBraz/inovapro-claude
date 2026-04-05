@@ -2,8 +2,8 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ReceiptText, Wrench, Calendar, Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { Customer, ClientPayment, ServiceOrder } from '../../types';
-import { cn, formatCurrency } from '../../lib/utils';
+import { Customer, ClientPayment, ServiceOrder } from '../../../types';
+import { cn, formatCurrency } from '../../../lib/utils';
 
 interface CustomerHistoryModalProps {
   isOpen: boolean;

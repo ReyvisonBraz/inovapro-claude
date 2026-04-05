@@ -1,44 +1,46 @@
-# Arquitetura do Projeto
+# Estrutura e Fluxo de Dados
 
-Este documento descreve a estrutura técnica e as decisões arquiteturais do sistema. O projeto é uma aplicação **Full-Stack** construída com React, TypeScript, Vite, Tailwind CSS no frontend, e Express com SQLite no backend.
+Este documento descreve a organização técnica e como as informações circulam no sistema FinanceFlow.
 
-## 1. Estrutura de Diretórios
+## 1. Estrutura de Diretórios (`/src`)
 
-A separação de responsabilidades é o pilar desta arquitetura, abrangendo tanto o cliente quanto o servidor.
+A separação de responsabilidades é o pilar desta arquitetura, garantindo manutenibilidade e escalabilidade.
 
 ### Frontend (`/src`)
 
-*   **`/components/`**: Camada de Apresentação (UI). Componentes React "burros" (dumb components) ou que consomem hooks específicos.
-    *   `/modals/`: Janelas sobrepostas (formulários de criação, confirmações de exclusão).
-    *   `/settings/`: Componentes relacionados à tela de configurações.
-    *   `/ui/`: Componentes base reutilizáveis (Botões, Inputs, Cards, Toasts).
-*   **`/hooks/`**: Camada de Lógica de Negócios. Custom hooks que encapsulam chamadas de API, transformações de dados e lógicas complexas (ex: `useCustomers`, `useExportData`, `useDashboardStats`).
-*   **`/store/`**: Camada de Estado Global. Utiliza Zustand para gerenciar estados que precisam ser acessados por múltiplos componentes distantes na árvore (ex: `useAppStore` para tema/sidebar, `useModalStore` para controle de modais).
-*   **`/lib/`**: Camada de Utilitários. Funções puras, helpers e configurações (ex: `utils.ts` para formatação, `printUtils.ts` para geração de PDFs/impressão).
-*   **`/types/`** ou `types.ts`: Contratos de dados. Definições de interfaces TypeScript que garantem a tipagem forte em toda a aplicação.
+*   **`/components/`**: Camada de Apresentação (UI).
+    *   `/modals/`: Janelas sobrepostas (formulários de criação, confirmações de exclusão, avisos).
+    *   `/settings/`: Componentes específicos da tela de configurações.
+    *   `/ui/`: Componentes base reutilizáveis (Botões, Inputs, Cards, Toasts, Paginação).
+    *   `/service-orders/`: Sub-componentes para a gestão de Ordens de Serviço (Filtros, Listas, Modais específicos).
+*   **`/hooks/`**: Camada de Lógica de Negócios. Custom hooks que encapsulam chamadas de API, transformações de dados e lógicas complexas (ex: `useCustomers`, `useTransactions`, `useExportData`).
+*   **`/store/`**: Camada de Estado Global. Utiliza **Zustand** para gerenciar estados compartilhados (ex: `useAppStore` para UI, `useFormStore` para dados temporários de formulários, `useModalStore` para controle de modais).
+*   **`/lib/`**: Camada de Utilitários. Funções puras, helpers e configurações (ex: `utils.ts` para formatação, `printUtils.ts` para impressão).
+*   **`/services/`**: (Opcional) Camada para integrações externas (ex: Gemini API).
+*   **`types.ts`**: Contratos de dados. Definições de interfaces TypeScript globais.
 
 ### Backend (Raiz)
 
-*   **`server.ts`**: O ponto de entrada do servidor Express. Gerencia as rotas da API, a conexão com o banco de dados e serve os arquivos estáticos do frontend em produção.
-*   **`prisma/`**: (Se presente) Contém o esquema do banco de dados e as migrações. O projeto utiliza **SQLite** (`better-sqlite3`) para persistência local rápida e simples.
+*   **`server.ts`**: Ponto de entrada do servidor Express. Gerencia rotas da API, conexão com SQLite (`better-sqlite3`) e serve o frontend em produção.
+*   **`prisma/`**: (Se presente) Esquema e migrações do banco de dados.
 
 ## 2. Fluxo de Dados (Data Flow)
 
-O projeto segue um fluxo de dados unidirecional, integrado entre o cliente e o servidor.
+O projeto segue um fluxo unidirecional e previsível:
 
-1.  **Ação do Usuário:** O usuário interage com a UI (ex: clica em "Salvar Cliente" no `CustomerModal`).
-2.  **Chamada ao Hook/Store:** O componente chama uma função exposta por um custom hook (ex: `addCustomer` do `useCustomers`).
-3.  **Requisição API:** O hook faz uma requisição HTTP (POST/PUT/DELETE) para o servidor Express (`/api/...`).
-4.  **Processamento no Servidor:** O `server.ts` recebe a requisição, valida os dados e executa a operação no banco de dados SQLite.
-5.  **Resposta e Atualização:** O servidor retorna o resultado. O hook atualiza seu estado interno (ou o estado global do Zustand) com os novos dados.
-6.  **Re-renderização:** O React detecta a mudança de estado e re-renderiza apenas os componentes que dependem daquela informação.
+1.  **Ação do Usuário:** Interação na UI (ex: clica em "Salvar").
+2.  **Chamada ao Hook/Store:** O componente dispara uma função de lógica (ex: `addCustomer` do hook `useCustomers`).
+3.  **Requisição API:** O hook faz uma chamada HTTP para o backend (`/api/...`).
+4.  **Processamento no Servidor:** O `server.ts` valida os dados e executa a operação no SQLite.
+5.  **Resposta e Atualização:** O servidor retorna o resultado; o hook atualiza o estado local ou global (Zustand).
+6.  **Re-renderização:** O React atualiza apenas os componentes afetados pela mudança de estado.
 
 ## 3. O Papel do `App.tsx` (Orquestrador)
 
-Após a refatoração, o `App.tsx` deixou de ser um "faz-tudo" e assumiu o papel de **Orquestrador Principal**:
+Após a refatoração, o `App.tsx` atua como o **Orquestrador Principal**:
 
-*   **Auth Wrapper:** Verifica se o usuário está logado. Se não, renderiza o `<Login />`.
-*   **Layout Container:** Monta a estrutura base (Sidebar, Header, MobileNav, Área de Conteúdo).
-*   **Roteador de Telas:** Decide qual componente principal renderizar com base no estado `activeScreen`.
-*   **Contêiner de Modais Globais:** Renderiza os modais que precisam sobrepor toda a aplicação.
-*   **Ponto de Integração:** Inicializa os hooks principais e repassa dados/funções para os componentes filhos.
+*   **Auth Wrapper:** Gerencia o estado de login e renderiza o `<Login />` se necessário.
+*   **Layout Container:** Define a estrutura base (Sidebar, Header, MobileNav).
+*   **Roteador:** Gerencia a navegação entre as telas principais via `activeScreen`.
+*   **Contêiner de Modais Globais:** Centraliza modais que precisam de visibilidade em todo o sistema.
+*   **Ponto de Integração:** Inicializa hooks globais e sincroniza estados entre componentes.

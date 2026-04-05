@@ -19,25 +19,25 @@ export const DirectOsSearchModal: React.FC<DirectOsSearchModalProps> = ({
   const [directOsSearch, setDirectOsSearch] = React.useState('');
   const { showToast } = useToast();
 
-  const handleDirectOsSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!directOsSearch.trim()) return;
-    
-    const searchNumber = parseInt(directOsSearch.replace(/[^0-9]/g, ''), 10);
-    if (isNaN(searchNumber)) {
-      showToast('Número de OS inválido', 'error');
-      return;
-    }
-    
-    const order = orders.find(o => o.id === searchNumber);
-    if (order) {
-      onClose();
-      setDirectOsSearch('');
-      handleEdit(order);
-    } else {
-      showToast(`OS #${searchNumber.toString().padStart(4, '0')} não encontrada`, 'error');
-    }
-  };
+    const handleDirectOsSearch = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!directOsSearch.trim()) return;
+      
+      const searchNumber = parseInt(directOsSearch.toUpperCase().replace('OS-', '').replace(/[^0-9]/g, ''), 10);
+      if (isNaN(searchNumber)) {
+        showToast('Número de OS inválido', 'error');
+        return;
+      }
+      
+      const order = orders.find(o => o.id === searchNumber);
+      if (order) {
+        onClose();
+        setDirectOsSearch('');
+        handleEdit(order);
+      } else {
+        showToast(`OS-${searchNumber.toString().padStart(4, '0')} não encontrada`, 'error');
+      }
+    };
 
   return (
     <AnimatePresence>
@@ -80,14 +80,14 @@ export const DirectOsSearchModal: React.FC<DirectOsSearchModalProps> = ({
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Número da OS</label>
                 <div className="relative mt-1">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-mono">#OS-</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-mono">OS-</span>
                   <input 
                     type="text"
                     autoFocus
                     placeholder="0001"
                     value={directOsSearch}
                     onChange={(e) => setDirectOsSearch(e.target.value)}
-                    className="w-full h-12 pl-14 pr-4 bg-white/5 border border-white/10 rounded-xl text-sm font-mono focus:ring-2 focus:ring-primary outline-none transition-all"
+                    className="w-full h-12 pl-12 pr-4 bg-white/5 border border-white/10 rounded-xl text-sm font-mono focus:ring-2 focus:ring-primary outline-none transition-all"
                   />
                 </div>
               </div>

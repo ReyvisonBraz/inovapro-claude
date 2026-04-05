@@ -73,8 +73,8 @@ const ServiceOrderSchema = z.object({
   servicesPerformed: z.string().optional().nullable(),
   services: z.any().optional(), // JSON array
   partsUsed: z.any().optional(), // JSON array
-  serviceFee: z.number().nonnegative().optional(),
-  totalAmount: z.number().nonnegative().optional(),
+  serviceFee: z.number().nonnegative().optional().nullable(),
+  totalAmount: z.number().nonnegative().optional().nullable(),
   finalObservations: z.string().optional().nullable(),
   createdBy: z.number().optional(),
   updatedBy: z.number().optional()
@@ -228,12 +228,16 @@ db.exec(`
     customerId INTEGER NOT NULL,
     equipmentBrand TEXT,
     equipmentModel TEXT,
+    equipmentType TEXT,
+    equipmentColor TEXT,
     equipmentSerial TEXT,
     reportedProblem TEXT,
     arrivalPhotoUrl TEXT,
-    status TEXT DEFAULT 'awaiting_diagnosis',
+    arrivalPhotoBase64 TEXT,
+    status TEXT DEFAULT 'Aguardando Análise',
     technicalAnalysis TEXT,
     servicesPerformed TEXT,
+    services TEXT DEFAULT '[]',
     partsUsed TEXT DEFAULT '[]',
     serviceFee REAL DEFAULT 0,
     totalAmount REAL DEFAULT 0,
@@ -332,7 +336,9 @@ const migrations = [
   { name: 'quantity', table: 'inventory_items', type: "INTEGER DEFAULT 0" },
   { name: 'saleId', table: 'client_payments', type: "TEXT" },
   { name: 'icon', table: 'equipment_types', type: "TEXT" },
-  { name: 'services', table: 'service_orders', type: "TEXT DEFAULT '[]'" }
+  { name: 'services', table: 'service_orders', type: "TEXT DEFAULT '[]'" },
+  { name: 'paymentId', table: 'transactions', type: "INTEGER" },
+  { name: 'saleId', table: 'transactions', type: "TEXT" }
 ];
 
 migrations.forEach(m => {
@@ -414,14 +420,62 @@ async function startServer() {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const search = req.query.search as string;
+    const type = req.query.type as string;
+    const category = req.query.category as string;
+    const startDate = req.query.startDate as string;
+    const endDate = req.query.endDate as string;
+    const minAmount = parseFloat(req.query.minAmount as string);
+    const maxAmount = parseFloat(req.query.maxAmount as string);
     
-    let options: any = { orderBy: "date DESC, id DESC" };
+    let whereConditions = [];
+    let params = [];
+
     if (search) {
-      options.where = "description LIKE ? OR category LIKE ? OR CAST(amount AS TEXT) LIKE ?";
-      options.params = [`%${search}%`, `%${search}%`, `%${search}%` ];
+      whereConditions.push("(description LIKE ? OR category LIKE ? OR CAST(amount AS TEXT) LIKE ?)");
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
+    if (type && type !== 'all') {
+      whereConditions.push("type = ?");
+      params.push(type);
+    }
+
+    if (category && category !== 'all') {
+      whereConditions.push("category = ?");
+      params.push(category);
+    }
+
+    if (startDate) {
+      whereConditions.push("date >= ?");
+      params.push(startDate);
+    }
+
+    if (endDate) {
+      whereConditions.push("date <= ?");
+      params.push(endDate);
+    }
+
+    if (!isNaN(minAmount)) {
+      whereConditions.push("amount >= ?");
+      params.push(minAmount);
+    }
+
+    if (!isNaN(maxAmount)) {
+      whereConditions.push("amount <= ?");
+      params.push(maxAmount);
+    }
+
+    let options: any = { 
+      orderBy: "t.date DESC, t.id DESC",
+      select: "t.*, c.firstName || ' ' || c.lastName as customerName, c.phone as customerPhone",
+      join: "LEFT JOIN client_payments cp ON t.paymentId = cp.id LEFT JOIN customers c ON cp.customerId = c.id"
+    };
+    if (whereConditions.length > 0) {
+      options.where = whereConditions.map(c => c.startsWith('(') ? c : `t.${c}`).join(" AND ");
+      options.params = params;
     }
     
-    const result = getPaginatedData("transactions", page, limit, options);
+    const result = getPaginatedData("transactions t", page, limit, options);
     res.json(result);
   });
 
@@ -448,14 +502,23 @@ async function startServer() {
 
   // Deletar uma transação
   app.delete("/api/transactions/:id", (req, res) => {
-    const { userId } = req.body; // Pass userId in body or query if possible, but delete usually doesn't have body in some clients. 
-    // For simplicity, we might miss the user here unless we change how delete is called.
-    // Let's assume userId 1 for now if not provided.
-    const tx = db.prepare("SELECT * FROM transactions WHERE id = ?").get(req.params.id) as any;
-    db.prepare("DELETE FROM transactions WHERE id = ?").run(req.params.id);
+    const txId = req.params.id;
+    const tx = db.prepare("SELECT * FROM transactions WHERE id = ?").get(txId) as any;
     
     if (tx) {
-       db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'transaction', req.params.id, `Deleted transaction: ${tx.description}`);
+      // Se a transação estiver vinculada a um pagamento, atualiza o valor pago no pagamento
+      if (tx.paymentId) {
+        const payment = db.prepare("SELECT * FROM client_payments WHERE id = ?").get(tx.paymentId) as any;
+        if (payment) {
+          const newPaidAmount = Math.max(0, payment.paidAmount - tx.amount);
+          const newStatus = newPaidAmount >= payment.totalAmount ? 'paid' : 'pending';
+          db.prepare("UPDATE client_payments SET paidAmount = ?, status = ? WHERE id = ?")
+            .run(newPaidAmount, newStatus, tx.paymentId);
+        }
+      }
+
+      db.prepare("DELETE FROM transactions WHERE id = ?").run(txId);
+      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'transaction', txId, `Deleted transaction: ${tx.description}`);
     }
     
     res.json({ success: true });
@@ -478,16 +541,37 @@ async function startServer() {
   // Rota de Estatísticas
   app.get("/api/stats", (req, res) => {
     const totalIncome = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'income'").get().total || 0;
-    const totalExpense = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'expense'").get().total || 0;
+    const totalExpenses = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'expense'").get().total || 0;
     const pendingPayments = db.prepare("SELECT COUNT(*) as count FROM client_payments WHERE status != 'paid'").get().count || 0;
     const activeOS = db.prepare("SELECT COUNT(*) as count FROM service_orders WHERE status NOT IN ('completed', 'delivered', 'cancelled')").get().count || 0;
     
+    // Dados para o gráfico (últimos 12 meses)
+    const chartData = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const month = d.toISOString().slice(0, 7); // YYYY-MM
+      const name = d.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase();
+      
+      const income = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'income' AND date LIKE ?").get(`${month}%`).total || 0;
+      const expense = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'expense' AND date LIKE ?").get(`${month}%`).total || 0;
+      
+      chartData.push({ name, income, expense });
+    }
+
+    // Ranking de categorias
+    const incomeRanking = db.prepare("SELECT category, SUM(amount) as total FROM transactions WHERE type = 'income' GROUP BY category ORDER BY total DESC").all() as any[];
+    const expenseRanking = db.prepare("SELECT category, SUM(amount) as total FROM transactions WHERE type = 'expense' GROUP BY category ORDER BY total DESC").all() as any[];
+
     res.json({
       totalIncome,
-      totalExpense,
-      balance: totalIncome - totalExpense,
+      totalExpenses,
+      netBalance: totalIncome - totalExpenses,
       pendingPayments,
-      activeOS
+      activeOS,
+      chartData,
+      sortedIncomeRanking: incomeRanking.map(r => [r.category, r.total]),
+      sortedExpenseRanking: expenseRanking.map(r => [r.category, r.total])
     });
   });
 
@@ -596,6 +680,7 @@ async function startServer() {
   });
 
   app.delete("/api/customers/:id", (req, res) => {
+    db.prepare("DELETE FROM transactions WHERE paymentId IN (SELECT id FROM client_payments WHERE customerId = ?)").run(req.params.id);
     db.prepare("DELETE FROM client_payments WHERE customerId = ?").run(req.params.id);
     db.prepare("DELETE FROM customers WHERE id = ?").run(req.params.id);
     res.json({ success: true });
@@ -646,6 +731,26 @@ async function startServer() {
         installmentsCount || 1, type || 'income', initialPaymentHistory, saleId || null, createdBy || 1
       );
       
+      // Se houver um valor pago inicialmente, cria uma transação financeira
+      if (paidAmount && paidAmount > 0) {
+        const customer = db.prepare("SELECT firstName, lastName FROM customers WHERE id = ?").get(customerId) as any;
+        const customerName = customer ? `${customer.firstName} ${customer.lastName}` : 'Cliente';
+        
+        db.prepare(`
+          INSERT INTO transactions (description, category, type, amount, date, createdBy, paymentId, saleId)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          `Pagamento: ${description} (${customerName})`,
+          'Vendas',
+          'income',
+          paidAmount,
+          purchaseDate || new Date().toISOString().split('T')[0],
+          createdBy || 1,
+          result.lastInsertRowid,
+          saleId || null
+        );
+      }
+
       db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'client_payment', result.lastInsertRowid, `Created payment: ${description}`);
 
       res.json({ id: result.lastInsertRowid });
@@ -671,7 +776,69 @@ async function startServer() {
     res.json({ success: true });
   });
 
+  app.put("/api/client-payments/:id", (req, res) => {
+    // Alias para PATCH para compatibilidade com o frontend
+    const { paidAmount, status, paymentHistory, updatedBy } = req.body;
+    
+    if (paymentHistory) {
+      db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, paymentHistory = ?, updatedBy = ? WHERE id = ?").run(paidAmount, status, JSON.stringify(paymentHistory), updatedBy || 1, req.params.id);
+    } else {
+      db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, updatedBy = ? WHERE id = ?").run(paidAmount, status, updatedBy || 1, req.params.id);
+    }
+    
+    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'client_payment', req.params.id, `Updated payment (PUT) status: ${status}`);
+
+    res.json({ success: true });
+  });
+
+  app.post("/api/client-payments/:id/pay", (req, res) => {
+    const { amount, date, updatedBy } = req.body;
+    const paymentId = req.params.id;
+
+    const payment = db.prepare("SELECT * FROM client_payments WHERE id = ?").get(paymentId) as any;
+    if (!payment) return res.status(404).json({ error: "Payment not found" });
+
+    const newPaidAmount = payment.paidAmount + amount;
+    const newStatus = newPaidAmount >= payment.totalAmount ? 'paid' : 'partial';
+    
+    let history = [];
+    try {
+      history = JSON.parse(payment.paymentHistory || '[]');
+    } catch (e) {}
+    
+    history.push({ amount, date: date || new Date().toISOString() });
+
+    db.prepare(`
+      UPDATE client_payments 
+      SET paidAmount = ?, status = ?, paymentHistory = ?, updatedBy = ?
+      WHERE id = ?
+    `).run(newPaidAmount, newStatus, JSON.stringify(history), updatedBy || 1, paymentId);
+
+    // Criar transação financeira
+    const customer = db.prepare("SELECT firstName, lastName FROM customers WHERE id = ?").get(payment.customerId) as any;
+    const customerName = customer ? `${customer.firstName} ${customer.lastName}` : 'Cliente';
+
+    db.prepare(`
+      INSERT INTO transactions (description, category, type, amount, date, createdBy, paymentId, saleId)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      `Recebimento: ${payment.description} (${customerName})`,
+      'Vendas',
+      'income',
+      amount,
+      (date || new Date().toISOString()).split('T')[0],
+      updatedBy || 1,
+      paymentId,
+      payment.saleId || null
+    );
+
+    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'client_payment', paymentId, `Recorded payment of ${amount}`);
+
+    res.json({ success: true, newPaidAmount, newStatus });
+  });
+
   app.delete("/api/client-payments/:id", (req, res) => {
+    db.prepare("DELETE FROM transactions WHERE paymentId = ?").run(req.params.id);
     db.prepare("DELETE FROM client_payments WHERE id = ?").run(req.params.id);
     db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'client_payment', req.params.id, `Deleted payment ID: ${req.params.id}`);
     res.json({ success: true });
@@ -679,6 +846,7 @@ async function startServer() {
 
   app.delete("/api/client-payments/group/:saleId", (req, res) => {
     const { saleId } = req.params;
+    db.prepare("DELETE FROM transactions WHERE saleId = ?").run(saleId);
     db.prepare("DELETE FROM client_payments WHERE saleId = ?").run(saleId);
     db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'client_payment_group', 0, `Deleted payment group: ${saleId}`);
     res.json({ success: true });
@@ -862,16 +1030,65 @@ async function startServer() {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const search = req.query.search as string;
+    const status = req.query.status as string;
+    const priority = req.query.priority as string;
+    const sortByQuery = req.query.sortBy as string || 'newest';
+    
+    let orderBy = 'so.createdAt DESC';
+    if (sortByQuery === 'oldest') orderBy = 'so.createdAt ASC';
+    if (sortByQuery === 'priority') orderBy = "CASE WHEN so.priority = 'urgent' THEN 1 WHEN so.priority = 'high' THEN 2 WHEN so.priority = 'medium' THEN 3 ELSE 4 END, so.createdAt DESC";
+    if (sortByQuery === 'prediction') orderBy = 'so.analysisPrediction ASC, so.createdAt DESC';
+    if (sortByQuery === 'amount-desc') orderBy = 'CAST(so.totalAmount AS REAL) DESC, so.createdAt DESC';
+    if (sortByQuery === 'amount-asc') orderBy = 'CAST(so.totalAmount AS REAL) ASC, so.createdAt DESC';
     
     let options: any = {
       select: "so.*, c.firstName, c.lastName, c.phone",
       join: "so LEFT JOIN customers c ON so.customerId = c.id",
-      orderBy: "so.createdAt DESC"
+      orderBy: orderBy,
+      where: [],
+      params: []
     };
     
     if (search) {
-      options.where = "c.firstName LIKE ? OR c.lastName LIKE ? OR so.equipmentName LIKE ? OR so.equipmentSerial LIKE ? OR CAST(so.id AS TEXT) LIKE ?";
-      options.params = [`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%` ];
+      const searchLower = search.toLowerCase().trim();
+      const osIdMatch = searchLower.match(/^(?:#?os-?)?(\d+)$/i);
+      
+      if (osIdMatch) {
+        const osId = osIdMatch[1];
+        options.where.push("(CAST(so.id AS TEXT) = ? OR CAST(so.id AS TEXT) LIKE ? OR c.firstName LIKE ? OR c.lastName LIKE ? OR so.equipmentBrand LIKE ? OR so.equipmentModel LIKE ? OR so.equipmentType LIKE ?)");
+        options.params.push(osId, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+      } else {
+        options.where.push("(c.firstName LIKE ? OR c.lastName LIKE ? OR so.equipmentBrand LIKE ? OR so.equipmentModel LIKE ? OR so.equipmentType LIKE ? OR so.equipmentSerial LIKE ? OR CAST(so.id AS TEXT) LIKE ?)");
+        options.params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+      }
+    }
+
+    if (status && status !== 'all') {
+      options.where.push("so.status = ?");
+      options.params.push(status);
+    }
+
+    if (priority && priority !== 'all') {
+      options.where.push("so.priority = ?");
+      options.params.push(priority);
+    }
+
+    const dateFilter = req.query.dateFilter as string;
+    if (dateFilter && dateFilter !== 'all') {
+      const now = new Date();
+      if (dateFilter === 'today') {
+        options.where.push("date(so.createdAt) = date('now', 'localtime')");
+      } else if (dateFilter === 'week') {
+        options.where.push("date(so.createdAt) >= date('now', 'localtime', '-7 days')");
+      } else if (dateFilter === 'month') {
+        options.where.push("date(so.createdAt) >= date('now', 'localtime', 'start of month')");
+      }
+    }
+
+    if (options.where.length > 0) {
+      options.where = options.where.join(" AND ");
+    } else {
+      delete options.where;
     }
     
     const result = getPaginatedData("service_orders", page, limit, options);
@@ -965,11 +1182,11 @@ async function startServer() {
         oldParts = JSON.parse(oldOs?.partsUsed || '[]');
       } catch (e) {}
 
-      const newParts = partsUsed ? (typeof partsUsed === 'string' ? JSON.parse(partsUsed) : partsUsed) : oldParts;
-      const newServices = services ? (typeof services === 'string' ? JSON.parse(services) : services) : [];
+      const newParts = partsUsed ? (typeof partsUsed === 'string' ? JSON.parse(partsUsed) : partsUsed) : null;
+      const newServices = services ? (typeof services === 'string' ? JSON.parse(services) : services) : null;
       
       // Update inventory based on parts changes if partsUsed was provided
-      if (partsUsed) {
+      if (newParts) {
         // 1. Add back old parts
         oldParts.forEach((p: any) => {
           if (p.id) {
@@ -985,8 +1202,8 @@ async function startServer() {
         });
       }
 
-      const partsString = JSON.stringify(newParts);
-      const servicesString = JSON.stringify(newServices);
+      const partsString = newParts ? JSON.stringify(newParts) : null;
+      const servicesString = newServices ? JSON.stringify(newServices) : null;
       
       db.prepare(`
         UPDATE service_orders 
@@ -1014,12 +1231,12 @@ async function startServer() {
             updatedBy = ? 
         WHERE id = ?
       `).run(
-        status, technicalAnalysis, servicesPerformed, servicesString, partsString, 
-        serviceFee, totalAmount, finalObservations, entryDate, 
-        analysisPrediction, customerPassword, accessories, 
-        ramInfo, ssdInfo, priority, 
-        equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
-        arrivalPhotoBase64, updatedBy || 1, req.params.id
+        status ?? null, technicalAnalysis ?? null, servicesPerformed ?? null, servicesString, partsString, 
+        serviceFee ?? null, totalAmount ?? null, finalObservations ?? null, entryDate ?? null, 
+        analysisPrediction ?? null, customerPassword ?? null, accessories ?? null, 
+        ramInfo ?? null, ssdInfo ?? null, priority ?? null, 
+        equipmentType ?? null, equipmentBrand ?? null, equipmentModel ?? null, equipmentColor ?? null, equipmentSerial ?? null, 
+        arrivalPhotoBase64 ?? null, updatedBy || 1, req.params.id
       );
       
       db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'ServiceOrder', req.params.id, `Updated OS #${req.params.id}`);

@@ -7,12 +7,12 @@ import {
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { cn, formatCurrency } from '../lib/utils';
-import { Transaction, Category, AppSettings } from '../types';
+import { cn, formatCurrency } from '../../lib/utils';
+import { Transaction, Category, AppSettings } from '../../types';
 
-import { useSettingsStore } from '../store/useSettingsStore';
-import { useAppStore } from '../store/useAppStore';
-import { useFilterStore } from '../store/useFilterStore';
+import { useSettingsStore } from '../../store/useSettingsStore';
+import { useAppStore } from '../../store/useAppStore';
+import { useFilterStore } from '../../store/useFilterStore';
 
 interface ReportsProps {
   chartData: any[];

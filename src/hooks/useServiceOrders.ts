@@ -1,17 +1,47 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { ServiceOrder, ServiceOrderStatus, Brand, Model } from '../types';
+import { useServiceOrderStore } from '../store/useServiceOrderStore';
+import { useFilterStore } from '../store/useFilterStore';
 
 export const useServiceOrders = () => {
-  const [serviceOrders, setServiceOrders] = useState<{ data: ServiceOrder[], meta: any }>({ data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } });
-  const [serviceOrdersPage, setServiceOrdersPage] = useState(1);
-  const [serviceOrderStatuses, setServiceOrderStatuses] = useState<ServiceOrderStatus[]>([]);
-  const [equipmentTypes, setEquipmentTypes] = useState<{id: number, name: string}[]>([]);
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [models, setModels] = useState<Model[]>([]);
+  const {
+    serviceOrders, setServiceOrders,
+    serviceOrdersPage, setServiceOrdersPage,
+    serviceOrderStatuses, setServiceOrderStatuses,
+    equipmentTypes, setEquipmentTypes,
+    brands, setBrands,
+    models, setModels
+  } = useServiceOrderStore();
 
-  const fetchServiceOrders = useCallback(async (page: number = 1, search: string = '') => {
+  const { 
+    osSearchTerm,
+    osStatusFilter,
+    osPriorityFilter,
+    osSortBy,
+    osDateFilter
+  } = useFilterStore();
+
+  const fetchServiceOrders = useCallback(async (page?: number, search?: string, status?: string, priority?: string, sortBy?: string, dateFilter?: string) => {
+    // Use provided values or fall back to store values
+    const targetPage = page !== undefined ? page : serviceOrdersPage;
+    const targetSearch = search !== undefined ? search : osSearchTerm;
+    const targetStatus = status !== undefined ? status : osStatusFilter;
+    const targetPriority = priority !== undefined ? priority : osPriorityFilter;
+    const targetSortBy = sortBy !== undefined ? sortBy : osSortBy;
+    const targetDateFilter = dateFilter !== undefined ? dateFilter : osDateFilter;
+
     try {
-      const res = await fetch(`/api/service-orders?page=${page}&limit=20&search=${encodeURIComponent(search)}`);
+      const query = new URLSearchParams({
+        page: targetPage.toString(),
+        limit: '20',
+        search: targetSearch,
+        status: targetStatus,
+        priority: targetPriority,
+        sortBy: targetSortBy,
+        dateFilter: targetDateFilter
+      });
+
+      const res = await fetch(`/api/service-orders?${query.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setServiceOrders(data);
@@ -20,7 +50,17 @@ export const useServiceOrders = () => {
       console.error("Failed to fetch service orders", err);
       throw err;
     }
-  }, []);
+  }, [serviceOrdersPage, osSearchTerm, osStatusFilter, osPriorityFilter, osSortBy, setServiceOrders]);
+
+  // Auto-fetch when page or search term changes
+  // Note: We only do this if we are authenticated, but the hook doesn't know about auth.
+  // So we'll rely on the caller or just let it fetch (server will return 401 if not auth).
+  // Actually, it's better to keep the fetch in App.tsx or the page component to have more control.
+  // But let's add it here to ensure it's always up to date when used.
+  // React.useEffect(() => {
+  //   fetchServiceOrders();
+  // }, [fetchServiceOrders]);
+  // Wait, I'll use the one in App.tsx and ServiceOrdersPage.tsx for now.
 
   const fetchServiceOrderStatuses = useCallback(async () => {
     try {
@@ -33,7 +73,7 @@ export const useServiceOrders = () => {
       console.error("Failed to fetch service order statuses", err);
       throw err;
     }
-  }, []);
+  }, [setServiceOrderStatuses]);
 
   const fetchEquipmentTypes = useCallback(async () => {
     try {
@@ -46,7 +86,7 @@ export const useServiceOrders = () => {
       console.error("Failed to fetch equipment types", err);
       throw err;
     }
-  }, []);
+  }, [setEquipmentTypes]);
 
   const fetchBrands = useCallback(async () => {
     try {
@@ -59,7 +99,7 @@ export const useServiceOrders = () => {
       console.error("Failed to fetch brands", err);
       throw err;
     }
-  }, []);
+  }, [setBrands]);
 
   const fetchModels = useCallback(async () => {
     try {
@@ -72,7 +112,7 @@ export const useServiceOrders = () => {
       console.error("Failed to fetch models", err);
       throw err;
     }
-  }, []);
+  }, [setModels]);
 
   const saveServiceOrderAPI = useCallback(async (order: any, id?: number) => {
     const url = id ? `/api/service-orders/${id}` : '/api/service-orders';

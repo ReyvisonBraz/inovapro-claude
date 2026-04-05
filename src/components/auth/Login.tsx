@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { User } from '../types';
+import { User } from '../../types';
 import { Wallet, Lock, User as UserIcon, AlertCircle } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn } from '../../lib/utils';
 
 interface LoginProps {
   onLogin: (user: User) => void;

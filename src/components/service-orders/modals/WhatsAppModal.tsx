@@ -10,6 +10,7 @@ interface WhatsAppModalProps {
   selectedOrder: any;
   customers: any[];
   settings: any;
+  showToast: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
 export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
@@ -17,7 +18,8 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
   onClose,
   selectedOrder,
   customers,
-  settings
+  settings,
+  showToast
 }) => {
   const [whatsappConfig, setWhatsappConfig] = React.useState<{ type: 'simplified' | 'complete' }>({ type: 'simplified' });
   const [whatsappMessage, setWhatsappMessage] = React.useState('');
@@ -93,7 +95,7 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
       onClose();
     } else {
-      alert('⚠️ Cliente sem telefone cadastrado ou inválido.');
+      showToast('Cliente sem telefone cadastrado ou inválido.', 'warning');
     }
   };
 

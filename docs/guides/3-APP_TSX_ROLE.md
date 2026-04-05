@@ -16,11 +16,11 @@ Ele define a estrutura "casca" da sua aplicação. É no `App.tsx` que montamos 
 * O `MobileNav` (menu inferior para celulares).
 * A área central dinâmica onde o conteúdo muda.
 
-### 3. Roteamento de Telas (Screen Management)
-Como o projeto parece usar um roteamento baseado em estado (através da variável `activeScreen` do Zustand ou hook), o `App.tsx` atua como o **Roteador**. Ele possui um grande `switch` ou blocos de `if/else` (ou um dicionário de componentes) que decide qual tela renderizar no centro do layout:
-* Se `activeScreen === 'dashboard'`, renderiza o `<Dashboard />`.
-* Se `activeScreen === 'customers'`, renderiza o `<Customers />`.
-* E assim por diante para Inventário, Ordens de Serviço, Configurações, etc.
+### 3. Roteamento de Telas (React Router)
+O `App.tsx` utiliza o `react-router-dom` para gerenciar a navegação entre as telas principais. Ele define as rotas da aplicação (ex: `/dashboard`, `/clientes`, `/ordens`) e decide qual componente de página renderizar no centro do layout.
+
+*   A sincronização entre a URL e o estado global (`activeScreen`) é feita via `useEffect` para garantir que a UI (como a Sidebar) reflita a rota atual.
+*   Utiliza o componente `<Routes>` para agrupar as definições de caminho e o `<Navigate />` para redirecionamentos automáticos.
 
 ### 4. Contêiner de Modais Globais
 Existem modais (janelas sobrepostas) que precisam ser chamados de qualquer lugar do sistema, como:

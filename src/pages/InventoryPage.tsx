@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Inventory } from '../components/Inventory';
+import { Inventory } from '../components/inventory/Inventory';
 import { useInventory } from '../hooks/useInventory';
 import { useToast } from '../components/ui/Toast';
 import { useFilterStore } from '../store/useFilterStore';
@@ -19,8 +19,13 @@ export const InventoryPage: React.FC = () => {
   const { 
     inventoryItems, 
     saveInventoryItemAPI, 
-    deleteInventoryItemAPI 
+    deleteInventoryItemAPI,
+    fetchInventoryItems 
   } = useInventory(showToast);
+
+  React.useEffect(() => {
+    fetchInventoryItems();
+  }, [fetchInventoryItems]);
 
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [newItem, setNewItem] = useState({

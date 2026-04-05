@@ -29,6 +29,10 @@ export interface Transaction {
   paymentMethod?: string;
   createdBy?: number;
   updatedBy?: number;
+  paymentId?: number;
+  saleId?: string;
+  customerName?: string;
+  customerPhone?: string;
 }
 
 export interface Customer {

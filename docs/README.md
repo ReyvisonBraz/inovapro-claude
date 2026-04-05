@@ -10,9 +10,11 @@ Bem-vindo à documentação técnica do projeto FinanceFlow. Esta pasta contém 
 
 ### 🚀 [Planejamento](./planning)
 *   [2-Guia de Escalabilidade e Profissionalismo](./planning/2-SCALABILITY_AND_ENTERPRISE_GUIDE.md): O roadmap para transformar este MVP em uma aplicação de nível corporativo.
+*   [Débitos Técnicos e Refatoração](./technical-debt.md): Lista de arquivos grandes, gargalos e planos de melhoria contínua.
 
 ### 📖 [Guias](./guides)
 *   [3-O Papel do App.tsx](./guides/3-APP_TSX_ROLE.md): Explicação sobre a função atual do componente raiz após a refatoração.
+*   [Configuração do VS Code](./VSCODE_SETUP.md): Guia para configurar o ambiente de desenvolvimento local.
 
 ### 📜 [Histórico](./history)
 *   [Plano de Refatoração](./history/REFACTORING_PLAN.md): O plano original para desmembrar o `App.tsx`.

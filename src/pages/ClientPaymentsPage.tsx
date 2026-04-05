@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClientPayments } from '../components/ClientPayments';
+import { ClientPayments } from '../components/payments/ClientPayments';
 import { useClientPayments } from '../hooks/useClientPayments';
 import { useCustomers } from '../hooks/useCustomers';
 import { useToast } from '../components/ui/Toast';
@@ -11,6 +11,7 @@ import { useFormStore } from '../store/useFormStore';
 import { useAppStore } from '../store/useAppStore';
 import { format, parseISO } from 'date-fns';
 import { formatCurrency } from '../lib/utils';
+import { sendWhatsAppPaymentReminder } from '../lib/whatsappUtils';
 import { ClientPayment } from '../types';
 
 export const ClientPaymentsPage: React.FC = () => {
@@ -24,7 +25,7 @@ export const ClientPaymentsPage: React.FC = () => {
     deleteClientPaymentAPI,
     recordPaymentAPI
   } = useClientPayments(showToast);
-  const { customers } = useCustomers();
+  const { customers, fetchCustomers } = useCustomers();
   const { settings } = useSettingsStore();
   const { currentUser } = useAuthStore();
   const { 
@@ -45,7 +46,9 @@ export const ClientPaymentsPage: React.FC = () => {
   const { newClientPayment, setNewClientPayment } = useFormStore();
   const { 
     isAddingClientPayment, setIsAddingClientPayment,
-    expandedPayments, togglePaymentExpansion
+    expandedPayments, togglePaymentExpansion,
+    setIsAddingCustomer,
+    setCustomerRegistrationSource
   } = useAppStore();
   const {
     setPaymentSearchTerm,
@@ -57,7 +60,8 @@ export const ClientPaymentsPage: React.FC = () => {
 
   useEffect(() => {
     fetchClientPayments(paymentsPage, paymentSearchTerm);
-  }, [fetchClientPayments, paymentsPage, paymentSearchTerm]);
+    fetchCustomers();
+  }, [fetchClientPayments, fetchCustomers, paymentsPage, paymentSearchTerm]);
 
   const filteredClientPayments = clientPayments.data.filter(payment => {
     const matchesSearch = payment.customerName.toLowerCase().includes(paymentSearchTerm.toLowerCase()) || 
@@ -175,33 +179,19 @@ export const ClientPaymentsPage: React.FC = () => {
     if (!isRecordingPayment || !paymentAmount) return;
     
     const amount = parseFloat(paymentAmount.toString().replace(',', '.'));
-    const newPaidAmount = isRecordingPayment.paidAmount + amount;
-    const newStatus = newPaidAmount >= isRecordingPayment.totalAmount ? 'paid' : 'partial';
-
-    let currentHistory = [];
-    try {
-      if (isRecordingPayment.paymentHistory) {
-        currentHistory = JSON.parse(isRecordingPayment.paymentHistory);
-      }
-    } catch (e) {}
-
+    
     const [y, m, d] = paymentDate.split('-');
     const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
     const now = new Date();
     dateObj.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
 
-    const newHistory = [...currentHistory, {
-      amount: amount,
-      date: dateObj.toISOString()
-    }];
-
     try {
-      await saveClientPaymentAPI({
-        paidAmount: newPaidAmount,
-        status: newStatus,
-        paymentHistory: JSON.stringify(newHistory),
-        updatedBy: currentUser?.id
-      }, isRecordingPayment.id);
+      await recordPaymentAPI(
+        isRecordingPayment.id, 
+        amount, 
+        dateObj.toISOString(), 
+        currentUser?.id
+      );
       setIsRecordingPayment(null);
       setPaymentAmount('');
       fetchClientPayments(paymentsPage, paymentSearchTerm);
@@ -411,31 +401,10 @@ export const ClientPaymentsPage: React.FC = () => {
     printWindow.document.close();
   };
 
-  const sendWhatsAppReminder = (payment: ClientPayment) => {
+  const handleWhatsAppReminder = (payment: ClientPayment) => {
     const customer = customers.data.find(c => c.id === payment.customerId);
     if (!customer) return;
-    
-    const isPaid = payment.status === 'paid';
-    const balance = payment.totalAmount - payment.paidAmount;
-    
-    const message = 
-      `*${isPaid ? '✅ COMPROVANTE DE PAGAMENTO' : '⏳ LEMBRETE DE COBRANÇA'}*\n\n` +
-      `Olá, *${customer.firstName}*! 👋\n\n` +
-      `Segue o resumo da sua conta em *${settings.appName}*:\n\n` +
-      `📝 *Descrição:* ${payment.description}\n` +
-      `📅 *Data da Compra:* ${format(parseISO(payment.purchaseDate), 'dd/MM/yyyy')}\n` +
-      `📌 *Status:* ${payment.status === 'paid' ? 'PAGO' : payment.status === 'partial' ? 'PARCIAL' : 'PENDENTE'}\n\n` +
-      `----------------------------------\n` +
-      `💰 *Valor Total:* ${formatCurrency(payment.totalAmount)}\n` +
-      `💵 *Valor Pago:* ${formatCurrency(payment.paidAmount)}\n` +
-      `${balance > 0 ? `🛑 *Saldo Devedor:* ${formatCurrency(balance)}\n` : ''}` +
-      `----------------------------------\n\n` +
-      `${balance > 0 ? `👉 *Vencimento:* ${format(parseISO(payment.dueDate), 'dd/MM/yyyy')}\n\n` : ''}` +
-      `*${isPaid ? 'Agradecemos pela preferência! 🙏' : 'Ficamos no aguardo do seu pagamento. Qualquer dúvida, estamos à disposição! 😊'}*`;
-      
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodedMessage}`;
-    window.open(whatsappUrl, '_blank');
+    sendWhatsAppPaymentReminder(payment, customer, settings.appName);
   };
 
   const handleDeleteClientPaymentGroup = async (saleId: string) => {
@@ -462,7 +431,7 @@ export const ClientPaymentsPage: React.FC = () => {
     <ClientPayments 
       filteredClientPayments={filteredClientPayments}
       generateReceipt={generateReceipt}
-      sendWhatsAppReminder={sendWhatsAppReminder}
+      sendWhatsAppReminder={handleWhatsAppReminder}
       handleDeleteClientPayment={(payment) => setClientPaymentToDelete(payment.id)}
       handleDeleteClientPaymentGroup={handleDeleteClientPaymentGroup}
       handleRecordPayment={handleRecordPayment}
@@ -494,6 +463,10 @@ export const ClientPaymentsPage: React.FC = () => {
       setPaymentDate={setPaymentDate}
       newClientPayment={newClientPayment}
       setNewClientPayment={setNewClientPayment}
+      onTriggerAddCustomer={() => {
+        setCustomerRegistrationSource('payments');
+        setIsAddingCustomer(true);
+      }}
     />
   );
 };

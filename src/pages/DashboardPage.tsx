@@ -1,13 +1,17 @@
 import React from 'react';
-import { Dashboard } from '../components/Dashboard';
+import { Dashboard } from '../components/dashboard/Dashboard';
 import { useStats } from '../hooks/useStats';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useFilterStore } from '../store/useFilterStore';
 
 export const DashboardPage: React.FC = () => {
-  const { stats, handleChartClick } = useStats();
+  const { stats, handleChartClick, fetchStats } = useStats();
   const { settings } = useSettingsStore();
   const { dashboardMonth, handlePrevMonth, handleNextMonth } = useFilterStore();
+
+  React.useEffect(() => {
+    fetchStats();
+  }, [fetchStats, dashboardMonth]);
 
   return (
     <Dashboard 

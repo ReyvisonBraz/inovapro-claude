@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, User, X, Check } from 'lucide-react';
-import { Customer } from '../types';
-import { cn } from '../lib/utils';
+import { Customer } from '../../types';
+import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface CustomerSearchSelectProps {

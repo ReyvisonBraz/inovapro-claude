@@ -3,7 +3,7 @@ import { Customer, ClientPayment, AppSettings } from '../../types';
 import { cn, formatCurrency } from '../../lib/utils';
 import { Search, Plus, Filter, MoreVertical, Phone, MessageCircle, History, CreditCard, Trash2, Edit, AlertTriangle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { WhatsAppModal } from './WhatsAppModal';
+import { WhatsAppModal } from './modals/WhatsAppModal';
 
 import { Pagination } from '../ui/Pagination';
 
