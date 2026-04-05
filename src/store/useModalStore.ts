@@ -32,6 +32,11 @@ interface ModalState {
   customerWarningType: 'cpf' | 'phone' | 'both';
   setCustomerWarningType: (type: 'cpf' | 'phone' | 'both') => void;
 
+  showCustomerSuccessModal: boolean;
+  setShowCustomerSuccessModal: (show: boolean) => void;
+  lastAddedCustomerId: number | null;
+  setLastAddedCustomerId: (id: number | null) => void;
+
   // Transaction Modals
   editingTransaction: Transaction | null;
   setEditingTransaction: (tx: Transaction | null) => void;
@@ -92,6 +97,11 @@ export const useModalStore = create<ModalState>((set) => ({
   setShowCustomerWarningModal: (show) => set({ showCustomerWarningModal: show }),
   customerWarningType: 'both',
   setCustomerWarningType: (type) => set({ customerWarningType: type }),
+
+  showCustomerSuccessModal: false,
+  setShowCustomerSuccessModal: (show) => set({ showCustomerSuccessModal: show }),
+  lastAddedCustomerId: null,
+  setLastAddedCustomerId: (id) => set({ lastAddedCustomerId: id }),
 
   editingTransaction: null,
   setEditingTransaction: (tx) => set({ editingTransaction: tx }),

@@ -12,17 +12,17 @@ Para melhorar a manutenibilidade e escalabilidade, o código está sendo dividid
 
 ```
 src/
-├── components/         # Componentes reutilizáveis de UI (Botões, Inputs, Cards)
-├── features/           # Funcionalidades do sistema divididas por domínio
-│   ├── dashboard/      # Widgets e lógica do painel
-│   ├── transactions/   # Gestão de transações
-│   ├── customers/      # Gestão de clientes
-│   ├── reports/        # Relatórios e gráficos
-│   └── settings/       # Configurações do sistema
+├── components/         # Componentes reutilizáveis de UI e modais
+│   ├── layout/         # Header, Sidebar, MobileNav
+│   ├── modals/         # Modais globais e específicos
+│   ├── service-orders/ # Sub-componentes de Ordens de Serviço
+│   └── ui/             # Componentes base (Botões, Toasts, etc.)
+├── pages/              # Telas principais da aplicação (Dashboard, Vendas, etc.)
 ├── hooks/              # Custom Hooks para lógica de estado e API
-├── types/              # Definições de tipos TypeScript globais
-├── utils/              # Funções utilitárias e formatadores
-├── App.tsx             # Componente raiz (Roteamento e Layout principal)
+├── store/              # Gerenciamento de estado global (Zustand)
+├── lib/                # Funções utilitárias e formatadores
+├── types.ts            # Definições de tipos TypeScript globais
+├── App.tsx             # Orquestrador (Roteamento e Layout principal)
 └── main.tsx            # Ponto de entrada
 ```
 
@@ -31,6 +31,7 @@ src/
 1.  **Separação de Responsabilidades:** Componentes de UI são separados da lógica de negócios (Hooks).
 2.  **Tipagem Forte:** Uso extensivo de TypeScript para garantir segurança de tipos.
 3.  **Componentização:** Quebra de telas grandes em componentes menores e focados.
+4.  **Gestão de Débitos Técnicos:** Monitoramento de arquivos grandes e planos de refatoração (veja [Débitos Técnicos](../technical-debt.md)).
 
 ## Banco de Dados e Migração para Supabase
 
@@ -63,8 +64,10 @@ O sistema agora suporta múltiplos usuários com níveis de permissão (Dono, Ge
 
 ## Status do Projeto e Próximos Passos
 
-### Status Atual: **85% (Fase de Transição Cloud)**
+### Status Atual: **90% (Fase de Transição Cloud & Refinamento de UI)**
 O sistema está em fase final de **Transição para Arquitetura Cloud**. Atualmente operando com SQLite local para desenvolvimento ágil, mas com toda a estrutura de tipos, esquemas e serviços preparada para migração imediata para **Supabase (Banco de Dados)** e **Render (Hospedagem de Backend)**.
+
+Recentemente, o projeto passou por uma rodada de **refinamento de acessibilidade visual**, garantindo que o redimensionamento de fontes (A+/A-) funcione em todos os componentes, incluindo gráficos e navegação móvel. O **Centro de Notificações** também foi aprimorado com fundo sólido e fechamento inteligente ao clicar fora.
 
 ### Próximos Passos (Roadmap de Migração)
 

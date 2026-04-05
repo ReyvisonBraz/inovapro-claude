@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   Briefcase, ChevronDown, AlertTriangle, Clock, 
   Smartphone, Calendar, Wallet, QrCode, 
-  MessageCircle, Printer, Edit, Trash2 
+  MessageCircle, Printer, Edit, Trash2, Check, MoreHorizontal
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -25,6 +25,8 @@ interface ServiceOrderCardProps {
   onOpenConfirm: (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning') => void;
   onDeleteOrder: (id: number) => void;
   clientPayments: any;
+  viewMode?: 'grid' | 'list';
+  onGeneratePayment?: (order: any) => void;
 }
 
 export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
@@ -43,32 +45,55 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
   handleEdit,
   onOpenConfirm,
   onDeleteOrder,
-  clientPayments
+  clientPayments,
+  viewMode = 'list',
+  onGeneratePayment
 }) => {
+  const isGrid = viewMode === 'grid';
+
   return (
-    <div key={order.id} className="glass-card p-5 group hover:border-primary/30 transition-all">
-      <div className="flex flex-col md:flex-row justify-between gap-4">
-        <div className="flex items-start gap-4">
-          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-            <Briefcase size={24} />
+    <div key={order.id} className={cn(
+      "glass-card group hover:border-primary/30 transition-all duration-300 overflow-visible",
+      isGrid ? "p-4 flex flex-col h-full" : "p-5"
+    )}>
+      <div className={cn(
+        "flex gap-4",
+        isGrid ? "flex-col" : "flex-col md:flex-row justify-between"
+      )}>
+        <div className="flex items-start gap-4 flex-1 min-w-0">
+          <div className={cn(
+            "rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 transition-transform group-hover:scale-110",
+            isGrid ? "h-10 w-10" : "h-12 w-12"
+          )}>
+            <Briefcase size={isGrid ? 20 : 24} />
           </div>
+          
           <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-3 mb-1">
-              {visibleColumns.id && <span className="text-sm font-bold text-primary">#OS-{order.id.toString().padStart(4, '0')}</span>}
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              {visibleColumns.id && (
+                <span className="text-xs font-black text-primary bg-primary/5 px-2.5 py-1 rounded border border-primary/10">
+                  #OS-{order.id.toString().padStart(4, '0')}
+                </span>
+              )}
+              
               {visibleColumns.status && (
                 <div className="relative">
                   <button 
                     onClick={() => setQuickStatusOrder(quickStatusOrder?.id === order.id ? null : order)}
-                    className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border hover:opacity-80 transition-all flex items-center gap-1"
+                    className="text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider border hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 shadow-sm whitespace-nowrap"
                     style={getStatusColor(order.status)}
                   >
+                    <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
                     {order.status}
-                    <ChevronDown size={10} />
+                    <ChevronDown size={12} className={cn("transition-transform duration-200", quickStatusOrder?.id === order.id && "rotate-180")} />
                   </button>
                   
                   {quickStatusOrder?.id === order.id && (
-                    <div className="absolute left-0 top-full mt-1 w-48 glass-modal p-2 z-50 shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200">
-                      <div className="space-y-1">
+                    <div className="absolute left-0 top-full mt-2 w-56 glass-modal p-1.5 z-[100] shadow-2xl border border-white/10 animate-in fade-in slide-in-from-top-2 duration-200 rounded-xl overflow-hidden">
+                      <div className="p-2 mb-1 border-b border-white/5">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Alterar Status</p>
+                      </div>
+                      <div className="space-y-0.5 max-h-64 overflow-y-auto custom-scrollbar">
                         {statuses.map(s => (
                           <button
                             key={s.id}
@@ -77,11 +102,18 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
                               setQuickStatusOrder(null);
                             }}
                             className={cn(
-                              "w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
-                              order.status === s.name ? "bg-primary/20 text-primary" : "text-slate-400 hover:bg-white/5 hover:text-white"
+                              "w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-3 group/item",
+                              order.status === s.name 
+                                ? "bg-primary/20 text-primary shadow-inner" 
+                                : "text-slate-400 hover:bg-white/5 hover:text-white"
                             )}
                           >
-                            {s.name}
+                            <span 
+                              className="h-1.5 w-1.5 rounded-full shrink-0 shadow-sm group-hover/item:scale-125 transition-transform" 
+                              style={{ backgroundColor: s.color }} 
+                            />
+                            <span className="flex-1 truncate">{s.name}</span>
+                            {order.status === s.name && <Check size={10} className="shrink-0" />}
                           </button>
                         ))}
                       </div>
@@ -89,142 +121,207 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
                   )}
                 </div>
               )}
+
               {visibleColumns.priority && order.priority === 'high' && (
-                <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-rose-500/10 text-rose-500 border border-rose-500/20">
-                  <AlertTriangle size={10} /> Alta Prioridade
-                </span>
-              )}
-              {visibleColumns.prediction && order.analysisPrediction && new Date(order.analysisPrediction) < new Date() && order.status !== 'Concluído' && (
-                <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse">
-                  <Clock size={10} /> Atrasado
+                <span className="flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                  <AlertTriangle size={10} /> Alta
                 </span>
               )}
             </div>
             
-            <div className="flex flex-col gap-0.5">
-              <h4 className="font-black text-xl text-white tracking-tight">
+            <div className="flex flex-col">
+              <h4 className={cn(
+                "font-black text-white tracking-tight leading-tight truncate",
+                isGrid ? "text-xl" : "text-2xl"
+              )}>
                 {order.firstName} {order.lastName}
               </h4>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
-                  <Smartphone size={14} />
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 text-slate-300 border border-white/10 text-xs font-bold">
+                  <Smartphone size={14} className="text-primary" />
                   {order.equipmentBrand} {order.equipmentModel}
                 </span>
               </div>
             </div>
+          </div>
+        </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 mt-4">
-              {visibleColumns.entryDate && (
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <Calendar size={14} className="text-slate-600" />
-                  <span>Entrada: <span className="text-slate-300 font-medium">{order.entryDate || format(parseISO(order.createdAt), 'dd/MM/yyyy')}</span></span>
-                </div>
-              )}
-              {visibleColumns.prediction && order.analysisPrediction && (
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <Clock size={14} className="text-slate-600" />
-                  <span>Previsão: <span className="text-slate-300 font-medium">{format(parseISO(order.analysisPrediction), 'dd/MM/yyyy')}</span></span>
-                </div>
-              )}
-              {visibleColumns.total && (
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <Wallet size={14} className="text-slate-600" />
-                  <span>Total: <span className="text-emerald-400 font-bold">{formatCurrency(order.totalAmount || 0)}</span></span>
-                </div>
-              )}
+        <div className={cn(
+          "flex flex-col gap-4",
+          isGrid ? "mt-2" : "md:items-end justify-between"
+        )}>
+          {!isGrid && (
+            <div className="text-right hidden md:block">
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Entrada</p>
+              <p className="text-xs font-bold text-slate-300">
+                {format(parseISO(order.createdAt), "dd MMM yyyy", { locale: ptBR })}
+              </p>
             </div>
+          )}
 
-            {order.reportedProblem && (
-              <div className="mt-4 p-3 rounded-xl bg-white/5 border border-white/10">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Problema Relatado</p>
-                <p className="text-sm text-slate-300 line-clamp-2 leading-relaxed">
-                  {order.reportedProblem}
-                </p>
+          <div className={cn(
+            "grid gap-3",
+            isGrid ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-3 md:flex md:items-center"
+          )}>
+            {visibleColumns.entryDate && (
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Entrada</span>
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-blue-500/5 border border-blue-500/10 text-[10px] text-blue-400 font-bold shadow-sm">
+                  <Calendar size={12} />
+                  {order.entryDate ? order.entryDate.split('-').reverse().join('/') : format(parseISO(order.createdAt), 'dd/MM/yy')}
+                </div>
+              </div>
+            )}
+            
+            {visibleColumns.prediction && order.analysisPrediction && (
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Previsão</span>
+                <div className={cn(
+                  "flex items-center gap-1.5 px-2 py-1 rounded-lg border shadow-sm text-[10px] font-bold",
+                  new Date(order.analysisPrediction) < new Date() && order.status !== 'Concluído' 
+                    ? "bg-rose-500/5 border-rose-500/10 text-rose-400" 
+                    : "bg-slate-500/5 border-slate-500/10 text-slate-400"
+                )}>
+                  <Clock size={12} />
+                  {format(parseISO(order.analysisPrediction), 'dd/MM/yy')}
+                </div>
+              </div>
+            )}
+
+            {visibleColumns.total && (
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Valor Total</span>
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-sm text-emerald-400 font-black shadow-sm">
+                  <Wallet size={14} />
+                  {formatCurrency(order.totalAmount || 0)}
+                </div>
               </div>
             )}
           </div>
         </div>
-        
-        <div className="flex flex-col sm:flex-row md:flex-col justify-between items-start sm:items-end gap-4 shrink-0 mt-4 md:mt-0 pt-4 md:pt-0 border-t border-white/5 md:border-t-0">
-          <div className="text-left sm:text-right w-full sm:w-auto flex flex-row sm:flex-col justify-between sm:justify-start items-center sm:items-end md:hidden">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Criado em</p>
-            <p className="text-xs font-medium text-slate-300">{format(parseISO(order.createdAt), "dd MMM yyyy", { locale: ptBR })}</p>
-          </div>
-          <div className="text-right hidden md:block">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Criado em</p>
-            <p className="text-xs font-medium text-slate-300">{format(parseISO(order.createdAt), "dd MMM yyyy", { locale: ptBR })}</p>
-          </div>
-          <div className="flex flex-wrap gap-2 justify-start sm:justify-end w-full sm:w-auto">
-            <button 
-              onClick={() => {
-                setSelectedOrder(order);
-                setShowQRCodeModal(true);
-              }}
-              className="p-2.5 rounded-xl bg-white/5 text-slate-400 hover:text-primary hover:bg-primary/10 transition-all border border-white/5"
-              title="Ver QR Code"
-            >
-              <QrCode size={20} />
-            </button>
-            <button 
-              onClick={() => {
-                setSelectedOrder(order);
-                setShowWhatsAppModal(true);
-              }}
-              className="p-2.5 rounded-xl bg-white/5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 transition-all border border-white/5"
-              title="Enviar via WhatsApp"
-            >
-              <MessageCircle size={20} />
-            </button>
-            <button 
-              onClick={() => {
-                setSelectedOrder(order);
-                setShowPrintModal(true);
-              }}
-              className="p-2.5 rounded-xl bg-white/5 text-slate-400 hover:text-blue-500 hover:bg-blue-500/10 transition-all border border-white/5"
-              title="Imprimir OS"
-            >
-              <Printer size={20} />
-            </button>
-            <button 
-              onClick={() => handleEdit(order)}
-              className="p-2.5 rounded-xl bg-white/5 text-slate-400 hover:text-primary hover:bg-primary/10 transition-all border border-white/5"
-              title="Editar"
-            >
-              <Edit size={20} />
-            </button>
-            <button 
-              onClick={() => {
-                const hasParts = order.partsUsed && order.partsUsed.length > 0;
-                const isCompleted = order.status === 'Concluído' || order.status === 'Entregue';
-                const hasPayments = clientPayments.data.some((p: any) => p.description?.includes(`#OS-${order.id}`));
-                
-                let warningMessage = `Tem certeza que deseja excluir a Ordem de Serviço #OS-${order.id.toString().padStart(4, '0')}?`;
-                
-                if (isCompleted) {
-                  warningMessage += `\n\n⚠️ ATENÇÃO: Esta ordem está com status "${order.status}". Excluir ordens finalizadas pode afetar seus relatórios financeiros e histórico do cliente.`;
-                }
-                
-                if (hasParts) {
-                  warningMessage += `\n\n⚠️ ATENÇÃO: Existem ${order.partsUsed?.length || 0} peças vinculadas a esta ordem. A exclusão NÃO retornará automaticamente estas peças ao estoque.`;
-                }
+      </div>
 
-                if (hasPayments) {
-                  warningMessage += `\n\n⚠️ ATENÇÃO: Existem pagamentos registrados para esta Ordem de Serviço no módulo de Contas a Receber. Recomenda-se verificar antes de excluir.`;
-                }
-
-                onOpenConfirm(
-                  'Excluir Ordem de Serviço',
-                  warningMessage,
-                  () => onDeleteOrder(order.id),
-                  'danger'
-                );
-              }}
-              className="p-2.5 rounded-xl bg-white/5 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all border border-white/5"
-              title="Excluir"
-            >
-              <Trash2 size={20} />
-            </button>
+      {order.reportedProblem && (
+        <div className={cn(
+          "p-4 rounded-xl bg-gradient-to-br from-white/5 to-transparent border border-white/10 relative overflow-hidden group/problem",
+          isGrid ? "mt-3 flex-1" : "mt-4"
+        )}>
+          <div className="absolute top-0 left-0 w-1 h-full bg-primary/40 rounded-l-xl" />
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle size={14} className="text-primary/70" />
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Problema Relatado</p>
           </div>
+          <p className={cn(
+            "text-slate-300 leading-relaxed font-medium",
+            isGrid ? "text-xs line-clamp-3" : "text-sm line-clamp-2"
+          )}>
+            {order.reportedProblem}
+          </p>
+        </div>
+      )}
+
+      <div className={cn(
+        "flex items-center gap-2 mt-5 pt-4 border-t border-white/5",
+        isGrid ? "justify-between" : "justify-end"
+      )}>
+        {isGrid && (
+          <div className="flex flex-col">
+            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Criado em</span>
+            <span className="text-[10px] font-bold text-slate-400">
+              {format(parseISO(order.createdAt), "dd/MM/yy")}
+            </span>
+          </div>
+        )}
+
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/5">
+          <button 
+            onClick={() => handleEdit(order)}
+            className={cn(
+              "flex items-center justify-center gap-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-95",
+              isGrid ? "p-2" : "px-4 py-2"
+            )}
+            title="Editar"
+          >
+            <Edit size={16} />
+            {!isGrid && <span className="text-xs font-bold">Editar</span>}
+          </button>
+          
+          <div className="h-4 w-px bg-white/10 mx-1" />
+          
+          <button 
+            onClick={() => {
+              setSelectedOrder(order);
+              setShowQRCodeModal(true);
+            }}
+            className={cn(
+              "flex items-center justify-center gap-2 rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all active:scale-95",
+              isGrid ? "p-2" : "px-4 py-2"
+            )}
+            title="QR Code"
+          >
+            <QrCode size={16} />
+            {!isGrid && <span className="text-xs font-bold">QR Code</span>}
+          </button>
+
+          <div className="h-4 w-px bg-white/10 mx-1" />
+
+          <button 
+            onClick={() => {
+              setSelectedOrder(order);
+              setShowWhatsAppModal(true);
+            }}
+            className="p-2 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 transition-all"
+            title="WhatsApp"
+          >
+            <MessageCircle size={18} />
+          </button>
+          
+          <button 
+            onClick={() => {
+              setSelectedOrder(order);
+              setShowPrintModal(true);
+            }}
+            className="p-2 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-500/10 transition-all"
+            title="Imprimir"
+          >
+            <Printer size={18} />
+          </button>
+
+          {order.status === 'Concluído' && !clientPayments.data.some((p: any) => p.description?.includes(`OS #${order.id.toString().padStart(4, '0')}`)) && (
+            <button 
+              onClick={() => {
+                onGeneratePayment?.(order);
+              }}
+              className="p-2 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 transition-all"
+              title="Gerar Pagamento"
+            >
+              <Wallet size={18} />
+            </button>
+          )}
+
+          <button 
+            onClick={() => {
+              const hasParts = order.partsUsed && order.partsUsed.length > 0;
+              const isCompleted = order.status === 'Concluído' || order.status === 'Entregue';
+              const hasPayments = clientPayments.data.some((p: any) => p.description?.includes(`#OS-${order.id}`));
+              
+              let warningMessage = `Excluir #OS-${order.id.toString().padStart(4, '0')}?`;
+              if (isCompleted) warningMessage += `\nStatus: ${order.status}.`;
+              if (hasParts) warningMessage += `\nPossui peças vinculadas.`;
+              if (hasPayments) warningMessage += `\nPossui pagamentos registrados.`;
+
+              onOpenConfirm(
+                'Excluir OS',
+                warningMessage,
+                () => onDeleteOrder(order.id),
+                'danger'
+              );
+            }}
+            className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
+            title="Excluir"
+          >
+            <Trash2 size={18} />
+          </button>
         </div>
       </div>
     </div>

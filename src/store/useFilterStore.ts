@@ -43,6 +43,8 @@ interface FilterState {
   setOsPriorityFilter: (priority: string) => void;
   osSortBy: string;
   setOsSortBy: (sortBy: string) => void;
+  osDateFilter: string;
+  setOsDateFilter: (dateFilter: string) => void;
 
   // Customer Filters
   customerSearchTerm: string;
@@ -65,6 +67,7 @@ interface FilterState {
   setDashboardMonth: (month: string) => void;
   handlePrevMonth: () => void;
   handleNextMonth: () => void;
+  resetFilters: () => void;
 }
 
 export const useFilterStore = create<FilterState>((set) => ({
@@ -106,6 +109,8 @@ export const useFilterStore = create<FilterState>((set) => ({
   setOsPriorityFilter: (priority) => set({ osPriorityFilter: priority }),
   osSortBy: 'newest',
   setOsSortBy: (sortBy) => set({ osSortBy: sortBy }),
+  osDateFilter: 'all',
+  setOsDateFilter: (dateFilter) => set({ osDateFilter: dateFilter }),
 
   customerSearchTerm: '',
   setCustomerSearchTerm: (term) => set({ customerSearchTerm: term }),
@@ -133,5 +138,17 @@ export const useFilterStore = create<FilterState>((set) => ({
     const d = new Date(parseInt(year), parseInt(month) - 1, 1);
     d.setMonth(d.getMonth() + 1);
     return { dashboardMonth: format(d, 'yyyy-MM') };
+  }),
+  resetFilters: () => set({
+    searchTerm: '',
+    dateFilterMode: 'all',
+    selectedDate: format(new Date(), 'yyyy-MM-dd'),
+    selectedMonth: format(new Date(), 'yyyy-MM'),
+    startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+    endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+    filterType: 'all',
+    filterCategory: 'all',
+    filterMinAmount: '',
+    filterMaxAmount: '',
   }),
 }));

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Customers } from '../components/Customers';
+import { Customers } from '../components/customers/Customers';
 import { useCustomers } from '../hooks/useCustomers';
 import { useClientPayments } from '../hooks/useClientPayments';
 import { useSettingsStore } from '../store/useSettingsStore';
@@ -15,10 +15,29 @@ export const CustomersPage: React.FC = () => {
   const { showToast } = useToast();
   const { settings } = useSettingsStore();
   const { customerSearchTerm, setCustomerSearchTerm } = useFilterStore();
+  const [localSearchTerm, setLocalSearchTerm] = React.useState(customerSearchTerm);
+  
   const { 
     customers, 
-    deleteCustomerAPI 
+    customersPage,
+    setCustomersPage,
+    deleteCustomerAPI,
+    fetchCustomers 
   } = useCustomers();
+
+  // Debounce search term
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setCustomerSearchTerm(localSearchTerm);
+      setCustomersPage(1); // Reset to first page on search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [localSearchTerm, setCustomerSearchTerm, setCustomersPage]);
+
+  React.useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
+
   const { clientPayments } = useClientPayments(showToast);
   const { 
     setHistoryCustomer, 
@@ -38,8 +57,8 @@ export const CustomersPage: React.FC = () => {
   return (
     <Customers 
       settings={settings}
-      searchTerm={customerSearchTerm}
-      onSearchChange={setCustomerSearchTerm}
+      searchTerm={localSearchTerm}
+      onSearchChange={setLocalSearchTerm}
       customers={customers}
       clientPayments={clientPayments}
       onDelete={(id) => {
@@ -49,7 +68,7 @@ export const CustomersPage: React.FC = () => {
       onAddPayment={(customer) => {
         setNewClientPayment({ customerId: customer.id });
         setIsAddingClientPayment(true);
-        navigate('/client-payments');
+        navigate('/vendas');
       }}
       onViewHistory={(customer) => {
         setHistoryCustomer(customer);
@@ -69,7 +88,7 @@ export const CustomersPage: React.FC = () => {
         });
         setIsAddingCustomer(true);
       }}
-      onPageChange={() => {}} // TODO: Implement pagination in useCustomers
+      onPageChange={setCustomersPage}
     />
   );
 };

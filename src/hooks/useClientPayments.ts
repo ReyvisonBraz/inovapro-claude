@@ -1,12 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { ClientPayment } from '../types';
+import { useClientPaymentStore } from '../store/useClientPaymentStore';
 
 export function useClientPayments(showToast: (message: string, type: 'success' | 'error') => void) {
-  const [clientPayments, setClientPayments] = useState<{ data: ClientPayment[], meta: any }>({ 
-    data: [], 
-    meta: { total: 0, page: 1, limit: 20, totalPages: 0 } 
-  });
-  const [paymentsPage, setPaymentsPage] = useState(1);
+  const { 
+    clientPayments, setClientPayments, 
+    paymentsPage, setPaymentsPage 
+  } = useClientPaymentStore();
 
   const fetchClientPayments = useCallback(async (page: number, searchTerm: string = '') => {
     try {
@@ -18,7 +18,7 @@ export function useClientPayments(showToast: (message: string, type: 'success' |
       console.error("Failed to fetch client payments", err);
       showToast('Erro ao carregar pagamentos.', 'error');
     }
-  }, [showToast]);
+  }, [showToast, setClientPayments]);
 
   const saveClientPaymentAPI = useCallback(async (payment: Partial<ClientPayment>, id?: number) => {
     const url = id ? `/api/client-payments/${id}` : '/api/client-payments';

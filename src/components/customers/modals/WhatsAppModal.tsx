@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, MessageCircle, Send } from 'lucide-react';
-import { Customer, AppSettings } from '../../types';
-import { formatCurrency } from '../../lib/utils';
+import { Customer, AppSettings } from '../../../types';
+import { formatCurrency } from '../../../lib/utils';
 
 interface WhatsAppModalProps {
   isOpen: boolean;

@@ -1,49 +1,45 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { 
-  TrendingUp, TrendingDown, Wallet, Briefcase, 
+  Briefcase, TrendingUp, TrendingDown, Wallet, 
   ChevronLeft, ChevronRight 
 } from 'lucide-react';
 import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
-  ResponsiveContainer, BarChart, Bar 
+  ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip,
+  BarChart, Bar
 } from 'recharts';
-import { formatCurrency } from '../../lib/utils';
-import StatCard from '../ui/StatCard';
-import { AppSettings } from '../../types';
+import { StatCard } from '../ui/StatCard';
+import { formatCurrency, formatMonthYear } from '../../lib/utils';
 
+import { useFilterStore } from '../../store/useFilterStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { useAppStore } from '../../store/useAppStore';
 
 interface DashboardProps {
   totalIncome: number;
   totalExpenses: number;
   netBalance: number;
   chartData: any[];
-  dashboardMonth: Date;
+  handleChartClick: (data: any) => void;
   sortedIncomeRanking: [string, number][];
   sortedExpenseRanking: [string, number][];
-  handlePrevMonth: () => void;
-  handleNextMonth: () => void;
-  formatMonthYear: (date: Date) => string;
-  handleChartClick?: (data: any) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({
+export const Dashboard = ({
   totalIncome,
   totalExpenses,
   netBalance,
   chartData,
-  dashboardMonth,
+  handleChartClick,
   sortedIncomeRanking,
-  sortedExpenseRanking,
-  handlePrevMonth,
-  handleNextMonth,
-  formatMonthYear,
-  handleChartClick
-}) => {
+  sortedExpenseRanking
+}: DashboardProps) => {
   const { settings } = useSettingsStore();
+  const { fontSize } = useAppStore();
+  const { dashboardMonth, handlePrevMonth, handleNextMonth } = useFilterStore();
+
   return (
-    <div className="space-y-10">
+    <>
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard 
@@ -85,14 +81,14 @@ const Dashboard: React.FC<DashboardProps> = ({
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass-card p-8"
+          className="glass-card p-4 md:p-8"
         >
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
             <div>
-              <h4 className="text-lg font-bold">Tendência de Fluxo de Caixa</h4>
+              <h4 className="text-base md:text-lg font-bold">Tendência de Fluxo de Caixa</h4>
               <p className="text-xs text-slate-500 font-medium">Desempenho de flutuação mensal</p>
             </div>
-            <select className="bg-slate-800 border border-white/10 rounded-xl text-[10px] font-bold uppercase tracking-widest py-2 px-4 focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900">
+            <select className="bg-slate-800 border border-white/10 rounded-xl text-xs font-bold uppercase tracking-widest py-2 px-4 focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900 w-full sm:w-auto">
               <option>Últimos 12 Meses</option>
               <option>Últimos 6 Meses</option>
             </select>
@@ -111,13 +107,13 @@ const Dashboard: React.FC<DashboardProps> = ({
                   dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 10, fontWeight: 600 }} 
+                  tick={{ fill: '#64748b', fontSize: Math.max(10, fontSize * 0.625), fontWeight: 600 }} 
                   dy={10}
                 />
                 <YAxis hide />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#1a2235', border: '1px solid #ffffff10', borderRadius: '12px' }}
-                  itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                  itemStyle={{ fontSize: `${Math.max(12, fontSize * 0.75)}px`, fontWeight: 'bold' }}
                 />
                 <Area 
                   type="monotone" 
@@ -135,14 +131,14 @@ const Dashboard: React.FC<DashboardProps> = ({
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass-card p-8"
+          className="glass-card p-4 md:p-8"
         >
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
             <div>
-              <h4 className="text-lg font-bold">Comparação Mensal</h4>
+              <h4 className="text-base md:text-lg font-bold">Comparação Mensal</h4>
               <p className="text-xs text-slate-500 font-medium">Detalhamento de Renda vs Despesas</p>
             </div>
-            <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest">
+            <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-widest">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-primary"></span>
                 <span className="text-slate-400">Renda</span>
@@ -161,13 +157,14 @@ const Dashboard: React.FC<DashboardProps> = ({
                   dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 10, fontWeight: 600 }} 
+                  tick={{ fill: '#64748b', fontSize: Math.max(10, fontSize * 0.625), fontWeight: 600 }} 
                   dy={10}
                 />
                 <YAxis hide />
                 <Tooltip 
                   cursor={{ fill: '#ffffff05' }}
                   contentStyle={{ backgroundColor: '#1a2235', border: '1px solid #ffffff10', borderRadius: '12px' }}
+                  itemStyle={{ fontSize: `${Math.max(12, fontSize * 0.75)}px`, fontWeight: 'bold' }}
                 />
                 <Bar dataKey="renda" fill="#1152d4" radius={[4, 4, 0, 0]} barSize={12} />
                 <Bar dataKey="despesa" fill="#ffffff10" radius={[4, 4, 0, 0]} barSize={12} />
@@ -182,14 +179,14 @@ const Dashboard: React.FC<DashboardProps> = ({
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-8"
+          className="glass-card p-4 md:p-8"
         >
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
             <div>
-              <h4 className="text-lg font-bold">Ranking de Entradas</h4>
+              <h4 className="text-base md:text-lg font-bold">Ranking de Entradas</h4>
               <p className="text-xs text-slate-500 font-medium">Categorias mais rentáveis</p>
             </div>
-            <div className="flex items-center gap-2 bg-white/5 rounded-xl border border-white/10 p-1">
+            <div className="flex items-center justify-between sm:justify-center gap-2 bg-white/5 rounded-xl border border-white/10 p-1 w-full sm:w-auto">
               <button onClick={handlePrevMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
                 <ChevronLeft size={16} />
               </button>
@@ -231,14 +228,14 @@ const Dashboard: React.FC<DashboardProps> = ({
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-8"
+          className="glass-card p-4 md:p-8"
         >
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
             <div>
-              <h4 className="text-lg font-bold">Ranking de Saídas</h4>
+              <h4 className="text-base md:text-lg font-bold">Ranking de Saídas</h4>
               <p className="text-xs text-slate-500 font-medium">Maiores despesas por categoria</p>
             </div>
-            <div className="flex items-center gap-2 bg-white/5 rounded-xl border border-white/10 p-1">
+            <div className="flex items-center justify-between sm:justify-center gap-2 bg-white/5 rounded-xl border border-white/10 p-1 w-full sm:w-auto">
               <button onClick={handlePrevMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
                 <ChevronLeft size={16} />
               </button>
@@ -277,8 +274,6 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </motion.div>
       </div>
-    </div>
+    </>
   );
 };
-
-export default Dashboard;

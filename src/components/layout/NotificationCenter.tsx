@@ -2,8 +2,8 @@ import React, { useRef, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, parseISO } from 'date-fns';
-import { cn, formatCurrency } from '../lib/utils';
-import { ClientPayment, ServiceOrder, Screen } from '../types';
+import { cn, formatCurrency } from '../../lib/utils';
+import { ClientPayment, ServiceOrder, Screen } from '../../types';
 
 interface NotificationCenterProps {
   showNotifications: boolean;

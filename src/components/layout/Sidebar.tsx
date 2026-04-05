@@ -1,269 +1,213 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, Receipt, BarChart3, Users, CreditCard, 
-  Briefcase, Package, Settings, LogOut, ChevronLeft, ChevronRight 
+  LayoutDashboard, 
+  ReceiptText, 
+  BarChart3, 
+  Settings, 
+  ChevronLeft,
+  ChevronRight,
+  ShoppingBag,
+  Briefcase,
+  Users,
+  Wrench,
+  Package,
+  CreditCard,
+  LogOut,
+  Search
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { SidebarItem } from './SidebarItem';
-import { useAppStore } from '../../store/useAppStore';
-import { useSettingsStore } from '../../store/useSettingsStore';
-import { useAuthStore } from '../../store/useAuthStore';
-import { useModalStore } from '../../store/useModalStore';
+import { Screen, User } from '../../types';
 
 interface SidebarProps {
-  onLogout: () => void;
+  activeScreen: Screen;
+  setActiveScreen: (screen: Screen) => void;
+  isSidebarCollapsed: boolean;
+  setIsSidebarCollapsed: (collapsed: boolean) => void;
+  isSidebarOpen: boolean;
+  setIsSidebarOpen: (open: boolean) => void;
+  currentUser: User | null;
+  logout: () => void;
+  hasPermission: (permission: string) => boolean;
+  setIsSearchingOS: (isSearching: boolean) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
+export const Sidebar = ({
+  activeScreen,
+  setActiveScreen,
+  isSidebarCollapsed,
+  setIsSidebarCollapsed,
+  isSidebarOpen,
+  setIsSidebarOpen,
+  currentUser,
+  logout,
+  hasPermission,
+  setIsSearchingOS
+}: SidebarProps) => {
   const navigate = useNavigate();
-  const { settings } = useSettingsStore();
-  const { currentUser, hasPermission } = useAuthStore();
-  const { 
-    isSidebarOpen, setIsSidebarOpen,
-    isSidebarCollapsed, setIsSidebarCollapsed
-  } = useAppStore();
-  
-  const { 
-    isSettingsUnlocked, 
-    setShowPasswordModal 
-  } = useModalStore();
 
-  const handleSettingsClick = () => {
-    if (isSettingsUnlocked) {
-      navigate('/settings');
-    } else {
-      setShowPasswordModal(true);
-    }
+  const handleNavigation = (screen: Screen, path: string) => {
+    setActiveScreen(screen);
     setIsSidebarOpen(false);
+    navigate(path);
   };
 
   return (
-    <aside className={cn(
-      "fixed inset-y-0 left-0 z-50 flex flex-col bg-bg-dark border-r border-white/5 transition-all duration-300 lg:static",
-      isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-      isSidebarCollapsed ? "w-20" : "w-72"
-    )}>
-      {/* Sidebar Header */}
+    <aside 
+      className={cn(
+        "border-r border-slate-200/10 flex flex-col bg-[#0f172a] fixed lg:sticky top-0 h-screen z-50 transition-all duration-300 lg:translate-x-0",
+        isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+        isSidebarCollapsed ? "w-20" : "w-72"
+      )}
+    >
       <div className={cn(
-        "h-20 flex items-center border-b border-white/5 transition-all duration-300",
-        isSidebarCollapsed ? "justify-center px-0" : "px-6"
+        "p-6 flex items-center justify-between border-b border-slate-200/5",
+        isSidebarCollapsed ? "px-4 justify-center" : "px-6"
       )}>
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-[0_0_20px_-5px_rgba(17,82,212,0.5)] shrink-0">
-            <span className="text-white font-black text-xl italic">F</span>
+        {!isSidebarCollapsed && (
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+              <span className="font-black text-lg text-white italic">FF</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bold text-base tracking-tight leading-none text-white">Finance<span className="text-primary">Flow</span></span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-1">Sistemas de Gestão</span>
+            </div>
           </div>
-          <AnimatePresence mode="wait">
-            {!isSidebarCollapsed && (
-              <motion.div
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                className="flex flex-col"
-              >
-                <h1 className="text-lg font-black tracking-tighter leading-none italic">
-                  {settings.appName.split(' ')[0]}
-                  <span className="text-primary not-italic">{settings.appName.split(' ')[1] || ''}</span>
-                </h1>
-                <p className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-500 mt-0.5">Business Intelligence</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-        
+        )}
+        {isSidebarCollapsed && (
+          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+            <span className="font-black text-xl text-white italic">FF</span>
+          </div>
+        )}
         <button 
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="hidden lg:flex absolute -right-3 top-8 w-6 h-6 bg-slate-800 border border-white/10 rounded-full items-center justify-center text-slate-400 hover:text-white transition-all hover:scale-110 z-50"
+          className="hidden lg:flex p-1.5 text-slate-500 hover:text-white hover:bg-white/5 rounded-lg transition-all"
         >
-          {isSidebarCollapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+          {isSidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-6 space-y-1 custom-scrollbar">
-        <div className={cn(
-          "px-4 overflow-hidden transition-all duration-300",
-          isSidebarCollapsed ? "pt-2 pb-2" : "pt-4 pb-4"
-        )}>
-          {isSidebarCollapsed ? (
-            <div className="h-px bg-white/5 w-full" />
-          ) : (
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">Principal</p>
-          )}
-        </div>
-
-        <SidebarItem 
-          icon={LayoutDashboard} 
-          label="Dashboard" 
-          to="/" 
-          collapsed={isSidebarCollapsed}
-          onClick={() => setIsSidebarOpen(false)} 
-        />
-        
-        {hasPermission('view_transactions') && (
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
+        {hasPermission('view_dashboard') && (
           <SidebarItem 
-            icon={Receipt} 
-            label="Transações" 
-            to="/transactions" 
+            icon={LayoutDashboard} 
+            label="Início" 
+            active={activeScreen === 'dashboard'} 
+            onClick={() => handleNavigation('dashboard', '/dashboard')}
             collapsed={isSidebarCollapsed}
-            onClick={() => setIsSidebarOpen(false)} 
           />
         )}
-        
+        {hasPermission('manage_transactions') && (
+          <SidebarItem 
+            icon={ReceiptText} 
+            label="Transações" 
+            active={activeScreen === 'transactions'} 
+            onClick={() => handleNavigation('transactions', '/transactions')}
+            collapsed={isSidebarCollapsed}
+          />
+        )}
+        {hasPermission('manage_payments') && (
+          <SidebarItem 
+            icon={CreditCard} 
+            label="Vendas e Pagamentos" 
+            active={activeScreen === 'client-payments'} 
+            onClick={() => handleNavigation('client-payments', '/vendas')}
+            collapsed={isSidebarCollapsed}
+          />
+        )}
+        {hasPermission('manage_service_orders') && (
+          <>
+            <SidebarItem 
+              icon={Wrench} 
+              label="Ordens de Serviço" 
+              active={activeScreen === 'service-orders'} 
+              onClick={() => handleNavigation('service-orders', '/ordens')}
+              collapsed={isSidebarCollapsed}
+            />
+            <SidebarItem 
+              icon={Search} 
+              label="Buscar OS" 
+              active={false} 
+              onClick={() => {
+                setIsSearchingOS(true);
+                setIsSidebarOpen(false);
+              }}
+              collapsed={isSidebarCollapsed}
+            />
+          </>
+        )}
+        {hasPermission('manage_customers') && (
+          <SidebarItem 
+            icon={Users} 
+            label="Clientes" 
+            active={activeScreen === 'customers'} 
+            onClick={() => handleNavigation('customers', '/clientes')}
+            collapsed={isSidebarCollapsed}
+          />
+        )}
+        {hasPermission('manage_inventory') && (
+          <SidebarItem 
+            icon={Package} 
+            label="Estoque" 
+            active={activeScreen === 'inventory'} 
+            onClick={() => handleNavigation('inventory', '/estoque')}
+            collapsed={isSidebarCollapsed}
+          />
+        )}
         {hasPermission('view_reports') && (
           <SidebarItem 
             icon={BarChart3} 
             label="Relatórios" 
-            to="/reports" 
+            active={activeScreen === 'reports'} 
+            onClick={() => handleNavigation('reports', '/relatorios')}
             collapsed={isSidebarCollapsed}
-            onClick={() => setIsSidebarOpen(false)} 
           />
         )}
-
-        <div className={cn(
-          "px-4 overflow-hidden transition-all duration-300",
-          isSidebarCollapsed ? "pt-4 pb-2" : "pt-8 pb-4"
-        )}>
-          {isSidebarCollapsed ? (
-            <div className="h-px bg-white/5 w-full" />
-          ) : (
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">Gestão</p>
-          )}
-        </div>
-
-        {hasPermission('view_customers') && (
-          <SidebarItem 
-            icon={Users} 
-            label="Clientes" 
-            to="/customers" 
-            collapsed={isSidebarCollapsed}
-            onClick={() => setIsSidebarOpen(false)} 
-          />
-        )}
-        
-        {hasPermission('view_service_orders') && (
-          <SidebarItem 
-            icon={Briefcase} 
-            label="Ordens de Serviço" 
-            to="/service-orders" 
-            collapsed={isSidebarCollapsed}
-            onClick={() => setIsSidebarOpen(false)} 
-          />
-        )}
-        
-        {hasPermission('view_inventory') && (
-          <SidebarItem 
-            icon={Package} 
-            label="Estoque" 
-            to="/inventory" 
-            collapsed={isSidebarCollapsed}
-            onClick={() => setIsSidebarOpen(false)} 
-          />
-        )}
-        
-        {hasPermission('view_client_payments') && (
-          <SidebarItem 
-            icon={CreditCard} 
-            label="Vendas e Pagamentos" 
-            to="/client-payments" 
-            collapsed={isSidebarCollapsed}
-            onClick={() => setIsSidebarOpen(false)} 
-          />
-        )}
-        
-        <div className={cn(
-          "px-4 overflow-hidden transition-all duration-300",
-          isSidebarCollapsed ? "pt-4 pb-2" : "pt-8 pb-4"
-        )}>
-          {isSidebarCollapsed ? (
-            <div className="h-px bg-white/5 w-full" />
-          ) : (
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">Sistema</p>
-          )}
-        </div>
-        
         {hasPermission('manage_settings') && (
           <SidebarItem 
             icon={Settings} 
             label="Configurações" 
-            to="/settings" 
+            active={activeScreen === 'settings'} 
+            onClick={() => handleNavigation('settings', '/configuracoes')}
             collapsed={isSidebarCollapsed}
-            onClick={handleSettingsClick} 
           />
         )}
-
-        <button
-          onClick={onLogout}
-          className={cn(
-            "flex items-center gap-3 w-full px-4 py-3 rounded-2xl transition-all duration-300 text-rose-500 hover:bg-rose-500/10 hover:text-rose-400 group relative",
-            isSidebarCollapsed && "justify-center px-0 py-2.5"
-          )}
-        >
-          <LogOut size={20} className="shrink-0" />
-          <AnimatePresence mode="wait">
-            {!isSidebarCollapsed && (
-              <motion.span 
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                className="font-bold text-sm tracking-tight whitespace-nowrap overflow-hidden"
-              >
-                Sair
-              </motion.span>
-            )}
-          </AnimatePresence>
-          {isSidebarCollapsed && (
-            <div className="absolute left-full ml-4 px-3 py-2 bg-slate-800 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-[100] border border-white/10 shadow-2xl translate-x-2 group-hover:translate-x-0">
-              Sair
-              <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-800 border-l border-b border-white/10 rotate-45" />
-            </div>
-          )}
-        </button>
       </nav>
 
-      {/* Sidebar Footer (User Profile) */}
-      <div className={cn(
-        "border-t border-white/5 transition-all duration-300",
-        isSidebarCollapsed ? "p-2" : "p-6"
-      )}>
-        <div className={cn(
-          "flex items-center gap-4 rounded-2xl bg-white/5 border border-white/5 relative group hover:bg-white/10 transition-all",
-          isSidebarCollapsed ? "justify-center p-1.5" : "p-3"
-        )}>
-          <div className={cn(
-            "shrink-0 rounded-full bg-slate-700 overflow-hidden border-2 border-primary/20 transition-all",
-            isSidebarCollapsed ? "h-9 w-9" : "h-10 w-10"
-          )}>
-            <img 
-              src={settings.profileAvatar} 
-              alt="Perfil" 
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-          <AnimatePresence mode="wait">
-            {!isSidebarCollapsed && (
-              <motion.div 
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                className="flex-1 min-w-0 overflow-hidden"
-              >
-                <p className="text-sm font-bold truncate">{currentUser?.name || settings.profileName}</p>
-                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
-                  {currentUser?.role === 'owner' ? 'Admin' : currentUser?.role === 'manager' ? 'Gerente' : 'Funcionário'}
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          {isSidebarCollapsed && (
-            <div className="absolute left-full ml-4 px-3 py-2 bg-slate-800 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-[100] border border-white/10 shadow-2xl translate-x-2 group-hover:translate-x-0">
-              {currentUser?.name || settings.profileName}
-              <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-800 border-l border-b border-white/10 rotate-45" />
+      <div className="p-4 border-t border-slate-200/5">
+        {!isSidebarCollapsed && (
+          <div className="p-3 rounded-xl bg-white/5 border border-white/5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
+                {currentUser?.name.charAt(0)}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-bold text-white truncate">{currentUser?.name}</span>
+                <span className="text-xs text-slate-500 font-bold uppercase tracking-widest truncate">
+                  {currentUser?.role === 'owner' ? 'Proprietário' : currentUser?.role === 'manager' ? 'Gerente' : 'Funcionário'}
+                </span>
+              </div>
             </div>
-          )}
-        </div>
+            <button 
+              onClick={logout}
+              className="w-full flex items-center gap-2 p-2 text-xs font-bold text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all group"
+            >
+              <LogOut size={14} className="group-hover:translate-x-0.5 transition-transform" />
+              Sair
+            </button>
+          </div>
+        )}
+        {isSidebarCollapsed && (
+          <button 
+            onClick={logout}
+            className="w-full flex items-center justify-center p-2.5 text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
+            title="Sair"
+          >
+            <LogOut size={20} />
+          </button>
+        )}
       </div>
     </aside>
   );

@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
-import { Transactions } from '../components/Transactions';
+import { Transactions } from '../components/transactions/Transactions';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useFilterStore } from '../store/useFilterStore';
 import { useModalStore } from '../store/useModalStore';
 import { useAppStore } from '../store/useAppStore';
 import { useToast } from '../components/ui/Toast';
+import { sendWhatsAppPaymentReminder } from '../lib/whatsappUtils';
 
 export const TransactionsPage: React.FC = () => {
   const { showToast } = useToast();
@@ -21,7 +22,8 @@ export const TransactionsPage: React.FC = () => {
     filterCategory, setFilterCategory,
     filterMinAmount, setFilterMinAmount,
     filterMaxAmount, setFilterMaxAmount,
-    showFilters, setShowFilters
+    showFilters, setShowFilters,
+    resetFilters
   } = useFilterStore();
   
   const { 
@@ -35,14 +37,15 @@ export const TransactionsPage: React.FC = () => {
     filteredTransactions, 
     handleDuplicateTransaction, 
     transactions, 
+    transactionsPage,
     setTransactionsPage,
     fetchTransactions,
     deleteTransactionAPI
   } = useTransactions(showToast);
 
   useEffect(() => {
-    fetchTransactions(transactions.meta.page, searchTerm);
-  }, [fetchTransactions, transactions.meta.page, searchTerm, dateFilterMode, selectedDate, selectedMonth, startDate, endDate, filterType, filterCategory, filterMinAmount, filterMaxAmount]);
+    fetchTransactions(transactionsPage, searchTerm);
+  }, [fetchTransactions, transactionsPage, searchTerm, dateFilterMode, selectedDate, selectedMonth, startDate, endDate, filterType, filterCategory, filterMinAmount, filterMaxAmount]);
 
   return (
     <Transactions 
@@ -80,9 +83,35 @@ export const TransactionsPage: React.FC = () => {
       onFilterMaxAmountChange={setFilterMaxAmount}
       showFilters={showFilters}
       onShowFiltersChange={setShowFilters}
-      onEditTransaction={setEditingTransaction}
+      onEditTransaction={(tx) => {
+        setEditingTransaction(tx);
+        setIsAdding(true);
+      }}
       onDeleteTransaction={setTransactionToDelete}
-      onAddNewTransaction={() => setIsAdding(true)}
+      onAddNewTransaction={() => {
+        setEditingTransaction(null);
+        setIsAdding(true);
+      }}
+      onResetFilters={resetFilters}
+      onWhatsAppReminder={(tx) => {
+        if (tx.customerPhone) {
+          sendWhatsAppPaymentReminder(
+            { 
+              description: tx.description, 
+              totalAmount: tx.amount, 
+              paidAmount: tx.amount,
+              status: 'paid',
+              purchaseDate: tx.date,
+              dueDate: tx.date
+            },
+            { 
+              firstName: tx.customerName || 'Cliente', 
+              phone: tx.customerPhone 
+            },
+            settings.appName
+          );
+        }
+      }}
     />
   );
 };

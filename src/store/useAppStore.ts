@@ -27,11 +27,16 @@ interface AppState {
   setIsAddingInventoryItem: (isAdding: boolean) => void;
   isAddingCustomer: boolean;
   setIsAddingCustomer: (isAdding: boolean) => void;
+  customerRegistrationSource: 'customers' | 'service-orders' | 'payments' | null;
+  setCustomerRegistrationSource: (source: 'customers' | 'service-orders' | 'payments' | null) => void;
   isAddingClientPayment: boolean;
   setIsAddingClientPayment: (isAdding: boolean) => void;
   
   isSaving: boolean;
   setIsSaving: (isSaving: boolean) => void;
+
+  isSearchingOS: boolean;
+  setIsSearchingOS: (isSearching: boolean) => void;
 
   directOsId: number | null;
   setDirectOsId: (id: number | null) => void;
@@ -73,11 +78,16 @@ export const useAppStore = create<AppState>((set) => ({
   setIsAddingInventoryItem: (isAdding) => set({ isAddingInventoryItem: isAdding }),
   isAddingCustomer: false,
   setIsAddingCustomer: (isAdding) => set({ isAddingCustomer: isAdding }),
+  customerRegistrationSource: null,
+  setCustomerRegistrationSource: (source) => set({ customerRegistrationSource: source }),
   isAddingClientPayment: false,
   setIsAddingClientPayment: (isAdding) => set({ isAddingClientPayment: isAdding }),
 
   isSaving: false,
   setIsSaving: (isSaving) => set({ isSaving: isSaving }),
+
+  isSearchingOS: false,
+  setIsSearchingOS: (isSearching) => set({ isSearchingOS: isSearching }),
 
   directOsId: null,
   setDirectOsId: (id) => set({ directOsId: id }),

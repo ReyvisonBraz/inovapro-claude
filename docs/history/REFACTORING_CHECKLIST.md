@@ -25,6 +25,6 @@ Este documento serve para acompanharmos o progresso da refatoração do `App.tsx
 - [ ] 4.2 Extrair componentes de Filtro complexos
 
 ## Fase 5: Roteamento e Divisão de Páginas
-- [ ] 5.1 Configurar `react-router-dom`
-- [ ] 5.2 Criar páginas (`src/pages/`) e mover o conteúdo do `App.tsx`
+- [x] 5.1 Configurar `react-router-dom` (Dependência instalada)
+- [x] 5.2 Criar páginas (`src/pages/`) e mover o conteúdo do `App.tsx` (Em andamento)
 - [ ] 5.3 Transformar `App.tsx` no provedor de rotas e layout principal
