@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ServiceOrders } from '../components/service-orders/ServiceOrders';
 import { useServiceOrders } from '../hooks/useServiceOrders';
@@ -12,6 +12,7 @@ import { useModalStore } from '../store/useModalStore';
 import { useFormStore } from '../store/useFormStore';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { useDebounce } from '../hooks/useDebounce';
 import { printBlankForm } from '../lib/printUtils';
 import { AddClientPaymentModal } from '../components/payments/modals/AddClientPaymentModal';
 
@@ -25,6 +26,14 @@ export const ServiceOrdersPage: React.FC = () => {
     osSortBy, setOsSortBy,
     osDateFilter, setOsDateFilter
   } = useFilterStore();
+  
+  const [localSearchTerm, setLocalSearchTerm] = useState(osSearchTerm);
+  const debouncedSearchTerm = useDebounce(localSearchTerm, 500);
+
+  useEffect(() => {
+    setOsSearchTerm(debouncedSearchTerm);
+  }, [debouncedSearchTerm, setOsSearchTerm]);
+
   const { openConfirm, setEditingCustomer } = useModalStore();
   const { currentUser } = useAuthStore();
   const { setNewCustomer, setNewClientPayment, newClientPayment } = useFormStore();
@@ -50,41 +59,12 @@ export const ServiceOrdersPage: React.FC = () => {
     deleteServiceOrderStatusAPI,
     addEquipmentTypeAPI,
     addBrandAPI,
-    addModelAPI,
-    fetchServiceOrders,
-    fetchServiceOrderStatuses,
-    fetchEquipmentTypes,
-    fetchBrands,
-    fetchModels
+    addModelAPI
   } = useServiceOrders();
-  const { customers, fetchCustomers } = useCustomers();
-  const { inventoryItems, fetchInventoryItems } = useInventory(showToast);
-  const { clientPayments, fetchClientPayments, saveClientPaymentAPI } = useClientPayments(showToast);
-  const [isSavingPayment, setIsSavingPayment] = React.useState(false);
-
-  React.useEffect(() => {
-    fetchServiceOrders();
-    fetchServiceOrderStatuses();
-    fetchEquipmentTypes();
-    fetchBrands();
-    fetchModels();
-    fetchCustomers();
-    fetchInventoryItems();
-    fetchClientPayments(1);
-  }, [
-    fetchServiceOrders, 
-    fetchServiceOrderStatuses, 
-    fetchEquipmentTypes, 
-    fetchBrands, 
-    fetchModels, 
-    fetchCustomers, 
-    fetchInventoryItems, 
-    fetchClientPayments,
-    osStatusFilter,
-    osPriorityFilter,
-    osSortBy,
-    osDateFilter
-  ]);
+  const { customers } = useCustomers();
+  const { inventoryItems } = useInventory(showToast);
+  const { clientPayments, saveClientPaymentAPI } = useClientPayments();
+  const [isSavingPayment, setIsSavingPayment] = useState(false);
 
   const navigate = useNavigate();
 
@@ -189,7 +169,6 @@ export const ServiceOrdersPage: React.FC = () => {
         installmentInterval: 'monthly',
         type: 'income'
       });
-      fetchClientPayments(1);
       showToast('Pagamento gerado com sucesso!', 'success');
     } catch (err) {
       console.error("Failed to add client payment", err);
@@ -219,7 +198,6 @@ export const ServiceOrdersPage: React.FC = () => {
           setOsPriorityFilter('all'); // Clear priority filter
           setOsSortBy('newest'); // Reset sort to newest
           setServiceOrdersPage(1);
-          await fetchServiceOrders(1, '', 'all', 'all', 'newest');
           showToast("Ordem de Serviço salva com sucesso!", "success");
           return saved.id;
         } catch (err: any) {
@@ -230,7 +208,6 @@ export const ServiceOrdersPage: React.FC = () => {
       onUpdateOrder={async (id, order) => {
         try {
           await saveServiceOrderAPI(order, id);
-          await fetchServiceOrders();
           showToast("Ordem de Serviço atualizada com sucesso!", "success");
           return true;
         } catch (err: any) {
@@ -240,27 +217,21 @@ export const ServiceOrdersPage: React.FC = () => {
       }}
       onDeleteOrder={async (id) => {
         await deleteServiceOrderAPI(id);
-        fetchServiceOrders();
       }}
       onAddStatus={async (status) => {
         await addServiceOrderStatusAPI(status);
-        await fetchServiceOrderStatuses();
       }}
       onDeleteStatus={async (id) => {
         await deleteServiceOrderStatusAPI(id);
-        await fetchServiceOrderStatuses();
       }}
       onAddEquipmentType={async (name, icon) => {
         await addEquipmentTypeAPI(name, icon);
-        await fetchEquipmentTypes();
       }}
       onAddBrand={async (name, equipmentType) => {
         await addBrandAPI(name, equipmentType);
-        await fetchBrands();
       }}
       onAddModel={async (brandId, name) => {
         await addModelAPI(brandId, name);
-        await fetchModels();
       }}
       onPrintBlankForm={() => {
         printBlankForm(settings);
@@ -293,8 +264,8 @@ export const ServiceOrdersPage: React.FC = () => {
       directOsId={directOsId}
       setDirectOsId={setDirectOsId}
       directMode={directMode}
-      searchTerm={osSearchTerm}
-      onSearchChange={setOsSearchTerm}
+      searchTerm={localSearchTerm}
+      onSearchChange={setLocalSearchTerm}
       statusFilter={osStatusFilter}
       onStatusFilterChange={setOsStatusFilter}
       priorityFilter={osPriorityFilter}

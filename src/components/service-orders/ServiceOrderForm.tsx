@@ -1,4 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, User as UserIcon, Calendar, Plus, Search, 
@@ -10,7 +12,8 @@ import { ServiceOrder, Customer, InventoryItem, ServiceOrderStatus, Brand, Model
 import { cn, formatCurrency } from '../../lib/utils';
 import { CustomerSearchSelect } from '../customers/CustomerSearchSelect';
 import { SearchableSelect } from '../ui/SearchableSelect';
-import { useServiceOrderForm } from '../../hooks/useServiceOrderForm';
+import { serviceOrderSchema, ServiceOrderFormData } from '../../schemas/serviceOrderSchema';
+import { format, parseISO } from 'date-fns';
 
 interface ServiceOrderFormProps {
   isAdding: boolean;
@@ -63,24 +66,128 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
   setShowQRCodeModal,
   onGeneratePayment
 }) => {
-  const { newOrder, setNewOrder, updateOrderTotals, handleSave } = useServiceOrderForm({
-    isAdding,
-    setIsAdding,
-    editingOrder,
-    setEditingOrder,
-    onAddOrder,
-    onUpdateOrder,
-    currentUser,
-    showToast,
-    onOpenConfirm,
-    setSelectedOrder,
-    setShowWhatsAppModal,
-    onGeneratePayment
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    reset,
+    formState: { errors }
+  } = useForm<ServiceOrderFormData>({
+    resolver: zodResolver(serviceOrderSchema),
+    defaultValues: {
+      customerId: 0,
+      entryDate: format(new Date(), 'yyyy-MM-dd'),
+      equipmentType: '',
+      equipmentBrand: '',
+      equipmentModel: '',
+      equipmentColor: '',
+      equipmentSerial: '',
+      reportedProblem: '',
+      technicalAnalysis: '',
+      priority: 'medium',
+      status: 'Aguardando Análise',
+      customerPassword: '',
+      accessories: '',
+      ramInfo: '',
+      ssdInfo: '',
+      arrivalPhotoBase64: '',
+      servicesPerformed: '',
+      serviceFee: 0,
+      totalAmount: 0,
+      finalObservations: '',
+      services: [],
+      partsUsed: [],
+    }
   });
+
+  const { fields: serviceFields, append: appendService, remove: removeService } = useFieldArray({
+    control,
+    name: 'services'
+  });
+
+  const { fields: partFields, append: appendPart, remove: removePart, update: updatePart } = useFieldArray({
+    control,
+    name: 'partsUsed'
+  });
+
+  const watchedServices = watch('services');
+  const watchedParts = watch('partsUsed');
+  const watchedServiceFee = watch('serviceFee');
+  const watchedCustomerId = watch('customerId');
+  const watchedEquipmentType = watch('equipmentType');
+  const watchedEquipmentBrand = watch('equipmentBrand');
+  const watchedArrivalPhoto = watch('arrivalPhotoBase64');
+  const watchedPriority = watch('priority');
+
+  // Atualizar totais quando serviços ou peças mudarem
+  useEffect(() => {
+    const servicesTotal = watchedServices.reduce((acc, s) => acc + s.price, 0);
+    const partsTotal = watchedParts.reduce((acc, p) => acc + p.subtotal, 0);
+    const total = servicesTotal + partsTotal;
+    
+    setValue('serviceFee', servicesTotal);
+    setValue('totalAmount', total);
+  }, [watchedServices, watchedParts, setValue]);
+
+  // Sincronizar com edição
+  useEffect(() => {
+    if (editingOrder) {
+      reset({
+        customerId: editingOrder.customerId,
+        entryDate: editingOrder.entryDate || format(parseISO(editingOrder.createdAt), 'yyyy-MM-dd'),
+        equipmentType: editingOrder.equipmentType || '',
+        equipmentBrand: editingOrder.equipmentBrand || '',
+        equipmentModel: editingOrder.equipmentModel || '',
+        equipmentColor: editingOrder.equipmentColor || '',
+        equipmentSerial: editingOrder.equipmentSerial || '',
+        reportedProblem: editingOrder.reportedProblem || '',
+        technicalAnalysis: editingOrder.technicalAnalysis || '',
+        priority: (editingOrder.priority as any) || 'medium',
+        status: editingOrder.status,
+        customerPassword: editingOrder.customerPassword || '',
+        accessories: editingOrder.accessories || '',
+        ramInfo: editingOrder.ramInfo || '',
+        ssdInfo: editingOrder.ssdInfo || '',
+        arrivalPhotoBase64: editingOrder.arrivalPhotoBase64 || '',
+        servicesPerformed: editingOrder.servicesPerformed || '',
+        serviceFee: editingOrder.serviceFee || 0,
+        totalAmount: editingOrder.totalAmount || 0,
+        finalObservations: editingOrder.finalObservations || '',
+        services: editingOrder.services || [],
+        partsUsed: editingOrder.partsUsed || [],
+      });
+    } else {
+      reset({
+        customerId: 0,
+        entryDate: format(new Date(), 'yyyy-MM-dd'),
+        equipmentType: '',
+        equipmentBrand: '',
+        equipmentModel: '',
+        equipmentColor: '',
+        equipmentSerial: '',
+        reportedProblem: '',
+        technicalAnalysis: '',
+        priority: 'medium',
+        status: 'Aguardando Análise',
+        customerPassword: '',
+        accessories: '',
+        ramInfo: '',
+        ssdInfo: '',
+        arrivalPhotoBase64: '',
+        servicesPerformed: '',
+        serviceFee: 0,
+        totalAmount: 0,
+        finalObservations: '',
+        services: [],
+        partsUsed: [],
+      });
+    }
+  }, [editingOrder, reset]);
 
   const [partSearch, setPartSearch] = useState('');
   const [isAddingPart, setIsAddingPart] = useState(false);
-  const photoSectionRef = useRef<HTMLDivElement>(null);
 
   const [quickAddModal, setQuickAddModal] = useState<{
     isOpen: boolean;
@@ -101,19 +208,82 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
     
     if (quickAddModal.type === 'type') {
       onAddEquipmentType(quickAddModal.value.trim());
-      setNewOrder({ ...newOrder, equipmentType: quickAddModal.value.trim(), equipmentBrand: '', equipmentModel: '' });
+      setValue('equipmentType', quickAddModal.value.trim());
+      setValue('equipmentBrand', '');
+      setValue('equipmentModel', '');
     } else if (quickAddModal.type === 'brand') {
-      onAddBrand(quickAddModal.value.trim(), newOrder.equipmentType);
-      setNewOrder({ ...newOrder, equipmentBrand: quickAddModal.value.trim(), equipmentModel: '' });
+      onAddBrand(quickAddModal.value.trim(), watchedEquipmentType);
+      setValue('equipmentBrand', quickAddModal.value.trim());
+      setValue('equipmentModel', '');
     } else if (quickAddModal.type === 'model') {
-      const brand = brands.find(b => b.name === newOrder.equipmentBrand);
+      const brand = brands.find(b => b.name === watchedEquipmentBrand);
       if (brand) {
         onAddModel(brand.id, quickAddModal.value.trim());
-        setNewOrder({ ...newOrder, equipmentModel: quickAddModal.value.trim() });
+        setValue('equipmentModel', quickAddModal.value.trim());
       }
     }
     
     setQuickAddModal({ ...quickAddModal, isOpen: false, value: '' });
+  };
+
+  const onFormSubmit = async (data: ServiceOrderFormData) => {
+    const orderData = {
+      ...data,
+      createdBy: currentUser?.id
+    };
+
+    if (editingOrder) {
+      const success = await onUpdateOrder(editingOrder.id, orderData);
+      if (!success) return;
+      
+      setIsAdding(false);
+      setEditingOrder(null);
+
+      if (orderData.status === 'Concluído' && onGeneratePayment) {
+        onOpenConfirm(
+          'Gerar Pagamento',
+          'Deseja gerar a cobrança/pagamento para esta OS agora?',
+          () => {
+            onGeneratePayment({ ...orderData, id: editingOrder.id });
+          },
+          'info'
+        );
+      }
+    } else {
+      const newId = await onAddOrder(orderData);
+      if (!newId) return;
+      
+      setIsAdding(false);
+      setEditingOrder(null);
+
+      if (orderData.status === 'Concluído' && onGeneratePayment) {
+        onOpenConfirm(
+          'Gerar Pagamento',
+          'Deseja gerar a cobrança/pagamento para esta OS agora?',
+          () => {
+            onGeneratePayment({ ...orderData, id: newId });
+          },
+          'info'
+        );
+      } else {
+        onOpenConfirm(
+          'Enviar via WhatsApp',
+          'Deseja enviar a Ordem de Serviço via WhatsApp agora?',
+          () => {
+            const tempOrder = {
+              ...orderData,
+              id: newId,
+              createdAt: new Date().toISOString()
+            };
+            setSelectedOrder(tempOrder as any);
+            setShowWhatsAppModal(true);
+          },
+          'info'
+        );
+      }
+    }
+    
+    reset();
   };
 
   return (
@@ -154,8 +324,8 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                 <div className="flex gap-2">
                   <CustomerSearchSelect 
                     customers={customers}
-                    selectedId={newOrder.customerId}
-                    onSelect={(id) => setNewOrder({...newOrder, customerId: id})}
+                    selectedId={watchedCustomerId}
+                    onSelect={(id) => setValue('customerId', id)}
                     className="flex-1"
                   />
                   <button 
@@ -171,6 +341,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                     <Plus size={20} />
                   </button>
                 </div>
+                {errors.customerId && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.customerId.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-black uppercase tracking-widest text-primary/80 ml-1 flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-lg w-fit mb-2">
@@ -178,10 +349,10 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                 </label>
                 <input 
                   type="date"
-                  value={newOrder.entryDate}
-                  onChange={(e) => setNewOrder({...newOrder, entryDate: e.target.value})}
+                  {...register('entryDate')}
                   className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary text-white placeholder:text-slate-500 outline-none transition-all [color-scheme:dark]"
                 />
+                {errors.entryDate && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.entryDate.message}</p>}
               </div>
             </div>
 
@@ -197,8 +368,12 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                     <div className="flex gap-2">
                       <SearchableSelect
                         options={equipmentTypes.map(t => ({ value: t.name, label: t.name }))}
-                        value={newOrder.equipmentType || ''}
-                        onChange={(val) => setNewOrder({ ...newOrder, equipmentType: val as string, equipmentBrand: '', equipmentModel: '' })}
+                        value={watchedEquipmentType || ''}
+                        onChange={(val) => {
+                          setValue('equipmentType', val as string);
+                          setValue('equipmentBrand', '');
+                          setValue('equipmentModel', '');
+                        }}
                         placeholder="Selecione o Tipo"
                         onAdd={(val) => onAddEquipmentType(val)}
                         className="h-12 flex-1"
@@ -212,6 +387,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                         <Plus size={18} />
                       </button>
                     </div>
+                    {errors.equipmentType && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.equipmentType.message}</p>}
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between mb-2">
@@ -220,31 +396,35 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                     <div className="flex gap-2">
                       <SearchableSelect
                         options={brands
-                          .filter(b => !newOrder.equipmentType || b.equipmentType === newOrder.equipmentType)
+                          .filter(b => !watchedEquipmentType || b.equipmentType === watchedEquipmentType)
                           .map(b => ({ value: b.name, label: b.name }))}
-                        value={newOrder.equipmentBrand || ''}
-                        onChange={(val) => setNewOrder({ ...newOrder, equipmentBrand: val as string, equipmentModel: '' })}
+                        value={watchedEquipmentBrand || ''}
+                        onChange={(val) => {
+                          setValue('equipmentBrand', val as string);
+                          setValue('equipmentModel', '');
+                        }}
                         placeholder="Selecione a Marca"
-                        onAdd={(val) => onAddBrand(val, newOrder.equipmentType || '')}
-                        disabled={!newOrder.equipmentType}
+                        onAdd={(val) => onAddBrand(val, watchedEquipmentType || '')}
+                        disabled={!watchedEquipmentType}
                         className="h-12 flex-1"
                       />
                       <button
                         type="button"
                         onClick={() => {
-                          if (!newOrder.equipmentType) {
+                          if (!watchedEquipmentType) {
                             showToast('Selecione um tipo primeiro!', 'error');
                             return;
                           }
                           setQuickAddModal({ isOpen: true, type: 'brand', title: 'Nova Marca', placeholder: 'Ex: Samsung, Apple...', value: '' });
                         }}
-                        disabled={!newOrder.equipmentType}
+                        disabled={!watchedEquipmentType}
                         className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-primary/10 text-primary border border-primary/20 rounded-xl hover:bg-primary/20 transition-all shadow-lg shadow-primary/5 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Adicionar Nova Marca"
                       >
                         <Plus size={18} />
                       </button>
                     </div>
+                    {errors.equipmentBrand && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.equipmentBrand.message}</p>}
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between mb-2">
@@ -254,46 +434,46 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                       <SearchableSelect
                         options={models
                           .filter(m => {
-                            const brand = brands.find(b => b.name === newOrder.equipmentBrand);
+                            const brand = brands.find(b => b.name === watchedEquipmentBrand);
                             return brand ? m.brandId === brand.id : false;
                           })
                           .map(m => ({ value: m.name, label: m.name }))}
-                        value={newOrder.equipmentModel || ''}
-                        onChange={(val) => setNewOrder({ ...newOrder, equipmentModel: val as string })}
+                        value={watch('equipmentModel') || ''}
+                        onChange={(val) => setValue('equipmentModel', val as string)}
                         placeholder="Selecione o Modelo"
                         onAdd={(val) => {
-                          const brand = brands.find(b => b.name === newOrder.equipmentBrand);
+                          const brand = brands.find(b => b.name === watchedEquipmentBrand);
                           if (brand) {
                             onAddModel(brand.id, val);
                           } else {
                             showToast('Selecione uma marca primeiro!', 'error');
                           }
                         }}
-                        disabled={!newOrder.equipmentBrand}
+                        disabled={!watchedEquipmentBrand}
                         className="h-12 flex-1"
                       />
                       <button
                         type="button"
                         onClick={() => {
-                          if (!newOrder.equipmentBrand) {
+                          if (!watchedEquipmentBrand) {
                             showToast('Selecione uma marca primeiro!', 'error');
                             return;
                           }
                           setQuickAddModal({ isOpen: true, type: 'model', title: 'Novo Modelo', placeholder: 'Ex: Galaxy S23, iPhone 15...', value: '' });
                         }}
-                        disabled={!newOrder.equipmentBrand}
+                        disabled={!watchedEquipmentBrand}
                         className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-primary/10 text-primary border border-primary/20 rounded-xl hover:bg-primary/20 transition-all shadow-lg shadow-primary/5 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Adicionar Novo Modelo"
                       >
                         <Plus size={18} />
                       </button>
                     </div>
+                    {errors.equipmentModel && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.equipmentModel.message}</p>}
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">Cor do Equipamento</label>
                     <input 
-                      value={newOrder.equipmentColor}
-                      onChange={(e) => setNewOrder({...newOrder, equipmentColor: e.target.value})}
+                      {...register('equipmentColor')}
                       className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary text-slate-200 placeholder:text-slate-500 outline-none transition-all"
                       placeholder="Ex: Preto, Prata, Azul"
                     />
@@ -301,8 +481,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                   <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">Nº de Série</label>
                     <input 
-                      value={newOrder.equipmentSerial}
-                      onChange={(e) => setNewOrder({...newOrder, equipmentSerial: e.target.value})}
+                      {...register('equipmentSerial')}
                       className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary text-slate-200 outline-none transition-all"
                       placeholder="Opcional"
                     />
@@ -317,8 +496,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                   <Cpu size={12} /> RAM
                 </label>
                 <input 
-                  value={newOrder.ramInfo}
-                  onChange={(e) => setNewOrder({...newOrder, ramInfo: e.target.value})}
+                  {...register('ramInfo')}
                   className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary text-slate-200 outline-none transition-all"
                   placeholder="Ex: 8GB DDR4"
                 />
@@ -328,8 +506,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                   <HardDrive size={12} /> SSD/HD
                 </label>
                 <input 
-                  value={newOrder.ssdInfo}
-                  onChange={(e) => setNewOrder({...newOrder, ssdInfo: e.target.value})}
+                  {...register('ssdInfo')}
                   className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary text-slate-200 outline-none transition-all"
                   placeholder="Ex: 240GB SSD"
                 />
@@ -339,8 +516,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                   <Lock size={12} /> Senha do Equipamento
                 </label>
                 <input 
-                  value={newOrder.customerPassword}
-                  onChange={(e) => setNewOrder({...newOrder, customerPassword: e.target.value})}
+                  {...register('customerPassword')}
                   className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary text-slate-200 outline-none transition-all"
                   placeholder="Opcional"
                 />
@@ -351,8 +527,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">Acessórios Inclusos</label>
               <input 
-                value={newOrder.accessories}
-                onChange={(e) => setNewOrder({...newOrder, accessories: e.target.value})}
+                {...register('accessories')}
                 className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary text-slate-200 outline-none transition-all"
                 placeholder="Ex: Carregador, Capa, Cabo USB..."
               />
@@ -365,15 +540,15 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                 <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Foto do Equipamento (Entrada)</h4>
               </div>
               <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-white/10 rounded-3xl bg-white/5 hover:bg-white/10 transition-all group relative overflow-hidden">
-                {newOrder.arrivalPhotoBase64 ? (
+                {watchedArrivalPhoto ? (
                   <div className="relative w-full aspect-video rounded-2xl overflow-hidden">
                     <img 
-                      src={newOrder.arrivalPhotoBase64} 
+                      src={watchedArrivalPhoto} 
                       alt="Foto de Entrada" 
                       className="w-full h-full object-cover"
                     />
                     <button 
-                      onClick={() => setNewOrder({...newOrder, arrivalPhotoBase64: ''})}
+                      onClick={() => setValue('arrivalPhotoBase64', '')}
                       className="absolute top-4 right-4 p-2 bg-rose-500 text-white rounded-xl shadow-lg hover:scale-110 transition-all"
                     >
                       <Trash2 size={18} />
@@ -402,7 +577,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                           }
                           const reader = new FileReader();
                           reader.onloadend = () => {
-                            setNewOrder({...newOrder, arrivalPhotoBase64: reader.result as string});
+                            setValue('arrivalPhotoBase64', reader.result as string);
                           };
                           reader.readAsDataURL(file);
                         }
@@ -420,19 +595,18 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                   <AlertCircle size={12} /> Problema Relatado <span className="text-rose-500">*</span>
                 </label>
                 <textarea 
-                  value={newOrder.reportedProblem}
-                  onChange={(e) => setNewOrder({...newOrder, reportedProblem: e.target.value})}
+                  {...register('reportedProblem')}
                   className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all resize-none"
                   placeholder="Descreva o defeito informado pelo cliente..."
                 />
+                {errors.reportedProblem && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.reportedProblem.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-widest text-amber-500 ml-1 flex items-center gap-2 bg-amber-500/5 px-2 py-1 rounded-md w-fit mb-1">
                   <ClipboardList size={12} /> Análise Técnica
                 </label>
                 <textarea 
-                  value={newOrder.technicalAnalysis}
-                  onChange={(e) => setNewOrder({...newOrder, technicalAnalysis: e.target.value})}
+                  {...register('technicalAnalysis')}
                   className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all resize-none"
                   placeholder="Diagnóstico técnico inicial..."
                 />
@@ -444,8 +618,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">Status Atual</label>
                 <select 
-                  value={newOrder.status}
-                  onChange={(e) => setNewOrder({...newOrder, status: e.target.value})}
+                  {...register('status')}
                   className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900 transition-all"
                 >
                   {statuses.map(s => (
@@ -459,10 +632,11 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                   {(['low', 'medium', 'high'] as const).map((p) => (
                     <button
                       key={p}
-                      onClick={() => setNewOrder({...newOrder, priority: p})}
+                      type="button"
+                      onClick={() => setValue('priority', p)}
                       className={cn(
                         "flex-1 h-14 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all",
-                        newOrder.priority === p 
+                        watchedPriority === p 
                           ? p === 'high' ? "bg-rose-500/10 text-rose-500 border-rose-500/20 shadow-lg shadow-rose-500/5" : 
                             p === 'medium' ? "bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-lg shadow-amber-500/5" :
                             "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-lg shadow-emerald-500/5"
@@ -487,12 +661,12 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                 </div>
                 <div className="flex gap-2">
                   <button 
+                    type="button"
                     onClick={() => {
                       const name = prompt('Nome do serviço:');
                       const price = parseFloat(prompt('Preço do serviço:') || '0');
                       if (name && !isNaN(price)) {
-                        const updatedServices = [...(newOrder.services || []), { name, price }];
-                        updateOrderTotals(updatedServices, newOrder.partsUsed);
+                        appendService({ name, price });
                       }
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl text-xs font-black uppercase tracking-widest border border-primary/20 hover:bg-primary/20 transition-all"
@@ -511,20 +685,17 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
 
               {/* Services List */}
               <div className="space-y-3">
-                {(newOrder.services || []).map((service, idx) => (
-                  <div key={`service-${idx}`} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 group hover:border-primary/20 transition-all">
+                {serviceFields.map((field, idx) => (
+                  <div key={field.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 group hover:border-primary/20 transition-all">
                     <div className="flex-1">
-                      <p className="text-sm font-bold text-slate-200">{service.name}</p>
+                      <p className="text-sm font-bold text-slate-200">{watchedServices[idx].name}</p>
                       <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Mão de Obra</p>
                     </div>
                     <div className="flex items-center gap-6">
-                      <span className="text-sm font-black text-primary w-24 text-right">{formatCurrency(service.price)}</span>
+                      <span className="text-sm font-black text-primary w-24 text-right">{formatCurrency(watchedServices[idx].price)}</span>
                       <button 
-                        onClick={() => {
-                          const updatedServices = [...(newOrder.services || [])];
-                          updatedServices.splice(idx, 1);
-                          updateOrderTotals(updatedServices, newOrder.partsUsed);
-                        }}
+                        type="button"
+                        onClick={() => removeService(idx)}
                         className="p-2 rounded-xl text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
                       >
                         <Trash2 size={18} />
@@ -555,15 +726,25 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                       .map(item => (
                         <button
                           key={item.id}
+                          type="button"
                           onClick={() => {
-                            const existing = newOrder.partsUsed.find(p => p.id === item.id);
-                            let updatedParts;
-                            if (existing) {
-                              updatedParts = newOrder.partsUsed.map(p => p.id === item.id ? {...p, quantity: p.quantity + 1, subtotal: (p.quantity + 1) * p.unitPrice} : p);
+                            const existingIdx = watchedParts.findIndex(p => p.id === item.id);
+                            if (existingIdx !== -1) {
+                              const p = watchedParts[existingIdx];
+                              updatePart(existingIdx, {
+                                ...p,
+                                quantity: p.quantity + 1,
+                                subtotal: (p.quantity + 1) * p.unitPrice
+                              });
                             } else {
-                              updatedParts = [...newOrder.partsUsed, { id: item.id, name: item.name, quantity: 1, unitPrice: item.unitPrice, subtotal: item.unitPrice }];
+                              appendPart({ 
+                                id: item.id, 
+                                name: item.name, 
+                                quantity: 1, 
+                                unitPrice: item.unitPrice, 
+                                subtotal: item.unitPrice 
+                              });
                             }
-                            updateOrderTotals(newOrder.services || [], updatedParts);
                             setPartSearch('');
                           }}
                           className="w-full flex justify-between items-center p-3 rounded-xl hover:bg-white/5 text-left transition-all group border border-transparent hover:border-white/5"
@@ -585,42 +766,50 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
               )}
 
               <div className="space-y-3">
-                {newOrder.partsUsed.map((part, idx) => (
-                  <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 group hover:border-primary/20 transition-all gap-4 sm:gap-0">
+                {partFields.map((field, idx) => (
+                  <div key={field.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 group hover:border-primary/20 transition-all gap-4 sm:gap-0">
                     <div className="flex-1 w-full">
-                      <p className="text-sm font-bold text-slate-200 truncate">{part.name}</p>
-                      <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">{formatCurrency(part.unitPrice)} x {part.quantity}</p>
+                      <p className="text-sm font-bold text-slate-200 truncate">{watchedParts[idx].name}</p>
+                      <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">{formatCurrency(watchedParts[idx].unitPrice)} x {watchedParts[idx].quantity}</p>
                     </div>
                     <div className="flex items-center justify-between w-full sm:w-auto gap-4 sm:gap-6">
                       <div className="flex items-center gap-3 bg-white/5 p-1 rounded-xl border border-white/10">
                         <button 
+                          type="button"
                           onClick={() => {
-                            if (part.quantity > 1) {
-                              const updatedParts = newOrder.partsUsed.map((p, i) => i === idx ? {...p, quantity: p.quantity - 1, subtotal: (p.quantity - 1) * p.unitPrice} : p);
-                              updateOrderTotals(newOrder.services || [], updatedParts);
+                            if (watchedParts[idx].quantity > 1) {
+                              const p = watchedParts[idx];
+                              updatePart(idx, {
+                                ...p,
+                                quantity: p.quantity - 1,
+                                subtotal: (p.quantity - 1) * p.unitPrice
+                              });
                             }
                           }}
                           className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
                         >
                           <ChevronDown size={16} />
                         </button>
-                        <span className="text-sm font-black w-6 text-center">{part.quantity}</span>
+                        <span className="text-sm font-black w-6 text-center">{watchedParts[idx].quantity}</span>
                         <button 
+                          type="button"
                           onClick={() => {
-                            const updatedParts = newOrder.partsUsed.map((p, i) => i === idx ? {...p, quantity: p.quantity + 1, subtotal: (p.quantity + 1) * p.unitPrice} : p);
-                            updateOrderTotals(newOrder.services || [], updatedParts);
+                            const p = watchedParts[idx];
+                            updatePart(idx, {
+                              ...p,
+                              quantity: p.quantity + 1,
+                              subtotal: (p.quantity + 1) * p.unitPrice
+                            });
                           }}
                           className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
                         >
                           <ChevronUp size={16} />
                         </button>
                       </div>
-                      <span className="text-sm font-black text-slate-300 w-24 text-right">{formatCurrency(part.subtotal)}</span>
+                      <span className="text-sm font-black text-slate-300 w-24 text-right">{formatCurrency(watchedParts[idx].subtotal)}</span>
                       <button 
-                        onClick={() => {
-                          const updatedParts = newOrder.partsUsed.filter((_, i) => i !== idx);
-                          updateOrderTotals(newOrder.services || [], updatedParts);
-                        }}
+                        type="button"
+                        onClick={() => removePart(idx)}
                         className="p-2 rounded-xl text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
                       >
                         <Trash2 size={18} />
@@ -642,8 +831,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-emerald-500 ml-1">Serviços Realizados</label>
                   <textarea 
-                    value={newOrder.servicesPerformed}
-                    onChange={(e) => setNewOrder({...newOrder, servicesPerformed: e.target.value})}
+                    {...register('servicesPerformed')}
                     className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none min-h-[100px] text-white placeholder:text-slate-500 resize-none transition-all"
                     placeholder="Descreva o que foi feito no equipamento..."
                   />
@@ -657,12 +845,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                       <input 
                         type="number"
                         step="0.01"
-                        value={newOrder.serviceFee}
-                        onChange={(e) => {
-                          const fee = parseFloat(e.target.value.toString().replace(',', '.')) || 0;
-                          const partsTotal = newOrder.partsUsed.reduce((acc, p) => acc + p.subtotal, 0);
-                          setNewOrder({...newOrder, serviceFee: e.target.value, totalAmount: (fee + partsTotal).toFixed(2)});
-                        }}
+                        {...register('serviceFee')}
                         className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-sm font-black focus:ring-2 focus:ring-primary outline-none transition-all"
                       />
                     </div>
@@ -674,8 +857,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                       <input 
                         type="number"
                         step="0.01"
-                        value={newOrder.totalAmount}
-                        onChange={(e) => setNewOrder({...newOrder, totalAmount: e.target.value})}
+                        {...register('totalAmount')}
                         className="w-full h-14 bg-primary/10 border border-primary/20 rounded-2xl pl-12 pr-4 text-sm font-black text-primary focus:ring-2 focus:ring-primary outline-none transition-all"
                       />
                     </div>
@@ -703,8 +885,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">Observações Finais</label>
                   <textarea 
-                    value={newOrder.finalObservations}
-                    onChange={(e) => setNewOrder({...newOrder, finalObservations: e.target.value})}
+                    {...register('finalObservations')}
                     className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none min-h-[80px] resize-none transition-all"
                     placeholder="Garantia, recomendações, etc..."
                   />
@@ -716,13 +897,15 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
           {/* Modal Footer */}
           <div className="p-4 sm:p-6 border-t border-white/5 bg-white/5 flex flex-col sm:flex-row gap-3 sm:gap-4">
             <button 
+              type="button"
               onClick={() => setIsAdding(false)}
               className="flex-1 h-12 sm:h-14 rounded-xl sm:rounded-2xl font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all order-2 sm:order-1"
             >
               Cancelar
             </button>
             <button 
-              onClick={handleSave}
+              type="button"
+              onClick={handleSubmit(onFormSubmit)}
               className="flex-[2] h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-primary text-white font-black shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 order-1 sm:order-2"
             >
               <Check size={20} />

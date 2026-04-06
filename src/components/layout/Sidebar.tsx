@@ -18,34 +18,20 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { SidebarItem } from './SidebarItem';
-import { Screen, User } from '../../types';
+import { Screen } from '../../types';
+import { useAppStore } from '../../store/useAppStore';
+import { useAuth } from '../../hooks/useAuth';
 
-interface SidebarProps {
-  activeScreen: Screen;
-  setActiveScreen: (screen: Screen) => void;
-  isSidebarCollapsed: boolean;
-  setIsSidebarCollapsed: (collapsed: boolean) => void;
-  isSidebarOpen: boolean;
-  setIsSidebarOpen: (open: boolean) => void;
-  currentUser: User | null;
-  logout: () => void;
-  hasPermission: (permission: string) => boolean;
-  setIsSearchingOS: (isSearching: boolean) => void;
-}
-
-export const Sidebar = ({
-  activeScreen,
-  setActiveScreen,
-  isSidebarCollapsed,
-  setIsSidebarCollapsed,
-  isSidebarOpen,
-  setIsSidebarOpen,
-  currentUser,
-  logout,
-  hasPermission,
-  setIsSearchingOS
-}: SidebarProps) => {
+export const Sidebar = () => {
   const navigate = useNavigate();
+  const {
+    activeScreen, setActiveScreen,
+    isSidebarCollapsed, setIsSidebarCollapsed,
+    isSidebarOpen, setIsSidebarOpen,
+    setIsSearchingOS
+  } = useAppStore();
+
+  const { currentUser, logout, hasPermission } = useAuth();
 
   const handleNavigation = (screen: Screen, path: string) => {
     setActiveScreen(screen);

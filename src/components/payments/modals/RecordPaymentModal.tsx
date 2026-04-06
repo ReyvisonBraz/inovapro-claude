@@ -1,14 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { recordPaymentSchema, RecordPaymentFormData } from '../../../schemas/paymentSchema';
 
 interface RecordPaymentModalProps {
   payment: any;
   onClose: () => void;
-  onConfirm: () => void;
-  amount: string;
-  setAmount: (amount: string) => void;
-  date: string;
-  setDate: (date: string) => void;
+  onConfirm: (data: RecordPaymentFormData) => void;
   formatCurrency: (value: number) => string;
 }
 
@@ -16,12 +15,34 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
   payment,
   onClose,
   onConfirm,
-  amount,
-  setAmount,
-  date,
-  setDate,
   formatCurrency
 }) => {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors }
+  } = useForm<RecordPaymentFormData>({
+    resolver: zodResolver(recordPaymentSchema),
+    defaultValues: {
+      amount: 0,
+      date: new Date().toISOString().split('T')[0]
+    }
+  });
+
+  useEffect(() => {
+    if (payment) {
+      reset({
+        amount: payment.totalAmount - payment.paidAmount,
+        date: new Date().toISOString().split('T')[0]
+      });
+    }
+  }, [payment, reset]);
+
+  const onFormSubmit = (data: RecordPaymentFormData) => {
+    onConfirm(data);
+  };
+
   return (
     <AnimatePresence>
       {payment && (
@@ -40,21 +61,21 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
             className="relative w-full max-w-md glass-modal p-4 sm:p-6 md:p-8"
           >
             <h3 className="text-lg md:text-xl font-bold mb-2">Registrar Pagamento</h3>
-            <p className="text-xs md:text-sm text-slate-500 mb-6">
+            <div className="text-xs md:text-sm text-slate-500 mb-6">
               Cliente: <span className="text-slate-200 font-bold">{payment.customerName}</span><br/>
               Saldo Devedor: <span className="text-primary font-bold">{formatCurrency(payment.totalAmount - payment.paidAmount)}</span>
-            </p>
+            </div>
             
-            <div className="space-y-4">
+            <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Data do Pagamento</label>
                   <input 
                     type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
+                    {...register('date')}
                     className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-white [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                   />
+                  {errors.date && <p className="text-rose-500 text-[10px] font-bold mt-1">{errors.date.message}</p>}
                 </div>
                 
                 <div className="space-y-2">
@@ -63,31 +84,33 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">R$</span>
                     <input 
                       type="number"
+                      step="0.01"
                       autoFocus
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
+                      {...register('amount')}
                       className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
                       placeholder="0.00"
                     />
                   </div>
+                  {errors.amount && <p className="text-rose-500 text-[10px] font-bold mt-1">{errors.amount.message}</p>}
                 </div>
               </div>
               
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
                 <button 
+                  type="button"
                   onClick={onClose}
                   className="flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all order-2 sm:order-1"
                 >
                   Cancelar
                 </button>
                 <button 
-                  onClick={onConfirm}
+                  type="submit"
                   className="flex-1 bg-primary text-white py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] order-1 sm:order-2"
                 >
                   Confirmar
                 </button>
               </div>
-            </div>
+            </form>
           </motion.div>
         </div>
       )}

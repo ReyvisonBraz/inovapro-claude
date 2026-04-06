@@ -3,15 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Briefcase, CreditCard, Users, Package } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Screen } from '../../types';
-import { useAuthStore } from '../../store/useAuthStore';
+import { useAppStore } from '../../store/useAppStore';
+import { useAuth } from '../../hooks/useAuth';
 
-interface MobileNavProps {
-  activeScreen: Screen;
-  setActiveScreen: (screen: Screen) => void;
-}
-
-export function MobileNav({ activeScreen, setActiveScreen }: MobileNavProps) {
-  const { hasPermission } = useAuthStore();
+export function MobileNav() {
+  const { activeScreen, setActiveScreen } = useAppStore();
+  const { hasPermission } = useAuth();
   const navigate = useNavigate();
 
   const handleNavigation = (screen: Screen, path: string) => {
@@ -32,7 +29,7 @@ export function MobileNav({ activeScreen, setActiveScreen }: MobileNavProps) {
         <span className="text-xs font-black uppercase tracking-widest">Início</span>
       </button>
       
-      {hasPermission('service-orders') && (
+      {hasPermission('manage_service_orders') && (
         <button 
           onClick={() => handleNavigation('service-orders', '/ordens')}
           className={cn(
@@ -45,7 +42,7 @@ export function MobileNav({ activeScreen, setActiveScreen }: MobileNavProps) {
         </button>
       )}
 
-      {hasPermission('client-payments') && (
+      {hasPermission('manage_payments') && (
         <button 
           onClick={() => handleNavigation('client-payments', '/vendas')}
           className={cn(
@@ -58,7 +55,7 @@ export function MobileNav({ activeScreen, setActiveScreen }: MobileNavProps) {
         </button>
       )}
 
-      {hasPermission('customers') && (
+      {hasPermission('manage_customers') && (
         <button 
           onClick={() => handleNavigation('customers', '/clientes')}
           className={cn(
@@ -71,7 +68,7 @@ export function MobileNav({ activeScreen, setActiveScreen }: MobileNavProps) {
         </button>
       )}
 
-      {hasPermission('inventory') && (
+      {hasPermission('manage_inventory') && (
         <button 
           onClick={() => handleNavigation('inventory', '/estoque')}
           className={cn(

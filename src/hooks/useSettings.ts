@@ -1,68 +1,72 @@
-import { useCallback } from 'react';
-import { AppSettings } from '../types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import { AppSettings, Category } from '../types';
 import { useSettingsStore } from '../store/useSettingsStore';
 
 export function useSettings(showToast: (message: string, type: 'success' | 'error') => void) {
-  const { 
-    settings, setSettings, 
-    categories, setCategories,
-    fetchSettings: fetchSettingsStore,
-    fetchCategories: fetchCategoriesStore,
-    saveSettingsAPI: saveSettingsStore
-  } = useSettingsStore();
+  const queryClient = useQueryClient();
+  const { setSettings, setCategories } = useSettingsStore();
 
-  const fetchSettings = useCallback(async () => {
-    await fetchSettingsStore();
-  }, [fetchSettingsStore]);
+  const { data: settings, isLoading: isLoadingSettings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      const { data } = await axios.get('/api/settings');
+      setSettings(data);
+      return data as AppSettings;
+    }
+  });
 
-  const fetchCategories = useCallback(async () => {
-    await fetchCategoriesStore();
-  }, [fetchCategoriesStore]);
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const { data } = await axios.get('/api/categories');
+      setCategories(data);
+      return data as Category[];
+    }
+  });
 
-  const saveSettingsAPI = useCallback(async (newSettings: AppSettings) => {
-    try {
-      await saveSettingsStore(newSettings);
+  const saveSettingsMutation = useMutation({
+    mutationFn: async (newSettings: AppSettings) => {
+      const { data } = await axios.post('/api/settings', newSettings);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+      setSettings(data);
       showToast('Configurações salvas com sucesso!', 'success');
-    } catch (err) {
+    },
+    onError: () => {
       showToast('Erro ao salvar configurações.', 'error');
     }
-  }, [saveSettingsStore, showToast]);
+  });
 
-  const addCategory = useCallback(async (category: any) => {
-    try {
-      const res = await fetch('/api/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(category),
-      });
-      if (!res.ok) throw new Error('Failed to add category');
-      fetchCategoriesStore();
-    } catch (err) {
-      console.error("Failed to add category", err);
+  const addCategoryMutation = useMutation({
+    mutationFn: async (category: any) => {
+      const { data } = await axios.post('/api/categories', category);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
     }
-  }, [fetchCategoriesStore]);
+  });
 
-  const deleteCategory = useCallback(async (id: number) => {
-    try {
-      const res = await fetch(`/api/categories/${id}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) throw new Error('Failed to delete category');
-      fetchCategoriesStore();
-    } catch (err) {
-      console.error("Failed to delete category", err);
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await axios.delete(`/api/categories/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
     }
-  }, [fetchCategoriesStore]);
+  });
 
   return {
     settings,
-    setSettings,
+    isLoadingSettings,
     categories,
-    setCategories,
-    fetchSettings,
-    fetchCategories,
-    saveSettingsAPI,
-    addCategory,
-    deleteCategory
+    saveSettingsAPI: (newSettings: AppSettings) => saveSettingsMutation.mutateAsync(newSettings),
+    addCategory: (category: any) => addCategoryMutation.mutateAsync(category),
+    deleteCategory: (id: number) => deleteCategoryMutation.mutateAsync(id),
+    fetchSettings: () => queryClient.invalidateQueries({ queryKey: ['settings'] }),
+    fetchCategories: () => queryClient.invalidateQueries({ queryKey: ['categories'] })
   };
 }

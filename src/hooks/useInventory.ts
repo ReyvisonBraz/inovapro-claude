@@ -1,49 +1,61 @@
-import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '../lib/api';
 import { InventoryItem } from '../types';
-import { useInventoryStore } from '../store/useInventoryStore';
 
 export function useInventory(showToast: (message: string, type: 'success' | 'error') => void) {
-  const { inventoryItems, setInventoryItems } = useInventoryStore();
+  const queryClient = useQueryClient();
 
-  const fetchInventoryItems = useCallback(async () => {
-    try {
-      const res = await fetch('/api/inventory');
-      if (!res.ok) throw new Error('Failed to fetch inventory');
-      const data = await res.json();
-      setInventoryItems(data);
-    } catch (err) {
-      console.error("Failed to fetch inventory", err);
-      showToast('Erro ao carregar estoque.', 'error');
-    }
-  }, [showToast, setInventoryItems]);
+  // Query para buscar itens do estoque
+  const { data: inventoryItems, isLoading, isError, refetch } = useQuery({
+    queryKey: ['inventory'],
+    queryFn: async () => {
+      const { data } = await api.get('/inventory');
+      return data;
+    },
+  });
 
-  const saveInventoryItemAPI = useCallback(async (item: Partial<InventoryItem>, id?: number) => {
-    const url = id ? `/api/inventory/${id}` : '/api/inventory';
-    const method = id ? 'PUT' : 'POST';
-    
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(item)
-    });
-    
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => null);
-      throw new Error(errorData?.error || 'Failed to save inventory item');
-    }
-    
-    return await res.json();
-  }, []);
+  // Mutação para salvar/editar item
+  const saveMutation = useMutation({
+    mutationFn: async ({ item, id }: { item: Partial<InventoryItem>; id?: number }) => {
+      if (id) {
+        const { data } = await api.put(`/inventory/${id}`, item);
+        return data;
+      } else {
+        const { data } = await api.post('/inventory', item);
+        return data;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      showToast('Item de estoque salvo com sucesso!', 'success');
+    },
+    onError: (error: any) => {
+      console.error('Failed to save inventory item', error);
+      showToast(error.response?.data?.error || 'Erro ao salvar item de estoque.', 'error');
+    },
+  });
 
-  const deleteInventoryItemAPI = useCallback(async (id: number) => {
-    const res = await fetch(`/api/inventory/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Failed to delete inventory item');
-  }, []);
+  // Mutação para excluir item
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/inventory/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      showToast('Item excluído com sucesso!', 'success');
+    },
+    onError: (error: any) => {
+      console.error('Failed to delete inventory item', error);
+      showToast(error.response?.data?.error || 'Erro ao excluir item.', 'error');
+    },
+  });
 
   return {
-    inventoryItems,
-    fetchInventoryItems,
-    saveInventoryItemAPI,
-    deleteInventoryItemAPI
+    inventoryItems: inventoryItems || [],
+    fetchInventoryItems: refetch,
+    saveInventoryItemAPI: (item: Partial<InventoryItem>, id?: number) => saveMutation.mutateAsync({ item, id }),
+    deleteInventoryItemAPI: (id: number) => deleteMutation.mutateAsync(id),
+    isLoading,
+    isError
   };
 }

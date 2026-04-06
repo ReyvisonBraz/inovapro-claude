@@ -9,6 +9,8 @@ import {
 import { cn, formatCurrency } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
+import { ProductModal } from './modals/ProductModal';
+
 interface InventoryProps {
   items: InventoryItem[];
   onAddItem: (item: any) => void;
@@ -23,8 +25,6 @@ interface InventoryProps {
   onOpenConfirm: (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning' | 'info' | 'success') => void;
   editingItem: InventoryItem | null;
   setEditingItem: (item: InventoryItem | null) => void;
-  newItem: any;
-  setNewItem: (item: any) => void;
   showToast: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
 }
 
@@ -42,8 +42,6 @@ export const Inventory: React.FC<InventoryProps> = ({
   onOpenConfirm,
   editingItem,
   setEditingItem,
-  newItem,
-  setNewItem,
   showToast,
 }) => {
   const filteredItems = items.filter(item => {
@@ -56,44 +54,19 @@ export const Inventory: React.FC<InventoryProps> = ({
     return matchesSearch && matchesCategory;
   });
 
-  const handleSave = () => {
-    if (!newItem.name || !newItem.unitPrice) {
-      showToast("Preencha o nome e o preço unitário.", "warning");
-      return;
-    }
-    
-    const itemData = {
-      ...newItem,
-      unitPrice: parseFloat(newItem.unitPrice.toString().replace(',', '.')) || 0,
-      stockLevel: newItem.category === 'product' ? parseInt(newItem.stockLevel.toString()) || 0 : 0
-    };
-
+  const handleSave = (data: any) => {
     if (editingItem) {
-      onUpdateItem(editingItem.id, itemData);
+      onUpdateItem(editingItem.id, data);
     } else {
-      onAddItem(itemData);
+      onAddItem(data);
     }
     
     setIsAdding(false);
     setEditingItem(null);
-    setNewItem({
-      name: '',
-      category: 'product',
-      sku: '',
-      unitPrice: '',
-      stockLevel: ''
-    });
   };
 
   const handleEdit = (item: InventoryItem) => {
     setEditingItem(item);
-    setNewItem({
-      name: item.name,
-      category: item.category,
-      sku: item.sku || '',
-      unitPrice: item.unitPrice.toString(),
-      stockLevel: item.stockLevel.toString()
-    });
     setIsAdding(true);
   };
 
@@ -246,123 +219,15 @@ export const Inventory: React.FC<InventoryProps> = ({
       </div>
 
       {/* Add/Edit Modal */}
-      <AnimatePresence>
-        {isAdding && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsAdding(false)}
-              className="absolute inset-0 bg-bg-dark/90 backdrop-blur-md"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md glass-modal p-8"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold">{editingItem ? 'Editar Item' : 'Novo Item'}</h3>
-                <button onClick={() => setIsAdding(false)} className="text-slate-400 hover:text-white">
-                  <X size={24} />
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Tipo</label>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setNewItem({...newItem, category: 'product'})}
-                      className={cn(
-                        "flex-1 py-3 rounded-xl text-sm font-bold transition-all border",
-                        newItem.category === 'product' 
-                          ? "bg-blue-500/10 text-blue-500 border-blue-500/20" 
-                          : "bg-white/5 text-slate-400 border-transparent hover:bg-white/10"
-                      )}
-                    >
-                      Produto
-                    </button>
-                    <button
-                      onClick={() => setNewItem({...newItem, category: 'service'})}
-                      className={cn(
-                        "flex-1 py-3 rounded-xl text-sm font-bold transition-all border",
-                        newItem.category === 'service' 
-                          ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
-                          : "bg-white/5 text-slate-400 border-transparent hover:bg-white/10"
-                      )}
-                    >
-                      Serviço
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Nome</label>
-                  <input 
-                    value={newItem.name}
-                    onChange={(e) => setNewItem({...newItem, name: e.target.value})}
-                    className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
-                    placeholder="Ex: Formatação de PC, Memória RAM 8GB..."
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500">SKU / Código</label>
-                    <input 
-                      value={newItem.sku}
-                      onChange={(e) => setNewItem({...newItem, sku: e.target.value})}
-                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
-                      placeholder="Opcional"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Preço (R$)</label>
-                    <input 
-                      type="number"
-                      step="0.01"
-                      value={newItem.unitPrice}
-                      onChange={(e) => setNewItem({...newItem, unitPrice: e.target.value})}
-                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-
-                {newItem.category === 'product' && (
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Quantidade em Estoque</label>
-                    <input 
-                      type="number"
-                      value={newItem.stockLevel}
-                      onChange={(e) => setNewItem({...newItem, stockLevel: e.target.value})}
-                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
-                      placeholder="0"
-                    />
-                  </div>
-                )}
-
-                <div className="flex gap-3 pt-4">
-                  <button 
-                    onClick={() => setIsAdding(false)}
-                    className="flex-1 h-12 rounded-xl font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    onClick={handleSave}
-                    className="flex-1 h-12 rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all"
-                  >
-                    {editingItem ? 'Salvar Alterações' : 'Adicionar Item'}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <ProductModal 
+        isOpen={isAdding}
+        onClose={() => {
+          setIsAdding(false);
+          setEditingItem(null);
+        }}
+        editingItem={editingItem}
+        onSave={handleSave}
+      />
     </div>
   );
 };

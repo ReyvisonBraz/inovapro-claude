@@ -14,6 +14,7 @@ import {
   Brand, Model, User, EquipmentType
 } from '../../types';
 import { cn } from '../../lib/utils';
+import api from '../../lib/api';
 
 // Components
 import { ServiceOrderFilters } from './ServiceOrderFilters';
@@ -141,17 +142,34 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
 
   // Handle direct OS access from QR Code
   useEffect(() => {
-    if (directOsId) {
-      const order = orders.data.find(o => o.id === directOsId);
-      if (order) {
-        if (directMode === 'status') {
-          setShowStatusOnly(order);
-        } else {
-          handleEdit(order);
+    const fetchDirectOs = async () => {
+      if (directOsId) {
+        let order = orders.data.find(o => o.id === directOsId);
+        
+        if (!order) {
+          try {
+            const { data } = await api.get(`/service-orders/${directOsId}`);
+            order = data;
+          } catch (error) {
+            console.error("Failed to fetch direct OS", error);
+            showToast('OS não encontrada', 'error');
+            setDirectOsId(null);
+            return;
+          }
         }
+        
+        if (order) {
+          if (directMode === 'status') {
+            setShowStatusOnly(order);
+          } else {
+            handleEdit(order);
+          }
+        }
+        setDirectOsId(null);
       }
-      setDirectOsId(null);
-    }
+    };
+    
+    fetchDirectOs();
   }, [directOsId, orders.data, directMode]);
 
   const handleEdit = (order: ServiceOrder) => {

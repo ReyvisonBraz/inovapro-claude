@@ -6,6 +6,7 @@ import { useFilterStore } from '../store/useFilterStore';
 import { useModalStore } from '../store/useModalStore';
 import { useAppStore } from '../store/useAppStore';
 import { useToast } from '../components/ui/Toast';
+import { useDebounce } from '../hooks/useDebounce';
 import { sendWhatsAppPaymentReminder } from '../lib/whatsappUtils';
 
 export const TransactionsPage: React.FC = () => {
@@ -26,6 +27,8 @@ export const TransactionsPage: React.FC = () => {
     resetFilters
   } = useFilterStore();
   
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  
   const { 
     setEditingTransaction,
     setTransactionToDelete
@@ -39,13 +42,10 @@ export const TransactionsPage: React.FC = () => {
     transactions, 
     transactionsPage,
     setTransactionsPage,
-    fetchTransactions,
-    deleteTransactionAPI
+    deleteTransactionAPI,
+    isLoading,
+    isError
   } = useTransactions(showToast);
-
-  useEffect(() => {
-    fetchTransactions(transactionsPage, searchTerm);
-  }, [fetchTransactions, transactionsPage, searchTerm, dateFilterMode, selectedDate, selectedMonth, startDate, endDate, filterType, filterCategory, filterMinAmount, filterMaxAmount]);
 
   return (
     <Transactions 

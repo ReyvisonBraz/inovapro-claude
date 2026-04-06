@@ -1,9 +1,9 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, Download, RefreshCw } from 'lucide-react';
-import { logger } from '../../lib/logger';
+import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
+  fallback?: ReactNode;
 }
 
 interface State {
@@ -11,7 +11,7 @@ interface State {
   error: Error | null;
 }
 
-export class ErrorBoundary extends React.Component<Props, State> {
+export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null
@@ -22,56 +22,57 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // The logger will automatically catch this via the console.error override
-    // but we can log it explicitly if we want
-    logger.addLog('error', `React Error Boundary caught an error: ${error.message}`, errorInfo);
+    console.error('Uncaught error:', error, errorInfo);
   }
 
-  private handleDownloadLogs = () => {
-    logger.downloadLogs();
-  };
-
-  private handleReload = () => {
-    window.location.reload();
+  private handleReset = () => {
+    this.setState({ hasError: false, error: null });
+    window.location.href = '/';
   };
 
   public render() {
     if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+
       return (
-        <div className="min-h-screen bg-bg-dark flex items-center justify-center p-4">
-          <div className="max-w-md w-full glass-card p-8 rounded-2xl border border-rose-500/20 text-center space-y-6">
-            <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto text-rose-500">
-              <AlertTriangle size={32} />
+        <div className="min-h-screen bg-bg-dark flex items-center justify-center p-6">
+          <div className="max-w-md w-full glass-card p-10 text-center space-y-6 border-rose-500/20">
+            <div className="h-20 w-20 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto border border-rose-500/20 shadow-[0_0_30px_rgba(239,68,68,0.1)]">
+              <AlertTriangle size={40} />
             </div>
             
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold text-white">Ops! Algo deu errado.</h1>
-              <p className="text-slate-400 text-sm">
-                O sistema encontrou um erro inesperado. Não se preocupe, seus dados estão seguros.
+              <h1 className="text-2xl font-bold tracking-tight text-slate-100">Ops! Algo deu errado</h1>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Ocorreu um erro inesperado na aplicação. Nossa equipe técnica já foi notificada (simulação).
               </p>
             </div>
 
-            <div className="p-4 bg-black/20 rounded-xl border border-white/5 text-left overflow-auto max-h-32">
-              <p className="text-xs font-mono text-rose-400">
-                {this.state.error?.message || 'Erro desconhecido'}
-              </p>
-            </div>
+            {process.env.NODE_ENV === 'development' && this.state.error && (
+              <div className="p-4 bg-black/40 rounded-xl text-left overflow-auto max-h-40 border border-white/5">
+                <code className="text-xs text-rose-400 font-mono break-all">
+                  {this.state.error.toString()}
+                </code>
+              </div>
+            )}
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 pt-4">
               <button
-                onClick={this.handleDownloadLogs}
-                className="w-full h-12 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold transition-all border border-white/10"
+                onClick={() => window.location.reload()}
+                className="w-full bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
-                <Download size={18} />
-                Baixar Logs de Erro
+                <RefreshCw size={18} />
+                Tentar Novamente
               </button>
               
               <button
-                onClick={this.handleReload}
-                className="w-full h-12 flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20"
+                onClick={this.handleReset}
+                className="w-full py-4 rounded-2xl font-bold text-slate-400 hover:bg-white/5 flex items-center justify-center gap-2 transition-all"
               >
-                <RefreshCw size={18} />
-                Recarregar Sistema
+                <Home size={18} />
+                Voltar para o Início
               </button>
             </div>
           </div>
