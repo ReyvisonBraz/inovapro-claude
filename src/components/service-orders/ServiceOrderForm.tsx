@@ -227,6 +227,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
   };
 
   const onFormSubmit = async (data: ServiceOrderFormData) => {
+    console.log('Submitting Service Order Data:', data);
     const orderData = {
       ...data,
       createdBy: currentUser?.id
@@ -845,7 +846,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                       <input 
                         type="number"
                         step="0.01"
-                        {...register('serviceFee')}
+                        {...register('serviceFee', { valueAsNumber: true })}
                         className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-sm font-black focus:ring-2 focus:ring-primary outline-none transition-all"
                       />
                     </div>
@@ -857,7 +858,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                       <input 
                         type="number"
                         step="0.01"
-                        {...register('totalAmount')}
+                        {...register('totalAmount', { valueAsNumber: true })}
                         className="w-full h-14 bg-primary/10 border border-primary/20 rounded-2xl pl-12 pr-4 text-sm font-black text-primary focus:ring-2 focus:ring-primary outline-none transition-all"
                       />
                     </div>
@@ -905,7 +906,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
             </button>
             <button 
               type="button"
-              onClick={handleSubmit(onFormSubmit)}
+              onClick={handleSubmit(onFormSubmit, (errors) => console.log('Validation Errors:', errors))}
               className="flex-[2] h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-primary text-white font-black shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 order-1 sm:order-2"
             >
               <Check size={20} />
