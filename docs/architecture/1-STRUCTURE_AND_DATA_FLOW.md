@@ -9,6 +9,7 @@ A separação de responsabilidades é o pilar desta arquitetura, garantindo manu
 ### Frontend (`/src`)
 
 *   **`/components/`**: Camada de Apresentação (UI).
+    *   `/layout/`: Componentes de estrutura (Sidebar, Header, MobileNav, **GlobalModals**).
     *   `/modals/`: Janelas sobrepostas (formulários de criação, confirmações de exclusão, avisos).
     *   `/settings/`: Componentes específicos da tela de configurações.
     *   `/ui/`: Componentes base reutilizáveis (Botões, Inputs, Cards, Toasts, Paginação).

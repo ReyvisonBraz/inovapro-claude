@@ -1,25 +1,39 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '../lib/api';
 import { Transaction } from '../types';
 import { useFilterStore } from '../store/useFilterStore';
 import { useTransactionStore } from '../store/useTransactionStore';
 import { format, endOfMonth, parseISO } from 'date-fns';
 
 export function useTransactions(showToast: (message: string, type: 'success' | 'error') => void) {
+  const queryClient = useQueryClient();
   const { 
-    transactions, setTransactions, 
     transactionsPage, setTransactionsPage 
   } = useTransactionStore();
-  const [isLoading, setIsLoading] = useState(false);
   const { 
     searchTerm, filterType, filterCategory,
     dateFilterMode, selectedDate, selectedMonth, startDate, endDate,
     filterMinAmount, filterMaxAmount
   } = useFilterStore();
 
-  const fetchTransactions = useCallback(async (page: number, search: string) => {
-    setIsLoading(true);
-    try {
-      let url = `/api/transactions?page=${page}&limit=20&search=${encodeURIComponent(search)}`;
+  // Query para buscar transações
+  const { data: transactionsData, isLoading, isError, refetch } = useQuery({
+    queryKey: [
+      'transactions', 
+      transactionsPage, 
+      searchTerm, 
+      filterType, 
+      filterCategory, 
+      dateFilterMode, 
+      selectedDate, 
+      selectedMonth, 
+      startDate, 
+      endDate, 
+      filterMinAmount, 
+      filterMaxAmount
+    ],
+    queryFn: async () => {
+      let url = `/transactions?page=${transactionsPage}&limit=20&search=${encodeURIComponent(searchTerm)}`;
       
       if (filterType !== 'all') url += `&type=${filterType}`;
       if (filterCategory !== 'all') url += `&category=${encodeURIComponent(filterCategory)}`;
@@ -37,75 +51,75 @@ export function useTransactions(showToast: (message: string, type: 'success' | '
       if (filterMinAmount) url += `&minAmount=${filterMinAmount}`;
       if (filterMaxAmount) url += `&maxAmount=${filterMaxAmount}`;
 
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch transactions');
-      const data = await res.json();
-      setTransactions(data);
-    } catch (err) {
-      console.error("Failed to fetch transactions", err);
-      showToast('Erro ao carregar transações.', 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [
-    showToast, setTransactions, filterType, filterCategory, 
-    dateFilterMode, selectedDate, selectedMonth, startDate, endDate, 
-    filterMinAmount, filterMaxAmount
-  ]);
+      const { data } = await api.get(url);
+      return data;
+    },
+  });
 
-  const saveTransactionAPI = useCallback(async (transaction: Partial<Transaction>, id?: number) => {
-    const url = id ? `/api/transactions/${id}` : '/api/transactions';
-    const method = id ? 'PUT' : 'POST';
-    
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(transaction)
-    });
-    
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => null);
-      throw new Error(errorData?.error || 'Failed to save transaction');
-    }
-    
-    return await res.json();
-  }, []);
+  // Mutação para salvar/editar transação
+  const saveMutation = useMutation({
+    mutationFn: async ({ transaction, id }: { transaction: Partial<Transaction>; id?: number }) => {
+      if (id) {
+        const { data } = await api.put(`/transactions/${id}`, transaction);
+        return data;
+      } else {
+        const { data } = await api.post('/transactions', transaction);
+        return data;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      showToast('Transação salva com sucesso!', 'success');
+    },
+    onError: (error: any) => {
+      console.error('Failed to save transaction', error);
+      showToast(error.response?.data?.error || 'Erro ao salvar transação.', 'error');
+    },
+  });
 
-  const deleteTransactionAPI = useCallback(async (id: number) => {
-    const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Failed to delete transaction');
-  }, []);
+  // Mutação para excluir transação
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/transactions/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      showToast('Transação excluída com sucesso!', 'success');
+    },
+    onError: (error: any) => {
+      console.error('Failed to delete transaction', error);
+      showToast(error.response?.data?.error || 'Erro ao excluir transação.', 'error');
+    },
+  });
 
-  const handleDuplicateTransaction = useCallback(async (tx: Transaction) => {
+  const handleDuplicateTransaction = async (tx: Transaction) => {
     try {
-      await saveTransactionAPI({
-        description: `${tx.description} (Cópia)`,
-        category: tx.category,
-        type: tx.type,
-        amount: tx.amount,
-        date: new Date().toISOString().split('T')[0],
+      await saveMutation.mutateAsync({
+        transaction: {
+          description: `${tx.description} (Cópia)`,
+          category: tx.category,
+          type: tx.type,
+          amount: tx.amount,
+          date: new Date().toISOString().split('T')[0],
+        }
       });
-      fetchTransactions(transactionsPage, searchTerm);
-      showToast('Transação duplicada com sucesso!', 'success');
     } catch (err) {
       console.error("Failed to duplicate", err);
-      showToast('Erro ao duplicar transação.', 'error');
     }
-  }, [saveTransactionAPI, fetchTransactions, transactionsPage, searchTerm, showToast]);
-
-  const filteredTransactions = useMemo(() => {
-    return transactions.data;
-  }, [transactions.data]);
+  };
 
   return {
-    transactions,
+    transactions: transactionsData || { data: [], meta: { total: 0, page: 1, totalPages: 1, limit: 20 } },
     transactionsPage,
     setTransactionsPage,
-    fetchTransactions,
-    saveTransactionAPI,
-    deleteTransactionAPI,
+    fetchTransactions: refetch,
+    saveTransactionAPI: (transaction: Partial<Transaction>, id?: number) => saveMutation.mutateAsync({ transaction, id }),
+    deleteTransactionAPI: (id: number) => deleteMutation.mutateAsync(id),
     handleDuplicateTransaction,
-    filteredTransactions,
-    isLoading
+    filteredTransactions: transactionsData?.data || [],
+    isLoading,
+    isError
   };
 }

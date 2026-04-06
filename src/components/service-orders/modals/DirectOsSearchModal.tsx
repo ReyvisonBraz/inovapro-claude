@@ -1,25 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Search } from 'lucide-react';
+import { X, Search, Loader2 } from 'lucide-react';
 import { useToast } from '../../ui/Toast';
+import api from '../../../lib/api';
 
 interface DirectOsSearchModalProps {
   show: boolean;
   onClose: () => void;
-  orders: any[];
+  orders: any[]; // Kept for backward compatibility
   handleEdit: (order: any) => void;
 }
 
 export const DirectOsSearchModal: React.FC<DirectOsSearchModalProps> = ({
   show,
   onClose,
-  orders,
   handleEdit
 }) => {
-  const [directOsSearch, setDirectOsSearch] = React.useState('');
+  const [directOsSearch, setDirectOsSearch] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const { showToast } = useToast();
 
-    const handleDirectOsSearch = (e: React.FormEvent) => {
+    const handleDirectOsSearch = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!directOsSearch.trim()) return;
       
@@ -29,13 +30,22 @@ export const DirectOsSearchModal: React.FC<DirectOsSearchModalProps> = ({
         return;
       }
       
-      const order = orders.find(o => o.id === searchNumber);
-      if (order) {
-        onClose();
-        setDirectOsSearch('');
-        handleEdit(order);
-      } else {
-        showToast(`OS-${searchNumber.toString().padStart(4, '0')} não encontrada`, 'error');
+      setIsSearching(true);
+      try {
+        const { data: order } = await api.get(`/service-orders/${searchNumber}`);
+        if (order) {
+          onClose();
+          setDirectOsSearch('');
+          handleEdit(order);
+        }
+      } catch (error: any) {
+        if (error.response?.status === 404) {
+          showToast(`OS-${searchNumber.toString().padStart(4, '0')} não encontrada`, 'error');
+        } else {
+          showToast('Erro ao buscar OS', 'error');
+        }
+      } finally {
+        setIsSearching(false);
       }
     };
 
@@ -94,10 +104,11 @@ export const DirectOsSearchModal: React.FC<DirectOsSearchModalProps> = ({
               
               <button 
                 type="submit"
-                className="w-full h-12 rounded-xl bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
+                disabled={isSearching || !directOsSearch.trim()}
+                className="w-full h-12 rounded-xl bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Search size={18} />
-                Abrir Ordem de Serviço
+                {isSearching ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
+                {isSearching ? 'Buscando...' : 'Abrir Ordem de Serviço'}
               </button>
             </form>
           </motion.div>

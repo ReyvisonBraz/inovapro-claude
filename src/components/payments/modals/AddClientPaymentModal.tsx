@@ -1,40 +1,77 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Plus, User as UserIcon, FileText, DollarSign, Calendar, CreditCard, Layers } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { CustomerSearchSelect } from '../../customers/CustomerSearchSelect';
-import { formatCurrency } from '../../../lib/utils';
+import { clientPaymentSchema, ClientPaymentFormData } from '../../../schemas/paymentSchema';
 
 interface AddClientPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   customers: any[];
-  newClientPayment: {
-    customerId: number;
-    description: string;
-    totalAmount: string;
-    paidAmount: string;
-    purchaseDate: string;
-    dueDate: string;
-    paymentMethod: string;
-    installmentsCount: number;
-    installmentInterval?: string;
-  };
-  setNewClientPayment: (payment: any) => void;
-  onAdd: () => void;
+  onAdd: (data: ClientPaymentFormData) => void;
   onTriggerAddCustomer?: () => void;
   isSaving?: boolean;
+  initialData?: Partial<ClientPaymentFormData>;
 }
 
 export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
   isOpen,
   onClose,
   customers,
-  newClientPayment,
-  setNewClientPayment,
   onAdd,
   onTriggerAddCustomer,
-  isSaving
+  isSaving,
+  initialData
 }) => {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors }
+  } = useForm<ClientPaymentFormData>({
+    resolver: zodResolver(clientPaymentSchema),
+    defaultValues: {
+      customerId: 0,
+      description: '',
+      totalAmount: 0,
+      paidAmount: 0,
+      purchaseDate: new Date().toISOString().split('T')[0],
+      dueDate: new Date().toISOString().split('T')[0],
+      paymentMethod: 'Dinheiro',
+      installmentsCount: 1,
+      installmentInterval: 'monthly',
+      ...initialData
+    }
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      reset({
+        customerId: 0,
+        description: '',
+        totalAmount: 0,
+        paidAmount: 0,
+        purchaseDate: new Date().toISOString().split('T')[0],
+        dueDate: new Date().toISOString().split('T')[0],
+        paymentMethod: 'Dinheiro',
+        installmentsCount: 1,
+        installmentInterval: 'monthly',
+        ...initialData
+      });
+    }
+  }, [isOpen, initialData, reset]);
+
+  const customerId = watch('customerId');
+  const installmentsCount = watch('installmentsCount');
+
+  const onFormSubmit = (data: ClientPaymentFormData) => {
+    onAdd(data);
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -61,7 +98,8 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                 <X size={20} className="md:w-6 md:h-6" />
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+
+            <form onSubmit={handleSubmit(onFormSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-primary/80 flex items-center gap-2 bg-primary/10 px-2 py-1 rounded-md w-fit mb-1">
                   <UserIcon size={12} /> Cliente
@@ -69,8 +107,8 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                 <div className="flex gap-2">
                   <CustomerSearchSelect 
                     customers={customers}
-                    selectedId={newClientPayment.customerId}
-                    onSelect={(id) => setNewClientPayment({...newClientPayment, customerId: id})}
+                    selectedId={customerId}
+                    onSelect={(id) => setValue('customerId', id, { shouldValidate: true })}
                     className="flex-1"
                   />
                   {onTriggerAddCustomer && (
@@ -88,18 +126,21 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                     </button>
                   )}
                 </div>
+                {errors.customerId && <p className="text-rose-500 text-[10px] font-bold mt-1">{errors.customerId.message}</p>}
               </div>
+
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
                   <FileText size={12} /> Descrição da Compra
                 </label>
                 <input 
-                  value={newClientPayment.description}
-                  onChange={(e) => setNewClientPayment({...newClientPayment, description: e.target.value})}
+                  {...register('description')}
                   className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
                   placeholder="Ex: Venda de Notebook"
                 />
+                {errors.description && <p className="text-rose-500 text-[10px] font-bold mt-1">{errors.description.message}</p>}
               </div>
+
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-emerald-500 flex items-center gap-2">
                   <DollarSign size={12} /> Valor Total
@@ -108,13 +149,15 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">R$</span>
                   <input 
                     type="number"
-                    value={newClientPayment.totalAmount}
-                    onChange={(e) => setNewClientPayment({...newClientPayment, totalAmount: e.target.value})}
+                    step="0.01"
+                    {...register('totalAmount')}
                     className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-sm font-black focus:ring-2 focus:ring-primary outline-none transition-all"
                     placeholder="0.00"
                   />
                 </div>
+                {errors.totalAmount && <p className="text-rose-500 text-[10px] font-bold mt-1">{errors.totalAmount.message}</p>}
               </div>
+
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-blue-500 flex items-center gap-2">
                   <DollarSign size={12} /> Valor Já Pago (Entrada)
@@ -123,42 +166,45 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">R$</span>
                   <input 
                     type="number"
-                    value={newClientPayment.paidAmount}
-                    onChange={(e) => setNewClientPayment({...newClientPayment, paidAmount: e.target.value})}
+                    step="0.01"
+                    {...register('paidAmount')}
                     className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-sm font-black focus:ring-2 focus:ring-primary outline-none transition-all"
                     placeholder="0.00"
                   />
                 </div>
+                {errors.paidAmount && <p className="text-rose-500 text-[10px] font-bold mt-1">{errors.paidAmount.message}</p>}
               </div>
+
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
                   <Calendar size={12} /> Data da Compra
                 </label>
                 <input 
                   type="date"
-                  value={newClientPayment.purchaseDate}
-                  onChange={(e) => setNewClientPayment({...newClientPayment, purchaseDate: e.target.value})}
+                  {...register('purchaseDate')}
                   className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all [color-scheme:dark]"
                 />
+                {errors.purchaseDate && <p className="text-rose-500 text-[10px] font-bold mt-1">{errors.purchaseDate.message}</p>}
               </div>
+
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                  <Calendar size={12} /> {newClientPayment.installmentsCount > 1 ? 'Vencimento da 1ª Parcela' : 'Data de Vencimento'}
+                  <Calendar size={12} /> {installmentsCount > 1 ? 'Vencimento da 1ª Parcela' : 'Data de Vencimento'}
                 </label>
                 <input 
                   type="date"
-                  value={newClientPayment.dueDate}
-                  onChange={(e) => setNewClientPayment({...newClientPayment, dueDate: e.target.value})}
+                  {...register('dueDate')}
                   className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all [color-scheme:dark]"
                 />
+                {errors.dueDate && <p className="text-rose-500 text-[10px] font-bold mt-1">{errors.dueDate.message}</p>}
               </div>
+
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
                   <CreditCard size={12} /> Forma de Pagamento
                 </label>
                 <select 
-                  value={newClientPayment.paymentMethod}
-                  onChange={(e) => setNewClientPayment({...newClientPayment, paymentMethod: e.target.value})}
+                  {...register('paymentMethod')}
                   className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900 transition-all"
                 >
                   <option value="Dinheiro">Dinheiro</option>
@@ -167,25 +213,27 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                   <option value="Cartão de Débito">Cartão de Débito</option>
                   <option value="Boleto">Boleto</option>
                 </select>
+                {errors.paymentMethod && <p className="text-rose-500 text-[10px] font-bold mt-1">{errors.paymentMethod.message}</p>}
               </div>
+
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
                   <Layers size={12} /> Nº de Parcelas
                 </label>
                 <input 
                   type="number"
-                  value={newClientPayment.installmentsCount}
-                  onChange={(e) => setNewClientPayment({...newClientPayment, installmentsCount: parseInt(e.target.value)})}
+                  {...register('installmentsCount')}
                   className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all"
                   min="1"
                 />
+                {errors.installmentsCount && <p className="text-rose-500 text-[10px] font-bold mt-1">{errors.installmentsCount.message}</p>}
               </div>
-              {newClientPayment.installmentsCount > 1 && (
+
+              {installmentsCount > 1 && (
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Intervalo das Parcelas</label>
                   <select 
-                    value={newClientPayment.installmentInterval || 'monthly'}
-                    onChange={(e) => setNewClientPayment({...newClientPayment, installmentInterval: e.target.value})}
+                    {...register('installmentInterval')}
                     className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
                   >
                     <option value="monthly">Mensal</option>
@@ -194,22 +242,24 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                   </select>
                 </div>
               )}
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6 md:pt-8">
-              <button 
-                onClick={onClose}
-                className="flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all order-2 sm:order-1"
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={onAdd}
-                disabled={isSaving}
-                className="flex-1 bg-primary text-white py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
-              >
-                {isSaving ? 'Registrando...' : 'Registrar Venda'}
-              </button>
-            </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6 md:pt-8 md:col-span-2">
+                <button 
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all order-2 sm:order-1"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isSaving}
+                  className="flex-1 bg-primary text-white py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
+                >
+                  {isSaving ? 'Registrando...' : 'Registrar Venda'}
+                </button>
+              </div>
+            </form>
           </motion.div>
         </div>
       )}

@@ -1,16 +1,13 @@
-import { useCallback } from 'react';
-import { ServiceOrder, ServiceOrderStatus, Brand, Model } from '../types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '../lib/api';
+import { ServiceOrder } from '../types';
 import { useServiceOrderStore } from '../store/useServiceOrderStore';
 import { useFilterStore } from '../store/useFilterStore';
 
-export const useServiceOrders = () => {
+export const useServiceOrders = (showToast?: (message: string, type: 'success' | 'error') => void) => {
+  const queryClient = useQueryClient();
   const {
-    serviceOrders, setServiceOrders,
     serviceOrdersPage, setServiceOrdersPage,
-    serviceOrderStatuses, setServiceOrderStatuses,
-    equipmentTypes, setEquipmentTypes,
-    brands, setBrands,
-    models, setModels
   } = useServiceOrderStore();
 
   const { 
@@ -21,199 +18,166 @@ export const useServiceOrders = () => {
     osDateFilter
   } = useFilterStore();
 
-  const fetchServiceOrders = useCallback(async (page?: number, search?: string, status?: string, priority?: string, sortBy?: string, dateFilter?: string) => {
-    // Use provided values or fall back to store values
-    const targetPage = page !== undefined ? page : serviceOrdersPage;
-    const targetSearch = search !== undefined ? search : osSearchTerm;
-    const targetStatus = status !== undefined ? status : osStatusFilter;
-    const targetPriority = priority !== undefined ? priority : osPriorityFilter;
-    const targetSortBy = sortBy !== undefined ? sortBy : osSortBy;
-    const targetDateFilter = dateFilter !== undefined ? dateFilter : osDateFilter;
-
-    try {
+  // Query para buscar ordens de serviço
+  const { data: serviceOrdersData, isLoading, isError, refetch } = useQuery({
+    queryKey: [
+      'service-orders', 
+      serviceOrdersPage, 
+      osSearchTerm, 
+      osStatusFilter, 
+      osPriorityFilter, 
+      osSortBy, 
+      osDateFilter
+    ],
+    queryFn: async () => {
       const query = new URLSearchParams({
-        page: targetPage.toString(),
+        page: serviceOrdersPage.toString(),
         limit: '20',
-        search: targetSearch,
-        status: targetStatus,
-        priority: targetPriority,
-        sortBy: targetSortBy,
-        dateFilter: targetDateFilter
+        search: osSearchTerm,
+        status: osStatusFilter,
+        priority: osPriorityFilter,
+        sortBy: osSortBy,
+        dateFilter: osDateFilter
       });
 
-      const res = await fetch(`/api/service-orders?${query.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setServiceOrders(data);
+      const { data } = await api.get(`/service-orders?${query.toString()}`);
+      return data;
+    },
+  });
+
+  // Queries para dados de configuração (caching automático)
+  const { data: serviceOrderStatuses } = useQuery({
+    queryKey: ['service-order-statuses'],
+    queryFn: async () => {
+      const { data } = await api.get('/service-order-statuses');
+      return data;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutos
+  });
+
+  const { data: equipmentTypes } = useQuery({
+    queryKey: ['equipment-types'],
+    queryFn: async () => {
+      const { data } = await api.get('/equipment-types');
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: brands } = useQuery({
+    queryKey: ['brands'],
+    queryFn: async () => {
+      const { data } = await api.get('/brands');
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: models } = useQuery({
+    queryKey: ['models'],
+    queryFn: async () => {
+      const { data } = await api.get('/models');
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Mutações
+  const saveMutation = useMutation({
+    mutationFn: async ({ order, id }: { order: any; id?: number }) => {
+      if (id) {
+        const { data } = await api.put(`/service-orders/${id}`, order);
+        return data;
+      } else {
+        const { data } = await api.post('/service-orders', order);
+        return data;
       }
-    } catch (err) {
-      console.error("Failed to fetch service orders", err);
-      throw err;
-    }
-  }, [serviceOrdersPage, osSearchTerm, osStatusFilter, osPriorityFilter, osSortBy, setServiceOrders]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      if (showToast) showToast('Ordem de serviço salva com sucesso!', 'success');
+    },
+    onError: (error: any) => {
+      console.error('Failed to save service order', error);
+      if (showToast) showToast(error.response?.data?.error || 'Erro ao salvar ordem de serviço.', 'error');
+    },
+  });
 
-  // Auto-fetch when page or search term changes
-  // Note: We only do this if we are authenticated, but the hook doesn't know about auth.
-  // So we'll rely on the caller or just let it fetch (server will return 401 if not auth).
-  // Actually, it's better to keep the fetch in App.tsx or the page component to have more control.
-  // But let's add it here to ensure it's always up to date when used.
-  // React.useEffect(() => {
-  //   fetchServiceOrders();
-  // }, [fetchServiceOrders]);
-  // Wait, I'll use the one in App.tsx and ServiceOrdersPage.tsx for now.
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/service-orders/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      if (showToast) showToast('Ordem de serviço excluída com sucesso!', 'success');
+    },
+    onError: (error: any) => {
+      console.error('Failed to delete service order', error);
+      if (showToast) showToast(error.response?.data?.error || 'Erro ao excluir ordem de serviço.', 'error');
+    },
+  });
 
-  const fetchServiceOrderStatuses = useCallback(async () => {
-    try {
-      const res = await fetch('/api/service-order-statuses');
-      if (res.ok) {
-        const data = await res.json();
-        setServiceOrderStatuses(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch service order statuses", err);
-      throw err;
-    }
-  }, [setServiceOrderStatuses]);
+  // Mutações para configurações
+  const addStatusMutation = useMutation({
+    mutationFn: (status: any) => api.post('/service-order-statuses', status),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['service-order-statuses'] }),
+  });
 
-  const fetchEquipmentTypes = useCallback(async () => {
-    try {
-      const res = await fetch('/api/equipment-types');
-      if (res.ok) {
-        const data = await res.json();
-        setEquipmentTypes(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch equipment types", err);
-      throw err;
-    }
-  }, [setEquipmentTypes]);
+  const deleteStatusMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/service-order-statuses/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['service-order-statuses'] }),
+  });
 
-  const fetchBrands = useCallback(async () => {
-    try {
-      const res = await fetch('/api/brands');
-      if (res.ok) {
-        const data = await res.json();
-        setBrands(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch brands", err);
-      throw err;
-    }
-  }, [setBrands]);
+  const addEquipmentTypeMutation = useMutation({
+    mutationFn: (type: any) => api.post('/equipment-types', type),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment-types'] }),
+  });
 
-  const fetchModels = useCallback(async () => {
-    try {
-      const res = await fetch('/api/models');
-      if (res.ok) {
-        const data = await res.json();
-        setModels(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch models", err);
-      throw err;
-    }
-  }, [setModels]);
+  const deleteEquipmentTypeMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/equipment-types/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment-types'] }),
+  });
 
-  const saveServiceOrderAPI = useCallback(async (order: any, id?: number) => {
-    const url = id ? `/api/service-orders/${id}` : '/api/service-orders';
-    const method = id ? 'PUT' : 'POST';
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(order)
-    });
-    
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => null);
-      throw new Error(errorData?.error || 'Failed to save service order');
-    }
-    
-    return await res.json();
-  }, []);
+  const addBrandMutation = useMutation({
+    mutationFn: (brand: any) => api.post('/brands', brand),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['brands'] }),
+  });
 
-  const deleteServiceOrderAPI = useCallback(async (id: number) => {
-    const res = await fetch(`/api/service-orders/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Failed to delete service order');
-  }, []);
+  const deleteBrandMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/brands/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['brands'] }),
+  });
 
-  const addServiceOrderStatusAPI = useCallback(async (status: any) => {
-    const res = await fetch('/api/service-order-statuses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(status)
-    });
-    if (!res.ok) throw new Error('Failed to add status');
-  }, []);
+  const addModelMutation = useMutation({
+    mutationFn: (model: any) => api.post('/models', model),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['models'] }),
+  });
 
-  const deleteServiceOrderStatusAPI = useCallback(async (id: number) => {
-    const res = await fetch(`/api/service-order-statuses/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Failed to delete status');
-  }, []);
-
-  const addEquipmentTypeAPI = useCallback(async (name: string, icon?: string) => {
-    const res = await fetch('/api/equipment-types', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, icon })
-    });
-    if (!res.ok) throw new Error('Failed to add equipment type');
-  }, []);
-
-  const deleteEquipmentTypeAPI = useCallback(async (id: number) => {
-    const res = await fetch(`/api/equipment-types/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Failed to delete equipment type');
-  }, []);
-
-  const addBrandAPI = useCallback(async (name: string, equipmentType: string) => {
-    const res = await fetch('/api/brands', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, equipmentType })
-    });
-    if (!res.ok) throw new Error('Failed to add brand');
-  }, []);
-
-  const deleteBrandAPI = useCallback(async (id: number) => {
-    const res = await fetch(`/api/brands/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Failed to delete brand');
-  }, []);
-
-  const addModelAPI = useCallback(async (brandId: number, name: string) => {
-    const res = await fetch('/api/models', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ brandId, name })
-    });
-    if (!res.ok) throw new Error('Failed to add model');
-  }, []);
-
-  const deleteModelAPI = useCallback(async (id: number) => {
-    const res = await fetch(`/api/models/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Failed to delete model');
-  }, []);
+  const deleteModelMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/models/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['models'] }),
+  });
 
   return {
-    serviceOrders,
+    serviceOrders: serviceOrdersData || { data: [], meta: { total: 0, page: 1, totalPages: 1, limit: 20 } },
     serviceOrdersPage,
     setServiceOrdersPage,
-    serviceOrderStatuses,
-    equipmentTypes,
-    brands,
-    models,
-    fetchServiceOrders,
-    fetchServiceOrderStatuses,
-    fetchEquipmentTypes,
-    fetchBrands,
-    fetchModels,
-    saveServiceOrderAPI,
-    deleteServiceOrderAPI,
-    addServiceOrderStatusAPI,
-    deleteServiceOrderStatusAPI,
-    addEquipmentTypeAPI,
-    deleteEquipmentTypeAPI,
-    addBrandAPI,
-    deleteBrandAPI,
-    addModelAPI,
-    deleteModelAPI
+    serviceOrderStatuses: serviceOrderStatuses || [],
+    equipmentTypes: equipmentTypes || [],
+    brands: brands || [],
+    models: models || [],
+    fetchServiceOrders: refetch,
+    saveServiceOrderAPI: (order: any, id?: number) => saveMutation.mutateAsync({ order, id }),
+    deleteServiceOrderAPI: (id: number) => deleteMutation.mutateAsync(id),
+    addServiceOrderStatusAPI: (status: any) => addStatusMutation.mutateAsync(status),
+    deleteServiceOrderStatusAPI: (id: number) => deleteStatusMutation.mutateAsync(id),
+    addEquipmentTypeAPI: (name: string, icon?: string) => addEquipmentTypeMutation.mutateAsync({ name, icon }),
+    deleteEquipmentTypeAPI: (id: number) => deleteEquipmentTypeMutation.mutateAsync(id),
+    addBrandAPI: (name: string, equipmentType: string) => addBrandMutation.mutateAsync({ name, equipmentType }),
+    deleteBrandAPI: (id: number) => deleteBrandMutation.mutateAsync(id),
+    addModelAPI: (brandId: number, name: string) => addModelMutation.mutateAsync({ brandId, name }),
+    deleteModelAPI: (id: number) => deleteModelMutation.mutateAsync(id),
+    isLoading,
+    isError
   };
 };

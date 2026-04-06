@@ -7,63 +7,144 @@ import {
   Printer, 
   Users, 
   Package, 
-  CreditCard 
+  CreditCard,
+  Search as SearchIcon
 } from 'lucide-react';
-import { cn } from '../../lib/utils';
 import { NotificationCenter } from './NotificationCenter';
-import { Screen, ClientPayment, ServiceOrder } from '../../types';
+import { Screen } from '../../types';
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { useAppStore } from '../../store/useAppStore';
+import { useFilterStore } from '../../store/useFilterStore';
+import { useNotifications } from '../../hooks/useNotifications';
+import { useClientPayments } from '../../hooks/useClientPayments';
+import { useServiceOrders } from '../../hooks/useServiceOrders';
+import { useExportData } from '../../hooks/useExportData';
+import { useTransactions } from '../../hooks/useTransactions';
+import { useCustomers } from '../../hooks/useCustomers';
+import { useInventory } from '../../hooks/useInventory';
+import { useFormStore } from '../../store/useFormStore';
+import { useModalStore } from '../../store/useModalStore';
 
-interface HeaderProps {
-  activeScreen: Screen;
-  setActiveScreen: (screen: Screen) => void;
-  isSidebarOpen: boolean;
-  setIsSidebarOpen: (open: boolean) => void;
-  searchTerm: string;
-  setSearchTerm: (term: string) => void;
-  fontSize: number;
-  setFontSize: (size: number) => void;
-  showNotifications: boolean;
-  setShowNotifications: (show: boolean) => void;
-  notificationTab: 'payments' | 'service-orders';
-  setNotificationTab: (tab: 'payments' | 'service-orders') => void;
-  totalNotifications: number;
-  totalPaymentNotifications: number;
-  totalServiceOrderNotifications: number;
-  overdueDebts: ClientPayment[];
-  dueTodayDebts: ClientPayment[];
-  upcomingDebts: ClientPayment[];
-  overdueServiceOrders: ServiceOrder[];
-  dueTodayServiceOrders: ServiceOrder[];
-  upcomingServiceOrders: ServiceOrder[];
-  getHeaderConfig: () => any;
-}
-
-export const Header = ({
-  activeScreen,
-  setActiveScreen,
-  isSidebarOpen,
-  setIsSidebarOpen,
-  searchTerm,
-  setSearchTerm,
-  fontSize,
-  setFontSize,
-  showNotifications,
-  setShowNotifications,
-  notificationTab,
-  setNotificationTab,
-  totalNotifications,
-  totalPaymentNotifications,
-  totalServiceOrderNotifications,
-  overdueDebts,
-  dueTodayDebts,
-  upcomingDebts,
-  overdueServiceOrders,
-  dueTodayServiceOrders,
-  upcomingServiceOrders,
-  getHeaderConfig
-}: HeaderProps) => {
+export const Header = () => {
   const { settings } = useSettingsStore();
+  const {
+    activeScreen, setActiveScreen,
+    isSidebarOpen, setIsSidebarOpen,
+    fontSize, setFontSize,
+    showNotifications, setShowNotifications,
+    notificationTab, setNotificationTab,
+    setIsSearchingOS,
+    setIsAdding,
+    setIsAddingServiceOrder,
+    setIsAddingCustomer,
+    setCustomerRegistrationSource,
+    setIsAddingInventoryItem,
+    setIsAddingClientPayment
+  } = useAppStore();
+
+  const { searchTerm, setSearchTerm } = useFilterStore();
+  
+  const { clientPayments } = useClientPayments();
+  const { serviceOrders } = useServiceOrders();
+  const { transactions } = useTransactions();
+  const { customers } = useCustomers();
+  const { inventoryItems } = useInventory();
+  const { setNewCustomer } = useFormStore();
+  const { setEditingTransaction, setEditingCustomer } = useModalStore();
+
+  const { 
+    exportTransactionsToCSV,
+    exportServiceOrdersToCSV,
+    exportCustomersToCSV,
+    exportInventoryToCSV,
+    exportPaymentsToCSV
+  } = useExportData();
+
+  const { 
+    upcomingDebts,
+    dueTodayDebts,
+    overdueDebts,
+    overdueServiceOrders,
+    dueTodayServiceOrders,
+    upcomingServiceOrders,
+    totalPaymentNotifications,
+    totalServiceOrderNotifications,
+    totalNotifications
+  } = useNotifications(clientPayments.data, serviceOrders.data);
+
+  const getHeaderConfig = () => {
+    switch (activeScreen) {
+      case 'dashboard':
+        return { title: 'Painel de Controle' };
+      case 'transactions':
+        return { 
+          title: 'Transações Diárias',
+          export: { label: 'Exportar CSV', icon: Download, onClick: () => exportTransactionsToCSV(transactions.data) },
+          newButton: { 
+            label: 'Nova Entrada', 
+            icon: Plus, 
+            onClick: () => {
+              setEditingTransaction(null);
+              setIsAdding(true);
+            } 
+          }
+        };
+      case 'service-orders':
+        return { 
+          title: 'Ordens de Serviço',
+          export: { label: 'Exportar CSV', icon: Download, onClick: () => exportServiceOrdersToCSV(serviceOrders.data, customers.data) },
+          searchButton: { label: 'Buscar OS', icon: SearchIcon, onClick: () => setIsSearchingOS(true) },
+          newButton: { label: 'Nova Ordem', icon: Plus, onClick: () => setIsAddingServiceOrder(true) }
+        };
+      case 'customers':
+        return { 
+          title: 'Gestão de Clientes',
+          export: { label: 'Exportar CSV', icon: Download, onClick: () => exportCustomersToCSV(customers.data) },
+          newButton: { 
+            label: 'Novo Cliente', 
+            icon: Users, 
+            onClick: () => {
+              setEditingCustomer(null);
+              setNewCustomer({
+                firstName: '',
+                lastName: '',
+                nickname: '',
+                cpf: '',
+                companyName: '',
+                phone: '',
+                observation: '',
+                creditLimit: ''
+              });
+              setCustomerRegistrationSource('customers');
+              setIsAddingCustomer(true);
+            } 
+          }
+        };
+      case 'inventory':
+        return { 
+          title: 'Produtos & Serviços',
+          export: { label: 'Exportar CSV', icon: Download, onClick: () => exportInventoryToCSV(inventoryItems) },
+          newButton: { label: 'Novo Item', icon: Package, onClick: () => setIsAddingInventoryItem(true) }
+        };
+      case 'client-payments':
+        return { 
+          title: 'Vendas e Pagamentos',
+          export: { label: 'Exportar CSV', icon: Download, onClick: () => exportPaymentsToCSV(clientPayments.data) },
+          newButton: { label: 'Novo Pagamento', icon: CreditCard, onClick: () => setIsAddingClientPayment(true) }
+        };
+      case 'reports':
+        return { 
+          title: 'Relatórios e Análises',
+          export: { label: 'Imprimir', icon: Printer, onClick: () => window.print() }
+        };
+      case 'settings':
+        return { title: 'Configurações do Sistema' };
+      default:
+        return { title: 'FinanceFlow' };
+    }
+  };
+
+  const config = getHeaderConfig();
 
   return (
     <header className="sticky top-0 z-40 bg-bg-dark/80 backdrop-blur-xl border-b border-white/5 px-6 py-4 flex items-center justify-between shadow-2xl shadow-black/20">
@@ -75,7 +156,7 @@ export const Header = ({
           <Menu size={20} />
         </button>
         <div className="flex flex-col">
-          <h2 className="text-xl font-black tracking-tighter italic leading-none">{getHeaderConfig().title}</h2>
+          <h2 className="text-xl font-black tracking-tighter italic leading-none">{config.title}</h2>
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 hidden sm:block">Ano Fiscal {settings.fiscalYear}</span>
         </div>
       </div>
@@ -130,31 +211,31 @@ export const Header = ({
         />
         <div className="h-8 w-[1px] bg-white/10 mx-2 hidden sm:block"></div>
         <div className="flex gap-2">
-           {getHeaderConfig().searchButton && (
+           {config.searchButton && (
              <button 
-              onClick={getHeaderConfig().searchButton?.onClick}
+              onClick={config.searchButton?.onClick}
               className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-400 hover:text-slate-200 hover:bg-white/[0.03] border border-white/10 transition-all hover:border-white/20"
             >
-              {React.createElement(getHeaderConfig().searchButton?.icon || Search, { size: 16 })}
-              {getHeaderConfig().searchButton?.label}
+              {React.createElement(config.searchButton?.icon || SearchIcon, { size: 16 })}
+              {config.searchButton?.label}
             </button>
            )}
-           {getHeaderConfig().export && (
+           {config.export && (
              <button 
-              onClick={getHeaderConfig().export?.onClick}
+              onClick={config.export?.onClick}
               className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-400 hover:text-slate-200 hover:bg-white/[0.03] border border-white/10 transition-all hover:border-white/20"
             >
-              {React.createElement(getHeaderConfig().export?.icon || Download, { size: 16 })}
-              {getHeaderConfig().export?.label || 'Exportar'}
+              {React.createElement(config.export?.icon || Download, { size: 16 })}
+              {config.export?.label || 'Exportar'}
             </button>
            )}
-           {getHeaderConfig().newButton && (
+           {config.newButton && (
             <button 
-              onClick={getHeaderConfig().newButton?.onClick}
+              onClick={config.newButton?.onClick}
               className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-[0_10px_20px_-5px_rgba(17,82,212,0.4)] hover:shadow-[0_15px_25px_-5px_rgba(17,82,212,0.5)] hover:scale-[1.02] active:scale-95"
             >
-              {React.createElement(getHeaderConfig().newButton?.icon || Plus, { size: 18 })}
-              {getHeaderConfig().newButton?.label}
+              {React.createElement(config.newButton?.icon || Plus, { size: 18 })}
+              {config.newButton?.label}
             </button>
            )}
         </div>

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Inventory } from '../components/inventory/Inventory';
 import { useInventory } from '../hooks/useInventory';
 import { useToast } from '../components/ui/Toast';
 import { useFilterStore } from '../store/useFilterStore';
 import { useAppStore } from '../store/useAppStore';
 import { useModalStore } from '../store/useModalStore';
+import { useDebounce } from '../hooks/useDebounce';
 import { InventoryItem } from '../types';
 
 export const InventoryPage: React.FC = () => {
@@ -13,28 +14,23 @@ export const InventoryPage: React.FC = () => {
     inventorySearchTerm, setInventorySearchTerm,
     inventoryCategoryFilter, setInventoryCategoryFilter
   } = useFilterStore();
+  const [localSearchTerm, setLocalSearchTerm] = useState(inventorySearchTerm);
+  const debouncedSearchTerm = useDebounce(localSearchTerm, 500);
+
+  useEffect(() => {
+    setInventorySearchTerm(debouncedSearchTerm);
+  }, [debouncedSearchTerm, setInventorySearchTerm]);
+
   const { isAddingInventoryItem, setIsAddingInventoryItem } = useAppStore();
   const { openConfirm } = useModalStore();
 
   const { 
     inventoryItems, 
     saveInventoryItemAPI, 
-    deleteInventoryItemAPI,
-    fetchInventoryItems 
+    deleteInventoryItemAPI
   } = useInventory(showToast);
 
-  React.useEffect(() => {
-    fetchInventoryItems();
-  }, [fetchInventoryItems]);
-
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
-  const [newItem, setNewItem] = useState({
-    name: '',
-    category: 'product' as 'product' | 'service',
-    sku: '',
-    unitPrice: '',
-    stockLevel: ''
-  });
 
   return (
     <Inventory 
@@ -42,8 +38,8 @@ export const InventoryPage: React.FC = () => {
       onAddItem={(item) => saveInventoryItemAPI(item)}
       onUpdateItem={(id, item) => saveInventoryItemAPI(item, id)}
       onDeleteItem={deleteInventoryItemAPI}
-      searchTerm={inventorySearchTerm}
-      onSearchChange={setInventorySearchTerm}
+      searchTerm={localSearchTerm}
+      onSearchChange={setLocalSearchTerm}
       categoryFilter={inventoryCategoryFilter}
       onCategoryFilterChange={setInventoryCategoryFilter}
       isAdding={isAddingInventoryItem}
@@ -51,8 +47,6 @@ export const InventoryPage: React.FC = () => {
       onOpenConfirm={openConfirm}
       editingItem={editingItem}
       setEditingItem={setEditingItem}
-      newItem={newItem}
-      setNewItem={setNewItem}
       showToast={showToast}
     />
   );
