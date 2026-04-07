@@ -1,24 +1,15 @@
-# Documentação do Projeto FinanceFlow
+# Documentação do Projeto - FINANCEIRO INOVA
 
-Bem-vindo à documentação técnica do projeto FinanceFlow. Esta pasta contém guias sobre a arquitetura, planejamento e guias de uso do sistema.
+Bem-vindo à documentação oficial do **FINANCEIRO INOVA**. Este diretório contém todas as informações necessárias para entender, operar e evoluir o sistema.
 
 ## 📂 Estrutura da Documentação
 
-### 🏛️ [Arquitetura](./architecture)
-*   [0-Visão Geral do Projeto](./architecture/0-PROJECT_OVERVIEW.md): Contexto histórico, tech stack (Express + SQLite) e planos de migração para Supabase.
-*   [1-Estrutura e Fluxo de Dados](./architecture/1-STRUCTURE_AND_DATA_FLOW.md): Detalhes técnicos sobre a organização de pastas e como os dados fluem entre Frontend e Backend.
+A documentação foi organizada profissionalmente para facilitar o acesso rápido às informações:
 
-### 🚀 [Planejamento](./planning)
-*   [2-Guia de Escalabilidade e Profissionalismo](./planning/2-SCALABILITY_AND_ENTERPRISE_GUIDE.md): O roadmap para transformar este MVP em uma aplicação de nível corporativo.
-*   [Débitos Técnicos e Refatoração](./technical-debt.md): Lista de arquivos grandes, gargalos e planos de melhoria contínua.
-
-### 📖 [Guias](./guides)
-*   [3-O Papel do App.tsx](./guides/3-APP_TSX_ROLE.md): Explicação sobre a função atual do componente raiz após a refatoração.
-*   [Configuração do VS Code](./VSCODE_SETUP.md): Guia para configurar o ambiente de desenvolvimento local.
-
-### 📜 [Histórico](./history)
-*   [Plano de Refatoração](./history/REFACTORING_PLAN.md): O plano original para desmembrar o `App.tsx`.
-*   [Checklist de Refatoração](./history/REFACTORING_CHECKLIST.md): O acompanhamento do progresso das fases de refatoração.
+1.  **[PRD.md](./PRD.md)**: Documento de Requisitos do Produto. Visão geral, funcionalidades e objetivos do negócio.
+2.  **[ARCHITECTURE.md](./ARCHITECTURE.md)**: Detalhamento técnico da arquitetura Frontend, Backend e Banco de Dados.
+3.  **[ROADMAP.md](./ROADMAP.md)**: Plano de evolução do projeto, incluindo a migração para Supabase e novas funcionalidades.
+4.  **[DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md)**: Guia prático para desenvolvedores configurarem o ambiente e seguirem os padrões de código.
 
 ---
 
@@ -27,3 +18,15 @@ Bem-vindo à documentação técnica do projeto FinanceFlow. Esta pasta contém 
 *   **Backend:** Express, SQLite (better-sqlite3).
 *   **Estilização:** Tailwind CSS 4.
 *   **Animações:** Motion.
+
+---
+
+## 🤝 Como Contribuir
+Para manter a documentação atualizada:
+- Sempre que uma nova funcionalidade for adicionada, atualize o **PRD.md**.
+- Mudanças estruturais no código ou banco de dados devem ser refletidas no **ARCHITECTURE.md**.
+- Novos passos ou mudanças de prioridade devem ser registrados no **ROADMAP.md**.
+
+---
+**Versão Atual:** 1.0.0
+**Última Atualização:** Abril de 2026
