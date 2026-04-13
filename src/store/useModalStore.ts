@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Transaction, Customer, ClientPayment } from '../types';
+import { Transaction, Customer, ClientPayment, WarningType, CustomerPaymentWarning } from '../types';
 
 interface ModalState {
   // Confirmation Modal
@@ -24,8 +24,8 @@ interface ModalState {
   // Warning Modals
   showWarningModal: boolean;
   setShowWarningModal: (show: boolean) => void;
-  warningType: 'category' | 'description' | 'both';
-  setWarningType: (type: 'category' | 'description' | 'both') => void;
+  warningType: WarningType;
+  setWarningType: (type: WarningType) => void;
 
   showCustomerWarningModal: boolean;
   setShowCustomerWarningModal: (show: boolean) => void;
@@ -48,8 +48,8 @@ interface ModalState {
   setEditingCustomer: (customer: Customer | null) => void;
   customerToDelete: Customer | null;
   setCustomerToDelete: (customer: Customer | null) => void;
-  customerPaymentsWarning: any[];
-  setCustomerPaymentsWarning: (warnings: any[]) => void;
+  customerPaymentsWarning: CustomerPaymentWarning[];
+  setCustomerPaymentsWarning: (warnings: CustomerPaymentWarning[]) => void;
 
   // Client Payment Modals
   clientPaymentToDelete: number | null;

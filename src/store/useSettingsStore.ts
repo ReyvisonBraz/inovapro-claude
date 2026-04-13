@@ -12,7 +12,7 @@ interface SettingsState {
 }
 
 const defaultSettings: AppSettings = {
-  appName: 'Financeiro Pro',
+  appName: 'INOVA PRO',
   fiscalYear: '2024',
   primaryColor: '#1152d4',
   categories: 'Alimentação,Trabalho,Utilidades,Viagem,Lazer,Outros',
@@ -25,7 +25,7 @@ const defaultSettings: AppSettings = {
   showWarnings: true,
   currency: 'BRL',
   hiddenColumns: [],
-  settingsPassword: '1234',
+  settingsPassword: '',
   receiptLayout: 'a4',
   receiptLogo: '',
   receiptCnpj: '',

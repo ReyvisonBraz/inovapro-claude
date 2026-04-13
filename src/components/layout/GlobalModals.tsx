@@ -118,7 +118,7 @@ export const GlobalModals: React.FC = () => {
   };
 
   const handleUnlockSettings = () => {
-    if (passwordInput === settings.adminPassword) {
+    if (passwordInput === settings.settingsPassword) {
       setShowPasswordModal(false);
       setPasswordInput('');
       navigate('/configuracoes');
@@ -171,7 +171,7 @@ export const GlobalModals: React.FC = () => {
   const confirmDeleteClientPayment = async () => {
     if (!clientPaymentToDelete) return;
     try {
-      await deleteClientPaymentAPI(clientPaymentToDelete.id);
+      await deleteClientPaymentAPI(clientPaymentToDelete);
       setClientPaymentToDelete(null);
       fetchAuditLogs();
     } catch (err) {

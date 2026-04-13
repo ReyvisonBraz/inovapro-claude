@@ -140,7 +140,7 @@ export const Header = () => {
       case 'settings':
         return { title: 'Configurações do Sistema' };
       default:
-        return { title: 'FinanceFlow' };
+        return { title: 'INOVA PRO' };
     }
   };
 

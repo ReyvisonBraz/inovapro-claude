@@ -33,25 +33,32 @@ export function useTransactions(showToast: (message: string, type: 'success' | '
       filterMaxAmount
     ],
     queryFn: async () => {
-      let url = `/transactions?page=${transactionsPage}&limit=20&search=${encodeURIComponent(searchTerm)}`;
-      
-      if (filterType !== 'all') url += `&type=${filterType}`;
-      if (filterCategory !== 'all') url += `&category=${encodeURIComponent(filterCategory)}`;
-      
+      const params = new URLSearchParams({
+        page: transactionsPage.toString(),
+        limit: '20',
+        search: searchTerm,
+      });
+
+      if (filterType !== 'all') params.set('type', filterType);
+      if (filterCategory !== 'all') params.set('category', filterCategory);
+
       if (dateFilterMode === 'day') {
-        url += `&startDate=${selectedDate}&endDate=${selectedDate}`;
+        params.set('startDate', selectedDate);
+        params.set('endDate', selectedDate);
       } else if (dateFilterMode === 'month') {
         const start = `${selectedMonth}-01`;
         const end = format(endOfMonth(parseISO(`${selectedMonth}-01`)), 'yyyy-MM-dd');
-        url += `&startDate=${start}&endDate=${end}`;
+        params.set('startDate', start);
+        params.set('endDate', end);
       } else if (dateFilterMode === 'range') {
-        url += `&startDate=${startDate}&endDate=${endDate}`;
+        params.set('startDate', startDate);
+        params.set('endDate', endDate);
       }
-      
-      if (filterMinAmount) url += `&minAmount=${filterMinAmount}`;
-      if (filterMaxAmount) url += `&maxAmount=${filterMaxAmount}`;
 
-      const { data } = await api.get(url);
+      if (filterMinAmount) params.set('minAmount', filterMinAmount);
+      if (filterMaxAmount) params.set('maxAmount', filterMaxAmount);
+
+      const { data } = await api.get(`/transactions?${params.toString()}`);
       return data;
     },
   });
