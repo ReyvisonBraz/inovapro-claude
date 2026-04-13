@@ -482,6 +482,7 @@ async function startServer() {
   // Adicionar uma nova transação
   app.post("/api/transactions", (req, res) => {
     try {
+      console.log('[TRANSACTION POST] Received body:', req.body);
       const validatedData = TransactionSchema.parse(req.body);
       const { description, category, type, amount, date, createdBy } = validatedData;
       const info = db.prepare(
@@ -494,8 +495,10 @@ async function startServer() {
       res.json({ id: info.lastInsertRowid });
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.log('[TRANSACTION POST] Validation error:', error.issues);
         return res.status(400).json({ error: "Validation failed", details: error.issues });
       }
+      console.log('[TRANSACTION POST] Server error:', error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

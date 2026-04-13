@@ -465,7 +465,7 @@ export const ClientPayments = ({
                           >
                             <td colSpan={6}>
                               {item.payments.map(payment => (
-                                <tr key={payment.id} className="hover:bg-white/[0.02] transition-colors border-l-4 border-primary/30 w-full flex">
+                                <div key={payment.id} className="hover:bg-white/[0.02] transition-colors border-l-4 border-primary/30 w-full flex">
                                   <td className="px-4 py-2 pl-8 w-1/6">
                                     <p className="text-sm font-medium text-slate-400">└ {payment.customerName}</p>
                                   </td>
@@ -531,7 +531,7 @@ export const ClientPayments = ({
                                       </button>
                                     </div>
                                   </td>
-                                </tr>
+                                </div>
                               ))}
                             </td>
                           </motion.tr>

@@ -30,7 +30,7 @@ import { DirectOsSearchModal } from '../service-orders/modals/DirectOsSearchModa
 
 export const GlobalModals: React.FC = () => {
   const navigate = useNavigate();
-  const { settings, saveSettingsAPI: updateSettings } = useSettingsStore();
+  const { settings, categories, saveSettingsAPI: updateSettings } = useSettingsStore();
   const { showToast } = useToast();
   const { currentUser } = useAuth();
   
@@ -146,12 +146,14 @@ export const GlobalModals: React.FC = () => {
         updatedBy: currentUser?.id
       }, editingTransaction?.id);
       
+      showToast(editingTransaction ? 'Lançamento atualizado!' : 'Lançamento criado!', 'success');
       setIsAdding(false);
       setShowWarningModal(false);
       setEditingTransaction(null);
       fetchAuditLogs();
     } catch (err) {
       console.error("Failed to save transaction", err);
+      showToast('Erro ao salvar lançamento. Tente novamente.', 'error');
     }
   };
 
@@ -238,7 +240,7 @@ export const GlobalModals: React.FC = () => {
           setEditingTransaction(null);
         }}
         editingTransaction={editingTransaction}
-        categories={settings.categories}
+        categories={categories}
         onSubmit={(data) => handleAddTransaction(data)}
       />
 
