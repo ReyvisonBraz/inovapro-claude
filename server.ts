@@ -506,6 +506,7 @@ async function startServer() {
   // Deletar uma transação
   app.delete("/api/transactions/:id", (req, res) => {
     const txId = req.params.id;
+    console.log('[TRANSACTION DELETE] Deleting transaction ID:', txId);
     const tx = db.prepare("SELECT * FROM transactions WHERE id = ?").get(txId) as any;
     
     if (tx) {
@@ -522,6 +523,9 @@ async function startServer() {
 
       db.prepare("DELETE FROM transactions WHERE id = ?").run(txId);
       db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'transaction', txId, `Deleted transaction: ${tx.description}`);
+      console.log('[TRANSACTION DELETE] Successfully deleted:', txId);
+    } else {
+      console.log('[TRANSACTION DELETE] Transaction not found:', txId);
     }
     
     res.json({ success: true });

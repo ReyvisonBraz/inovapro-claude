@@ -157,12 +157,14 @@ export const GlobalModals: React.FC = () => {
     }
   };
 
-  const handleDeleteTransaction = async (tx: any) => {
+  const handleDeleteTransaction = async (id: number) => {
     try {
-      await deleteTransactionAPI(tx.id);
+      await deleteTransactionAPI(id);
+      showToast('Transação excluída!', 'success');
       fetchAuditLogs();
     } catch (err) {
       console.error("Failed to delete transaction", err);
+      showToast('Erro ao excluir transação.', 'error');
     }
   };
 
