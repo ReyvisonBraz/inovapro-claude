@@ -227,7 +227,6 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
   };
 
   const onFormSubmit = async (data: ServiceOrderFormData) => {
-    console.log('Submitting Service Order Data:', data);
     const orderData = {
       ...data,
       createdBy: currentUser?.id
@@ -906,7 +905,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
             </button>
             <button 
               type="button"
-              onClick={handleSubmit(onFormSubmit, (errors) => console.log('Validation Errors:', errors))}
+              onClick={handleSubmit(onFormSubmit)}
               className="flex-[2] h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-primary text-white font-black shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 order-1 sm:order-2"
             >
               <Check size={20} />

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User } from '../types';
-import { api } from '../services/api';
+import api from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 
 export const useUsers = () => {
@@ -8,8 +8,8 @@ export const useUsers = () => {
   const queryClient = useQueryClient();
 
   const fetchUsers = async () => {
-    const data = await api.get('/api/users');
-    return data;
+    const res = await api.get('/users');
+    return res.data;
   };
 
   const useUsersQuery = () => {
@@ -21,7 +21,8 @@ export const useUsers = () => {
 
   const addUserMutation = useMutation({
     mutationFn: async (user: Omit<User, 'id'>) => {
-      return await api.post('/api/users', user);
+      const res = await api.post('/users', user);
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -35,7 +36,8 @@ export const useUsers = () => {
 
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, user }: { id: number; user: Partial<User> }) => {
-      return await api.put(`/api/users/${id}`, user);
+      const res = await api.put(`/users/${id}`, user);
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -49,7 +51,7 @@ export const useUsers = () => {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (id: number) => {
-      await api.delete(`/api/users/${id}`);
+      await api.delete(`/users/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });

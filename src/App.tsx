@@ -13,6 +13,7 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { MobileNav } from './components/layout/MobileNav';
 import { GlobalModals } from './components/layout/GlobalModals';
+import { printBlankForm } from './lib/printUtils';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { PageLoader } from './components/ui/PageLoader';
 
@@ -156,7 +157,7 @@ export default function App() {
 
   const handleLogout = () => {
     logout();
-    navigate('/dashboard');
+    navigate('/login');
   };
 
   if (!isAuthenticated) {
@@ -195,7 +196,7 @@ export default function App() {
         <MobileNav />
 
         <footer className="py-10 px-10 text-center border-t border-white/5">
-          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">© 2024 FinanceFlow Inc. Todos os direitos reservados.</p>
+          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">© {new Date().getFullYear()} INOVA PRO. Todos os direitos reservados.</p>
         </footer>
       </main>
 

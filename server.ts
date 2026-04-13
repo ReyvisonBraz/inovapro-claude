@@ -4,6 +4,7 @@ import Database from "better-sqlite3";
 import path from "path";
 import { fileURLToPath } from "url";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -126,7 +127,7 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS settings (
     id INTEGER PRIMARY KEY CHECK (id = 1),
-    appName TEXT DEFAULT 'Financeiro Pro',
+    appName TEXT DEFAULT 'INOVA PRO',
     appVersion TEXT DEFAULT 'Versão Empresarial',
     fiscalYear TEXT DEFAULT '2024',
     primaryColor TEXT DEFAULT '#1152d4',
@@ -138,7 +139,7 @@ db.exec(`
     initialBalance REAL DEFAULT 0,
     showWarnings INTEGER DEFAULT 1,
     hiddenColumns TEXT DEFAULT '[]',
-    settingsPassword TEXT DEFAULT '1234',
+    settingsPassword TEXT DEFAULT '',
     receiptLayout TEXT DEFAULT 'a4',
     receiptLogo TEXT,
     companyCnpj TEXT,
@@ -293,7 +294,7 @@ const migrations = [
   { name: 'initialBalance', table: 'settings', type: "REAL DEFAULT 0" },
   { name: 'showWarnings', table: 'settings', type: "INTEGER DEFAULT 1" },
   { name: 'hiddenColumns', table: 'settings', type: "TEXT DEFAULT '[]'" },
-  { name: 'settingsPassword', table: 'settings', type: "TEXT DEFAULT '1234'" },
+  { name: 'settingsPassword', table: 'settings', type: "TEXT DEFAULT ''" },
   { name: 'receiptLayout', table: 'settings', type: "TEXT DEFAULT 'a4'" },
   { name: 'receiptLogo', table: 'settings', type: "TEXT" },
   { name: 'companyCnpj', table: 'settings', type: "TEXT" },
@@ -352,9 +353,10 @@ migrations.forEach(m => {
 // Inserir usuário Admin padrão se não existir
 const usersCount = db.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
 if (usersCount.count === 0) {
-  // Admin tem todas as permissões por padrão
   const allPermissions = JSON.stringify(['view_dashboard', 'manage_transactions', 'view_reports', 'manage_customers', 'manage_payments', 'manage_settings', 'manage_users']);
-  db.prepare("INSERT INTO users (username, password, role, name, permissions) VALUES (?, ?, ?, ?, ?)").run('admin', 'admin', 'owner', 'Administrador', allPermissions);
+  const defaultPassword = process.env.ADMIN_PASSWORD || 'admin';
+  const hashedPassword = bcrypt.hashSync(defaultPassword, 10);
+  db.prepare("INSERT INTO users (username, password, role, name, permissions) VALUES (?, ?, ?, ?, ?)").run('admin', hashedPassword, 'owner', 'Administrador', allPermissions);
 }
 
 // Inserir configurações padrão se não existirem
@@ -482,7 +484,6 @@ async function startServer() {
   // Adicionar uma nova transação
   app.post("/api/transactions", (req, res) => {
     try {
-      console.log('[TRANSACTION POST] Received body:', req.body);
       const validatedData = TransactionSchema.parse(req.body);
       const { description, category, type, amount, date, createdBy } = validatedData;
       const info = db.prepare(
@@ -891,25 +892,25 @@ async function startServer() {
   // Rotas de Autenticação
   app.post("/api/login", (req, res) => {
     const { username, password } = req.body;
-    const user = db.prepare("SELECT * FROM users WHERE username = ? AND password = ?").get(username, password) as any;
-    
-    if (user) {
-      // Parse permissions
-      try {
-        user.permissions = JSON.parse(user.permissions || '[]');
-      } catch (e) {
-        user.permissions = [];
-      }
-      
-      // Se for owner, garante todas as permissões
-      if (user.role === 'owner') {
-        user.permissions = ['view_dashboard', 'manage_transactions', 'view_reports', 'manage_customers', 'manage_payments', 'manage_settings', 'manage_users'];
-      }
+    const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username) as any;
 
-      res.json(user);
-    } else {
-      res.status(401).json({ error: "Credenciais inválidas" });
+    if (!user || !bcrypt.compareSync(password, user.password)) {
+      return res.status(401).json({ error: "Credenciais inválidas" });
     }
+
+    // Parse permissions
+    try {
+      user.permissions = JSON.parse(user.permissions || '[]');
+    } catch (e) {
+      user.permissions = [];
+    }
+
+    // Se for owner, garante todas as permissões
+    if (user.role === 'owner') {
+      user.permissions = ['view_dashboard', 'manage_transactions', 'view_reports', 'manage_customers', 'manage_payments', 'manage_settings', 'manage_users'];
+    }
+
+    res.json(user);
   });
 
   // Rotas de Usuários
@@ -933,7 +934,8 @@ async function startServer() {
     const { username, password, role, name, permissions } = req.body;
     try {
       const permsString = JSON.stringify(permissions || []);
-      const result = db.prepare("INSERT INTO users (username, password, role, name, permissions) VALUES (?, ?, ?, ?, ?)").run(username, password, role, name, permsString);
+      const hashedPassword = bcrypt.hashSync(password, 10);
+      const result = db.prepare("INSERT INTO users (username, password, role, name, permissions) VALUES (?, ?, ?, ?, ?)").run(username, hashedPassword, role, name, permsString);
       
       // Log action
       db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'create', 'user', result.lastInsertRowid, `Created user ${username}`);
@@ -946,12 +948,13 @@ async function startServer() {
 
   app.put("/api/users/:id", (req, res) => {
     const { name, role, password, permissions } = req.body;
-    
+
     try {
       const permsString = JSON.stringify(permissions || []);
-      
+
       if (password) {
-        db.prepare("UPDATE users SET name = ?, role = ?, password = ?, permissions = ? WHERE id = ?").run(name, role, password, permsString, req.params.id);
+        const hashedPassword = bcrypt.hashSync(password, 10);
+        db.prepare("UPDATE users SET name = ?, role = ?, password = ?, permissions = ? WHERE id = ?").run(name, role, hashedPassword, permsString, req.params.id);
       } else {
         db.prepare("UPDATE users SET name = ?, role = ?, permissions = ? WHERE id = ?").run(name, role, permsString, req.params.id);
       }

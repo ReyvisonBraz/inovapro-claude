@@ -52,20 +52,10 @@ export const Sidebar = () => {
         isSidebarCollapsed ? "px-4 justify-center" : "px-6"
       )}>
         {!isSidebarCollapsed && (
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-              <span className="font-black text-lg text-white italic">FF</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-base tracking-tight leading-none text-white">Finance<span className="text-primary">Flow</span></span>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-1">Sistemas de Gestão</span>
-            </div>
-          </div>
+          <img src="/logo.png" alt="INOVA PRO" className="h-10 w-auto object-contain" />
         )}
         {isSidebarCollapsed && (
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-            <span className="font-black text-xl text-white italic">FF</span>
-          </div>
+          <img src="/logo.png" alt="INOVA PRO" className="h-8 w-auto object-contain" />
         )}
         <button 
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}

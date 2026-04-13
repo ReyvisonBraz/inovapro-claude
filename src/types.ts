@@ -50,6 +50,27 @@ export interface Customer {
   updatedBy?: number;
 }
 
+export interface PaymentHistoryEntry {
+  amount: number;
+  date: string;
+  installmentNumber?: number;
+}
+
+export function parsePaymentHistory(raw?: string): PaymentHistoryEntry[] {
+  if (!raw) return [];
+  try { return JSON.parse(raw); }
+  catch { return []; }
+}
+
+export interface CustomerPaymentWarning {
+  customerId: number;
+  customerName: string;
+  totalOutstanding: number;
+  overdueCount: number;
+}
+
+export type WarningType = 'category' | 'description' | 'both' | 'duplicate';
+
 export interface ClientPayment {
   id: number;
   customerId: number;
@@ -64,7 +85,7 @@ export interface ClientPayment {
   type: 'income' | 'expense';
   saleId?: string;
   customerName?: string;
-  paymentHistory?: string; // JSON string of { amount: number, date: string }[]
+  paymentHistory?: string; // JSON string — usar parsePaymentHistory() para ler
   createdBy?: number;
   updatedBy?: number;
 }

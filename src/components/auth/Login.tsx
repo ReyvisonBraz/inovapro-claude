@@ -44,8 +44,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <div className="min-h-screen bg-bg-dark text-white flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8 space-y-2">
-          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(17,82,212,0.4)] mb-6">
-            <Wallet size={32} className="text-white" />
+          <div className="flex items-center justify-center mb-6">
+            <img src="/logo.png" alt="INOVA PRO" className="h-14 w-auto object-contain drop-shadow-[0_0_20px_rgba(17,82,212,0.5)]" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Bem-vindo de volta</h1>
           <p className="text-slate-400">Entre com suas credenciais para acessar o sistema</p>
@@ -104,7 +104,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </div>
         
         <p className="text-center mt-8 text-xs text-slate-600">
-          &copy; {new Date().getFullYear()} Sistema Financeiro Pro. Todos os direitos reservados.
+          &copy; {new Date().getFullYear()} INOVA PRO. Todos os direitos reservados.
         </p>
       </div>
     </div>

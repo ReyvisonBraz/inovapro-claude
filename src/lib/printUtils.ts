@@ -9,7 +9,7 @@ export const printBlankForm = (settings: AppSettings) => {
   const content = `
     <html>
       <head>
-        <title>Ficha em Branco - ${settings.appName || 'FinanceFlow'}</title>
+        <title>Ficha em Branco - ${settings.appName || 'INOVA PRO'}</title>
         <style>
           @page { size: A4 portrait; margin: 0; }
           body { 
@@ -61,7 +61,7 @@ export const printBlankForm = (settings: AppSettings) => {
             <div class="header-left">
               ${settings.receiptLogo ? `<img src="${settings.receiptLogo}" class="logo" />` : ''}
               <div class="title">
-                <h1>${settings.appName || 'FinanceFlow Inc.'}</h1>
+                <h1>${settings.appName || 'INOVA PRO Inc.'}</h1>
                 <p>Ficha de Entrada de Equipamento</p>
               </div>
             </div>
