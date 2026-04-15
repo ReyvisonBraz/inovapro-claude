@@ -21,7 +21,7 @@ const db = new Database("finance.db");
 
 // --- Zod Schemas for Validation ---
 const TransactionSchema = z.object({
-  description: z.string().min(1),
+  description: z.string().min(0),
   category: z.string().min(1),
   type: z.enum(['income', 'expense']),
   amount: z.number().positive(),
@@ -377,12 +377,16 @@ if (settingsCount.count === 0) {
 const categoriesCount = db.prepare("SELECT COUNT(*) as count FROM categories").get() as { count: number };
 if (categoriesCount.count === 0) {
   const insertCat = db.prepare("INSERT INTO categories (name, type) VALUES (?, ?)");
-  const income = ['Salário', 'Vendas', 'Serviços', 'Investimentos', 'Outros'];
-  const expense = ['Alimentação', 'Trabalho', 'Utilidades', 'Viagem', 'Lazer', 'Outros'];
+  const income = ['Entrada', 'Salário', 'Vendas', 'Serviços', 'Investimentos', 'Outros'];
+  const expense = ['Saída', 'Alimentação', 'Trabalho', 'Utilidades', 'Viagem', 'Lazer', 'Outros'];
   
   income.forEach(c => insertCat.run(c, 'income'));
   expense.forEach(c => insertCat.run(c, 'expense'));
 }
+
+// Garantir que Entrada e Saída existam mesmo em bancos já populados
+db.prepare("INSERT INTO categories (name, type) SELECT 'Entrada', 'income' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Entrada' AND type = 'income')").run();
+db.prepare("INSERT INTO categories (name, type) SELECT 'Saída', 'expense' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Saída' AND type = 'expense')").run();
 
 // Inserir status de OS padrão se não existirem
 const statusCount = db.prepare("SELECT COUNT(*) as count FROM service_order_statuses").get() as { count: number };

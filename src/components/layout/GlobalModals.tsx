@@ -145,8 +145,7 @@ export const GlobalModals: React.FC = () => {
         createdBy: !editingTransaction ? currentUser?.id : undefined,
         updatedBy: currentUser?.id
       }, editingTransaction?.id);
-      
-      showToast(editingTransaction ? 'Lançamento atualizado!' : 'Lançamento criado!', 'success');
+
       setIsAdding(false);
       setShowWarningModal(false);
       setEditingTransaction(null);
