@@ -32,6 +32,8 @@ export function useTransactions(showToast: (message: string, type: 'success' | '
       filterMinAmount, 
       filterMaxAmount
     ],
+    staleTime: 0,
+    refetchOnMount: true,
     queryFn: async () => {
       const params = new URLSearchParams({
         page: transactionsPage.toString(),
@@ -75,7 +77,7 @@ export function useTransactions(showToast: (message: string, type: 'success' | '
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.refetchQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       showToast('Transação salva com sucesso!', 'success');
     },
@@ -91,7 +93,7 @@ export function useTransactions(showToast: (message: string, type: 'success' | '
       await api.delete(`/transactions/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.refetchQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       showToast('Transação excluída com sucesso!', 'success');
     },

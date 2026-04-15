@@ -40,23 +40,27 @@ export function useSettings(showToast: (message: string, type: 'success' | 'erro
     }
   });
 
+  const refreshCategories = async () => {
+    const { data } = await axios.get('/api/categories');
+    setCategories(data);
+    queryClient.setQueryData(['categories'], data);
+  };
+
   const addCategoryMutation = useMutation({
     mutationFn: async (category: any) => {
       const { data } = await axios.post('/api/categories', category);
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-    }
+    onSuccess: () => refreshCategories(),
+    onError: () => showToast('Erro ao salvar categoria.', 'error')
   });
 
   const deleteCategoryMutation = useMutation({
     mutationFn: async (id: number) => {
       await axios.delete(`/api/categories/${id}`);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-    }
+    onSuccess: () => refreshCategories(),
+    onError: () => showToast('Erro ao remover categoria.', 'error')
   });
 
   return {
