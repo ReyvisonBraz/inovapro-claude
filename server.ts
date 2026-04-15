@@ -9,6 +9,14 @@ import bcrypt from "bcryptjs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// --- Validação de variáveis de ambiente ---
+const optionalEnvVars = ['PORT', 'ADMIN_PASSWORD'];
+optionalEnvVars.forEach(v => {
+  if (!process.env[v]) {
+    console.warn(`[CONFIG] Env var ${v} não definida, usando valor padrão.`);
+  }
+});
+
 const db = new Database("finance.db");
 
 // --- Zod Schemas for Validation ---
