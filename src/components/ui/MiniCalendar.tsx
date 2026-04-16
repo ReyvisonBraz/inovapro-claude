@@ -7,11 +7,12 @@ import { cn } from '../../lib/utils';
 interface MiniCalendarProps {
   selectedDate: string;
   onSelect: (date: string) => void;
+  size?: 'sm' | 'md' | 'lg';
 }
 
 const WEEKDAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
-export const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDate, onSelect }) => {
+export const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDate, onSelect, size = 'md' }) => {
   const parseSelected = () => {
     try { return selectedDate ? parseISO(selectedDate) : new Date(); } catch { return new Date(); }
   };
@@ -54,37 +55,78 @@ export const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDate, onSele
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
 
+  const sizeClasses = {
+    sm: {
+      container: 'p-2',
+      nav: 'p-1',
+      navIcon: 14,
+      header: 'text-[10px] py-1.5',
+      weekday: 'text-[8px] py-0.5',
+      day: 'w-7 h-7 text-[10px]',
+      footer: 'py-1.5 text-[9px]'
+    },
+    md: {
+      container: 'p-3',
+      nav: 'p-1.5',
+      navIcon: 15,
+      header: 'text-xs py-2',
+      weekday: 'text-[9px] py-1',
+      day: 'w-8 h-8 text-xs',
+      footer: 'py-2 text-[10px]'
+    },
+    lg: {
+      container: 'p-4',
+      nav: 'p-2',
+      navIcon: 18,
+      header: 'text-sm py-3',
+      weekday: 'text-xs py-2',
+      day: 'w-10 h-10 text-sm',
+      footer: 'py-2.5 text-xs'
+    }
+  };
+
+  const s = sizeClasses[size];
+
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+    <div className={cn("flex flex-col h-full", s.container)}>
+      <div className={cn("flex items-center justify-between px-3 border-b border-white/5", s.header)}>
         <button
           type="button"
           onClick={() => setViewDate(subMonths(viewDate, 1))}
-          className="p-1.5 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all"
+          className={cn(
+            "hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all",
+            s.nav
+          )}
         >
-          <ChevronLeft size={15} />
+          <ChevronLeft size={s.navIcon} />
         </button>
-        <span className="text-xs font-black tracking-wide capitalize text-slate-300">
+        <span className="font-bold tracking-wide capitalize text-slate-300">
           {monthLabel}
         </span>
         <button
           type="button"
           onClick={() => setViewDate(addMonths(viewDate, 1))}
-          className="p-1.5 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all"
+          className={cn(
+            "hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all",
+            s.nav
+          )}
         >
-          <ChevronRight size={15} />
+          <ChevronRight size={s.navIcon} />
         </button>
       </div>
 
-      <div className="p-3 flex-1">
-        <div className="grid grid-cols-7 mb-1">
+      <div className={cn("flex-1", size === 'lg' ? 'pt-3' : '')}>
+        <div className={cn("grid grid-cols-7 mb-1", size === 'lg' ? 'mb-2' : '')}>
           {WEEKDAYS.map((d, i) => (
-            <div key={i} className="text-center text-[9px] font-black uppercase tracking-widest text-slate-700 py-1">
+            <div key={i} className={cn(
+              "text-center font-bold uppercase tracking-wider text-slate-600",
+              s.weekday
+            )}>
               {d}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-y-0.5">
+        <div className="grid grid-cols-7 gap-y-1">
           {cells.map((day, i) => (
             <div key={i} className="flex items-center justify-center">
               {day ? (
@@ -92,9 +134,10 @@ export const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDate, onSele
                   type="button"
                   onClick={() => handleDay(day)}
                   className={cn(
-                    'w-8 h-8 rounded-xl text-xs font-bold transition-all',
+                    "rounded-xl font-semibold transition-all flex items-center justify-center",
+                    s.day,
                     isSelectedDay(day)
-                      ? 'bg-primary text-white shadow-lg shadow-primary/40 scale-110'
+                      ? 'bg-primary text-white shadow-lg shadow-primary/40'
                       : isTodayDay(day)
                       ? 'bg-white/10 text-white border border-white/20'
                       : 'text-slate-400 hover:bg-white/5 hover:text-white'
@@ -108,16 +151,19 @@ export const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDate, onSele
         </div>
       </div>
 
-      <div className="px-3 pb-3">
+      <div className={cn("px-2", size === 'lg' ? 'pt-3' : 'pt-2')}>
         <button
           type="button"
           onClick={() => {
             const now = new Date();
             onSelect(format(now, 'yyyy-MM-dd'));
           }}
-          className="w-full py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-white/5 hover:text-slate-300 transition-all border border-white/5"
+          className={cn(
+            "w-full rounded-xl font-bold uppercase tracking-wider text-slate-500 hover:bg-white/5 hover:text-slate-300 transition-all border border-white/5",
+            s.footer
+          )}
         >
-          Ir para hoje
+          Hoje
         </button>
       </div>
     </div>

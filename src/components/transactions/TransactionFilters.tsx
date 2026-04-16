@@ -368,7 +368,7 @@ export const TransactionFilters = ({
               <div className="col-span-full pt-4 border-t border-white/5">
                 <label className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3 block">Exibir Colunas</label>
                 <div className="flex flex-wrap gap-2">
-                  {['Descrição', 'Categoria', 'Tipo', 'Valor', 'Status'].map(col => (
+                  {['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor', 'Status'].map(col => (
                     <button
                       key={col}
                       onClick={() => {
@@ -379,8 +379,8 @@ export const TransactionFilters = ({
                       }}
                       className={cn(
                         "px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border transition-all",
-                        !settings.hiddenColumns.includes(col) 
-                          ? "bg-primary/10 border-primary/20 text-primary" 
+                        !settings.hiddenColumns.includes(col)
+                          ? "bg-primary/10 border-primary/20 text-primary"
                           : "bg-white/5 border-white/10 text-slate-500 hover:text-slate-300"
                       )}
                     >
