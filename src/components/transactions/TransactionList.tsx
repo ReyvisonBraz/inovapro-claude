@@ -146,26 +146,39 @@ export const TransactionList = ({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-white/5 border-b border-white/5">
-              {!settings.hiddenColumns.includes('Descrição') && <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Descrição</th>}
-              {!settings.hiddenColumns.includes('Categoria') && <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Categoria</th>}
-              {!settings.hiddenColumns.includes('Tipo') && <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Tipo</th>}
-              {!settings.hiddenColumns.includes('Valor') && <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Valor</th>}
-              {!settings.hiddenColumns.includes('Status') && <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Status</th>}
-              <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500 text-right">Ações</th>
+              {!settings.hiddenColumns.includes('Data') && <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Data</th>}
+              {!settings.hiddenColumns.includes('Descrição') && <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Descrição</th>}
+              {!settings.hiddenColumns.includes('Categoria') && <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Categoria</th>}
+              {!settings.hiddenColumns.includes('Tipo') && <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Tipo</th>}
+              {!settings.hiddenColumns.includes('Valor') && <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Valor</th>}
+              {!settings.hiddenColumns.includes('Status') && <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-slate-500">Status</th>}
+              <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-slate-500 text-right">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
             {filteredTransactions.map((tx) => (
               <tr key={tx.id} className="hover:bg-white/[0.02] transition-all duration-300 group border-b border-white/[0.02] last:border-0">
+                {!settings.hiddenColumns.includes('Data') && (
+                  <td className="px-4 py-4">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-slate-200">
+                        {format(new Date(tx.date), 'dd/MM/yyyy')}
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mt-0.5">
+                        {format(new Date(tx.date), 'EEE')}
+                      </span>
+                    </div>
+                  </td>
+                )}
                 {!settings.hiddenColumns.includes('Descrição') && (
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-5">
-                      <div className="h-12 w-12 rounded-2xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-slate-500 group-hover:text-primary group-hover:border-primary/20 group-hover:bg-primary/5 transition-all duration-500">
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-slate-500 group-hover:text-primary group-hover:border-primary/20 group-hover:bg-primary/5 transition-all duration-500">
                         {getCategoryIcon(tx.category)}
                       </div>
                       <div>
-                        <p className="text-sm font-bold">{tx.description}</p>
-                        <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-0.5">
+                        <p className="text-sm font-bold">{tx.description || '—'}</p>
+                        <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">
                           {format(new Date(tx.date), 'hh:mm a')} • {tx.category}
                         </p>
                       </div>
@@ -173,21 +186,21 @@ export const TransactionList = ({
                   </td>
                 )}
                 {!settings.hiddenColumns.includes('Categoria') && (
-                  <td className="px-8 py-6">
-                    <span className="px-3 py-1 rounded-lg bg-white/5 border border-white/5 text-xs font-bold uppercase tracking-widest text-slate-400">
+                  <td className="px-4 py-4">
+                    <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       {tx.category}
                     </span>
                   </td>
                 )}
                 {!settings.hiddenColumns.includes('Tipo') && (
-                  <td className="px-8 py-6">
+                  <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
                       <div className={cn(
                         "w-1.5 h-1.5 rounded-full",
-                        tx.type === 'income' ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]"
+                        tx.type === 'income' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"
                       )} />
                       <span className={cn(
-                        "text-xs font-black uppercase tracking-widest",
+                        "text-[10px] font-black uppercase tracking-wider",
                         tx.type === 'income' ? "text-emerald-500" : "text-rose-500"
                       )}>
                         {tx.type === 'income' ? 'Entrada' : 'Saída'}
@@ -196,7 +209,7 @@ export const TransactionList = ({
                   </td>
                 )}
                 {!settings.hiddenColumns.includes('Valor') && (
-                  <td className="px-8 py-6">
+                  <td className="px-4 py-4">
                     <span className={cn(
                       "text-sm font-black tracking-tight",
                       tx.type === 'income' ? "text-emerald-500" : "text-rose-500"
@@ -206,44 +219,44 @@ export const TransactionList = ({
                   </td>
                 )}
                 {!settings.hiddenColumns.includes('Status') && (
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 w-fit">
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 w-fit">
                       <div className="w-1 h-1 rounded-full bg-emerald-500" />
-                      <span className="text-xs font-black uppercase tracking-widest text-emerald-500">{tx.status}</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-500">{tx.status}</span>
                     </div>
                   </td>
                 )}
-                <td className="px-8 py-6 text-right">
-                  <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
+                <td className="px-4 py-4 text-right">
+                  <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
                     {tx.customerPhone && onWhatsAppReminder && (
-                      <button 
+                      <button
                         onClick={() => onWhatsAppReminder(tx)}
-                        className="p-2.5 text-emerald-500 hover:bg-emerald-500/10 rounded-xl transition-all"
+                        className="p-2 text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-all"
                         title="Enviar WhatsApp"
                       >
-                        <MessageCircle size={16} />
+                        <MessageCircle size={14} />
                       </button>
                     )}
-                    <button 
+                    <button
                       onClick={() => onEditTransaction(tx)}
-                      className="p-2.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
+                      className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
                       title="Editar"
                     >
-                      <Edit size={16} />
+                      <Edit size={14} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDuplicateTransaction(tx)}
-                      className="p-2.5 text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 rounded-xl transition-all"
+                      className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 rounded-lg transition-all"
                       title="Duplicar"
                     >
-                      <Copy size={16} />
+                      <Copy size={14} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => onDeleteTransaction(tx.id)}
-                      className="p-2.5 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
+                      className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
                       title="Excluir"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </td>
@@ -251,18 +264,18 @@ export const TransactionList = ({
             ))}
             {filteredTransactions.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-8 py-20 text-center">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-slate-600">
-                      <Search size={40} />
+                <td colSpan={7} className="px-4 py-16 text-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-slate-600">
+                      <Search size={32} />
                     </div>
                     <div>
                       <p className="text-slate-400 font-bold">Nenhuma transação encontrada</p>
-                      <p className="text-xs text-slate-600 uppercase tracking-widest mt-1">Tente ajustar seus filtros de busca</p>
+                      <p className="text-[10px] text-slate-600 uppercase tracking-widest mt-1">Tente ajustar seus filtros de busca</p>
                     </div>
-                    <button 
+                    <button
                       onClick={() => onAddNewTransaction()}
-                      className="mt-4 px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black uppercase tracking-widest rounded-xl transition-all border border-primary/20"
+                      className="mt-2 px-5 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-primary/20"
                     >
                       Nova Transação
                     </button>
