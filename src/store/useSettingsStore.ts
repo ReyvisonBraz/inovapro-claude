@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { AppSettings, Category } from '../types';
+import api from '../lib/api';
 
 interface SettingsState {
   settings: AppSettings;
@@ -43,17 +44,15 @@ const defaultSettings: AppSettings = {
 export const useSettingsStore = create<SettingsState>((set) => ({
   settings: defaultSettings,
   setSettings: (newSettings) => set((state) => ({
-    settings: typeof newSettings === 'function' 
-      ? newSettings(state.settings) 
+    settings: typeof newSettings === 'function'
+      ? newSettings(state.settings)
       : { ...state.settings, ...newSettings }
   })),
   categories: [],
   setCategories: (categories) => set({ categories }),
   fetchSettings: async () => {
     try {
-      const res = await fetch('/api/settings');
-      if (!res.ok) throw new Error('Failed to fetch settings');
-      const data = await res.json();
+      const { data } = await api.get('/settings');
       set({ settings: data });
     } catch (err) {
       console.error("Failed to fetch settings", err);
@@ -61,9 +60,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   },
   fetchCategories: async () => {
     try {
-      const res = await fetch('/api/categories');
-      if (!res.ok) throw new Error('Failed to fetch categories');
-      const data = await res.json();
+      const { data } = await api.get('/categories');
       set({ categories: data });
     } catch (err) {
       console.error("Failed to fetch categories", err);
@@ -73,12 +70,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     const { settings } = useSettingsStore.getState();
     const updatedSettings = { ...settings, ...newSettings };
     try {
-      const res = await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedSettings),
-      });
-      if (!res.ok) throw new Error('Failed to save settings');
+      await api.post('/settings', updatedSettings);
       set({ settings: updatedSettings });
     } catch (err) {
       console.error("Failed to save settings", err);

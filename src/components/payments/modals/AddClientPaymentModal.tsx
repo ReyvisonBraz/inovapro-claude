@@ -14,6 +14,8 @@ interface AddClientPaymentModalProps {
   onTriggerAddCustomer?: () => void;
   isSaving?: boolean;
   initialData?: Partial<ClientPaymentFormData>;
+  newClientPayment?: any;
+  setNewClientPayment?: (data: any) => void;
 }
 
 export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
@@ -107,7 +109,7 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                 <div className="flex gap-2">
                   <CustomerSearchSelect 
                     customers={customers}
-                    selectedId={customerId}
+                    selectedId={typeof customerId === 'string' ? parseInt(customerId) || 0 : customerId}
                     onSelect={(id) => setValue('customerId', id, { shouldValidate: true })}
                     className="flex-1"
                   />
@@ -189,7 +191,7 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                  <Calendar size={12} /> {installmentsCount > 1 ? 'Vencimento da 1ª Parcela' : 'Data de Vencimento'}
+                  <Calendar size={12} /> {Number(installmentsCount) > 1 ? 'Vencimento da 1ª Parcela' : 'Data de Vencimento'}
                 </label>
                 <input 
                   type="date"
@@ -229,7 +231,7 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                 {errors.installmentsCount && <p className="text-rose-500 text-[10px] font-bold mt-1">{errors.installmentsCount.message}</p>}
               </div>
 
-              {installmentsCount > 1 && (
+              {Number(installmentsCount) > 1 && (
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Intervalo das Parcelas</label>
                   <select 
