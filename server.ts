@@ -80,8 +80,17 @@ const ServiceOrderSchema = z.object({
   priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
   technicalAnalysis: z.string().optional().nullable(),
   servicesPerformed: z.string().optional().nullable(),
-  services: z.any().optional(), // JSON array
-  partsUsed: z.any().optional(), // JSON array
+  services: z.array(z.object({
+    name: z.string(),
+    price: z.number()
+  })).optional(),
+  partsUsed: z.array(z.object({
+    id: z.number().optional(),
+    name: z.string(),
+    quantity: z.number(),
+    unitPrice: z.number(),
+    subtotal: z.number()
+  })).optional(),
   serviceFee: z.number().nonnegative().optional().nullable(),
   totalAmount: z.number().nonnegative().optional().nullable(),
   finalObservations: z.string().optional().nullable(),
@@ -313,7 +322,6 @@ const migrations = [
   { name: 'whatsappOSTemplate', table: 'settings', type: "TEXT DEFAULT 'Olá {nome_cliente}, sua Ordem de Serviço #{os_id} ({equipamento}) está com o status: {status}.'" },
   { name: 'equipmentType', table: 'service_orders', type: "TEXT" },
   { name: 'equipmentColor', table: 'service_orders', type: "TEXT" },
-  { name: 'equipmentType', table: 'brands', type: "TEXT" },
   { name: 'sendPulseClientId', table: 'settings', type: "TEXT" },
   { name: 'sendPulseClientSecret', table: 'settings', type: "TEXT" },
   { name: 'sendPulseTemplateId', table: 'settings', type: "TEXT" },
@@ -338,7 +346,6 @@ const migrations = [
   { name: 'ssdInfo', table: 'service_orders', type: "TEXT" },
   { name: 'priority', table: 'service_orders', type: "TEXT DEFAULT 'medium'" },
   { name: 'arrivalPhotoBase64', table: 'service_orders', type: "TEXT" },
-  { name: 'equipmentColor', table: 'service_orders', type: "TEXT" },
   { name: 'minQuantity', table: 'inventory_items', type: "INTEGER DEFAULT 5" },
   { name: 'costPrice', table: 'inventory_items', type: "REAL DEFAULT 0" },
   { name: 'salePrice', table: 'inventory_items', type: "REAL DEFAULT 0" },

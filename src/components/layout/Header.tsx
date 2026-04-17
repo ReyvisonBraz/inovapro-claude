@@ -43,12 +43,12 @@ export const Header = () => {
   } = useAppStore();
 
   const { searchTerm, setSearchTerm } = useFilterStore();
-  
+
   const { clientPayments } = useClientPayments();
   const { serviceOrders } = useServiceOrders();
-  const { transactions } = useTransactions();
+  const { transactions } = useTransactions(() => {});
   const { customers } = useCustomers();
-  const { inventoryItems } = useInventory();
+  const { inventoryItems } = useInventory(() => {});
   const { setNewCustomer } = useFormStore();
   const { setEditingTransaction, setEditingCustomer } = useModalStore();
 

@@ -103,7 +103,7 @@ export default function App() {
     login,
     logout,
     hasPermission,
-  } = useAuth(showToast);
+  } = useAuth();
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}px`;

@@ -1,24 +1,39 @@
 import { z } from 'zod';
 
 export const clientPaymentSchema = z.object({
-  customerId: z.number().min(1, 'Selecione um cliente'),
+  customerId: z.union([z.number(), z.string()]).optional(),
   description: z.string().min(1, 'A descrição é obrigatória'),
-  totalAmount: z.coerce.number().min(0.01, 'O valor total deve ser maior que zero'),
-  paidAmount: z.coerce.number().min(0, 'O valor pago não pode ser negativo'),
+  totalAmount: z.union([z.number(), z.string()]).optional(),
+  paidAmount: z.union([z.number(), z.string()]).optional(),
   purchaseDate: z.string().min(1, 'A data da compra é obrigatória'),
   dueDate: z.string().min(1, 'A data de vencimento é obrigatória'),
   paymentMethod: z.string().min(1, 'A forma de pagamento é obrigatória'),
-  installmentsCount: z.coerce.number().min(1, 'O número de parcelas deve ser pelo menos 1'),
+  installmentsCount: z.union([z.number(), z.string()]).optional(),
   installmentInterval: z.string().optional(),
-  status: z.enum(['pending', 'paid', 'overdue']).default('pending'),
-  serviceOrderId: z.number().optional(),
+  status: z.enum(['pending', 'paid', 'overdue']).optional(),
+  serviceOrderId: z.union([z.number(), z.string()]).optional(),
 });
 
-export type ClientPaymentFormData = z.infer<typeof clientPaymentSchema>;
+export type ClientPaymentFormData = {
+  customerId?: string | number;
+  description: string;
+  totalAmount?: string | number;
+  paidAmount?: string | number;
+  purchaseDate: string;
+  dueDate: string;
+  paymentMethod: string;
+  installmentsCount?: string | number;
+  installmentInterval?: string;
+  status?: 'pending' | 'paid' | 'overdue';
+  serviceOrderId?: string | number;
+};
 
 export const recordPaymentSchema = z.object({
-  amount: z.coerce.number().min(0.01, 'O valor deve ser maior que zero'),
+  amount: z.union([z.number(), z.string()]).optional(),
   date: z.string().min(1, 'A data do pagamento é obrigatória'),
 });
 
-export type RecordPaymentFormData = z.infer<typeof recordPaymentSchema>;
+export type RecordPaymentFormData = {
+  amount?: string | number;
+  date: string;
+};

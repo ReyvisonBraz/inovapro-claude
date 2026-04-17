@@ -133,6 +133,10 @@ export interface InventoryItem {
   sku?: string;
   unitPrice: number;
   stockLevel: number;
+  minQuantity?: number;
+  costPrice?: number;
+  salePrice?: number;
+  quantity?: number;
   createdAt: string;
   createdBy?: number;
   updatedBy?: number;

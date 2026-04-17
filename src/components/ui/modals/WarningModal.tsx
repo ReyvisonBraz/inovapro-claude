@@ -5,7 +5,7 @@ import { AlertTriangle } from 'lucide-react';
 interface WarningModalProps {
   isOpen: boolean;
   onClose: () => void;
-  type: 'category' | 'description' | 'both';
+  type: 'category' | 'description' | 'both' | 'duplicate';
   onConfirm: () => void;
   showWarnings: boolean;
   setShowWarnings: (value: boolean) => void;
@@ -34,8 +34,9 @@ export const WarningModal = ({ isOpen, onClose, type, onConfirm, showWarnings, s
             <div>
               <h3 className="text-xl font-bold">Campos Incompletos</h3>
               <p className="text-sm text-slate-500 mt-2">
-                {type === 'both' ? 'Você não selecionou uma categoria nem preencheu a descrição.' : 
-                 type === 'category' ? 'Você não selecionou uma categoria para este lançamento.' : 
+                {type === 'both' ? 'Você não selecionou uma categoria nem preencheu a descrição.' :
+                 type === 'category' ? 'Você não selecionou uma categoria para este lançamento.' :
+                 type === 'duplicate' ? 'Já existe uma transação com esta descrição e categoria hoje. Deseja continuar mesmo assim?' :
                  'Você não preencheu a descrição deste lançamento.'}
                 <br />Deseja continuar assim mesmo?
               </p>

@@ -165,13 +165,13 @@ export const ClientPaymentsPage: React.FC = () => {
 
   const handleRecordPayment = async (data: any) => {
     if (!isRecordingPayment) return;
-    
+
     try {
       await recordPaymentMutation.mutateAsync({
-        paymentId: isRecordingPayment.id,
+        id: isRecordingPayment.id,
         amount: data.amount,
         date: new Date(data.date).toISOString(),
-        userId: currentUser?.id
+        updatedBy: currentUser?.id
       });
       setIsRecordingPayment(null);
       showToast('Pagamento registrado com sucesso!', 'success');
