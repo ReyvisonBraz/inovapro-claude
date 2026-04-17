@@ -546,16 +546,29 @@ async function startServer() {
 
   // Atualizar uma transação
   app.put("/api/transactions/:id", (req, res) => {
-    const { description, category, type, amount, date, updatedBy } = req.body;
-    db.prepare(`
-      UPDATE transactions 
-      SET description = ?, category = ?, type = ?, amount = ?, date = ?, updatedBy = ?
-      WHERE id = ?
-    `).run(description, category, type, amount, date, updatedBy || 1, req.params.id);
-    
-    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'transaction', req.params.id, `Updated transaction: ${description}`);
+    try {
+      const validatedData = TransactionSchema.parse(req.body);
+      const { description, category, type, amount, date, updatedBy } = validatedData;
 
-    res.json({ success: true });
+      const descriptionToSave = description || 'Sem descrição';
+
+      db.prepare(`
+        UPDATE transactions
+        SET description = ?, category = ?, type = ?, amount = ?, date = ?, updatedBy = ?
+        WHERE id = ?
+      `).run(descriptionToSave, category, type, amount, date, updatedBy || 1, req.params.id);
+
+      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'transaction', req.params.id, `Updated transaction: ${descriptionToSave}`);
+
+      res.json({ success: true });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        console.log('[TRANSACTION PUT] Validation error:', error.issues);
+        return res.status(400).json({ error: "Validation failed", details: error.issues });
+      }
+      console.log('[TRANSACTION PUT] Server error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
 
   // Rota de Estatísticas

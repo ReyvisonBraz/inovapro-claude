@@ -9,6 +9,11 @@ import { cn, formatCurrency } from '../../lib/utils';
 import { Transaction, AppSettings } from '../../types';
 import { Pagination } from '../ui/Pagination';
 
+const parseLocalDate = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 interface TransactionListProps {
   filteredTransactions: Transaction[];
   handleDuplicateTransaction: (tx: Transaction) => void;
@@ -58,7 +63,7 @@ export const TransactionList = ({
               <div className="flex flex-col gap-1">
                 <p className="text-sm font-bold">{tx.description}</p>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">
-                  {format(new Date(tx.date), 'dd/MM/yyyy')} • {tx.category}
+                  {format(parseLocalDate(tx.date), 'dd/MM/yyyy')} • {tx.category}
                 </p>
               </div>
               <div className="text-right">
@@ -167,21 +172,21 @@ export const TransactionList = ({
                           "text-[10px] font-bold uppercase tracking-wider",
                           tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'
                         )}>
-                          {format(new Date(tx.date), 'MMM', { locale: ptBR })}
+                          {format(parseLocalDate(tx.date), 'MMM', { locale: ptBR })}
                         </span>
                         <span className={cn(
                           "text-lg font-black leading-none",
                           tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'
                         )}>
-                          {format(new Date(tx.date), 'dd')}
+                          {format(parseLocalDate(tx.date), 'dd')}
                         </span>
                       </div>
                       <div className="flex flex-col">
                         <span className="text-sm font-semibold text-slate-200">
-                          {format(new Date(tx.date), 'EEEE', { locale: ptBR }).split('-')[0]}
+                          {format(parseLocalDate(tx.date), 'EEEE', { locale: ptBR }).split('-')[0]}
                         </span>
                         <span className="text-xs text-slate-500">
-                          {format(new Date(tx.date), 'yyyy')} às {format(new Date(tx.date), 'HH:mm')}
+                          {format(parseLocalDate(tx.date), 'yyyy')} às {format(parseLocalDate(tx.date), 'HH:mm')}
                         </span>
                       </div>
                     </div>

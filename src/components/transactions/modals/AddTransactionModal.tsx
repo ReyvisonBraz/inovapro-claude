@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Edit, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -14,6 +14,11 @@ const formatCurrencyInput = (value: string): string => {
   return amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+const formatNumberForInput = (num: number): string => {
+  if (!num && num !== 0) return '';
+  return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 const parseCurrencyInput = (value: string): string => {
   return value.replace(/\D/g, '');
 };
@@ -23,7 +28,7 @@ interface AddTransactionModalProps {
   onClose: () => void;
   editingTransaction: any;
   categories: any[];
-  onSubmit: (data: TransactionFormData) => void;
+  onSubmit: (data: TransactionFormData, keepModalOpen?: boolean) => void;
 }
 
 const today = () => new Date().toISOString().split('T')[0];
@@ -70,6 +75,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
   const typeValue = watch('type');
   const dateValue = watch('date');
+  const [keepOpen, setKeepOpen] = useState(false);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!isOpen) return;
@@ -90,7 +96,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       } else if (activeTag === 'select' && document.activeElement === categoryRef.current) {
         descriptionRef.current?.focus();
       } else if (activeTag === 'input' && document.activeElement === descriptionRef.current) {
-        handleSubmit(onSubmit)();
+        handleSubmit((data: TransactionFormData) => onSubmit(data, !editingTransaction))();
       } else if (activeTag === 'input') {
         categoryRef.current?.focus();
       }
@@ -108,10 +114,10 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
       if (editingTransaction) {
         reset({
-          description: editingTransaction.description,
+          description: editingTransaction.description || '',
           category: editingTransaction.category,
           type: editingTransaction.type,
-          amount: editingTransaction.amount.toString(),
+          amount: formatNumberForInput(editingTransaction.amount) as any,
           date: editingTransaction.date
         });
       } else {
@@ -196,7 +202,25 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+              <form onSubmit={handleSubmit((data) => {
+                if (editingTransaction) {
+                  onSubmit(data);
+                } else {
+                  onSubmit(data, keepOpen);
+                  if (keepOpen) {
+                    setTimeout(() => {
+                      reset({
+                        description: '',
+                        category: data.category,
+                        type: data.type,
+                        amount: '' as any,
+                        date: data.date
+                      });
+                      setTimeout(() => amountInputRef.current?.focus(), 100);
+                    }, 50);
+                  }
+                }
+              })} className="space-y-5">
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -339,6 +363,18 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     placeholder="Ex: Compra de suprimentos, venda de produto..."
                   />
                 </div>
+
+                {!editingTransaction && (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={keepOpen}
+                      onChange={(e) => setKeepOpen(e.target.checked)}
+                      className="w-4 h-4 rounded border-white/20 bg-white/5 text-primary focus:ring-primary/50"
+                    />
+                    <span className="text-xs text-slate-400">Manter modal aberto</span>
+                  </label>
+                )}
 
                 <div className="flex items-center gap-3 pt-3 border-t border-white/5">
                   <button
