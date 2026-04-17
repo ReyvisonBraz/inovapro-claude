@@ -2,14 +2,23 @@ import { z } from 'zod';
 
 const parseAmount = (val: string): number => {
   if (!val || val === '') return NaN;
-  const cleaned = val.replace(/[R$\s]/g, '').trim();
-  const normalized = cleaned.replace(/\./g, '').replace(',', '.');
-  const parsed = parseFloat(normalized);
-  return parsed;
+
+  try {
+    const cleaned = val.replace(/[R$\s]/g, '').trim();
+    if (!cleaned) return NaN;
+
+    const normalized = cleaned.replace(/\./g, '').replace(',', '.');
+    const parsed = parseFloat(normalized);
+
+    if (isNaN(parsed)) return NaN;
+    return parsed;
+  } catch {
+    return NaN;
+  }
 };
 
 export const transactionSchema = z.object({
-  description: z.string().min(0),
+  description: z.string().min(0).default(''),
   category: z.string().min(1, 'Categoria é obrigatória'),
   type: z.enum(['income', 'expense']),
   amount: z.string()

@@ -127,18 +127,7 @@ export const GlobalModals: React.FC = () => {
     }
   };
 
-  const handleAddTransaction = async (formData: any, force: boolean = false) => {
-    // Validação de avisos
-    if (!force && settings.showWarnings) {
-      const hasSimilar = false; // Implementar lógica se necessário
-      if (hasSimilar) {
-        setNewTx(formData);
-        setWarningType('duplicate');
-        setShowWarningModal(true);
-        return;
-      }
-    }
-
+  const handleAddTransaction = async (formData: any, keepModalOpen: boolean = false) => {
     try {
       await saveTransactionAPI({
         ...formData,
@@ -146,10 +135,16 @@ export const GlobalModals: React.FC = () => {
         updatedBy: currentUser?.id
       }, editingTransaction?.id);
 
-      setIsAdding(false);
+      if (!keepModalOpen) {
+        setIsAdding(false);
+      }
       setShowWarningModal(false);
       setEditingTransaction(null);
       fetchAuditLogs();
+
+      if (keepModalOpen) {
+        showToast('Lançamento salvo! Continue adicionando...', 'success');
+      }
     } catch (err) {
       console.error("Failed to save transaction", err);
       showToast('Erro ao salvar lançamento. Tente novamente.', 'error');
@@ -234,7 +229,7 @@ export const GlobalModals: React.FC = () => {
         setShowWarnings={(val: boolean) => updateSettings({ ...settings, showWarnings: val })}
       />
 
-      <AddTransactionModal 
+      <AddTransactionModal
         isOpen={isAdding}
         onClose={() => {
           setIsAdding(false);
@@ -242,7 +237,7 @@ export const GlobalModals: React.FC = () => {
         }}
         editingTransaction={editingTransaction}
         categories={categories}
-        onSubmit={(data) => handleAddTransaction(data)}
+        onSubmit={(data, keepOpen) => handleAddTransaction(data, keepOpen)}
       />
 
       <DeleteConfirmationModal 
