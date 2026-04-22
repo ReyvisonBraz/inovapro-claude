@@ -4,7 +4,7 @@ import {
   Gamepad2, Tablet, MonitorCheck, HardDrive, Tag, X,
   Watch, Camera, Speaker, Headphones, Tv, MousePointer2, Keyboard,
   Radio, Mic, Battery, Wifi, Settings as SettingsIcon,
-  Box, Layers, Layout, Grid, List as ListIcon, Search
+  Box, Layers, Layout, Grid, List as ListIcon, Search, Edit2, Check, Info
 } from 'lucide-react';
 import { Brand, Model, EquipmentType } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -15,10 +15,13 @@ interface EquipmentSettingsProps {
   models: Model[];
   equipmentTypes: EquipmentType[];
   onAddBrand: (name: string, equipmentType: string) => Promise<void>;
+  onUpdateBrand: (id: number, name: string, equipmentType: string) => Promise<void>;
   onDeleteBrand: (id: number) => Promise<void>;
   onAddModel: (brandId: number, name: string) => Promise<void>;
+  onUpdateModel: (id: number, brandId: number, name: string) => Promise<void>;
   onDeleteModel: (id: number) => Promise<void>;
   onAddEquipmentType: (name: string, icon?: string) => void;
+  onUpdateEquipmentType: (id: number, name: string, icon?: string) => void;
   onDeleteEquipmentType: (id: number) => void;
 }
 
@@ -73,10 +76,13 @@ export const EquipmentSettings: React.FC<EquipmentSettingsProps> = ({
   models,
   equipmentTypes,
   onAddBrand,
+  onUpdateBrand,
   onDeleteBrand,
   onAddModel,
+  onUpdateModel,
   onDeleteModel,
   onAddEquipmentType,
+  onUpdateEquipmentType,
   onDeleteEquipmentType,
 }) => {
   const [selectedType, setSelectedType] = useState<string>('');
@@ -89,6 +95,16 @@ export const EquipmentSettings: React.FC<EquipmentSettingsProps> = ({
 
   const [brandSearch, setBrandSearch] = useState('');
   const [modelSearch, setModelSearch] = useState('');
+
+  // Estados de edição
+  const [editingTypeId, setEditingTypeId] = useState<number | null>(null);
+  const [editingTypeName, setEditingTypeName] = useState('');
+  
+  const [editingBrandId, setEditingBrandId] = useState<number | null>(null);
+  const [editingBrandName, setEditingBrandName] = useState('');
+
+  const [editingModelId, setEditingModelId] = useState<number | null>(null);
+  const [editingModelName, setEditingModelName] = useState('');
 
   React.useEffect(() => {
     if (equipmentTypes.length > 0 && !selectedType) {
@@ -126,13 +142,34 @@ export const EquipmentSettings: React.FC<EquipmentSettingsProps> = ({
     setIsAddingType(false);
   };
 
+  const saveTypeEdit = async (id: number, currentIcon?: string) => {
+    if (!editingTypeName.trim()) return;
+    await onUpdateEquipmentType(id, editingTypeName.trim(), currentIcon);
+    setEditingTypeId(null);
+    if (selectedType === equipmentTypes.find(t => t.id === id)?.name) {
+      setSelectedType(editingTypeName.trim());
+    }
+  };
+
+  const saveBrandEdit = async (id: number) => {
+    if (!editingBrandName.trim()) return;
+    await onUpdateBrand(id, editingBrandName.trim(), selectedType);
+    setEditingBrandId(null);
+  };
+
+  const saveModelEdit = async (id: number, brandId: number) => {
+    if (!editingModelName.trim()) return;
+    await onUpdateModel(id, brandId, editingModelName.trim());
+    setEditingModelId(null);
+  };
+
   return (
     <div className="space-y-8">
       <div className="glass-card p-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-2xl font-black text-white tracking-tight">Equipamentos, Marcas e Modelos</h3>
-            <p className="text-sm text-slate-500 font-medium">Gerencie a estrutura de equipamentos do sistema</p>
+            <p className="text-sm text-slate-500 font-medium">Gerencie a hierarquia de equipamentos do sistema</p>
           </div>
           <button 
             onClick={() => setIsAddingType(true)}
@@ -142,8 +179,45 @@ export const EquipmentSettings: React.FC<EquipmentSettingsProps> = ({
             Novo Tipo
           </button>
         </div>
+
+        {/* Tutorial / Info Section */}
+        <div className="bg-primary/5 border border-primary/20 rounded-3xl p-5 md:p-6 mb-8 flex flex-col md:flex-row gap-5 items-start">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <Info className="w-6 h-6 text-primary" />
+          </div>
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold text-primary">Como funciona este painel?</h4>
+            <p className="text-xs text-slate-400 leading-relaxed max-w-4xl">
+              A organização funciona em funil: <strong>1. Escolha o Tipo</strong> acima (ex: Smartphone) → <strong>2. Selecione a Marca</strong> abaixo → <strong>3. Gerencie os Modelos</strong> daquela marca ao lado.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 pt-4 border-t border-primary/10">
+              <div className="flex items-start gap-3">
+                <div className="p-1.5 bg-blue-500/10 rounded-lg shrink-0 mt-0.5">
+                  <Edit2 className="w-3.5 h-3.5 text-blue-400" />
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  <strong className="text-slate-300 block mb-0.5">Efeito Cascata (Editar)</strong>
+                  Ao corrigir o nome de uma marca ou modelo, o sistema varre o banco de dados e corrige todas as Ordens de Serviço antigas automaticamente.
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="p-1.5 bg-rose-500/10 rounded-lg shrink-0 mt-0.5">
+                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  <strong className="text-slate-300 block mb-0.5">Histórico Preservado (Deletar)</strong>
+                  Apagar um item remove ele apenas das próximas listagens. As Ordens de Serviço antigas manterão o registro visual para segurança contábil.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
         
         {/* Equipment Type Selection */}
+        <div className="flex items-center gap-3 mb-4 px-2">
+          <div className="h-1.5 w-8 bg-blue-500 rounded-full" />
+          <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">1. Selecione o Tipo de Equipamento</h4>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-10">
           {equipmentTypes.map((type) => {
             const Icon = getIconForType(type);
@@ -163,22 +237,56 @@ export const EquipmentSettings: React.FC<EquipmentSettingsProps> = ({
                   )}
                 >
                   <Icon className={cn("w-8 h-8 mb-3 transition-all duration-500", isActive ? "scale-110" : "group-hover:scale-110")} />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-center px-2">{type.name}</span>
+                  {editingTypeId === type.id ? (
+                    <input
+                      autoFocus
+                      type="text"
+                      value={editingTypeName}
+                      onChange={(e) => setEditingTypeName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && saveTypeEdit(type.id, type.icon)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-[80%] text-[10px] font-black uppercase tracking-widest text-center px-2 bg-black/20 rounded border border-primary/50 text-white outline-none"
+                    />
+                  ) : (
+                    <span className="text-[10px] font-black uppercase tracking-widest text-center px-2">{type.name}</span>
+                  )}
                 </button>
-                {!isActive && (
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteEquipmentType(type.id);
-                      if (isActive) {
-                        setSelectedType('');
-                        setSelectedBrandId(null);
-                      }
-                    }}
-                    className="absolute -top-2 -right-2 w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-xl hover:scale-110 z-20"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                {!isActive && editingTypeId !== type.id && (
+                  <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-20">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingTypeId(type.id);
+                        setEditingTypeName(type.name);
+                      }}
+                      className="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-all"
+                    >
+                      <Edit2 size={12} />
+                    </button>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteEquipmentType(type.id);
+                        if (isActive) {
+                          setSelectedType('');
+                          setSelectedBrandId(null);
+                        }
+                      }}
+                      className="w-7 h-7 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-all"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                )}
+                {editingTypeId === type.id && (
+                  <div className="absolute -top-2 -right-2 flex gap-1 z-30">
+                    <button onClick={(e) => { e.stopPropagation(); saveTypeEdit(type.id, type.icon); }} className="w-7 h-7 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-all">
+                      <Check size={12} />
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setEditingTypeId(null); }} className="w-7 h-7 bg-slate-500 text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-all">
+                      <X size={12} />
+                    </button>
+                  </div>
                 )}
               </div>
             );
@@ -190,7 +298,7 @@ export const EquipmentSettings: React.FC<EquipmentSettingsProps> = ({
           <div className="space-y-4">
             <div className="flex items-center gap-3 px-2">
               <div className="h-1.5 w-8 bg-primary rounded-full" />
-              <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Marcas para {selectedType}</h4>
+              <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">2. Marcas de {selectedType || 'Equipamento'}</h4>
             </div>
             
             <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-6 space-y-6">
@@ -233,7 +341,7 @@ export const EquipmentSettings: React.FC<EquipmentSettingsProps> = ({
                   filteredBrands.map((brand) => (
                     <div
                       key={brand.id}
-                      onClick={() => setSelectedBrandId(brand.id)}
+                      onClick={() => editingBrandId !== brand.id && setSelectedBrandId(brand.id)}
                       className={cn(
                         "flex items-center justify-between p-5 rounded-2xl cursor-pointer transition-all duration-300 border",
                         selectedBrandId === brand.id 
@@ -241,16 +349,50 @@ export const EquipmentSettings: React.FC<EquipmentSettingsProps> = ({
                           : "bg-white/[0.03] border-white/5 text-slate-400 hover:bg-white/5 hover:text-slate-200"
                       )}
                     >
-                      <span className="text-sm font-bold tracking-tight">{brand.name}</span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteBrand(brand.id);
-                        }}
-                        className="p-2 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {editingBrandId === brand.id ? (
+                        <div className="flex-1 flex gap-2 mr-4" onClick={e => e.stopPropagation()}>
+                          <input 
+                            autoFocus
+                            type="text"
+                            value={editingBrandName}
+                            onChange={(e) => setEditingBrandName(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && saveBrandEdit(brand.id)}
+                            className="flex-1 h-8 bg-black/20 border border-primary/50 rounded-lg px-3 text-sm font-bold text-white outline-none"
+                          />
+                          <button onClick={() => saveBrandEdit(brand.id)} className="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center hover:scale-105">
+                            <Check size={14} />
+                          </button>
+                          <button onClick={() => setEditingBrandId(null)} className="w-8 h-8 bg-slate-500 text-white rounded-lg flex items-center justify-center hover:scale-105">
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-sm font-bold tracking-tight">{brand.name}</span>
+                      )}
+                      
+                      {editingBrandId !== brand.id && (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingBrandId(brand.id);
+                              setEditingBrandName(brand.name);
+                            }}
+                            className="p-2 text-slate-600 hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteBrand(brand.id);
+                            }}
+                            className="p-2 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -263,9 +405,9 @@ export const EquipmentSettings: React.FC<EquipmentSettingsProps> = ({
             <div className="flex items-center gap-3 px-2">
               <div className="h-1.5 w-8 bg-emerald-500 rounded-full" />
               <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-                {selectedBrandId 
+                3. {selectedBrandId 
                   ? `Modelos de ${brands.find(b => b.id === selectedBrandId)?.name}`
-                  : 'Selecione uma marca'}
+                  : 'Modelos'}
               </h4>
             </div>
             
@@ -313,13 +455,46 @@ export const EquipmentSettings: React.FC<EquipmentSettingsProps> = ({
                           key={model.id}
                           className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.03] border border-white/5 text-slate-400 hover:bg-white/5 hover:text-slate-200 transition-all duration-300"
                         >
-                          <span className="text-sm font-bold tracking-tight">{model.name}</span>
-                          <button
-                            onClick={() => onDeleteModel(model.id)}
-                            className="p-2 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {editingModelId === model.id ? (
+                            <div className="flex-1 flex gap-2 mr-4" onClick={e => e.stopPropagation()}>
+                              <input 
+                                autoFocus
+                                type="text"
+                                value={editingModelName}
+                                onChange={(e) => setEditingModelName(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && saveModelEdit(model.id, model.brandId)}
+                                className="flex-1 h-8 bg-black/20 border border-emerald-500/50 rounded-lg px-3 text-sm font-bold text-white outline-none"
+                              />
+                              <button onClick={() => saveModelEdit(model.id, model.brandId)} className="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center hover:scale-105">
+                                <Check size={14} />
+                              </button>
+                              <button onClick={() => setEditingModelId(null)} className="w-8 h-8 bg-slate-500 text-white rounded-lg flex items-center justify-center hover:scale-105">
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-sm font-bold tracking-tight">{model.name}</span>
+                          )}
+                          
+                          {editingModelId !== model.id && (
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => {
+                                  setEditingModelId(model.id);
+                                  setEditingModelName(model.name);
+                                }}
+                                className="p-2 text-slate-600 hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => onDeleteModel(model.id)}
+                                className="p-2 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))
                     )}

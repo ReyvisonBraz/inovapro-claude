@@ -3,6 +3,7 @@ import Settings from '../components/settings/Settings';
 import { useSettings } from '../hooks/useSettings';
 import { useUsers } from '../hooks/useUsers';
 import { useAuditLogs } from '../hooks/useAuditLogs';
+import { useServiceOrders } from '../hooks/useServiceOrders';
 import { useToast } from '../components/ui/Toast';
 
 export const SettingsPage: React.FC = () => {
@@ -17,6 +18,12 @@ export const SettingsPage: React.FC = () => {
   
   const { useUsersQuery, addUserMutation, updateUserMutation, deleteUserMutation } = useUsers();
   const { useAuditLogsQuery } = useAuditLogs();
+  const { 
+    brands, models, equipmentTypes,
+    addBrandAPI, updateBrandAPI, deleteBrandAPI,
+    addModelAPI, updateModelAPI, deleteModelAPI,
+    addEquipmentTypeAPI, updateEquipmentTypeAPI, deleteEquipmentTypeAPI
+  } = useServiceOrders();
 
   const usersQuery = useUsersQuery();
   const auditLogsQuery = useAuditLogsQuery();
@@ -33,6 +40,18 @@ export const SettingsPage: React.FC = () => {
       onUpdateUser={(id, user) => updateUserMutation.mutate({ id, user })}
       onDeleteUser={(id) => deleteUserMutation.mutate(id)}
       auditLogs={auditLogsQuery.data || []}
+      brands={brands || []}
+      models={models || []}
+      equipmentTypes={equipmentTypes || []}
+      onAddBrand={addBrandAPI}
+      onUpdateBrand={updateBrandAPI}
+      onDeleteBrand={deleteBrandAPI}
+      onAddModel={addModelAPI}
+      onUpdateModel={updateModelAPI}
+      onDeleteModel={deleteModelAPI}
+      onAddEquipmentType={addEquipmentTypeAPI}
+      onUpdateEquipmentType={updateEquipmentTypeAPI}
+      onDeleteEquipmentType={deleteEquipmentTypeAPI}
     />
   );
 };

@@ -153,9 +153,35 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['models'] }),
   });
 
+  const updateModelMutation = useMutation({
+    mutationFn: ({ id, model }: { id: number; model: any }) => api.put(`/models/${id}`, model),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['models'] });
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+    },
+  });
+
   const deleteModelMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/models/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['models'] }),
+  });
+
+  const updateEquipmentTypeMutation = useMutation({
+    mutationFn: ({ id, type }: { id: number; type: any }) => api.put(`/equipment-types/${id}`, type),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipment-types'] });
+      queryClient.invalidateQueries({ queryKey: ['brands'] });
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+    },
+  });
+
+  const updateBrandMutation = useMutation({
+    mutationFn: ({ id, brand }: { id: number; brand: any }) => api.put(`/brands/${id}`, brand),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['brands'] });
+      queryClient.invalidateQueries({ queryKey: ['models'] });
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+    },
   });
 
   return {
@@ -172,10 +198,13 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
     addServiceOrderStatusAPI: (status: any) => addStatusMutation.mutateAsync(status),
     deleteServiceOrderStatusAPI: (id: number) => deleteStatusMutation.mutateAsync(id),
     addEquipmentTypeAPI: (name: string, icon?: string) => addEquipmentTypeMutation.mutateAsync({ name, icon }),
+    updateEquipmentTypeAPI: (id: number, name: string, icon?: string) => updateEquipmentTypeMutation.mutateAsync({ id, type: { name, icon } }),
     deleteEquipmentTypeAPI: (id: number) => deleteEquipmentTypeMutation.mutateAsync(id),
     addBrandAPI: (name: string, equipmentType: string) => addBrandMutation.mutateAsync({ name, equipmentType }),
+    updateBrandAPI: (id: number, name: string, equipmentType: string) => updateBrandMutation.mutateAsync({ id, brand: { name, equipmentType } }),
     deleteBrandAPI: (id: number) => deleteBrandMutation.mutateAsync(id),
     addModelAPI: (brandId: number, name: string) => addModelMutation.mutateAsync({ brandId, name }),
+    updateModelAPI: (id: number, brandId: number, name: string) => updateModelMutation.mutateAsync({ id, model: { brandId, name } }),
     deleteModelAPI: (id: number) => deleteModelMutation.mutateAsync(id),
     isLoading,
     isError

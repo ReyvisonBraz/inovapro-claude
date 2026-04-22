@@ -73,6 +73,8 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
     setValue,
     watch,
     reset,
+    setError,
+    clearErrors,
     formState: { errors }
   } = useForm<ServiceOrderFormData>({
     resolver: zodResolver(serviceOrderSchema),
@@ -188,6 +190,13 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
 
   const [partSearch, setPartSearch] = useState('');
   const [isAddingPart, setIsAddingPart] = useState(false);
+  const [isSimplified, setIsSimplified] = useState(false);
+
+  useEffect(() => {
+    if (isSimplified) {
+      clearErrors(['equipmentType', 'equipmentBrand', 'equipmentModel', 'reportedProblem']);
+    }
+  }, [isSimplified, clearErrors]);
 
   const [quickAddModal, setQuickAddModal] = useState<{
     isOpen: boolean;
@@ -227,6 +236,19 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
   };
 
   const onFormSubmit = async (data: ServiceOrderFormData) => {
+    let hasError = false;
+    if (!isSimplified) {
+      if (!data.equipmentType) { setError('equipmentType', { message: 'Obrigatório no modo completo', type: 'manual' }); hasError = true; }
+      if (!data.equipmentBrand) { setError('equipmentBrand', { message: 'Obrigatório no modo completo', type: 'manual' }); hasError = true; }
+      if (!data.equipmentModel) { setError('equipmentModel', { message: 'Obrigatório no modo completo', type: 'manual' }); hasError = true; }
+      if (!data.reportedProblem) { setError('reportedProblem', { message: 'Obrigatório no modo completo', type: 'manual' }); hasError = true; }
+    }
+    
+    if (hasError) {
+      showToast('Preencha os campos obrigatórios ou ative o Preenchimento Simplificado no topo', 'error');
+      return;
+    }
+
     const orderData = {
       ...data,
       createdBy: currentUser?.id
@@ -315,6 +337,24 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
 
           {/* Modal Body */}
           <div className="p-4 sm:p-6 md:p-8 space-y-6 md:space-y-8 overflow-y-auto flex-1 custom-scrollbar">
+            
+            {/* Toggle Simplificado */}
+            <label className="flex items-center gap-4 bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl w-full sm:w-fit cursor-pointer hover:bg-emerald-500/20 transition-colors shadow-lg shadow-emerald-500/5">
+              <div className="relative flex items-center justify-center">
+                <input 
+                  type="checkbox" 
+                  checked={isSimplified} 
+                  onChange={(e) => setIsSimplified(e.target.checked)} 
+                  className="peer appearance-none w-6 h-6 border-2 border-emerald-500/50 rounded-lg checked:bg-emerald-500 checked:border-emerald-500 transition-all"
+                />
+                <Check size={16} className="absolute text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-black text-emerald-400">Preenchimento Simplificado</span>
+                <span className="text-xs font-bold text-slate-400">Torna os detalhes técnicos não obrigatórios</span>
+              </div>
+            </label>
+
             {/* Cliente e Data */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div className="space-y-2">
@@ -359,12 +399,14 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
             {/* Equipamento */}
             <div className="space-y-4">
               <div className="flex items-center gap-3 mb-2">
-                <div className="h-1 w-8 bg-primary rounded-full" />
-                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Dados do Equipamento</h4>
+                <div className="h-1 w-8 bg-indigo-500 rounded-full" />
+                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-400">Dados do Equipamento</h4>
               </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1 mb-2 block">Tipo</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-indigo-400 ml-1 mb-2 block">
+                      Tipo {!isSimplified && <span className="text-rose-500">*</span>}
+                    </label>
                     <div className="flex gap-2">
                       <SearchableSelect
                         options={equipmentTypes.map(t => ({ value: t.name, label: t.name }))}
@@ -391,7 +433,9 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Marca</label>
+                      <label className="text-xs font-black uppercase tracking-widest text-indigo-400 ml-1">
+                        Marca {!isSimplified && <span className="text-rose-500">*</span>}
+                      </label>
                     </div>
                     <div className="flex gap-2">
                       <SearchableSelect
@@ -428,7 +472,9 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Modelo</label>
+                      <label className="text-xs font-black uppercase tracking-widest text-indigo-400 ml-1">
+                        Modelo {!isSimplified && <span className="text-rose-500">*</span>}
+                      </label>
                     </div>
                     <div className="flex gap-2">
                       <SearchableSelect
@@ -471,7 +517,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                     {errors.equipmentModel && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.equipmentModel.message}</p>}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">Cor do Equipamento</label>
+                    <label className="text-xs font-bold uppercase tracking-widest text-purple-400 ml-1">Cor do Equipamento</label>
                     <input 
                       {...register('equipmentColor')}
                       className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary text-slate-200 placeholder:text-slate-500 outline-none transition-all"
@@ -479,7 +525,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">Nº de Série</label>
+                    <label className="text-xs font-bold uppercase tracking-widest text-purple-400 ml-1">Nº de Série</label>
                     <input 
                       {...register('equipmentSerial')}
                       className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary text-slate-200 outline-none transition-all"
@@ -492,32 +538,32 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
             {/* Especificações e Senha */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-pink-400 ml-1 flex items-center gap-2">
                   <Cpu size={12} /> RAM
                 </label>
                 <input 
                   {...register('ramInfo')}
-                  className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary text-slate-200 outline-none transition-all"
+                  className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-pink-500 text-slate-200 outline-none transition-all"
                   placeholder="Ex: 8GB DDR4"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-pink-400 ml-1 flex items-center gap-2">
                   <HardDrive size={12} /> SSD/HD
                 </label>
                 <input 
                   {...register('ssdInfo')}
-                  className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary text-slate-200 outline-none transition-all"
+                  className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-pink-500 text-slate-200 outline-none transition-all"
                   placeholder="Ex: 240GB SSD"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1 flex items-center gap-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-pink-400 ml-1 flex items-center gap-2">
                   <Lock size={12} /> Senha do Equipamento
                 </label>
                 <input 
                   {...register('customerPassword')}
-                  className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary text-slate-200 outline-none transition-all"
+                  className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-pink-500 text-slate-200 outline-none transition-all"
                   placeholder="Opcional"
                 />
               </div>
@@ -592,7 +638,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-widest text-rose-500 ml-1 flex items-center gap-2 bg-rose-500/5 px-2 py-1 rounded-md w-fit mb-1">
-                  <AlertCircle size={12} /> Problema Relatado <span className="text-rose-500">*</span>
+                  <AlertCircle size={12} /> Problema Relatado {!isSimplified && <span className="text-rose-500">*</span>}
                 </label>
                 <textarea 
                   {...register('reportedProblem')}

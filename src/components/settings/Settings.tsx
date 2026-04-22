@@ -4,11 +4,12 @@ import {
   Settings as SettingsIcon, User, Shield, 
   Database, Bell, Palette, Globe,
   Save, Plus, Trash2, Edit2, Key,
-  MessageSquare, Send, RefreshCw, Github, DownloadCloud
+  MessageSquare, Send, RefreshCw, Github, DownloadCloud, Laptop
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { AppSettings, Category, User as UserType } from '../../types';
+import { AppSettings, Category, User as UserType, Brand, Model, EquipmentType } from '../../types';
 import AuditLogs from '../audit/AuditLogs';
+import { EquipmentSettings } from './EquipmentSettings';
 import { useToast } from '../ui/Toast';
 
 import { useSettingsStore } from '../../store/useSettingsStore';
@@ -25,6 +26,18 @@ interface SettingsProps {
   onUpdateUser: (id: number, user: Partial<UserType>) => void;
   onDeleteUser: (id: number) => void;
   auditLogs: any[];
+  brands?: Brand[];
+  models?: Model[];
+  equipmentTypes?: EquipmentType[];
+  onAddBrand?: (name: string, equipmentType: string) => Promise<void>;
+  onUpdateBrand?: (id: number, name: string, equipmentType: string) => Promise<void>;
+  onDeleteBrand?: (id: number) => Promise<void>;
+  onAddModel?: (brandId: number, name: string) => Promise<void>;
+  onUpdateModel?: (id: number, brandId: number, name: string) => Promise<void>;
+  onDeleteModel?: (id: number) => Promise<void>;
+  onAddEquipmentType?: (name: string, icon?: string) => void;
+  onUpdateEquipmentType?: (id: number, name: string, icon?: string) => void;
+  onDeleteEquipmentType?: (id: number) => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -37,7 +50,19 @@ const Settings: React.FC<SettingsProps> = ({
   onAddUser,
   onUpdateUser,
   onDeleteUser,
-  auditLogs
+  auditLogs,
+  brands = [],
+  models = [],
+  equipmentTypes = [],
+  onAddBrand,
+  onUpdateBrand,
+  onDeleteBrand,
+  onAddModel,
+  onUpdateModel,
+  onDeleteModel,
+  onAddEquipmentType,
+  onUpdateEquipmentType,
+  onDeleteEquipmentType
 }) => {
   const [activeTab, setActiveTab] = React.useState('general');
   const [newCategoryName, setNewCategoryName] = React.useState('');
@@ -58,6 +83,7 @@ const Settings: React.FC<SettingsProps> = ({
   const tabs = [
     { id: 'general', label: 'Geral', icon: SettingsIcon },
     { id: 'categories', label: 'Categorias', icon: Palette },
+    { id: 'equipment', label: 'Equipamentos', icon: Laptop },
     { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
     { id: 'users', label: 'Usuários', icon: User },
     { id: 'security', label: 'Segurança', icon: Shield },
@@ -225,6 +251,23 @@ const Settings: React.FC<SettingsProps> = ({
                   ))}
                 </div>
               </div>
+            )}
+
+            {activeTab === 'equipment' && (
+              <EquipmentSettings 
+                brands={brands}
+                models={models}
+                equipmentTypes={equipmentTypes}
+                onAddBrand={onAddBrand!}
+                onUpdateBrand={onUpdateBrand!}
+                onDeleteBrand={onDeleteBrand!}
+                onAddModel={onAddModel!}
+                onUpdateModel={onUpdateModel!}
+                onDeleteModel={onDeleteModel!}
+                onAddEquipmentType={onAddEquipmentType!}
+                onUpdateEquipmentType={onUpdateEquipmentType!}
+                onDeleteEquipmentType={onDeleteEquipmentType!}
+              />
             )}
 
             {activeTab === 'whatsapp' && (
