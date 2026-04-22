@@ -1349,6 +1349,21 @@ async function startServer() {
     }
   });
 
+  app.put("/api/brands/:id", (req, res) => {
+    const { name, equipmentType } = req.body;
+    try {
+      const oldBrand = db.prepare("SELECT name FROM brands WHERE id = ?").get(req.params.id) as any;
+      db.prepare("UPDATE brands SET name = ?, equipmentType = ? WHERE id = ?").run(name, equipmentType, req.params.id);
+      
+      if (oldBrand && oldBrand.name !== name) {
+        db.prepare("UPDATE service_orders SET equipmentBrand = ? WHERE equipmentBrand = ?").run(name, oldBrand.name);
+      }
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
   app.delete("/api/brands/:id", (req, res) => {
     try {
       db.prepare("DELETE FROM brands WHERE id = ?").run(req.params.id);
@@ -1374,6 +1389,21 @@ async function startServer() {
     }
   });
 
+  app.put("/api/models/:id", (req, res) => {
+    const { brandId, name } = req.body;
+    try {
+      const oldModel = db.prepare("SELECT name FROM models WHERE id = ?").get(req.params.id) as any;
+      db.prepare("UPDATE models SET brandId = ?, name = ? WHERE id = ?").run(brandId, name, req.params.id);
+      
+      if (oldModel && oldModel.name !== name) {
+        db.prepare("UPDATE service_orders SET equipmentModel = ? WHERE equipmentModel = ?").run(name, oldModel.name);
+      }
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
   app.delete("/api/models/:id", (req, res) => {
     try {
       db.prepare("DELETE FROM models WHERE id = ?").run(req.params.id);
@@ -1394,6 +1424,22 @@ async function startServer() {
     try {
       const result = db.prepare("INSERT INTO equipment_types (name, icon) VALUES (?, ?)").run(name, icon);
       res.json({ id: result.lastInsertRowid });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.put("/api/equipment-types/:id", (req, res) => {
+    const { name, icon } = req.body;
+    try {
+      const oldType = db.prepare("SELECT name FROM equipment_types WHERE id = ?").get(req.params.id) as any;
+      db.prepare("UPDATE equipment_types SET name = ?, icon = ? WHERE id = ?").run(name, icon, req.params.id);
+      
+      if (oldType && oldType.name !== name) {
+        db.prepare("UPDATE service_orders SET equipmentType = ? WHERE equipmentType = ?").run(name, oldType.name);
+        db.prepare("UPDATE brands SET equipmentType = ? WHERE equipmentType = ?").run(name, oldType.name);
+      }
+      res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
