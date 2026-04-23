@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.env.local
+finance.db
+data/
+*.log
+.git
+PRODUCAO
+IMPLEMENTAÇÃO
+docs
+coverage
