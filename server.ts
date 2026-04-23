@@ -5,19 +5,37 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import { generateToken, requireAuth } from "./src/middleware/auth.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // --- Validação de variáveis de ambiente ---
-const optionalEnvVars = ['PORT', 'ADMIN_PASSWORD'];
-optionalEnvVars.forEach(v => {
-  if (!process.env[v]) {
-    console.warn(`[CONFIG] Env var ${v} não definida, usando valor padrão.`);
+if (process.env.NODE_ENV === 'production') {
+  const required = ['JWT_SECRET', 'GEMINI_API_KEY', 'ADMIN_PASSWORD'];
+  for (const v of required) {
+    if (!process.env[v]) {
+      console.error(`[STARTUP] Env var obrigatória ausente: ${v}`);
+      process.exit(1);
+    }
   }
+}
+
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] uncaughtException:', err.message, err.stack);
+  process.exit(1);
 });
 
-const db = new Database("finance.db");
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] unhandledRejection:', reason);
+  process.exit(1);
+});
+
+const dbPath = process.env.DB_PATH || path.resolve(__dirname, 'data/finance.db');
+const db = new Database(dbPath);
 
 // --- Zod Schemas for Validation ---
 const TransactionSchema = z.object({
@@ -365,6 +383,16 @@ migrations.forEach(m => {
   }
 });
 
+// Indexes para queries frequentes
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type);
+  CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
+  CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
+  CREATE INDEX IF NOT EXISTS idx_client_payments_customer ON client_payments(customerId);
+  CREATE INDEX IF NOT EXISTS idx_service_orders_status ON service_orders(status);
+  CREATE INDEX IF NOT EXISTS idx_service_orders_customer ON service_orders(customerId);
+`);
+
 // Inserir usuário Admin padrão se não existir
 const usersCount = db.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
 if (usersCount.count === 0) {
@@ -417,22 +445,58 @@ if (equipmentTypesCount.count === 0) {
 }
 
 // Inserir dados iniciais se o banco estiver vazio
-const count = db.prepare("SELECT COUNT(*) as count FROM transactions").get() as { count: number };
-if (count.count === 0) {
-  const insert = db.prepare("INSERT INTO transactions (description, category, type, amount, date, status) VALUES (?, ?, ?, ?, ?, ?)");
-  insert.run("Mercado Whole Foods", "Alimentação", "expense", 142.50, "2024-10-24", "Concluído");
-  insert.run("Salário Mensal", "Trabalho", "income", 4500.00, "2024-10-24", "Concluído");
-  insert.run("Conta de Luz", "Utilidades", "expense", 85.20, "2024-10-24", "Pendente");
-  insert.run("Starbucks Coffee", "Alimentação", "expense", 12.45, "2024-10-24", "Concluído");
-  insert.run("Posto de Gasolina Shell", "Viagem", "expense", 55.00, "2024-10-24", "Falhou");
-}
-
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ limit: '50mb', extended: true }));
+  app.use(helmet());
+  app.use(cors({
+    origin: process.env.APP_URL || 'http://localhost:3000',
+    credentials: true,
+  }));
+  app.use(express.json({ limit: '5mb' }));
+  app.use(express.urlencoded({ limit: '5mb', extended: true }));
+
+  const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: { error: 'Muitas tentativas. Tente novamente em 15 minutos.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // Health check (público)
+  app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' });
+  });
+
+  // Rota de login (pública)
+  app.post("/api/login", loginLimiter, (req, res) => {
+    const { username, password } = req.body;
+    const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username) as any;
+
+    if (!user || !bcrypt.compareSync(password, user.password)) {
+      return res.status(401).json({ error: "Credenciais inválidas" });
+    }
+
+    try {
+      user.permissions = JSON.parse(user.permissions || '[]');
+    } catch (e) {
+      user.permissions = [];
+    }
+
+    if (user.role === 'owner') {
+      user.permissions = ['view_dashboard', 'manage_transactions', 'view_reports', 'manage_customers', 'manage_payments', 'manage_settings', 'manage_users'];
+    }
+
+    const token = generateToken({ userId: user.id, username: user.username, role: user.role });
+
+    delete user.password;
+    res.json({ token, user });
+  });
+
+  // Todas as rotas abaixo exigem autenticação
+  app.use('/api', requireAuth);
 
   // Rotas da API
 
@@ -919,30 +983,6 @@ async function startServer() {
     const { paymentId, content } = req.body;
     const result = db.prepare("INSERT INTO receipts (paymentId, content) VALUES (?, ?)").run(paymentId, content);
     res.json({ id: result.lastInsertRowid });
-  });
-
-  // Rotas de Autenticação
-  app.post("/api/login", (req, res) => {
-    const { username, password } = req.body;
-    const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username) as any;
-
-    if (!user || !bcrypt.compareSync(password, user.password)) {
-      return res.status(401).json({ error: "Credenciais inválidas" });
-    }
-
-    // Parse permissions
-    try {
-      user.permissions = JSON.parse(user.permissions || '[]');
-    } catch (e) {
-      user.permissions = [];
-    }
-
-    // Se for owner, garante todas as permissões
-    if (user.role === 'owner') {
-      user.permissions = ['view_dashboard', 'manage_transactions', 'view_reports', 'manage_customers', 'manage_payments', 'manage_settings', 'manage_users'];
-    }
-
-    res.json(user);
   });
 
   // Rotas de Usuários
@@ -1454,6 +1494,23 @@ async function startServer() {
     }
   });
 
+  // Proxy Gemini AI (chave fica apenas no servidor)
+  app.post('/api/ai/generate', async (req, res) => {
+    try {
+      const { prompt, model = 'gemini-2.0-flash' } = req.body;
+      if (!prompt) return res.status(400).json({ error: 'prompt é obrigatório' });
+
+      const { GoogleGenAI } = await import('@google/genai');
+      const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+      const result = await genAI.models.generateContent({ model, contents: prompt });
+      const text = result.text;
+
+      res.json({ text });
+    } catch (err: any) {
+      res.status(500).json({ error: 'Erro ao chamar Gemini', detail: err.message });
+    }
+  });
+
   // Configuração do Vite para desenvolvimento
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -1468,6 +1525,12 @@ async function startServer() {
       res.sendFile(path.join(__dirname, "dist", "index.html"));
     });
   }
+
+  app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error('[ERROR]', new Date().toISOString(), err.message);
+    if (process.env.NODE_ENV !== 'production') console.error(err.stack);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  });
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Servidor rodando em http://localhost:${PORT}`);
