@@ -649,17 +649,34 @@ async function startServer() {
     const pendingPayments = db.prepare("SELECT COUNT(*) as count FROM client_payments WHERE status != 'paid'").get().count || 0;
     const activeOS = db.prepare("SELECT COUNT(*) as count FROM service_orders WHERE status NOT IN ('completed', 'delivered', 'cancelled')").get().count || 0;
     
-    // Dados para o gráfico (últimos 12 meses)
+    // Dados para o gráfico (últimos 12 meses) — query única com GROUP BY (evita N+1)
+    const monthlyRows = db.prepare(`
+      SELECT
+        strftime('%Y-%m', date) as month,
+        type,
+        SUM(amount) as total
+      FROM transactions
+      WHERE date >= date('now', '-12 months')
+      GROUP BY strftime('%Y-%m', date), type
+      ORDER BY month ASC
+    `).all() as { month: string; type: string; total: number }[];
+
+    // Mapeia os resultados flat para um dicionário por mês
+    const byMonth: Record<string, { income: number; expense: number }> = {};
+    for (const row of monthlyRows) {
+      if (!byMonth[row.month]) byMonth[row.month] = { income: 0, expense: 0 };
+      if (row.type === 'income') byMonth[row.month].income = Number(row.total);
+      else byMonth[row.month].expense = Number(row.total);
+    }
+
+    // Garante todos os 12 meses na saída, mesmo meses sem transações
     const chartData = [];
     for (let i = 11; i >= 0; i--) {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
       const month = d.toISOString().slice(0, 7); // YYYY-MM
       const name = d.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase();
-      
-      const income = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'income' AND date LIKE ?").get(`${month}%`).total || 0;
-      const expense = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'expense' AND date LIKE ?").get(`${month}%`).total || 0;
-      
+      const { income = 0, expense = 0 } = byMonth[month] || {};
       chartData.push({ name, income, expense });
     }
 

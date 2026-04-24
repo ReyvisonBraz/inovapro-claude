@@ -26,11 +26,11 @@ Fase 6 (CI/CD)             ← por último
 
 ## Checklist de Verificação Final
 
-- [ ] `GET /api/transactions` sem token → retorna 401
-- [ ] `POST /api/login` → retorna `{ token, user }` sem campo `password`
-- [ ] `GET /api/transactions` com `Authorization: Bearer <token>` → retorna dados
-- [ ] DevTools → Sources → buscar `GEMINI` no bundle JS → não encontrar nada
-- [ ] `GET /health` → `{ status: "ok", timestamp: "...", version: "1.0.0" }`
+- [x] `GET /api/transactions` sem token → retorna 401
+- [x] `POST /api/login` → retorna `{ token, user }` sem campo `password`
+- [x] `GET /api/transactions` com `Authorization: Bearer <token>` → retorna dados
+- [x] DevTools → Sources → buscar `GEMINI` no bundle JS → não encontrar nada
+- [x] `GET /health` → `{ status: "ok", timestamp: "...", version: "1.0.0" }`
 - [ ] `npm run build && NODE_ENV=production npm start` → app funciona em localhost:3000
 - [ ] `docker build -t inovapro . && docker run -p 3000:3000 inovapro` → app responde
 
