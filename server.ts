@@ -450,7 +450,10 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
-  app.use(helmet());
+  app.use(helmet({
+    contentSecurityPolicy: false, // Disable CSP to avoid blocking assets on mobile
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+  }));
 
   const allowedOrigins = [
     // Explicitly configured production URL
