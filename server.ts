@@ -56,7 +56,7 @@ const CustomerSchema = z.object({
   companyName: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
   observation: z.string().optional().nullable(),
-  creditLimit: z.number().nonnegative().optional(),
+  creditLimit: z.coerce.number().nonnegative().optional(),
   createdBy: z.number().optional(),
   updatedBy: z.number().optional()
 });
