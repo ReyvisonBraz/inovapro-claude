@@ -193,11 +193,9 @@ export const ClientPaymentsPage: React.FC = () => {
       'Deseja excluir todos os lançamentos desta venda agrupada? Esta ação não pode ser desfeita.',
       async () => {
         try {
-          const res = await fetch(`/api/client-payments/group/${saleId}`, { method: 'DELETE' });
-          if (res.ok) {
-            clientPaymentsQuery.refetch();
-            showToast('Venda excluída com sucesso.', 'success');
-          }
+          await api.delete(`/client-payments/group/${saleId}`);
+          clientPaymentsQuery.refetch();
+          showToast('Venda excluída com sucesso.', 'success');
         } catch (err) {
           console.error("Failed to delete client payment group", err);
           showToast('Erro ao excluir venda.', 'error');
