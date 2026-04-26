@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { User } from '../../types';
-import { Wallet, Lock, User as UserIcon, AlertCircle } from 'lucide-react';
+import { Lock, User as UserIcon, AlertCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface LoginProps {
-  onLogin: (user: User) => void;
+  onLogin: (token: string, user: User) => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin }) => {
@@ -26,8 +26,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       });
 
       if (response.ok) {
-        const user = await response.json();
-        onLogin(user);
+        const data = await response.json();
+        onLogin(data.token, data.user);
       } else {
         const data = await response.json();
         setError(data.error || 'Falha no login');

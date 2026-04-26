@@ -7,13 +7,18 @@ const api = axios.create({
   },
 });
 
-// Interceptor para tratar erros globais (opcional)
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Aqui você pode tratar erros globais, como 401 (não autorizado)
     if (error.response?.status === 401) {
-      // Redirecionar para login ou limpar estado de auth
+      localStorage.removeItem('token');
+      localStorage.removeItem('currentUser');
       window.location.href = '/login';
     }
     console.error('API Error:', error.response?.data || error.message);

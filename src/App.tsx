@@ -150,8 +150,8 @@ export default function App() {
 
 
 
-  const handleLogin = (user: User) => {
-    login(user);
+  const handleLogin = (token: string, user: User) => {
+    login(token, user);
     navigate('/dashboard');
   };
 
