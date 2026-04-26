@@ -372,7 +372,8 @@ const migrations = [
   { name: 'icon', table: 'equipment_types', type: "TEXT" },
   { name: 'services', table: 'service_orders', type: "TEXT DEFAULT '[]'" },
   { name: 'paymentId', table: 'transactions', type: "INTEGER" },
-  { name: 'saleId', table: 'transactions', type: "TEXT" }
+  { name: 'saleId', table: 'transactions', type: "TEXT" },
+  { name: 'equipmentType', table: 'brands', type: "TEXT" }
 ];
 
 migrations.forEach(m => {
