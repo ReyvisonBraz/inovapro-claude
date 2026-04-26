@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import api from '../lib/api';
 import { AppSettings, Category } from '../types';
 import { useSettingsStore } from '../store/useSettingsStore';
 
@@ -10,7 +10,7 @@ export function useSettings(showToast: (message: string, type: 'success' | 'erro
   const { data: settings, isLoading: isLoadingSettings } = useQuery({
     queryKey: ['settings'],
     queryFn: async () => {
-      const { data } = await axios.get('/api/settings');
+      const { data } = await api.get('/settings');
       setSettings(data);
       return data as AppSettings;
     }
@@ -19,7 +19,7 @@ export function useSettings(showToast: (message: string, type: 'success' | 'erro
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      const { data } = await axios.get('/api/categories');
+      const { data } = await api.get('/categories');
       setCategories(data);
       return data as Category[];
     }
@@ -27,7 +27,7 @@ export function useSettings(showToast: (message: string, type: 'success' | 'erro
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (newSettings: AppSettings) => {
-      const { data } = await axios.post('/api/settings', newSettings);
+      const { data } = await api.post('/settings', newSettings);
       return data;
     },
     onSuccess: (data) => {
@@ -41,14 +41,14 @@ export function useSettings(showToast: (message: string, type: 'success' | 'erro
   });
 
   const refreshCategories = async () => {
-    const { data } = await axios.get('/api/categories');
+    const { data } = await api.get('/categories');
     setCategories(data);
     queryClient.setQueryData(['categories'], data);
   };
 
   const addCategoryMutation = useMutation({
     mutationFn: async (category: any) => {
-      const { data } = await axios.post('/api/categories', category);
+      const { data } = await api.post('/categories', category);
       return data;
     },
     onSuccess: () => refreshCategories(),
@@ -57,7 +57,7 @@ export function useSettings(showToast: (message: string, type: 'success' | 'erro
 
   const deleteCategoryMutation = useMutation({
     mutationFn: async (id: number) => {
-      await axios.delete(`/api/categories/${id}`);
+      await api.delete(`/categories/${id}`);
     },
     onSuccess: () => refreshCategories(),
     onError: () => showToast('Erro ao remover categoria.', 'error')
