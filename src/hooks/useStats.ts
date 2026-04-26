@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import api from '../lib/api';
 import { useFilterStore } from '../store/useFilterStore';
 
 export const useStats = (month?: string) => {
@@ -20,7 +20,7 @@ export const useStats = (month?: string) => {
   }, isLoading, error, refetch: fetchStats } = useQuery({
     queryKey: ['stats', month],
     queryFn: async () => {
-      const res = await axios.get('/api/stats', { params: { month } });
+      const res = await api.get('/stats', { params: { month } });
       return res.data;
     }
   });
