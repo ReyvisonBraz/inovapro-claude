@@ -1,6 +1,7 @@
 import express from "express";
 
-import Database from "better-sqlite3";
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 import path from "path";
 import { fileURLToPath } from "url";
 import { z } from "zod";
@@ -117,7 +118,7 @@ const ServiceOrderSchema = z.object({
 });
 
 // --- Helper for Paginated Responses ---
-function getPaginatedData(tableName: string, page: number = 1, limit: number = 20, options: { 
+function await getPaginatedData(tableName: string, page: number = 1, limit: number = 20, options: { 
   where?: string, 
   params?: any[], 
   orderBy?: string,
@@ -132,10 +133,10 @@ function getPaginatedData(tableName: string, page: number = 1, limit: number = 2
   const select = options.select || "*";
   
   const countQuery = `SELECT COUNT(*) as total FROM ${tableName} ${join} ${whereClause}`;
-  const total = db.prepare(countQuery).get(...params).total;
+  const total = await db.prepare(countQuery).get(...params).total;
   
   const dataQuery = `SELECT ${select} FROM ${tableName} ${join} ${whereClause} ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
-  const data = db.prepare(dataQuery).all(...params, limit, offset);
+  const data = await db.prepare(dataQuery).all(...params, limit, offset);
   
   return {
     data,
@@ -149,7 +150,7 @@ function getPaginatedData(tableName: string, page: number = 1, limit: number = 2
 }
 
 // Inicializar o banco de dados SQLite
-db.exec(`
+await db.exec(`
   CREATE TABLE IF NOT EXISTS transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     description TEXT NOT NULL,
@@ -375,16 +376,16 @@ const migrations = [
   { name: 'saleId', table: 'transactions', type: "TEXT" }
 ];
 
-migrations.forEach(m => {
+for (const m of migrations) {
   try {
-    db.prepare(`ALTER TABLE ${m.table} ADD COLUMN ${m.name} ${m.type}`).run();
+    await db.prepare(`ALTER TABLE ${m.table} ADD COLUMN ${m.name} ${m.type}`).run();
   } catch (e) {
     // Coluna já existe ou outro erro
   }
 });
 
 // Indexes para queries frequentes
-db.exec(`
+await db.exec(`
   CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type);
   CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
   CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
@@ -394,54 +395,54 @@ db.exec(`
 `);
 
 // Inserir usuário Admin padrão se não existir
-const usersCount = db.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
+const usersCount = await db.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
 if (usersCount.count === 0) {
   const allPermissions = JSON.stringify(['view_dashboard', 'manage_transactions', 'view_reports', 'manage_customers', 'manage_payments', 'manage_settings', 'manage_users']);
   const defaultPassword = process.env.ADMIN_PASSWORD || 'admin';
   const hashedPassword = bcrypt.hashSync(defaultPassword, 10);
-  db.prepare("INSERT INTO users (username, password, role, name, permissions) VALUES (?, ?, ?, ?, ?)").run('admin', hashedPassword, 'owner', 'Administrador', allPermissions);
+  await db.prepare("INSERT INTO users (username, password, role, name, permissions) VALUES (?, ?, ?, ?, ?)").run('admin', hashedPassword, 'owner', 'Administrador', allPermissions);
 }
 
 // Inserir configurações padrão se não existirem
-const settingsCount = db.prepare("SELECT COUNT(*) as count FROM settings").get() as { count: number };
+const settingsCount = await db.prepare("SELECT COUNT(*) as count FROM settings").get() as { count: number };
 if (settingsCount.count === 0) {
-  db.prepare("INSERT INTO settings (id) VALUES (1)").run();
+  await db.prepare("INSERT INTO settings (id) VALUES (1)").run();
 }
 
 // Inserir categorias padrão se não existirem
-const categoriesCount = db.prepare("SELECT COUNT(*) as count FROM categories").get() as { count: number };
+const categoriesCount = await db.prepare("SELECT COUNT(*) as count FROM categories").get() as { count: number };
 if (categoriesCount.count === 0) {
   const insertCat = db.prepare("INSERT INTO categories (name, type) VALUES (?, ?)");
   const income = ['Entrada', 'Salário', 'Vendas', 'Serviços', 'Investimentos', 'Outros'];
   const expense = ['Saída', 'Alimentação', 'Trabalho', 'Utilidades', 'Viagem', 'Lazer', 'Outros'];
   
-  income.forEach(c => insertCat.run(c, 'income'));
-  expense.forEach(c => insertCat.run(c, 'expense'));
+  for (const c of income) { await insertCat.run(c, 'income'); }
+  for (const c of expense) { await insertCat.run(c, 'expense'); }
 }
 
 // Garantir que Entrada e Saída existam mesmo em bancos já populados
-db.prepare("INSERT INTO categories (name, type) SELECT 'Entrada', 'income' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Entrada' AND type = 'income')").run();
-db.prepare("INSERT INTO categories (name, type) SELECT 'Saída', 'expense' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Saída' AND type = 'expense')").run();
+await db.prepare("INSERT INTO categories (name, type) SELECT 'Entrada', 'income' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Entrada' AND type = 'income')").run();
+await db.prepare("INSERT INTO categories (name, type) SELECT 'Saída', 'expense' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Saída' AND type = 'expense')").run();
 
 // Inserir status de OS padrão se não existirem
-const statusCount = db.prepare("SELECT COUNT(*) as count FROM service_order_statuses").get() as { count: number };
+const statusCount = await db.prepare("SELECT COUNT(*) as count FROM service_order_statuses").get() as { count: number };
 if (statusCount.count === 0) {
   const insertStatus = db.prepare("INSERT INTO service_order_statuses (name, color, priority, isDefault) VALUES (?, ?, ?, ?)");
-  insertStatus.run('Aguardando Análise', '#f59e0b', 1, 1);
-  insertStatus.run('Em Manutenção', '#3b82f6', 2, 1);
-  insertStatus.run('Urgente', '#f43f5e', 3, 1);
-  insertStatus.run('Aguardando Peças', '#f97316', 4, 1);
-  insertStatus.run('Pronto para Retirada', '#10b981', 5, 1);
-  insertStatus.run('Concluído', '#64748b', 6, 1);
-  insertStatus.run('Sem Conserto', '#ef4444', 7, 1);
+  await insertStatus.run('Aguardando Análise', '#f59e0b', 1, 1);
+  await insertStatus.run('Em Manutenção', '#3b82f6', 2, 1);
+  await insertStatus.run('Urgente', '#f43f5e', 3, 1);
+  await insertStatus.run('Aguardando Peças', '#f97316', 4, 1);
+  await insertStatus.run('Pronto para Retirada', '#10b981', 5, 1);
+  await insertStatus.run('Concluído', '#64748b', 6, 1);
+  await insertStatus.run('Sem Conserto', '#ef4444', 7, 1);
 }
 
 // Inserir tipos de equipamento padrão se não existirem
-const equipmentTypesCount = db.prepare("SELECT COUNT(*) as count FROM equipment_types").get() as { count: number };
+const equipmentTypesCount = await db.prepare("SELECT COUNT(*) as count FROM equipment_types").get() as { count: number };
 if (equipmentTypesCount.count === 0) {
   const insertType = db.prepare("INSERT INTO equipment_types (name) VALUES (?)");
   const defaultTypes = ['Notebook', 'Desktop', 'Smartphone', 'Tablet', 'Monitor', 'Impressora', 'Console'];
-  defaultTypes.forEach(t => insertType.run(t));
+  for (const t of defaultTypes) { await insertType.run(t); }
 }
 
 // Inserir dados iniciais se o banco estiver vazio
@@ -466,14 +467,14 @@ async function startServer() {
   });
 
   // Health check (público)
-  app.get('/health', (req, res) => {
+  app.get("/health", async (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' });
   });
 
   // Rota de login (pública)
   app.post("/api/login", loginLimiter, (req, res) => {
     const { username, password } = req.body;
-    const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username) as any;
+    const user = await db.prepare("SELECT * FROM users WHERE username = ?").get(username) as any;
 
     if (!user || !bcrypt.compareSync(password, user.password)) {
       return res.status(401).json({ error: "Credenciais inválidas" });
@@ -501,7 +502,7 @@ async function startServer() {
   // Rotas da API
 
   // Buscar todas as transações
-  app.get("/api/transactions", (req, res) => {
+  app.get("/api/transactions", async (req, res) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const search = req.query.search as string;
@@ -560,12 +561,12 @@ async function startServer() {
       options.params = params;
     }
     
-    const result = getPaginatedData("transactions t", page, limit, options);
+    const result = await getPaginatedData("transactions t", page, limit, options);
     res.json(result);
   });
 
   // Adicionar uma nova transação
-  app.post("/api/transactions", (req, res) => {
+  app.post("/api/transactions", async (req, res) => {
     try {
       const validatedData = TransactionSchema.parse(req.body);
       const { description, category, type, amount, date, createdBy } = validatedData;
@@ -574,7 +575,7 @@ async function startServer() {
       ).run(description, category, type, amount, date, createdBy || 1);
       
       // Audit Log
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'transaction', info.lastInsertRowid, `Created transaction: ${description}`);
+      await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'transaction', info.lastInsertRowid, `Created transaction: ${description}`);
       
       res.json({ id: info.lastInsertRowid });
     } catch (error) {
@@ -588,15 +589,15 @@ async function startServer() {
   });
 
   // Deletar uma transação
-  app.delete("/api/transactions/:id", (req, res) => {
+  app.delete("/api/transactions/:id", async (req, res) => {
     const txId = req.params.id;
     console.log('[TRANSACTION DELETE] Deleting transaction ID:', txId);
-    const tx = db.prepare("SELECT * FROM transactions WHERE id = ?").get(txId) as any;
+    const tx = await db.prepare("SELECT * FROM transactions WHERE id = ?").get(txId) as any;
     
     if (tx) {
       // Se a transação estiver vinculada a um pagamento, atualiza o valor pago no pagamento
       if (tx.paymentId) {
-        const payment = db.prepare("SELECT * FROM client_payments WHERE id = ?").get(tx.paymentId) as any;
+        const payment = await db.prepare("SELECT * FROM client_payments WHERE id = ?").get(tx.paymentId) as any;
         if (payment) {
           const newPaidAmount = Math.max(0, payment.paidAmount - tx.amount);
           const newStatus = newPaidAmount >= payment.totalAmount ? 'paid' : 'pending';
@@ -605,8 +606,8 @@ async function startServer() {
         }
       }
 
-      db.prepare("DELETE FROM transactions WHERE id = ?").run(txId);
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'transaction', txId, `Deleted transaction: ${tx.description}`);
+      await db.prepare("DELETE FROM transactions WHERE id = ?").run(txId);
+      await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'transaction', txId, `Deleted transaction: ${tx.description}`);
       console.log('[TRANSACTION DELETE] Successfully deleted:', txId);
     } else {
       console.log('[TRANSACTION DELETE] Transaction not found:', txId);
@@ -616,7 +617,7 @@ async function startServer() {
   });
 
   // Atualizar uma transação
-  app.put("/api/transactions/:id", (req, res) => {
+  app.put("/api/transactions/:id", async (req, res) => {
     try {
       const validatedData = TransactionSchema.parse(req.body);
       const { description, category, type, amount, date, updatedBy } = validatedData;
@@ -629,7 +630,7 @@ async function startServer() {
         WHERE id = ?
       `).run(descriptionToSave, category, type, amount, date, updatedBy || 1, req.params.id);
 
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'transaction', req.params.id, `Updated transaction: ${descriptionToSave}`);
+      await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'transaction', req.params.id, `Updated transaction: ${descriptionToSave}`);
 
       res.json({ success: true });
     } catch (error) {
@@ -643,11 +644,11 @@ async function startServer() {
   });
 
   // Rota de Estatísticas
-  app.get("/api/stats", (req, res) => {
-    const totalIncome = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'income'").get().total || 0;
-    const totalExpenses = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'expense'").get().total || 0;
-    const pendingPayments = db.prepare("SELECT COUNT(*) as count FROM client_payments WHERE status != 'paid'").get().count || 0;
-    const activeOS = db.prepare("SELECT COUNT(*) as count FROM service_orders WHERE status NOT IN ('completed', 'delivered', 'cancelled')").get().count || 0;
+  app.get("/api/stats", async (req, res) => {
+    const totalIncome = await db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'income'").get().total || 0;
+    const totalExpenses = await db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'expense'").get().total || 0;
+    const pendingPayments = await db.prepare("SELECT COUNT(*) as count FROM client_payments WHERE status != 'paid'").get().count || 0;
+    const activeOS = await db.prepare("SELECT COUNT(*) as count FROM service_orders WHERE status NOT IN ('completed', 'delivered', 'cancelled')").get().count || 0;
     
     // Dados para o gráfico (últimos 12 meses)
     const chartData = [];
@@ -657,15 +658,15 @@ async function startServer() {
       const month = d.toISOString().slice(0, 7); // YYYY-MM
       const name = d.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase();
       
-      const income = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'income' AND date LIKE ?").get(`${month}%`).total || 0;
-      const expense = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'expense' AND date LIKE ?").get(`${month}%`).total || 0;
+      const income = await db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'income' AND date LIKE ?").get(`${month}%`).total || 0;
+      const expense = await db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'expense' AND date LIKE ?").get(`${month}%`).total || 0;
       
       chartData.push({ name, income, expense });
     }
 
     // Ranking de categorias
-    const incomeRanking = db.prepare("SELECT category, SUM(amount) as total FROM transactions WHERE type = 'income' GROUP BY category ORDER BY total DESC").all() as any[];
-    const expenseRanking = db.prepare("SELECT category, SUM(amount) as total FROM transactions WHERE type = 'expense' GROUP BY category ORDER BY total DESC").all() as any[];
+    const incomeRanking = await db.prepare("SELECT category, SUM(amount) as total FROM transactions WHERE type = 'income' GROUP BY category ORDER BY total DESC").all() as any[];
+    const expenseRanking = await db.prepare("SELECT category, SUM(amount) as total FROM transactions WHERE type = 'expense' GROUP BY category ORDER BY total DESC").all() as any[];
 
     res.json({
       totalIncome,
@@ -680,8 +681,8 @@ async function startServer() {
   });
 
   // Rotas de Configurações
-  app.get("/api/settings", (req, res) => {
-    const settings = db.prepare("SELECT * FROM settings WHERE id = 1").get() as any;
+  app.get("/api/settings", async (req, res) => {
+    const settings = await db.prepare("SELECT * FROM settings WHERE id = 1").get() as any;
     if (settings) {
       // Converter tipos do SQLite para o Frontend
       settings.showWarnings = !!settings.showWarnings;
@@ -694,7 +695,7 @@ async function startServer() {
     res.json(settings);
   });
 
-  app.post("/api/settings", (req, res) => {
+  app.post("/api/settings", async (req, res) => {
     const { 
       appName, appVersion, fiscalYear, primaryColor, categories, 
       incomeCategories, expenseCategories,
@@ -722,7 +723,7 @@ async function startServer() {
   });
 
   // Rotas de Clientes
-  app.get("/api/customers", (req, res) => {
+  app.get("/api/customers", async (req, res) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const search = req.query.search as string;
@@ -733,11 +734,11 @@ async function startServer() {
       options.params = [`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%` ];
     }
     
-    const result = getPaginatedData("customers", page, limit, options);
+    const result = await getPaginatedData("customers", page, limit, options);
     res.json(result);
   });
 
-  app.post("/api/customers", (req, res) => {
+  app.post("/api/customers", async (req, res) => {
     try {
       const validatedData = CustomerSchema.parse(req.body);
       const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, createdBy } = validatedData;
@@ -746,7 +747,7 @@ async function startServer() {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(firstName, lastName, nickname || null, cpf || null, companyName || null, phone || '', observation || null, creditLimit || 0, createdBy || 1);
       
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'customer', result.lastInsertRowid, `Created customer: ${firstName} ${lastName}`);
+      await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'customer', result.lastInsertRowid, `Created customer: ${firstName} ${lastName}`);
 
       res.json({ id: result.lastInsertRowid });
     } catch (error) {
@@ -757,7 +758,7 @@ async function startServer() {
     }
   });
 
-  app.put("/api/customers/:id", (req, res) => {
+  app.put("/api/customers/:id", async (req, res) => {
     try {
       const validatedData = CustomerSchema.parse(req.body);
       const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, updatedBy } = validatedData;
@@ -767,7 +768,7 @@ async function startServer() {
         WHERE id = ?
       `).run(firstName, lastName, nickname || null, cpf || null, companyName || null, phone || '', observation || null, creditLimit || 0, updatedBy || 1, req.params.id);
       
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'customer', req.params.id, `Updated customer: ${firstName} ${lastName}`);
+      await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'customer', req.params.id, `Updated customer: ${firstName} ${lastName}`);
 
       res.json({ success: true });
     } catch (error) {
@@ -778,20 +779,20 @@ async function startServer() {
     }
   });
 
-  app.get("/api/customers/:id/payments", (req, res) => {
-    const payments = db.prepare("SELECT * FROM client_payments WHERE customerId = ?").all(req.params.id);
+  app.get("/api/customers/:id/payments", async (req, res) => {
+    const payments = await db.prepare("SELECT * FROM client_payments WHERE customerId = ?").all(req.params.id);
     res.json(payments);
   });
 
-  app.delete("/api/customers/:id", (req, res) => {
-    db.prepare("DELETE FROM transactions WHERE paymentId IN (SELECT id FROM client_payments WHERE customerId = ?)").run(req.params.id);
-    db.prepare("DELETE FROM client_payments WHERE customerId = ?").run(req.params.id);
-    db.prepare("DELETE FROM customers WHERE id = ?").run(req.params.id);
+  app.delete("/api/customers/:id", async (req, res) => {
+    await db.prepare("DELETE FROM transactions WHERE paymentId IN (SELECT id FROM client_payments WHERE customerId = ?)").run(req.params.id);
+    await db.prepare("DELETE FROM client_payments WHERE customerId = ?").run(req.params.id);
+    await db.prepare("DELETE FROM customers WHERE id = ?").run(req.params.id);
     res.json({ success: true });
   });
 
   // Rotas de Pagamentos de Clientes
-  app.get("/api/client-payments", (req, res) => {
+  app.get("/api/client-payments", async (req, res) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const search = req.query.search as string;
@@ -807,11 +808,11 @@ async function startServer() {
       options.params = [`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%` ];
     }
     
-    const result = getPaginatedData("client_payments", page, limit, options);
+    const result = await getPaginatedData("client_payments", page, limit, options);
     res.json(result);
   });
 
-  app.post("/api/client-payments", (req, res) => {
+  app.post("/api/client-payments", async (req, res) => {
     try {
       const validatedData = ClientPaymentSchema.parse(req.body);
       const { 
@@ -837,7 +838,7 @@ async function startServer() {
       
       // Se houver um valor pago inicialmente, cria uma transação financeira
       if (paidAmount && paidAmount > 0) {
-        const customer = db.prepare("SELECT firstName, lastName FROM customers WHERE id = ?").get(customerId) as any;
+        const customer = await db.prepare("SELECT firstName, lastName FROM customers WHERE id = ?").get(customerId) as any;
         const customerName = customer ? `${customer.firstName} ${customer.lastName}` : 'Cliente';
         
         db.prepare(`
@@ -855,7 +856,7 @@ async function startServer() {
         );
       }
 
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'client_payment', result.lastInsertRowid, `Created payment: ${description}`);
+      await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'client_payment', result.lastInsertRowid, `Created payment: ${description}`);
 
       res.json({ id: result.lastInsertRowid });
     } catch (error) {
@@ -870,36 +871,36 @@ async function startServer() {
     const { paidAmount, status, paymentHistory, updatedBy } = req.body;
     
     if (paymentHistory) {
-      db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, paymentHistory = ?, updatedBy = ? WHERE id = ?").run(paidAmount, status, JSON.stringify(paymentHistory), updatedBy || 1, req.params.id);
+      await db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, paymentHistory = ?, updatedBy = ? WHERE id = ?").run(paidAmount, status, JSON.stringify(paymentHistory), updatedBy || 1, req.params.id);
     } else {
-      db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, updatedBy = ? WHERE id = ?").run(paidAmount, status, updatedBy || 1, req.params.id);
+      await db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, updatedBy = ? WHERE id = ?").run(paidAmount, status, updatedBy || 1, req.params.id);
     }
     
-    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'client_payment', req.params.id, `Updated payment status: ${status}`);
+    await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'client_payment', req.params.id, `Updated payment status: ${status}`);
 
     res.json({ success: true });
   });
 
-  app.put("/api/client-payments/:id", (req, res) => {
+  app.put("/api/client-payments/:id", async (req, res) => {
     // Alias para PATCH para compatibilidade com o frontend
     const { paidAmount, status, paymentHistory, updatedBy } = req.body;
     
     if (paymentHistory) {
-      db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, paymentHistory = ?, updatedBy = ? WHERE id = ?").run(paidAmount, status, JSON.stringify(paymentHistory), updatedBy || 1, req.params.id);
+      await db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, paymentHistory = ?, updatedBy = ? WHERE id = ?").run(paidAmount, status, JSON.stringify(paymentHistory), updatedBy || 1, req.params.id);
     } else {
-      db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, updatedBy = ? WHERE id = ?").run(paidAmount, status, updatedBy || 1, req.params.id);
+      await db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, updatedBy = ? WHERE id = ?").run(paidAmount, status, updatedBy || 1, req.params.id);
     }
     
-    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'client_payment', req.params.id, `Updated payment (PUT) status: ${status}`);
+    await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'client_payment', req.params.id, `Updated payment (PUT) status: ${status}`);
 
     res.json({ success: true });
   });
 
-  app.post("/api/client-payments/:id/pay", (req, res) => {
+  app.post("/api/client-payments/:id/pay", async (req, res) => {
     const { amount, date, updatedBy } = req.body;
     const paymentId = req.params.id;
 
-    const payment = db.prepare("SELECT * FROM client_payments WHERE id = ?").get(paymentId) as any;
+    const payment = await db.prepare("SELECT * FROM client_payments WHERE id = ?").get(paymentId) as any;
     if (!payment) return res.status(404).json({ error: "Payment not found" });
 
     const newPaidAmount = payment.paidAmount + amount;
@@ -919,7 +920,7 @@ async function startServer() {
     `).run(newPaidAmount, newStatus, JSON.stringify(history), updatedBy || 1, paymentId);
 
     // Criar transação financeira
-    const customer = db.prepare("SELECT firstName, lastName FROM customers WHERE id = ?").get(payment.customerId) as any;
+    const customer = await db.prepare("SELECT firstName, lastName FROM customers WHERE id = ?").get(payment.customerId) as any;
     const customerName = customer ? `${customer.firstName} ${customer.lastName}` : 'Cliente';
 
     db.prepare(`
@@ -936,58 +937,58 @@ async function startServer() {
       payment.saleId || null
     );
 
-    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'client_payment', paymentId, `Recorded payment of ${amount}`);
+    await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'client_payment', paymentId, `Recorded payment of ${amount}`);
 
     res.json({ success: true, newPaidAmount, newStatus });
   });
 
-  app.delete("/api/client-payments/:id", (req, res) => {
-    db.prepare("DELETE FROM transactions WHERE paymentId = ?").run(req.params.id);
-    db.prepare("DELETE FROM client_payments WHERE id = ?").run(req.params.id);
-    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'client_payment', req.params.id, `Deleted payment ID: ${req.params.id}`);
+  app.delete("/api/client-payments/:id", async (req, res) => {
+    await db.prepare("DELETE FROM transactions WHERE paymentId = ?").run(req.params.id);
+    await db.prepare("DELETE FROM client_payments WHERE id = ?").run(req.params.id);
+    await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'client_payment', req.params.id, `Deleted payment ID: ${req.params.id}`);
     res.json({ success: true });
   });
 
-  app.delete("/api/client-payments/group/:saleId", (req, res) => {
+  app.delete("/api/client-payments/group/:saleId", async (req, res) => {
     const { saleId } = req.params;
-    db.prepare("DELETE FROM transactions WHERE saleId = ?").run(saleId);
-    db.prepare("DELETE FROM client_payments WHERE saleId = ?").run(saleId);
-    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'client_payment_group', 0, `Deleted payment group: ${saleId}`);
+    await db.prepare("DELETE FROM transactions WHERE saleId = ?").run(saleId);
+    await db.prepare("DELETE FROM client_payments WHERE saleId = ?").run(saleId);
+    await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'client_payment_group', 0, `Deleted payment group: ${saleId}`);
     res.json({ success: true });
   });
 
   // Rotas de Categorias
-  app.get("/api/categories", (req, res) => {
-    const categories = db.prepare("SELECT * FROM categories ORDER BY name ASC").all();
+  app.get("/api/categories", async (req, res) => {
+    const categories = await db.prepare("SELECT * FROM categories ORDER BY name ASC").all();
     res.json(categories);
   });
 
-  app.post("/api/categories", (req, res) => {
+  app.post("/api/categories", async (req, res) => {
     const { name, type } = req.body;
-    const result = db.prepare("INSERT INTO categories (name, type) VALUES (?, ?)").run(name, type);
+    const result = await db.prepare("INSERT INTO categories (name, type) VALUES (?, ?)").run(name, type);
     res.json({ id: result.lastInsertRowid });
   });
 
-  app.delete("/api/categories/:id", (req, res) => {
-    db.prepare("DELETE FROM categories WHERE id = ?").run(req.params.id);
+  app.delete("/api/categories/:id", async (req, res) => {
+    await db.prepare("DELETE FROM categories WHERE id = ?").run(req.params.id);
     res.json({ success: true });
   });
 
   // Rotas de Recibos
-  app.get("/api/receipts/:paymentId", (req, res) => {
-    const receipts = db.prepare("SELECT * FROM receipts WHERE paymentId = ? ORDER BY createdAt DESC").all();
+  app.get("/api/receipts/:paymentId", async (req, res) => {
+    const receipts = await db.prepare("SELECT * FROM receipts WHERE paymentId = ? ORDER BY createdAt DESC").all();
     res.json(receipts);
   });
 
-  app.post("/api/receipts", (req, res) => {
+  app.post("/api/receipts", async (req, res) => {
     const { paymentId, content } = req.body;
-    const result = db.prepare("INSERT INTO receipts (paymentId, content) VALUES (?, ?)").run(paymentId, content);
+    const result = await db.prepare("INSERT INTO receipts (paymentId, content) VALUES (?, ?)").run(paymentId, content);
     res.json({ id: result.lastInsertRowid });
   });
 
   // Rotas de Usuários
-  app.get("/api/users", (req, res) => {
-    const users = db.prepare("SELECT id, username, role, name, permissions, createdAt FROM users ORDER BY name ASC").all();
+  app.get("/api/users", async (req, res) => {
+    const users = await db.prepare("SELECT id, username, role, name, permissions, createdAt FROM users ORDER BY name ASC").all();
     
     // Parse permissions for each user
     const usersWithPermissions = users.map((u: any) => {
@@ -1002,15 +1003,15 @@ async function startServer() {
     res.json(usersWithPermissions);
   });
 
-  app.post("/api/users", (req, res) => {
+  app.post("/api/users", async (req, res) => {
     const { username, password, role, name, permissions } = req.body;
     try {
       const permsString = JSON.stringify(permissions || []);
       const hashedPassword = bcrypt.hashSync(password, 10);
-      const result = db.prepare("INSERT INTO users (username, password, role, name, permissions) VALUES (?, ?, ?, ?, ?)").run(username, hashedPassword, role, name, permsString);
+      const result = await db.prepare("INSERT INTO users (username, password, role, name, permissions) VALUES (?, ?, ?, ?, ?)").run(username, hashedPassword, role, name, permsString);
       
       // Log action
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'create', 'user', result.lastInsertRowid, `Created user ${username}`);
+      await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'create', 'user', result.lastInsertRowid, `Created user ${username}`);
       
       res.json({ id: result.lastInsertRowid });
     } catch (e: any) {
@@ -1018,7 +1019,7 @@ async function startServer() {
     }
   });
 
-  app.put("/api/users/:id", (req, res) => {
+  app.put("/api/users/:id", async (req, res) => {
     const { name, role, password, permissions } = req.body;
 
     try {
@@ -1026,12 +1027,12 @@ async function startServer() {
 
       if (password) {
         const hashedPassword = bcrypt.hashSync(password, 10);
-        db.prepare("UPDATE users SET name = ?, role = ?, password = ?, permissions = ? WHERE id = ?").run(name, role, hashedPassword, permsString, req.params.id);
+        await db.prepare("UPDATE users SET name = ?, role = ?, password = ?, permissions = ? WHERE id = ?").run(name, role, hashedPassword, permsString, req.params.id);
       } else {
-        db.prepare("UPDATE users SET name = ?, role = ?, permissions = ? WHERE id = ?").run(name, role, permsString, req.params.id);
+        await db.prepare("UPDATE users SET name = ?, role = ?, permissions = ? WHERE id = ?").run(name, role, permsString, req.params.id);
       }
       
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'update', 'user', req.params.id, `Updated user ${name}`);
+      await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'update', 'user', req.params.id, `Updated user ${name}`);
       
       res.json({ success: true });
     } catch (e: any) {
@@ -1039,18 +1040,18 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/users/:id", (req, res) => {
+  app.delete("/api/users/:id", async (req, res) => {
     try {
       const userId = req.params.id;
       
       // Remove foreign key references to avoid constraint errors
-      db.prepare("UPDATE audit_logs SET userId = NULL WHERE userId = ?").run(userId);
-      db.prepare("UPDATE inventory_items SET createdBy = NULL WHERE createdBy = ?").run(userId);
-      db.prepare("UPDATE inventory_items SET updatedBy = NULL WHERE updatedBy = ?").run(userId);
-      db.prepare("UPDATE service_orders SET createdBy = NULL WHERE createdBy = ?").run(userId);
-      db.prepare("UPDATE service_orders SET updatedBy = NULL WHERE updatedBy = ?").run(userId);
+      await db.prepare("UPDATE audit_logs SET userId = NULL WHERE userId = ?").run(userId);
+      await db.prepare("UPDATE inventory_items SET createdBy = NULL WHERE createdBy = ?").run(userId);
+      await db.prepare("UPDATE inventory_items SET updatedBy = NULL WHERE updatedBy = ?").run(userId);
+      await db.prepare("UPDATE service_orders SET createdBy = NULL WHERE createdBy = ?").run(userId);
+      await db.prepare("UPDATE service_orders SET updatedBy = NULL WHERE updatedBy = ?").run(userId);
       
-      db.prepare("DELETE FROM users WHERE id = ?").run(userId);
+      await db.prepare("DELETE FROM users WHERE id = ?").run(userId);
       res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
@@ -1058,7 +1059,7 @@ async function startServer() {
   });
 
   // Rotas de Auditoria
-  app.get("/api/audit-logs", (req, res) => {
+  app.get("/api/audit-logs", async (req, res) => {
     const logs = db.prepare(`
       SELECT l.*, u.name as userName 
       FROM audit_logs l 
@@ -1070,22 +1071,22 @@ async function startServer() {
   });
 
   // Rotas de Inventário
-  app.get("/api/inventory", (req, res) => {
-    const items = db.prepare("SELECT * FROM inventory_items ORDER BY name ASC").all();
+  app.get("/api/inventory", async (req, res) => {
+    const items = await db.prepare("SELECT * FROM inventory_items ORDER BY name ASC").all();
     res.json(items);
   });
 
-  app.post("/api/inventory", (req, res) => {
+  app.post("/api/inventory", async (req, res) => {
     const { name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, createdBy } = req.body;
     try {
       const finalUnitPrice = unitPrice !== undefined ? unitPrice : (salePrice || 0);
       const finalStockLevel = stockLevel !== undefined ? stockLevel : (quantity || 0);
       
-      const result = db.prepare("INSERT INTO inventory_items (name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, createdBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(
+      const result = await db.prepare("INSERT INTO inventory_items (name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, createdBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(
         name, category, sku, costPrice || 0, finalUnitPrice, finalStockLevel, minQuantity || 5, finalUnitPrice, finalStockLevel, createdBy || 1
       );
       
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'InventoryItem', result.lastInsertRowid, `Created item ${name}`);
+      await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'InventoryItem', result.lastInsertRowid, `Created item ${name}`);
       
       res.json({ id: result.lastInsertRowid });
     } catch (e: any) {
@@ -1093,17 +1094,17 @@ async function startServer() {
     }
   });
 
-  app.put("/api/inventory/:id", (req, res) => {
+  app.put("/api/inventory/:id", async (req, res) => {
     const { name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, updatedBy } = req.body;
     try {
       const finalUnitPrice = unitPrice !== undefined ? unitPrice : (salePrice || 0);
       const finalStockLevel = stockLevel !== undefined ? stockLevel : (quantity || 0);
       
-      db.prepare("UPDATE inventory_items SET name = ?, category = ?, sku = ?, costPrice = ?, salePrice = ?, quantity = ?, minQuantity = ?, unitPrice = ?, stockLevel = ?, updatedBy = ? WHERE id = ?").run(
+      await db.prepare("UPDATE inventory_items SET name = ?, category = ?, sku = ?, costPrice = ?, salePrice = ?, quantity = ?, minQuantity = ?, unitPrice = ?, stockLevel = ?, updatedBy = ? WHERE id = ?").run(
         name, category, sku, costPrice || 0, finalUnitPrice, finalStockLevel, minQuantity || 5, finalUnitPrice, finalStockLevel, updatedBy || 1, req.params.id
       );
       
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'InventoryItem', req.params.id, `Updated item ${name}`);
+      await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'InventoryItem', req.params.id, `Updated item ${name}`);
       
       res.json({ success: true });
     } catch (e: any) {
@@ -1111,9 +1112,9 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/inventory/:id", (req, res) => {
+  app.delete("/api/inventory/:id", async (req, res) => {
     try {
-      db.prepare("DELETE FROM inventory_items WHERE id = ?").run(req.params.id);
+      await db.prepare("DELETE FROM inventory_items WHERE id = ?").run(req.params.id);
       res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
@@ -1121,7 +1122,7 @@ async function startServer() {
   });
 
   // Rotas de Ordens de Serviço (OS)
-  app.get("/api/service-orders", (req, res) => {
+  app.get("/api/service-orders", async (req, res) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const search = req.query.search as string;
@@ -1186,7 +1187,7 @@ async function startServer() {
       delete options.where;
     }
     
-    const result = getPaginatedData("service_orders", page, limit, options);
+    const result = await getPaginatedData("service_orders", page, limit, options);
     
     // Calculate status counts for all orders (not just the current page)
     const counts = db.prepare(`
@@ -1217,7 +1218,7 @@ async function startServer() {
     res.json(result);
   });
 
-  app.post("/api/service-orders", (req, res) => {
+  app.post("/api/service-orders", async (req, res) => {
     try {
       const validatedData = ServiceOrderSchema.parse(req.body);
       const { 
@@ -1247,7 +1248,7 @@ async function startServer() {
         serviceFee || 0, totalAmount || 0, finalObservations || null
       );
       
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'ServiceOrder', result.lastInsertRowid, `Created OS for customer ${customerId}`);
+      await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'ServiceOrder', result.lastInsertRowid, `Created OS for customer ${customerId}`);
       
       res.json({ id: result.lastInsertRowid });
     } catch (error) {
@@ -1260,7 +1261,7 @@ async function startServer() {
     }
   });
 
-  app.put("/api/service-orders/:id", (req, res) => {
+  app.put("/api/service-orders/:id", async (req, res) => {
     try {
       const validatedData = ServiceOrderSchema.partial().parse(req.body);
       const { 
@@ -1271,7 +1272,7 @@ async function startServer() {
       } = validatedData as any;
       
       // Fetch old OS to compare parts and update inventory
-      const oldOs = db.prepare("SELECT partsUsed FROM service_orders WHERE id = ?").get(req.params.id) as any;
+      const oldOs = await db.prepare("SELECT partsUsed FROM service_orders WHERE id = ?").get(req.params.id) as any;
       let oldParts: any[] = [];
       try {
         oldParts = JSON.parse(oldOs?.partsUsed || '[]');
@@ -1285,14 +1286,14 @@ async function startServer() {
         // 1. Add back old parts
         oldParts.forEach((p: any) => {
           if (p.id) {
-            db.prepare("UPDATE inventory_items SET stockLevel = stockLevel + ? WHERE id = ?").run(p.quantity, p.id);
+            await db.prepare("UPDATE inventory_items SET stockLevel = stockLevel + ? WHERE id = ?").run(p.quantity, p.id);
           }
         });
         
         // 2. Deduct new parts
         newParts.forEach((p: any) => {
           if (p.id) {
-            db.prepare("UPDATE inventory_items SET stockLevel = stockLevel - ? WHERE id = ?").run(p.quantity, p.id);
+            await db.prepare("UPDATE inventory_items SET stockLevel = stockLevel - ? WHERE id = ?").run(p.quantity, p.id);
           }
         });
       }
@@ -1334,7 +1335,7 @@ async function startServer() {
         arrivalPhotoBase64 ?? null, updatedBy || 1, req.params.id
       );
       
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'ServiceOrder', req.params.id, `Updated OS #${req.params.id}`);
+      await db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'ServiceOrder', req.params.id, `Updated OS #${req.params.id}`);
       
       res.json({ success: true });
     } catch (error) {
@@ -1345,11 +1346,11 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/service-orders/:id", (req, res) => {
+  app.delete("/api/service-orders/:id", async (req, res) => {
     try {
       // When deleting an OS, should we return parts to stock?
       // For now, let's just delete.
-      db.prepare("DELETE FROM service_orders WHERE id = ?").run(req.params.id);
+      await db.prepare("DELETE FROM service_orders WHERE id = ?").run(req.params.id);
       res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
@@ -1357,46 +1358,46 @@ async function startServer() {
   });
 
   // Rotas de Status de OS
-  app.get("/api/service-order-statuses", (req, res) => {
-    const statuses = db.prepare("SELECT * FROM service_order_statuses ORDER BY priority ASC").all();
+  app.get("/api/service-order-statuses", async (req, res) => {
+    const statuses = await db.prepare("SELECT * FROM service_order_statuses ORDER BY priority ASC").all();
     res.json(statuses);
   });
 
-  app.post("/api/service-order-statuses", (req, res) => {
+  app.post("/api/service-order-statuses", async (req, res) => {
     const { name, color, priority, isDefault } = req.body;
-    const result = db.prepare("INSERT INTO service_order_statuses (name, color, priority, isDefault) VALUES (?, ?, ?, ?)").run(name, color, priority || 0, isDefault ? 1 : 0);
+    const result = await db.prepare("INSERT INTO service_order_statuses (name, color, priority, isDefault) VALUES (?, ?, ?, ?)").run(name, color, priority || 0, isDefault ? 1 : 0);
     res.json({ id: result.lastInsertRowid });
   });
 
-  app.delete("/api/service-order-statuses/:id", (req, res) => {
-    db.prepare("DELETE FROM service_order_statuses WHERE id = ? AND isDefault = 0").run(req.params.id);
+  app.delete("/api/service-order-statuses/:id", async (req, res) => {
+    await db.prepare("DELETE FROM service_order_statuses WHERE id = ? AND isDefault = 0").run(req.params.id);
     res.json({ success: true });
   });
 
   // Rotas de Marcas e Modelos
-  app.get("/api/brands", (req, res) => {
-    const brands = db.prepare("SELECT * FROM brands ORDER BY name ASC").all();
+  app.get("/api/brands", async (req, res) => {
+    const brands = await db.prepare("SELECT * FROM brands ORDER BY name ASC").all();
     res.json(brands);
   });
 
-  app.post("/api/brands", (req, res) => {
+  app.post("/api/brands", async (req, res) => {
     const { name, equipmentType } = req.body;
     try {
-      const result = db.prepare("INSERT INTO brands (name, equipmentType) VALUES (?, ?)").run(name, equipmentType);
+      const result = await db.prepare("INSERT INTO brands (name, equipmentType) VALUES (?, ?)").run(name, equipmentType);
       res.json({ id: result.lastInsertRowid });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
   });
 
-  app.put("/api/brands/:id", (req, res) => {
+  app.put("/api/brands/:id", async (req, res) => {
     const { name, equipmentType } = req.body;
     try {
-      const oldBrand = db.prepare("SELECT name FROM brands WHERE id = ?").get(req.params.id) as any;
-      db.prepare("UPDATE brands SET name = ?, equipmentType = ? WHERE id = ?").run(name, equipmentType, req.params.id);
+      const oldBrand = await db.prepare("SELECT name FROM brands WHERE id = ?").get(req.params.id) as any;
+      await db.prepare("UPDATE brands SET name = ?, equipmentType = ? WHERE id = ?").run(name, equipmentType, req.params.id);
       
       if (oldBrand && oldBrand.name !== name) {
-        db.prepare("UPDATE service_orders SET equipmentBrand = ? WHERE equipmentBrand = ?").run(name, oldBrand.name);
+        await db.prepare("UPDATE service_orders SET equipmentBrand = ? WHERE equipmentBrand = ?").run(name, oldBrand.name);
       }
       res.json({ success: true });
     } catch (e: any) {
@@ -1404,39 +1405,39 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/brands/:id", (req, res) => {
+  app.delete("/api/brands/:id", async (req, res) => {
     try {
-      db.prepare("DELETE FROM brands WHERE id = ?").run(req.params.id);
-      db.prepare("DELETE FROM models WHERE brandId = ?").run(req.params.id);
+      await db.prepare("DELETE FROM brands WHERE id = ?").run(req.params.id);
+      await db.prepare("DELETE FROM models WHERE brandId = ?").run(req.params.id);
       res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
   });
 
-  app.get("/api/models", (req, res) => {
-    const models = db.prepare("SELECT * FROM models ORDER BY name ASC").all();
+  app.get("/api/models", async (req, res) => {
+    const models = await db.prepare("SELECT * FROM models ORDER BY name ASC").all();
     res.json(models);
   });
 
-  app.post("/api/models", (req, res) => {
+  app.post("/api/models", async (req, res) => {
     const { brandId, name } = req.body;
     try {
-      const result = db.prepare("INSERT INTO models (brandId, name) VALUES (?, ?)").run(brandId, name);
+      const result = await db.prepare("INSERT INTO models (brandId, name) VALUES (?, ?)").run(brandId, name);
       res.json({ id: result.lastInsertRowid });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
   });
 
-  app.put("/api/models/:id", (req, res) => {
+  app.put("/api/models/:id", async (req, res) => {
     const { brandId, name } = req.body;
     try {
-      const oldModel = db.prepare("SELECT name FROM models WHERE id = ?").get(req.params.id) as any;
-      db.prepare("UPDATE models SET brandId = ?, name = ? WHERE id = ?").run(brandId, name, req.params.id);
+      const oldModel = await db.prepare("SELECT name FROM models WHERE id = ?").get(req.params.id) as any;
+      await db.prepare("UPDATE models SET brandId = ?, name = ? WHERE id = ?").run(brandId, name, req.params.id);
       
       if (oldModel && oldModel.name !== name) {
-        db.prepare("UPDATE service_orders SET equipmentModel = ? WHERE equipmentModel = ?").run(name, oldModel.name);
+        await db.prepare("UPDATE service_orders SET equipmentModel = ? WHERE equipmentModel = ?").run(name, oldModel.name);
       }
       res.json({ success: true });
     } catch (e: any) {
@@ -1444,9 +1445,9 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/models/:id", (req, res) => {
+  app.delete("/api/models/:id", async (req, res) => {
     try {
-      db.prepare("DELETE FROM models WHERE id = ?").run(req.params.id);
+      await db.prepare("DELETE FROM models WHERE id = ?").run(req.params.id);
       res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
@@ -1454,30 +1455,30 @@ async function startServer() {
   });
 
   // Rotas de Tipos de Equipamento
-  app.get("/api/equipment-types", (req, res) => {
-    const types = db.prepare("SELECT * FROM equipment_types ORDER BY name ASC").all();
+  app.get("/api/equipment-types", async (req, res) => {
+    const types = await db.prepare("SELECT * FROM equipment_types ORDER BY name ASC").all();
     res.json(types);
   });
 
-  app.post("/api/equipment-types", (req, res) => {
+  app.post("/api/equipment-types", async (req, res) => {
     const { name, icon } = req.body;
     try {
-      const result = db.prepare("INSERT INTO equipment_types (name, icon) VALUES (?, ?)").run(name, icon);
+      const result = await db.prepare("INSERT INTO equipment_types (name, icon) VALUES (?, ?)").run(name, icon);
       res.json({ id: result.lastInsertRowid });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
   });
 
-  app.put("/api/equipment-types/:id", (req, res) => {
+  app.put("/api/equipment-types/:id", async (req, res) => {
     const { name, icon } = req.body;
     try {
-      const oldType = db.prepare("SELECT name FROM equipment_types WHERE id = ?").get(req.params.id) as any;
-      db.prepare("UPDATE equipment_types SET name = ?, icon = ? WHERE id = ?").run(name, icon, req.params.id);
+      const oldType = await db.prepare("SELECT name FROM equipment_types WHERE id = ?").get(req.params.id) as any;
+      await db.prepare("UPDATE equipment_types SET name = ?, icon = ? WHERE id = ?").run(name, icon, req.params.id);
       
       if (oldType && oldType.name !== name) {
-        db.prepare("UPDATE service_orders SET equipmentType = ? WHERE equipmentType = ?").run(name, oldType.name);
-        db.prepare("UPDATE brands SET equipmentType = ? WHERE equipmentType = ?").run(name, oldType.name);
+        await db.prepare("UPDATE service_orders SET equipmentType = ? WHERE equipmentType = ?").run(name, oldType.name);
+        await db.prepare("UPDATE brands SET equipmentType = ? WHERE equipmentType = ?").run(name, oldType.name);
       }
       res.json({ success: true });
     } catch (e: any) {
@@ -1485,9 +1486,9 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/equipment-types/:id", (req, res) => {
+  app.delete("/api/equipment-types/:id", async (req, res) => {
     try {
-      db.prepare("DELETE FROM equipment_types WHERE id = ?").run(req.params.id);
+      await db.prepare("DELETE FROM equipment_types WHERE id = ?").run(req.params.id);
       res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
@@ -1522,7 +1523,7 @@ async function startServer() {
   } else {
     // Servir arquivos estáticos em produção
     app.use(express.static(path.join(__dirname, "dist")));
-    app.get("*", (req, res) => {
+    app.get("*", async (req, res) => {
       res.sendFile(path.join(__dirname, "dist", "index.html"));
     });
   }
