@@ -58,7 +58,11 @@ export const useAppStore = create<AppState>((set) => ({
   isSidebarCollapsed: false,
   setIsSidebarCollapsed: (isCollapsed) => set({ isSidebarCollapsed: isCollapsed }),
   
-  fontSize: parseInt(localStorage.getItem('app_font_size') || '16', 10),
+  fontSize: (() => {
+    const stored = localStorage.getItem('app_font_size');
+    const parsed = parseInt(stored || '16', 10);
+    return isNaN(parsed) ? 16 : parsed;
+  })(),
   setFontSize: (size) => {
     localStorage.setItem('app_font_size', size.toString());
     document.documentElement.style.fontSize = `${size}px`;
