@@ -451,8 +451,29 @@ async function startServer() {
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
   app.use(helmet());
+
+  const allowedOrigins = [
+    // Explicitly configured production URL
+    process.env.APP_URL,
+    // Allow any Vercel deployment (preview + production)
+    /^https:\/\/.*\.vercel\.app$/,
+    // Local dev
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
+  ].filter(Boolean);
+
   app.use(cors({
-    origin: process.env.APP_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, Postman, etc.)
+      if (!origin) return callback(null, true);
+      const allowed = allowedOrigins.some((o) =>
+        typeof o === 'string' ? o === origin : (o as RegExp).test(origin)
+      );
+      if (allowed) return callback(null, true);
+      return callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
     credentials: true,
   }));
   app.use(express.json({ limit: '5mb' }));
