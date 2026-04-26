@@ -1,5 +1,5 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
+
 import Database from "better-sqlite3";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -1513,6 +1513,7 @@ async function startServer() {
 
   // Configuração do Vite para desenvolvimento
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
