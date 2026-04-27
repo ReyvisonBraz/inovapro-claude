@@ -1,5 +1,5 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
+
 import Database from "better-sqlite3";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -42,10 +42,10 @@ const TransactionSchema = z.object({
   description: z.string().min(0),
   category: z.string().min(1),
   type: z.enum(['income', 'expense']),
-  amount: z.number().positive(),
+  amount: z.coerce.number().positive(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}/),
-  createdBy: z.number().optional(),
-  updatedBy: z.number().optional()
+  createdBy: z.coerce.number().optional(),
+  updatedBy: z.coerce.number().optional()
 });
 
 const CustomerSchema = z.object({
@@ -56,30 +56,30 @@ const CustomerSchema = z.object({
   companyName: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
   observation: z.string().optional().nullable(),
-  creditLimit: z.number().nonnegative().optional(),
-  createdBy: z.number().optional(),
-  updatedBy: z.number().optional()
+  creditLimit: z.coerce.number().nonnegative().optional(),
+  createdBy: z.coerce.number().optional(),
+  updatedBy: z.coerce.number().optional()
 });
 
 const ClientPaymentSchema = z.object({
-  customerId: z.number(),
+  customerId: z.coerce.number(),
   description: z.string().min(1),
-  totalAmount: z.number().positive(),
-  paidAmount: z.number().nonnegative().optional(),
+  totalAmount: z.coerce.number().positive(),
+  paidAmount: z.coerce.number().nonnegative().optional(),
   purchaseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}/),
   dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}/),
   paymentMethod: z.string().min(1),
   status: z.enum(['pending', 'partial', 'paid']).optional(),
-  installmentsCount: z.number().int().positive().optional(),
+  installmentsCount: z.coerce.number().int().positive().optional(),
   type: z.enum(['income', 'expense']).optional(),
   saleId: z.string().optional().nullable(),
   paymentHistory: z.string().optional(), // JSON string
-  createdBy: z.number().optional(),
-  updatedBy: z.number().optional()
+  createdBy: z.coerce.number().optional(),
+  updatedBy: z.coerce.number().optional()
 });
 
 const ServiceOrderSchema = z.object({
-  customerId: z.number(),
+  customerId: z.coerce.number(),
   equipmentType: z.string().optional().nullable(),
   equipmentBrand: z.string().optional().nullable(),
   equipmentModel: z.string().optional().nullable(),
@@ -100,20 +100,20 @@ const ServiceOrderSchema = z.object({
   servicesPerformed: z.string().optional().nullable(),
   services: z.array(z.object({
     name: z.string(),
-    price: z.number()
+    price: z.coerce.number()
   })).optional(),
   partsUsed: z.array(z.object({
-    id: z.number().optional(),
+    id: z.coerce.number().optional(),
     name: z.string(),
-    quantity: z.number(),
-    unitPrice: z.number(),
-    subtotal: z.number()
+    quantity: z.coerce.number(),
+    unitPrice: z.coerce.number(),
+    subtotal: z.coerce.number()
   })).optional(),
-  serviceFee: z.number().nonnegative().optional().nullable(),
-  totalAmount: z.number().nonnegative().optional().nullable(),
+  serviceFee: z.coerce.number().nonnegative().optional().nullable(),
+  totalAmount: z.coerce.number().nonnegative().optional().nullable(),
   finalObservations: z.string().optional().nullable(),
-  createdBy: z.number().optional(),
-  updatedBy: z.number().optional()
+  createdBy: z.coerce.number().optional(),
+  updatedBy: z.coerce.number().optional()
 });
 
 // --- Helper for Paginated Responses ---
@@ -372,7 +372,8 @@ const migrations = [
   { name: 'icon', table: 'equipment_types', type: "TEXT" },
   { name: 'services', table: 'service_orders', type: "TEXT DEFAULT '[]'" },
   { name: 'paymentId', table: 'transactions', type: "INTEGER" },
-  { name: 'saleId', table: 'transactions', type: "TEXT" }
+  { name: 'saleId', table: 'transactions', type: "TEXT" },
+  { name: 'equipmentType', table: 'brands', type: "TEXT" }
 ];
 
 migrations.forEach(m => {
@@ -447,11 +448,35 @@ if (equipmentTypesCount.count === 0) {
 // Inserir dados iniciais se o banco estiver vazio
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
-  app.use(helmet());
+  app.use(helmet({
+    contentSecurityPolicy: false, // Disable CSP to avoid blocking assets on mobile
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+  }));
+
+  const allowedOrigins = [
+    // Explicitly configured production URL
+    process.env.APP_URL,
+    // Allow any Vercel deployment (preview + production)
+    /^https:\/\/.*\.vercel\.app$/,
+    // Local dev
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
+  ].filter(Boolean);
+
   app.use(cors({
-    origin: process.env.APP_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, Postman, etc.)
+      if (!origin) return callback(null, true);
+      const allowed = allowedOrigins.some((o) =>
+        typeof o === 'string' ? o === origin : (o as RegExp).test(origin)
+      );
+      if (allowed) return callback(null, true);
+      return callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
     credentials: true,
   }));
   app.use(express.json({ limit: '5mb' }));
@@ -1530,6 +1555,7 @@ async function startServer() {
 
   // Configuração do Vite para desenvolvimento
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

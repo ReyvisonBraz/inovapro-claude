@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -24,6 +24,7 @@ import { useAuth } from '../../hooks/useAuth';
 
 export const Sidebar = () => {
   const navigate = useNavigate();
+  const sidebarRef = useRef<HTMLElement>(null);
   const {
     activeScreen, setActiveScreen,
     isSidebarCollapsed, setIsSidebarCollapsed,
@@ -33,6 +34,17 @@ export const Sidebar = () => {
 
   const { currentUser, logout, hasPermission } = useAuth();
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isSidebarOpen && sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        setIsSidebarOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isSidebarOpen, setIsSidebarOpen]);
+
   const handleNavigation = (screen: Screen, path: string) => {
     setActiveScreen(screen);
     setIsSidebarOpen(false);
@@ -41,22 +53,18 @@ export const Sidebar = () => {
 
   return (
     <aside 
+      ref={sidebarRef}
       className={cn(
         "border-r border-slate-200/10 flex flex-col bg-[#0f172a] fixed lg:sticky top-0 h-screen z-50 transition-all duration-300 lg:translate-x-0",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full",
-        isSidebarCollapsed ? "w-20" : "w-72"
+        isSidebarCollapsed ? "w-20" : "w-64"
       )}
     >
       <div className={cn(
-        "p-6 flex items-center justify-between border-b border-slate-200/5",
-        isSidebarCollapsed ? "px-4 justify-center" : "px-6"
+        "p-4 flex items-center justify-between border-b border-slate-200/5",
+        isSidebarCollapsed ? "px-3 justify-center" : "px-4"
       )}>
-        {!isSidebarCollapsed && (
-          <img src="/logo.png" alt="INOVA PRO" className="h-10 w-auto object-contain" />
-        )}
-        {isSidebarCollapsed && (
-          <img src="/logo.png" alt="INOVA PRO" className="h-8 w-auto object-contain" />
-        )}
+        <img src="/logo.png" alt="INOVA PRO" className={cn("object-contain transition-all", isSidebarCollapsed ? "h-8 w-auto" : "h-7 w-auto")} />
         <button 
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           className="hidden lg:flex p-1.5 text-slate-500 hover:text-white hover:bg-white/5 rounded-lg transition-all"
