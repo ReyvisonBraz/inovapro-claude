@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "firstName": "REYVISON",
+    "lastName": "BRAZ",
+    "nickname": null,
+    "cpf": "04269456295",
+    "companyName": null,
+    "phone": "+5591993170497",
+    "observation": null,
+    "createdAt": "2026-04-13 00:01:56",
+    "creditLimit": 0,
+    "createdBy": 1,
+    "updatedBy": null
+  }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "id": 16,
+    "name": "Entrada",
+    "type": "income"
+  },
+  {
+    "id": 17,
+    "name": "Saída",
+    "type": "expense"
+  }
+]

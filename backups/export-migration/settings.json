@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "appName": null,
+    "appVersion": null,
+    "fiscalYear": null,
+    "primaryColor": null,
+    "categories": null,
+    "incomeCategories": null,
+    "expenseCategories": null,
+    "profileName": null,
+    "profileAvatar": null,
+    "initialBalance": null,
+    "showWarnings": 1,
+    "hiddenColumns": "[]",
+    "settingsPassword": null,
+    "receiptLayout": "a4",
+    "receiptLogo": "",
+    "companyCnpj": null,
+    "companyAddress": null,
+    "pixKey": null,
+    "pixQrCode": null,
+    "whatsappBillingTemplate": "Olá {nome_cliente}, gostaríamos de lembrar sobre o débito pendente de {valor_divida}. Podemos ajudar com algo?",
+    "whatsappOSTemplate": "Olá {nome_cliente}, sua Ordem de Serviço #{os_id} ({equipamento}) está com o status: {status}.",
+    "sendPulseClientId": "",
+    "sendPulseClientSecret": "",
+    "sendPulseTemplateId": ""
+  }
+]

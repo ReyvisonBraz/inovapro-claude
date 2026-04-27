@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "name": "EPSON",
+    "equipmentType": "Impressora"
+  },
+  {
+    "id": 5,
+    "name": "123",
+    "equipmentType": "Desktop"
+  }
+]

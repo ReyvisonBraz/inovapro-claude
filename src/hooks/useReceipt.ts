@@ -3,6 +3,7 @@ import { ClientPayment, Customer, AppSettings } from '../types';
 import { getA4ReceiptTemplate, getThermalReceiptTemplate } from '../lib/receiptTemplates';
 import { formatCurrency } from '../lib/utils';
 import { useToast } from '../components/ui/Toast';
+import api from '../lib/api';
 
 export function useReceipt(settings: AppSettings, customers: Customer[]) {
   const { showToast } = useToast();
@@ -21,13 +22,9 @@ export function useReceipt(settings: AppSettings, customers: Customer[]) {
 
     // Salvar recibo no banco de dados
     try {
-      await fetch('/api/receipts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paymentId: payment.id,
-          content: content
-        })
+      await api.post('/receipts', {
+        paymentId: payment.id,
+        content: content
       });
     } catch (err) {
       console.error("Failed to save receipt", err);

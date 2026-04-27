@@ -1,0 +1,51 @@
+[
+  {
+    "id": 1,
+    "name": "Aguardando Análise",
+    "color": "#f59e0b",
+    "priority": 1,
+    "isDefault": 1
+  },
+  {
+    "id": 2,
+    "name": "Em Manutenção",
+    "color": "#3b82f6",
+    "priority": 2,
+    "isDefault": 1
+  },
+  {
+    "id": 3,
+    "name": "Urgente",
+    "color": "#f43f5e",
+    "priority": 3,
+    "isDefault": 1
+  },
+  {
+    "id": 4,
+    "name": "Aguardando Peças",
+    "color": "#f97316",
+    "priority": 4,
+    "isDefault": 1
+  },
+  {
+    "id": 5,
+    "name": "Pronto para Retirada",
+    "color": "#10b981",
+    "priority": 5,
+    "isDefault": 1
+  },
+  {
+    "id": 6,
+    "name": "Concluído",
+    "color": "#64748b",
+    "priority": 6,
+    "isDefault": 1
+  },
+  {
+    "id": 7,
+    "name": "Sem Conserto",
+    "color": "#ef4444",
+    "priority": 7,
+    "isDefault": 1
+  }
+]

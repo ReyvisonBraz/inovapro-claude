@@ -1,0 +1,27 @@
+[
+  {
+    "id": 1,
+    "name": "Notebook",
+    "icon": null
+  },
+  {
+    "id": 2,
+    "name": "Desktop",
+    "icon": null
+  },
+  {
+    "id": 5,
+    "name": "Monitor",
+    "icon": null
+  },
+  {
+    "id": 6,
+    "name": "Impressora",
+    "icon": null
+  },
+  {
+    "id": 8,
+    "name": "PC GAMER",
+    "icon": "Smartphone"
+  }
+]
