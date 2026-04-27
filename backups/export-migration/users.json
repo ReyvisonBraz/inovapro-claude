@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "username": "admin",
+    "password": "$2b$10$lecFJYyj9IsQXS.7HfKl5unakcGS6zLySulR7G30CGdiY/VfyISvK",
+    "role": "owner",
+    "name": "Administrador",
+    "createdAt": "2026-04-13 00:00:54",
+    "permissions": "[\"view_dashboard\",\"manage_transactions\",\"view_reports\",\"manage_customers\",\"manage_payments\",\"manage_settings\",\"manage_users\"]"
+  },
+  {
+    "id": 2,
+    "username": "REY",
+    "password": "$2b$10$znYaTR799EFblvHxs9/EcuKf5pIZ1tYKmRLtEDfbKDrlD4QJdcCs6",
+    "role": "employee",
+    "name": "REYVISON",
+    "createdAt": "2026-04-13 02:26:24",
+    "permissions": "[]"
+  }
+]

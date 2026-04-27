@@ -1,0 +1,1316 @@
+[
+  {
+    "id": 1,
+    "userId": 1,
+    "action": "create",
+    "entity": "customer",
+    "entityId": 1,
+    "details": "Created customer: REYVISON BRAZ",
+    "timestamp": "2026-04-13 00:01:56"
+  },
+  {
+    "id": 2,
+    "userId": 1,
+    "action": "create",
+    "entity": "ServiceOrder",
+    "entityId": 1,
+    "details": "Created OS for customer 1",
+    "timestamp": "2026-04-13 00:02:39"
+  },
+  {
+    "id": 3,
+    "userId": 1,
+    "action": "update",
+    "entity": "ServiceOrder",
+    "entityId": 1,
+    "details": "Updated OS #1",
+    "timestamp": "2026-04-13 00:28:46"
+  },
+  {
+    "id": 4,
+    "userId": 1,
+    "action": "create",
+    "entity": "customer",
+    "entityId": 2,
+    "details": "Created customer: xxx8 ssss",
+    "timestamp": "2026-04-13 00:34:49"
+  },
+  {
+    "id": 5,
+    "userId": 1,
+    "action": "create",
+    "entity": "client_payment",
+    "entityId": 1,
+    "details": "Created payment: ENTRADA: notebook",
+    "timestamp": "2026-04-13 00:35:24"
+  },
+  {
+    "id": 6,
+    "userId": 1,
+    "action": "create",
+    "entity": "client_payment",
+    "entityId": 2,
+    "details": "Created payment: notebook (Parcela 1/4)",
+    "timestamp": "2026-04-13 00:35:24"
+  },
+  {
+    "id": 7,
+    "userId": 1,
+    "action": "create",
+    "entity": "client_payment",
+    "entityId": 3,
+    "details": "Created payment: notebook (Parcela 2/4)",
+    "timestamp": "2026-04-13 00:35:25"
+  },
+  {
+    "id": 8,
+    "userId": 1,
+    "action": "create",
+    "entity": "client_payment",
+    "entityId": 4,
+    "details": "Created payment: notebook (Parcela 3/4)",
+    "timestamp": "2026-04-13 00:35:25"
+  },
+  {
+    "id": 9,
+    "userId": 1,
+    "action": "create",
+    "entity": "client_payment",
+    "entityId": 5,
+    "details": "Created payment: notebook (Parcela 4/4)",
+    "timestamp": "2026-04-13 00:35:25"
+  },
+  {
+    "id": 10,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 7,
+    "details": "Created transaction: NADA",
+    "timestamp": "2026-04-13 01:14:50"
+  },
+  {
+    "id": 11,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 8,
+    "details": "Created transaction: XX",
+    "timestamp": "2026-04-13 01:15:12"
+  },
+  {
+    "id": 12,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 9,
+    "details": "Created transaction: x",
+    "timestamp": "2026-04-13 01:31:54"
+  },
+  {
+    "id": 13,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 10,
+    "details": "Created transaction: zxc",
+    "timestamp": "2026-04-13 01:32:33"
+  },
+  {
+    "id": 14,
+    "userId": 1,
+    "action": "create",
+    "entity": "user",
+    "entityId": 2,
+    "details": "Created user REY",
+    "timestamp": "2026-04-13 02:26:24"
+  },
+  {
+    "id": 15,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 10,
+    "details": "Deleted transaction: zxc",
+    "timestamp": "2026-04-13 02:35:16"
+  },
+  {
+    "id": 16,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 9,
+    "details": "Deleted transaction: x",
+    "timestamp": "2026-04-13 04:19:42"
+  },
+  {
+    "id": 17,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 8,
+    "details": "Deleted transaction: XX",
+    "timestamp": "2026-04-13 04:19:44"
+  },
+  {
+    "id": 18,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 7,
+    "details": "Deleted transaction: NADA",
+    "timestamp": "2026-04-13 04:19:45"
+  },
+  {
+    "id": 19,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 6,
+    "details": "Deleted transaction: Pagamento: ENTRADA: notebook (REYVISON BRAZ)",
+    "timestamp": "2026-04-13 04:19:46"
+  },
+  {
+    "id": 20,
+    "userId": 1,
+    "action": "delete",
+    "entity": "client_payment_group",
+    "entityId": 0,
+    "details": "Deleted payment group: SALE-1776040524884-437",
+    "timestamp": "2026-04-13 04:19:51"
+  },
+  {
+    "id": 21,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 5,
+    "details": "Deleted transaction: Posto de Gasolina Shell",
+    "timestamp": "2026-04-13 04:19:56"
+  },
+  {
+    "id": 22,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 4,
+    "details": "Deleted transaction: Starbucks Coffee",
+    "timestamp": "2026-04-13 04:19:57"
+  },
+  {
+    "id": 23,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 3,
+    "details": "Deleted transaction: Conta de Luz",
+    "timestamp": "2026-04-13 04:19:58"
+  },
+  {
+    "id": 24,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 2,
+    "details": "Deleted transaction: Salário Mensal",
+    "timestamp": "2026-04-13 04:20:00"
+  },
+  {
+    "id": 25,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 1,
+    "details": "Deleted transaction: Mercado Whole Foods",
+    "timestamp": "2026-04-13 04:20:01"
+  },
+  {
+    "id": 26,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 16,
+    "details": "Created transaction: xxxxxxxx",
+    "timestamp": "2026-04-13 05:23:38"
+  },
+  {
+    "id": 27,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 17,
+    "details": "Created transaction: xxxxxxxx (Cópia)",
+    "timestamp": "2026-04-13 05:23:46"
+  },
+  {
+    "id": 28,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 16,
+    "details": "Deleted transaction: xxxxxxxx",
+    "timestamp": "2026-04-13 05:23:51"
+  },
+  {
+    "id": 29,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 17,
+    "details": "Deleted transaction: xxxxxxxx (Cópia)",
+    "timestamp": "2026-04-15 14:44:24"
+  },
+  {
+    "id": 30,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 15,
+    "details": "Deleted transaction: Posto de Gasolina Shell",
+    "timestamp": "2026-04-15 14:44:26"
+  },
+  {
+    "id": 31,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 14,
+    "details": "Deleted transaction: Starbucks Coffee",
+    "timestamp": "2026-04-15 14:44:31"
+  },
+  {
+    "id": 32,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 13,
+    "details": "Deleted transaction: Conta de Luz",
+    "timestamp": "2026-04-15 14:44:33"
+  },
+  {
+    "id": 33,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 12,
+    "details": "Deleted transaction: Salário Mensal",
+    "timestamp": "2026-04-15 14:44:37"
+  },
+  {
+    "id": 34,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 11,
+    "details": "Deleted transaction: Mercado Whole Foods",
+    "timestamp": "2026-04-15 14:44:40"
+  },
+  {
+    "id": 35,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 22,
+    "details": "Deleted transaction: Posto de Gasolina Shell",
+    "timestamp": "2026-04-15 15:34:35"
+  },
+  {
+    "id": 36,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 21,
+    "details": "Deleted transaction: Starbucks Coffee",
+    "timestamp": "2026-04-15 15:34:37"
+  },
+  {
+    "id": 37,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 20,
+    "details": "Deleted transaction: Conta de Luz",
+    "timestamp": "2026-04-15 15:34:40"
+  },
+  {
+    "id": 38,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 19,
+    "details": "Deleted transaction: Salário Mensal",
+    "timestamp": "2026-04-15 15:34:42"
+  },
+  {
+    "id": 39,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 18,
+    "details": "Deleted transaction: Mercado Whole Foods",
+    "timestamp": "2026-04-15 15:34:45"
+  },
+  {
+    "id": 40,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 27,
+    "details": "Deleted transaction: Posto de Gasolina Shell",
+    "timestamp": "2026-04-15 19:20:19"
+  },
+  {
+    "id": 41,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 26,
+    "details": "Deleted transaction: Starbucks Coffee",
+    "timestamp": "2026-04-15 19:20:21"
+  },
+  {
+    "id": 42,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 25,
+    "details": "Deleted transaction: Conta de Luz",
+    "timestamp": "2026-04-15 19:20:24"
+  },
+  {
+    "id": 43,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 24,
+    "details": "Deleted transaction: Salário Mensal",
+    "timestamp": "2026-04-15 19:20:26"
+  },
+  {
+    "id": 44,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 23,
+    "details": "Deleted transaction: Mercado Whole Foods",
+    "timestamp": "2026-04-15 19:20:27"
+  },
+  {
+    "id": 45,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 32,
+    "details": "Deleted transaction: Posto de Gasolina Shell",
+    "timestamp": "2026-04-15 19:24:11"
+  },
+  {
+    "id": 46,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 31,
+    "details": "Deleted transaction: Starbucks Coffee",
+    "timestamp": "2026-04-15 19:24:13"
+  },
+  {
+    "id": 47,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 30,
+    "details": "Deleted transaction: Conta de Luz",
+    "timestamp": "2026-04-15 19:24:15"
+  },
+  {
+    "id": 48,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 29,
+    "details": "Deleted transaction: Salário Mensal",
+    "timestamp": "2026-04-15 19:24:17"
+  },
+  {
+    "id": 49,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 28,
+    "details": "Deleted transaction: Mercado Whole Foods",
+    "timestamp": "2026-04-15 19:24:22"
+  },
+  {
+    "id": 50,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 33,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:27:13"
+  },
+  {
+    "id": 51,
+    "userId": 1,
+    "action": "update",
+    "entity": "transaction",
+    "entityId": 33,
+    "details": "Updated transaction: ",
+    "timestamp": "2026-04-15 19:27:28"
+  },
+  {
+    "id": 52,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 34,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:43:11"
+  },
+  {
+    "id": 53,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 35,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:44:05"
+  },
+  {
+    "id": 54,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 36,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:45:05"
+  },
+  {
+    "id": 55,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 37,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:46:38"
+  },
+  {
+    "id": 56,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 38,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:49:49"
+  },
+  {
+    "id": 57,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 39,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:50:48"
+  },
+  {
+    "id": 58,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 40,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:51:36"
+  },
+  {
+    "id": 59,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 41,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:51:57"
+  },
+  {
+    "id": 60,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 42,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:52:16"
+  },
+  {
+    "id": 61,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 43,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:53:01"
+  },
+  {
+    "id": 62,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 44,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:53:36"
+  },
+  {
+    "id": 63,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 45,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:54:06"
+  },
+  {
+    "id": 64,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 46,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:54:22"
+  },
+  {
+    "id": 65,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 47,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:54:42"
+  },
+  {
+    "id": 66,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 48,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:55:01"
+  },
+  {
+    "id": 67,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 49,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:55:31"
+  },
+  {
+    "id": 68,
+    "userId": 1,
+    "action": "update",
+    "entity": "transaction",
+    "entityId": 49,
+    "details": "Updated transaction: ",
+    "timestamp": "2026-04-15 19:55:41"
+  },
+  {
+    "id": 69,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 50,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:56:28"
+  },
+  {
+    "id": 70,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 51,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:56:45"
+  },
+  {
+    "id": 71,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 52,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 19:57:03"
+  },
+  {
+    "id": 72,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 53,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 20:22:52"
+  },
+  {
+    "id": 73,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 54,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 20:24:10"
+  },
+  {
+    "id": 74,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 55,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 20:29:00"
+  },
+  {
+    "id": 75,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 56,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 20:29:17"
+  },
+  {
+    "id": 76,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 57,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 20:29:52"
+  },
+  {
+    "id": 77,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 58,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 20:30:08"
+  },
+  {
+    "id": 78,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 59,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 20:30:25"
+  },
+  {
+    "id": 79,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 60,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 20:30:34"
+  },
+  {
+    "id": 80,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 61,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 20:30:51"
+  },
+  {
+    "id": 81,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 62,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 20:31:21"
+  },
+  {
+    "id": 82,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 63,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 20:32:05"
+  },
+  {
+    "id": 83,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 64,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 20:32:16"
+  },
+  {
+    "id": 84,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 65,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 20:34:31"
+  },
+  {
+    "id": 85,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 66,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 20:37:52"
+  },
+  {
+    "id": 86,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 67,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:05:41"
+  },
+  {
+    "id": 87,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 68,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:06:00"
+  },
+  {
+    "id": 88,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 69,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:06:43"
+  },
+  {
+    "id": 89,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 70,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:07:25"
+  },
+  {
+    "id": 90,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 71,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:07:40"
+  },
+  {
+    "id": 91,
+    "userId": 1,
+    "action": "update",
+    "entity": "transaction",
+    "entityId": 65,
+    "details": "Updated transaction: ",
+    "timestamp": "2026-04-15 21:08:38"
+  },
+  {
+    "id": 92,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 65,
+    "details": "Deleted transaction: ",
+    "timestamp": "2026-04-15 21:08:48"
+  },
+  {
+    "id": 93,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 72,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:09:07"
+  },
+  {
+    "id": 94,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 73,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:09:20"
+  },
+  {
+    "id": 95,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 74,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:12:18"
+  },
+  {
+    "id": 96,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 75,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:12:34"
+  },
+  {
+    "id": 97,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 76,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:13:19"
+  },
+  {
+    "id": 98,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 77,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:13:31"
+  },
+  {
+    "id": 99,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 78,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:14:32"
+  },
+  {
+    "id": 100,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 79,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:14:43"
+  },
+  {
+    "id": 101,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 80,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:15:04"
+  },
+  {
+    "id": 102,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 81,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:15:14"
+  },
+  {
+    "id": 103,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 82,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:17:37"
+  },
+  {
+    "id": 104,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 83,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:17:57"
+  },
+  {
+    "id": 105,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 84,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:18:33"
+  },
+  {
+    "id": 106,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 85,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-15 21:18:44"
+  },
+  {
+    "id": 107,
+    "userId": 1,
+    "action": "update",
+    "entity": "transaction",
+    "entityId": 50,
+    "details": "Updated transaction: ",
+    "timestamp": "2026-04-15 21:19:53"
+  },
+  {
+    "id": 108,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 86,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-16 15:38:17"
+  },
+  {
+    "id": 109,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 87,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-17 01:34:23"
+  },
+  {
+    "id": 110,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 88,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-17 01:35:27"
+  },
+  {
+    "id": 111,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 89,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-17 01:39:09"
+  },
+  {
+    "id": 112,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 89,
+    "details": "Deleted transaction: ",
+    "timestamp": "2026-04-17 01:39:43"
+  },
+  {
+    "id": 113,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 87,
+    "details": "Deleted transaction: ",
+    "timestamp": "2026-04-17 01:39:45"
+  },
+  {
+    "id": 114,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 88,
+    "details": "Deleted transaction: ",
+    "timestamp": "2026-04-17 01:39:47"
+  },
+  {
+    "id": 115,
+    "userId": 1,
+    "action": "update",
+    "entity": "transaction",
+    "entityId": 86,
+    "details": "Updated transaction: ",
+    "timestamp": "2026-04-17 01:40:42"
+  },
+  {
+    "id": 116,
+    "userId": 1,
+    "action": "update",
+    "entity": "transaction",
+    "entityId": 86,
+    "details": "Updated transaction: ",
+    "timestamp": "2026-04-17 01:40:50"
+  },
+  {
+    "id": 117,
+    "userId": 1,
+    "action": "update",
+    "entity": "transaction",
+    "entityId": 86,
+    "details": "Updated transaction: ",
+    "timestamp": "2026-04-17 01:40:59"
+  },
+  {
+    "id": 118,
+    "userId": 1,
+    "action": "update",
+    "entity": "transaction",
+    "entityId": 62,
+    "details": "Updated transaction: ",
+    "timestamp": "2026-04-17 01:41:26"
+  },
+  {
+    "id": 119,
+    "userId": 1,
+    "action": "update",
+    "entity": "transaction",
+    "entityId": 86,
+    "details": "Updated transaction: ",
+    "timestamp": "2026-04-17 13:36:48"
+  },
+  {
+    "id": 120,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 86,
+    "details": "Deleted transaction: ",
+    "timestamp": "2026-04-17 13:36:52"
+  },
+  {
+    "id": 121,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 90,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-17 13:37:06"
+  },
+  {
+    "id": 122,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 91,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-17 14:46:01"
+  },
+  {
+    "id": 123,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 92,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-17 14:46:22"
+  },
+  {
+    "id": 124,
+    "userId": 1,
+    "action": "delete",
+    "entity": "transaction",
+    "entityId": 92,
+    "details": "Deleted transaction: ",
+    "timestamp": "2026-04-17 15:11:34"
+  },
+  {
+    "id": 125,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 93,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-17 15:19:20"
+  },
+  {
+    "id": 126,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 94,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-17 15:19:42"
+  },
+  {
+    "id": 127,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 95,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-17 15:25:26"
+  },
+  {
+    "id": 128,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 96,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-17 15:34:42"
+  },
+  {
+    "id": 129,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 97,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-17 15:34:59"
+  },
+  {
+    "id": 130,
+    "userId": 1,
+    "action": "create",
+    "entity": "transaction",
+    "entityId": 98,
+    "details": "Created transaction: ",
+    "timestamp": "2026-04-17 15:35:12"
+  },
+  {
+    "id": 131,
+    "userId": 1,
+    "action": "create",
+    "entity": "client_payment",
+    "entityId": 6,
+    "details": "Created payment: ENTRADA: NOTE",
+    "timestamp": "2026-04-22 04:35:12"
+  },
+  {
+    "id": 132,
+    "userId": 1,
+    "action": "create",
+    "entity": "client_payment",
+    "entityId": 7,
+    "details": "Created payment: NOTE (Parcela 1/2)",
+    "timestamp": "2026-04-22 04:35:12"
+  },
+  {
+    "id": 133,
+    "userId": 1,
+    "action": "create",
+    "entity": "client_payment",
+    "entityId": 8,
+    "details": "Created payment: NOTE (Parcela 2/2)",
+    "timestamp": "2026-04-22 04:35:12"
+  },
+  {
+    "id": 134,
+    "userId": 1,
+    "action": "create",
+    "entity": "client_payment",
+    "entityId": 9,
+    "details": "Created payment: HHH",
+    "timestamp": "2026-04-22 04:35:40"
+  },
+  {
+    "id": 135,
+    "userId": 1,
+    "action": "create",
+    "entity": "client_payment",
+    "entityId": 10,
+    "details": "Created payment: ENTRADA: ZZZZZZZZZZZZ",
+    "timestamp": "2026-04-22 04:36:46"
+  },
+  {
+    "id": 136,
+    "userId": 1,
+    "action": "create",
+    "entity": "client_payment",
+    "entityId": 11,
+    "details": "Created payment: ZZZZZZZZZZZZ (Parcela 1/3)",
+    "timestamp": "2026-04-22 04:36:46"
+  },
+  {
+    "id": 137,
+    "userId": 1,
+    "action": "create",
+    "entity": "client_payment",
+    "entityId": 12,
+    "details": "Created payment: ZZZZZZZZZZZZ (Parcela 2/3)",
+    "timestamp": "2026-04-22 04:36:46"
+  },
+  {
+    "id": 138,
+    "userId": 1,
+    "action": "create",
+    "entity": "client_payment",
+    "entityId": 13,
+    "details": "Created payment: ZZZZZZZZZZZZ (Parcela 3/3)",
+    "timestamp": "2026-04-22 04:36:46"
+  },
+  {
+    "id": 139,
+    "userId": 1,
+    "action": "delete",
+    "entity": "client_payment",
+    "entityId": 9,
+    "details": "Deleted payment ID: 9",
+    "timestamp": "2026-04-22 04:36:54"
+  },
+  {
+    "id": 140,
+    "userId": 1,
+    "action": "delete",
+    "entity": "client_payment_group",
+    "entityId": 0,
+    "details": "Deleted payment group: SALE-1776832606031-123",
+    "timestamp": "2026-04-22 04:36:59"
+  },
+  {
+    "id": 141,
+    "userId": 1,
+    "action": "delete",
+    "entity": "client_payment_group",
+    "entityId": 0,
+    "details": "Deleted payment group: SALE-1776832512794-259",
+    "timestamp": "2026-04-22 04:37:01"
+  },
+  {
+    "id": 142,
+    "userId": 1,
+    "action": "create",
+    "entity": "ServiceOrder",
+    "entityId": 2,
+    "details": "Created OS for customer 1",
+    "timestamp": "2026-04-22 04:43:50"
+  },
+  {
+    "id": 143,
+    "userId": 1,
+    "action": "create",
+    "entity": "ServiceOrder",
+    "entityId": 3,
+    "details": "Created OS for customer 1",
+    "timestamp": "2026-04-22 04:44:47"
+  },
+  {
+    "id": 144,
+    "userId": 1,
+    "action": "update",
+    "entity": "ServiceOrder",
+    "entityId": 3,
+    "details": "Updated OS #3",
+    "timestamp": "2026-04-22 04:46:44"
+  },
+  {
+    "id": 145,
+    "userId": 1,
+    "action": "update",
+    "entity": "ServiceOrder",
+    "entityId": 3,
+    "details": "Updated OS #3",
+    "timestamp": "2026-04-22 04:46:51"
+  },
+  {
+    "id": 146,
+    "userId": 1,
+    "action": "update",
+    "entity": "ServiceOrder",
+    "entityId": 3,
+    "details": "Updated OS #3",
+    "timestamp": "2026-04-22 04:47:24"
+  }
+]
