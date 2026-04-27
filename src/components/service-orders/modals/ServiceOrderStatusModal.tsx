@@ -86,15 +86,25 @@ export const ServiceOrderStatusModal: React.FC<ServiceOrderStatusModalProps> = (
                 </div>
                 
                 <div className="grid grid-cols-3 gap-3">
-                  {showStatusOnly.arrivalPhotoBase64 ? (
-                    <div className="aspect-square rounded-xl overflow-hidden border border-white/10 bg-white/5">
-                      <img src={showStatusOnly.arrivalPhotoBase64} alt="Foto de Entrada" className="w-full h-full object-cover" />
-                    </div>
-                  ) : (
-                    <div className="col-span-3 py-8 text-center text-slate-600 text-xs font-medium italic">
-                      Nenhuma foto anexada ainda.
-                    </div>
-                  )}
+                  {(() => {
+                    const photos = showStatusOnly.arrivalPhotoBase64 
+                      ? JSON.parse(showStatusOnly.arrivalPhotoBase64) 
+                      : [];
+                    return photos.length > 0 ? (
+                      photos.map((photo: {base64: string; timestamp: string}, index: number) => (
+                        <div key={index} className="aspect-square rounded-xl overflow-hidden border border-white/10 bg-white/5 relative">
+                          <img src={photo.base64} alt={`Foto ${index + 1}`} className="w-full h-full object-cover" />
+                          <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-lg">
+                            {format(new Date(photo.timestamp), 'HH:mm')}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-3 py-8 text-center text-slate-600 text-xs font-medium italic">
+                        Nenhuma foto anexada ainda.
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

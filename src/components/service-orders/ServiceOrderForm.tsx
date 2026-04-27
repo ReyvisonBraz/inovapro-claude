@@ -122,6 +122,59 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
   const watchedEquipmentBrand = watch('equipmentBrand');
   const watchedArrivalPhoto = watch('arrivalPhotoBase64');
   const watchedPriority = watch('priority');
+  const watchedArrivalPhotosRaw = watch('arrivalPhotoBase64');
+  const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = watchedArrivalPhotosRaw ? JSON.parse(watchedArrivalPhotosRaw) : [];
+
+  const compressImage = (file: File, maxWidth = 800, quality = 0.7): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) { reject('Could not get canvas context'); return; }
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const addPhoto = async (file: File) => {
+    if (watchedArrivalPhotos.length >= 3) {
+      showToast('Máximo de 3 fotos permitido', 'error');
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      showToast('A imagem deve ter no máximo 4MB', 'error');
+      return;
+    }
+    try {
+      const compressed = await compressImage(file);
+      const newPhoto = { base64: compressed, timestamp: new Date().toISOString() };
+      const updated = [...watchedArrivalPhotos, newPhoto];
+      setValue('arrivalPhotoBase64', JSON.stringify(updated));
+    } catch {
+      showToast('Erro ao processar imagem', 'error');
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    const updated = watchedArrivalPhotos.filter((_, i) => i !== index);
+    setValue('arrivalPhotoBase64', JSON.stringify(updated));
+  };
 
   // Atualizar totais quando serviços ou peças mudarem
   useEffect(() => {
@@ -583,32 +636,32 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
             <div className="space-y-4">
               <div className="flex items-center gap-3 mb-2">
                 <div className="h-1 w-8 bg-primary rounded-full" />
-                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Foto do Equipamento (Entrada)</h4>
+                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Fotos do Equipamento ({watchedArrivalPhotos.length}/3)</h4>
               </div>
-              <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-white/10 rounded-3xl bg-white/5 hover:bg-white/10 transition-all group relative overflow-hidden">
-                {watchedArrivalPhoto ? (
-                  <div className="relative w-full aspect-video rounded-2xl overflow-hidden">
-                    <img 
-                      src={watchedArrivalPhoto} 
-                      alt="Foto de Entrada" 
-                      className="w-full h-full object-cover"
-                    />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {watchedArrivalPhotos.map((photo, index) => (
+                  <div key={index} className="relative aspect-video rounded-2xl overflow-hidden border-2 border-primary/30">
+                    <img src={photo.base64} alt={`Foto ${index + 1}`} className="w-full h-full object-cover" />
+                    <div className="absolute top-2 left-2 bg-primary/80 text-white text-xs px-2 py-1 rounded-lg font-bold">
+                      {index + 1}
+                    </div>
+                    <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-lg">
+                      {format(new Date(photo.timestamp), 'HH:mm')}
+                    </div>
                     <button 
-                      onClick={() => setValue('arrivalPhotoBase64', '')}
-                      className="absolute top-4 right-4 p-2 bg-rose-500 text-white rounded-xl shadow-lg hover:scale-110 transition-all"
+                      onClick={() => removePhoto(index)}
+                      className="absolute top-2 right-2 p-2 bg-rose-500 text-white rounded-xl shadow-lg hover:scale-110 transition-all"
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
-                ) : (
-                  <label className="cursor-pointer flex flex-col items-center gap-4">
-                    <div className="p-4 bg-primary/10 text-primary rounded-2xl group-hover:scale-110 transition-all">
-                      <Camera size={32} />
+                ))}
+                {watchedArrivalPhotos.length < 3 && (
+                  <label className="cursor-pointer flex flex-col items-center justify-center aspect-video border-2 border-dashed border-white/20 rounded-2xl bg-white/5 hover:bg-white/10 transition-all">
+                    <div className="p-3 bg-primary/10 text-primary rounded-xl group-hover:scale-110 transition-all">
+                      <Camera size={24} />
                     </div>
-                    <div className="text-center">
-                      <p className="text-sm font-bold">Clique para tirar ou anexar foto</p>
-                      <p className="text-xs text-slate-500 mt-1">PNG, JPG ou JPEG (Máx. 2MB)</p>
-                    </div>
+                    <p className="text-xs text-slate-400 mt-2">Adicionar foto</p>
                     <input 
                       type="file" 
                       accept="image/*" 
@@ -616,17 +669,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                       className="hidden" 
                       onChange={(e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
-                          if (file.size > 2 * 1024 * 1024) {
-                            showToast('A imagem deve ter no máximo 2MB', 'error');
-                            return;
-                          }
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setValue('arrivalPhotoBase64', reader.result as string);
-                          };
-                          reader.readAsDataURL(file);
-                        }
+                        if (file) addPhoto(file);
                       }}
                     />
                   </label>
