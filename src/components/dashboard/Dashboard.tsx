@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   Briefcase, TrendingUp, TrendingDown, Wallet, 
@@ -9,6 +9,7 @@ import {
   BarChart, Bar
 } from 'recharts';
 import { StatCard } from '../ui/StatCard';
+import { DraggableGrid } from '../ui/DraggableGrid';
 import { formatCurrency, formatMonthYear } from '../../lib/utils';
 
 import { useFilterStore } from '../../store/useFilterStore';
@@ -38,43 +39,27 @@ export const Dashboard = ({
   const { fontSize } = useAppStore();
   const { dashboardMonth, handlePrevMonth, handleNextMonth } = useFilterStore();
 
+  const initialCards = useMemo(() => [
+    { id: 'initial-balance', content: <StatCard title="Saldo Inicial" value={settings.initialBalance} change="Configurado" trend="up" icon={Briefcase} /> },
+    { id: 'total-income', content: <StatCard title="Renda Total" value={totalIncome} change="+12.4%" trend="up" icon={TrendingUp} /> },
+    { id: 'total-expenses', content: <StatCard title="Despesas Totais" value={totalExpenses} change="-5.2%" trend="down" icon={TrendingDown} /> },
+    { id: 'net-balance', content: <StatCard title="Saldo Líquido" value={netBalance} change="+18.1%" trend="up" icon={Wallet} /> },
+  ], [settings.initialBalance, totalIncome, totalExpenses, netBalance]);
+
+  const [cards, setCards] = useState(initialCards);
+
+  useEffect(() => {
+    setCards(initialCards);
+  }, [initialCards]);
+
   return (
     <>
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard 
-          title="Saldo Inicial" 
-          value={settings.initialBalance} 
-          change="Configurado" 
-          trend="up" 
-          icon={Briefcase} 
-          color="bg-slate-500/10 text-slate-500"
-        />
-        <StatCard 
-          title="Renda Total" 
-          value={totalIncome} 
-          change="+12.4%" 
-          trend="up" 
-          icon={TrendingUp} 
-          color="bg-emerald-500/10 text-emerald-500"
-        />
-        <StatCard 
-          title="Despesas Totais" 
-          value={totalExpenses} 
-          change="-5.2%" 
-          trend="down" 
-          icon={TrendingDown} 
-          color="bg-rose-500/10 text-rose-500"
-        />
-        <StatCard 
-          title="Saldo Líquido" 
-          value={netBalance} 
-          change="+18.1%" 
-          trend="up" 
-          icon={Wallet} 
-          color="bg-primary/10 text-primary"
-        />
-      </div>
+      <DraggableGrid
+        items={cards}
+        onReorder={setCards}
+        storageKey="stat-cards"
+      />
 
       {/* Charts */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
