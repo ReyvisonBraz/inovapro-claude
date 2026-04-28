@@ -43,6 +43,11 @@ export const generatePDF = async (
   wrapper.appendChild(contentClone);
   wrapper.appendChild(footer);
 
+  const pdfDateEl = wrapper.querySelector('#pdf-date') as HTMLElement;
+  if (pdfDateEl) {
+    pdfDateEl.textContent = `Gerado em: ${new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+  }
+
   const opt = {
     margin: 10,
     filename: `relatorio-financeiro-${new Date().toISOString().split('T')[0]}.pdf`,
@@ -60,5 +65,9 @@ export const generatePDF = async (
     pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
   };
 
-  await html2pdf().set(opt).from(wrapper).save();
+  try {
+    await html2pdf().set(opt).from(wrapper).save();
+  } finally {
+    wrapper.remove();
+  }
 };
