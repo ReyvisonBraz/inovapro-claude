@@ -131,7 +131,7 @@ export const FilterPanel = ({ customers }: FilterPanelProps) => {
                 onClick={() => setShowReportFilters(false)}
                 className="flex-1 py-3 rounded-xl bg-primary hover:bg-primary/90 text-xs font-bold uppercase tracking-widest text-white transition-all"
               >
-                Aplicar
+                Fechar
               </button>
             </div>
           </div>

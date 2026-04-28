@@ -7,6 +7,16 @@ interface FilterBarProps {
   categories: { name: string; type: 'income' | 'expense' }[];
 }
 
+const getPeriodDates = (period: '7d' | '30d' | '90d' | '12m' | 'custom'): { start: Date; end: Date } => {
+  const end = new Date();
+  let start = new Date();
+  if (period === '7d') start.setDate(end.getDate() - 7);
+  else if (period === '30d') start.setDate(end.getDate() - 30);
+  else if (period === '90d') start.setDate(end.getDate() - 90);
+  else if (period === '12m') start.setFullYear(end.getFullYear() - 1);
+  return { start, end };
+};
+
 export const FilterBar = ({ categories }: FilterBarProps) => {
   const {
     reportPeriodFilter,
@@ -34,12 +44,7 @@ export const FilterBar = ({ categories }: FilterBarProps) => {
               const period = e.target.value as typeof reportPeriodFilter;
               setReportPeriodFilter(period);
               if (period !== 'custom') {
-                const end = new Date();
-                let start = new Date();
-                if (period === '7d') start.setDate(end.getDate() - 7);
-                else if (period === '30d') start.setDate(end.getDate() - 30);
-                else if (period === '90d') start.setDate(end.getDate() - 90);
-                else if (period === '12m') start.setFullYear(end.getFullYear() - 1);
+                const { start, end } = getPeriodDates(period);
                 setReportStartDate(start.toISOString().split('T')[0]);
                 setReportEndDate(end.toISOString().split('T')[0]);
               }

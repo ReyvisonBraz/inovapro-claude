@@ -177,7 +177,7 @@ export const useFilterStore = create<FilterState>((set) => ({
   }),
   resetFilters: () => set({
     searchTerm: '',
-    dateFilterMode: 'all',
+    dateFilterMode: 'day',
     selectedDate: format(new Date(), 'yyyy-MM-dd'),
     selectedMonth: format(new Date(), 'yyyy-MM'),
     startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
