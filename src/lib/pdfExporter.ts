@@ -24,12 +24,9 @@ export const generatePDF = async (
     </div>
   `;
 
-  const footer = `
-    <div style="position: fixed; bottom: 10px; left: 0; right: 0; text-align: center; font-size: 10px; color: #64748b; padding-top: 10px; border-top: 1px solid #e2e8f0;">
-      <span>Gerado em: ${new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-      <span style="float: right;">Página <span id="pdf-page-number"></span> de <span id="pdf-total-pages"></span></span>
-    </div>
-  `;
+  const footer = document.createElement('div');
+  footer.style.cssText = 'position: fixed; bottom: 10px; left: 0; right: 0; text-align: center; font-size: 10px; color: #64748b; padding-top: 10px; border-top: 1px solid #e2e8f0;';
+  footer.textContent = `Gerado em: ${new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
 
   const contentClone = element.cloneNode(true) as HTMLElement;
   contentClone.style.background = '#ffffff';
@@ -44,7 +41,7 @@ export const generatePDF = async (
   const wrapper = document.createElement('div');
   wrapper.innerHTML = header;
   wrapper.appendChild(contentClone);
-  wrapper.innerHTML += footer;
+  wrapper.appendChild(footer);
 
   const opt = {
     margin: 10,
