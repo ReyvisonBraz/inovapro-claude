@@ -7,7 +7,6 @@
   --color-bg-dark: #0a0f18;
   --color-card-dark: #121a2b;
 
-  --color-neon-bg: #0a0a0f;
   --color-neon-card: rgba(20, 20, 35, 0.9);
   --color-neon-green: #00ff88;
   --color-neon-pink: #ff6464;
@@ -23,7 +22,7 @@
 
 @layer components {
   .neon-card {
-    @apply bg-neon-card border border-white/5 rounded-2xl;
+    @apply bg-neon-card border border-neon-border-green rounded-2xl;
     box-shadow: 0 0 30px rgba(0, 255, 136, 0.1), inset 0 0 30px rgba(0, 255, 136, 0.03);
   }
 
@@ -35,14 +34,6 @@
   .neon-bar {
     @apply bg-neon-green rounded-full;
     box-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
-  }
-
-  .neon-glow {
-    box-shadow: 0 0 20px rgba(17, 82, 212, 0.15);
-  }
-  
-  .neon-border {
-    @apply border border-primary/20 shadow-[0_0_15px_rgba(17,82,212,0.1)];
   }
 
   .glass {
