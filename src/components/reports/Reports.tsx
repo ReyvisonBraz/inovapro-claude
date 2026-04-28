@@ -43,6 +43,7 @@ export const Reports = ({
     reportPaymentStatus,
     reportStartDate,
     reportEndDate,
+    reportTagsFilter,
     showReportFilters,
   } = useFilterStore();
 
@@ -51,6 +52,7 @@ export const Reports = ({
     if (reportCategoryFilter !== 'all' && tx.category !== reportCategoryFilter) return false;
     if (reportCustomerFilter && tx.customerName !== reportCustomerFilter) return false;
     if (reportPaymentStatus !== 'all' && tx.status !== reportPaymentStatus) return false;
+    if (reportTagsFilter.length > 0 && !reportTagsFilter.some(tag => tx.tags?.includes(tag))) return false;
     const txDate = new Date(tx.date);
     const start = new Date(reportStartDate);
     const end = new Date(reportEndDate);

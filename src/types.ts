@@ -33,6 +33,7 @@ export interface Transaction {
   saleId?: string;
   customerName?: string;
   customerPhone?: string;
+  tags?: string[];
 }
 
 export interface Customer {
