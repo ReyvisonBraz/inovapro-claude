@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { 
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
@@ -47,18 +47,23 @@ export const Reports = ({
     showReportFilters,
   } = useFilterStore();
 
-  const filteredTransactions = transactions.filter(tx => {
+  const filteredTransactions = useMemo(() => transactions.filter(tx => {
     if (reportTypeFilter !== 'all' && tx.type !== reportTypeFilter) return false;
     if (reportCategoryFilter !== 'all' && tx.category !== reportCategoryFilter) return false;
     if (reportCustomerFilter && tx.customerName !== reportCustomerFilter) return false;
     if (reportPaymentStatus !== 'all' && tx.status !== reportPaymentStatus) return false;
-    if (reportTagsFilter.length > 0 && !reportTagsFilter.some(tag => tx.tags?.includes(tag))) return false;
+    if (reportTagsFilter.length > 0 && (tx.tags ? reportTagsFilter.some(tag => tx.tags.includes(tag)) : false)) return false;
     const txDate = new Date(tx.date);
     const start = new Date(reportStartDate);
     const end = new Date(reportEndDate);
     if (txDate < start || txDate > end) return false;
     return true;
-  });
+  }), [transactions, reportTypeFilter, reportCategoryFilter, reportCustomerFilter, reportPaymentStatus, reportTagsFilter, reportStartDate, reportEndDate]);
+
+  const pieChartData = useMemo(() => categories.filter(c => c.type === 'expense').map(cat => ({
+    name: cat.name,
+    value: filteredTransactions.filter(t => t.category === cat.name && t.type === 'expense').reduce((acc, t) => acc + t.amount, 0)
+  })).filter(d => d.value > 0), [categories, filteredTransactions]);
 
   return (
     <div className="space-y-10">
@@ -108,10 +113,7 @@ export const Reports = ({
                     <ResponsiveContainer width="100%" height="100%" minHeight={0}>
                       <PieChart>
                         <Pie
-                          data={categories.filter(c => c.type === 'expense').map(cat => ({
-                            name: cat.name,
-                            value: filteredTransactions.filter(t => t.category === cat.name && t.type === 'expense').reduce((acc, t) => acc + t.amount, 0)
-                          })).filter(d => d.value > 0)}
+                          data={pieChartData}
                           cx="50%"
                           cy="50%"
                           innerRadius={70}
