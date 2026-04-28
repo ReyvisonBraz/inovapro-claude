@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '../../lib/utils';
@@ -46,6 +46,10 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
   const [history, setHistory] = useState<{ level: number; category?: string }[]>([{ level: drillDownData.currentLevel || 0 }]);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'date', direction: 'desc' });
 
+  useEffect(() => {
+    setHistory([{ level: drillDownData.currentLevel || 0 }]);
+  }, [drillDownData]);
+
   const currentEntry = history[history.length - 1];
   const currentLevel = drillDownData.levels[currentEntry.level];
 
@@ -72,12 +76,16 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
           tx.tags ? filters.reportTagsFilter.some(tag => tx.tags.includes(tag)) : false
         );
       }
-      const start = new Date(filters.reportStartDate);
-      const end = new Date(filters.reportEndDate);
-      filtered = filtered.filter(tx => {
-        const txDate = new Date(tx.date);
-        return txDate >= start && txDate <= end;
-      });
+      if (filters.reportStartDate && filters.reportEndDate) {
+        const start = new Date(filters.reportStartDate);
+        const end = new Date(filters.reportEndDate);
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+          filtered = filtered.filter(tx => {
+            const txDate = new Date(tx.date);
+            return txDate >= start && txDate <= end;
+          });
+        }
+      }
     }
 
     return filtered;
@@ -166,21 +174,19 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
 
   return (
     <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-4xl md:max-h-[85vh] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl z-50 flex flex-col overflow-hidden"
-          >
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-4xl md:max-h-[85vh] bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl z-50 flex flex-col overflow-hidden"
+      >
             <div className="flex items-center justify-between p-6 border-b border-white/10">
               <div className="flex items-center gap-4">
                 {history.length > 1 && (
@@ -234,7 +240,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
                       <div className="h-1 bg-white/5 rounded-full overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
-                          animate={{ width: `${(data.total / sortedCategories[0][1].total) * 100}%` }}
+                          animate={{ width: `${sortedCategories.length > 0 && data.total / sortedCategories[0][1].total * 100}%` }}
                           className="h-full bg-primary"
                         />
                       </div>
@@ -376,8 +382,6 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
               </div>
             </div>
           </motion.div>
-        </>
-      )}
     </AnimatePresence>
   );
 };
