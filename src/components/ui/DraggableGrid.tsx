@@ -31,15 +31,14 @@ function SortableItem({ id, children }: SortableItemProps) {
     isDragging,
   } = useSortable({ id });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 1000 : 1,
-  };
-
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`${isDragging ? 'opacity-50 z-[1000]' : ''}`}
+      {...attributes}
+      {...listeners}
+    >
       {children}
     </div>
   );
@@ -51,7 +50,7 @@ interface DraggableGridProps {
   storageKey: string;
 }
 
-const STORAGE_KEY_PREFIX = 'dashboard_card_order_';
+const STORAGE_KEY_PREFIX = 'v1_stat_cards_';
 
 export const DraggableGrid: React.FC<DraggableGridProps> = ({
   items,
@@ -75,13 +74,16 @@ export const DraggableGrid: React.FC<DraggableGridProps> = ({
       try {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length === items.length) {
-          onReorder(parsed);
+          const validIds = new Set(items.map((item) => item.id));
+          const allIdsValid = parsed.every((item: { id: string }) => validIds.has(item.id));
+          if (allIdsValid) {
+            onReorder(parsed);
+          }
         }
       } catch (e) {
-        // ignore
       }
     }
-  }, []);
+  }, [items, onReorder, storageKey]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
