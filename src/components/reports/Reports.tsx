@@ -15,6 +15,7 @@ import { useFilterStore } from '../../store/useFilterStore';
 import { useCustomerStore } from '../../store/useCustomerStore';
 import { FilterBar } from './FilterBar';
 import { FilterPanel } from './FilterPanel';
+import { PDFExportButton } from './PDFExportButton';
 
 interface ReportsProps {
   chartData: any[];
@@ -66,13 +67,14 @@ export const Reports = ({
   })).filter(d => d.value > 0), [categories, filteredTransactions]);
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10" id="report-content">
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
         <div>
           <h3 className="text-2xl font-bold">Análise Detalhada</h3>
           <p className="text-sm text-slate-500">Relatórios gerados com base no ano fiscal {settings.fiscalYear}</p>
         </div>
         <div className="flex items-center gap-3">
+          <PDFExportButton reportElementId="report-content" />
           <div className="flex p-1 bg-white/5 rounded-2xl border border-white/10">
             <button
               onClick={() => setReportView('charts')}
