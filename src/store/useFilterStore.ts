@@ -61,6 +61,24 @@ interface FilterState {
   setReportMonth: (month: string | null) => void;
   reportView: 'charts' | 'table';
   setReportView: (view: 'charts' | 'table') => void;
+  reportPeriodFilter: '7d' | '30d' | '90d' | '12m' | 'custom';
+  setReportPeriodFilter: (period: '7d' | '30d' | '90d' | '12m' | 'custom') => void;
+  reportTypeFilter: 'all' | 'income' | 'expense';
+  setReportTypeFilter: (type: 'all' | 'income' | 'expense') => void;
+  reportCategoryFilter: string;
+  setReportCategoryFilter: (category: string) => void;
+  reportCustomerFilter: string;
+  setReportCustomerFilter: (customer: string) => void;
+  reportPaymentStatus: 'all' | 'paid' | 'pending' | 'overdue';
+  setReportPaymentStatus: (status: 'all' | 'paid' | 'pending' | 'overdue') => void;
+  reportTagsFilter: string[];
+  setReportTagsFilter: (tags: string[]) => void;
+  reportStartDate: string;
+  setReportStartDate: (date: string) => void;
+  reportEndDate: string;
+  setReportEndDate: (date: string) => void;
+  showReportFilters: boolean;
+  setShowReportFilters: (show: boolean) => void;
 
   // Dashboard Filters
   dashboardMonth: string;
@@ -124,6 +142,24 @@ export const useFilterStore = create<FilterState>((set) => ({
   setReportMonth: (month) => set({ reportMonth: month }),
   reportView: 'charts',
   setReportView: (view) => set({ reportView: view }),
+  reportPeriodFilter: '30d',
+  setReportPeriodFilter: (period) => set({ reportPeriodFilter: period }),
+  reportTypeFilter: 'all',
+  setReportTypeFilter: (type) => set({ reportTypeFilter: type }),
+  reportCategoryFilter: 'all',
+  setReportCategoryFilter: (category) => set({ reportCategoryFilter: category }),
+  reportCustomerFilter: '',
+  setReportCustomerFilter: (customer) => set({ reportCustomerFilter: customer }),
+  reportPaymentStatus: 'all',
+  setReportPaymentStatus: (status) => set({ reportPaymentStatus: status }),
+  reportTagsFilter: [],
+  setReportTagsFilter: (tags) => set({ reportTagsFilter: tags }),
+  reportStartDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+  setReportStartDate: (date) => set({ reportStartDate: date }),
+  reportEndDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+  setReportEndDate: (date) => set({ reportEndDate: date }),
+  showReportFilters: false,
+  setShowReportFilters: (show) => set({ showReportFilters: show }),
 
   dashboardMonth: format(new Date(), 'yyyy-MM'),
   setDashboardMonth: (month) => set({ dashboardMonth: month }),
@@ -141,7 +177,7 @@ export const useFilterStore = create<FilterState>((set) => ({
   }),
   resetFilters: () => set({
     searchTerm: '',
-    dateFilterMode: 'all',
+    dateFilterMode: 'day',
     selectedDate: format(new Date(), 'yyyy-MM-dd'),
     selectedMonth: format(new Date(), 'yyyy-MM'),
     startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
