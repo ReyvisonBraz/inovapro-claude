@@ -28,6 +28,9 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({ reportElementI
         companyName: settings.profileName || settings.appName,
         reportPeriod: period
       });
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      alert('Erro ao exportar PDF. Tente novamente.');
     } finally {
       setLoading(false);
     }
