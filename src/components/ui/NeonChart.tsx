@@ -3,17 +3,30 @@ import { motion } from 'motion/react';
 import { ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '../../lib/utils';
 
+interface ChartClickData {
+  name?: string;
+  value?: number;
+  payload?: Record<string, unknown>;
+}
+
 interface NeonChartProps {
   children: React.ReactNode;
   period?: string;
   onPeriodChange?: (period: string) => void;
-  onChartClick?: (data: any) => void;
+  onChartClick?: (data: ChartClickData) => void;
   title: string;
   subtitle: string;
   periods?: string[];
 }
 
 const PERIOD_OPTIONS = ['7d', '30d', '90d', '12m'];
+
+const PERIOD_LABELS: Record<string, string> = {
+  '7d': '7 Dias',
+  '30d': '30 Dias',
+  '90d': '90 Dias',
+  '12m': '12 Meses',
+};
 
 export const NeonChart: React.FC<NeonChartProps> = ({
   children,
@@ -28,11 +41,11 @@ export const NeonChart: React.FC<NeonChartProps> = ({
     onPeriodChange?.(e.target.value);
   };
 
-  const handleChartClick = (data: any) => {
+  const handleChartClick = (data: ChartClickData) => {
     onChartClick?.(data);
   };
 
-  const handleChildClick = (props: any) => {
+  const handleChildClick = (props: { activePayload?: Array<{ payload: ChartClickData }> }) => {
     if (props && props.activePayload && onChartClick) {
       onChartClick(props.activePayload[0]?.payload);
     }
@@ -56,7 +69,7 @@ export const NeonChart: React.FC<NeonChartProps> = ({
         >
           {periods.map((p) => (
             <option key={p} value={p}>
-              {p === '7d' ? '7 Dias' : p === '30d' ? '30 Dias' : p === '90d' ? '90 Dias' : '12 Meses'}
+              {PERIOD_LABELS[p] || p}
             </option>
           ))}
         </select>
@@ -65,7 +78,7 @@ export const NeonChart: React.FC<NeonChartProps> = ({
         <ResponsiveContainer width="100%" height="100%" minHeight={0}>
           {React.Children.map(children, (child) => {
             if (!React.isValidElement(child)) return child;
-            return React.cloneElement(child as React.ReactElement<any>, {
+            return React.cloneElement(child as React.ReactElement<{ onClick?: (props: { activePayload?: Array<{ payload: ChartClickData }> }) => void }>, {
               onClick: handleChildClick,
             });
           })}

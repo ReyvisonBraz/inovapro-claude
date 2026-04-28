@@ -21,8 +21,8 @@ interface DashboardProps {
   totalIncome: number;
   totalExpenses: number;
   netBalance: number;
-  chartData: any[];
-  handleChartClick: (data: any) => void;
+  chartData: { name?: string; [key: string]: unknown }[];
+  handleChartClick: (data: { name?: string; value?: number; payload?: Record<string, unknown> }) => void;
   sortedIncomeRanking: [string, number][];
   sortedExpenseRanking: [string, number][];
 }
@@ -39,6 +39,41 @@ export const Dashboard = ({
   const { settings } = useSettingsStore();
   const { fontSize } = useAppStore();
   const { dashboardMonth, handlePrevMonth, handleNextMonth } = useFilterStore();
+
+  const [selectedPeriod, setSelectedPeriod] = useState('12m');
+
+  const filteredChartData = useMemo(() => {
+    if (!chartData || chartData.length === 0) return [];
+    
+    const now = new Date();
+    let cutoffDate: Date;
+
+    switch (selectedPeriod) {
+      case '7d':
+        cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case '90d':
+        cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case '12m':
+      default:
+        cutoffDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        break;
+    }
+
+    return chartData.filter((item: { name?: string }) => {
+      if (!item.name) return true;
+      const itemDate = new Date(item.name);
+      return itemDate >= cutoffDate;
+    });
+  }, [chartData, selectedPeriod]);
+
+  const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
+  };
 
   const initialCards = useMemo(() => [
     { id: 'initial-balance', content: <StatCard title="Saldo Inicial" value={settings.initialBalance} change="Configurado" trend="up" icon={Briefcase} /> },
@@ -67,12 +102,12 @@ export const Dashboard = ({
         <NeonChart
           title="Tendência de Fluxo de Caixa"
           subtitle="Desempenho de flutuação mensal"
-          period="12m"
+          period={selectedPeriod}
           periods={['7d', '30d', '90d', '12m']}
-          onPeriodChange={(p) => console.log('Period changed:', p)}
+          onPeriodChange={handlePeriodChange}
           onChartClick={handleChartClick}
         >
-          <AreaChart data={chartData}>
+          <AreaChart data={filteredChartData}>
             <defs>
               <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#1152d4" stopOpacity={0.3}/>
@@ -103,12 +138,12 @@ export const Dashboard = ({
         <NeonChart
           title="Comparação Mensal"
           subtitle="Detalhamento de Renda vs Despesas"
-          period="12m"
+          period={selectedPeriod}
           periods={['7d', '30d', '90d', '12m']}
-          onPeriodChange={(p) => console.log('Period changed:', p)}
+          onPeriodChange={handlePeriodChange}
           onChartClick={handleChartClick}
         >
-          <BarChart data={chartData}>
+          <BarChart data={filteredChartData}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" />
             <XAxis 
               dataKey="name" 
