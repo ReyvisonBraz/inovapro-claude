@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   Briefcase, TrendingUp, TrendingDown, Wallet, 
@@ -9,6 +9,8 @@ import {
   BarChart, Bar
 } from 'recharts';
 import { StatCard } from '../ui/StatCard';
+import { DraggableGrid } from '../ui/DraggableGrid';
+import { NeonChart, NeonTooltip } from '../ui/NeonChart';
 import { formatCurrency, formatMonthYear } from '../../lib/utils';
 
 import { useFilterStore } from '../../store/useFilterStore';
@@ -19,8 +21,8 @@ interface DashboardProps {
   totalIncome: number;
   totalExpenses: number;
   netBalance: number;
-  chartData: any[];
-  handleChartClick: (data: any) => void;
+  chartData: { name?: string; [key: string]: unknown }[];
+  handleChartClick: (data: { name?: string; value?: number; payload?: Record<string, unknown> }) => void;
   sortedIncomeRanking: [string, number][];
   sortedExpenseRanking: [string, number][];
 }
@@ -38,140 +40,124 @@ export const Dashboard = ({
   const { fontSize } = useAppStore();
   const { dashboardMonth, handlePrevMonth, handleNextMonth } = useFilterStore();
 
+  const [selectedPeriod, setSelectedPeriod] = useState('12m');
+
+  const filteredChartData = useMemo(() => {
+    if (!chartData || chartData.length === 0) return [];
+    
+    const now = new Date();
+    let cutoffDate: Date;
+
+    switch (selectedPeriod) {
+      case '7d':
+        cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case '90d':
+        cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case '12m':
+      default:
+        cutoffDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        break;
+    }
+
+    return chartData.filter((item: { name?: string }) => {
+      if (!item.name) return true;
+      const itemDate = new Date(item.name);
+      return itemDate >= cutoffDate;
+    });
+  }, [chartData, selectedPeriod]);
+
+  const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
+  };
+
+  const initialCards = useMemo(() => [
+    { id: 'initial-balance', content: <StatCard title="Saldo Inicial" value={settings.initialBalance} change="Configurado" trend="up" icon={Briefcase} /> },
+    { id: 'total-income', content: <StatCard title="Renda Total" value={totalIncome} change="+12.4%" trend="up" icon={TrendingUp} /> },
+    { id: 'total-expenses', content: <StatCard title="Despesas Totais" value={totalExpenses} change="-5.2%" trend="down" icon={TrendingDown} /> },
+    { id: 'net-balance', content: <StatCard title="Saldo Líquido" value={netBalance} change="+18.1%" trend="up" icon={Wallet} /> },
+  ], [settings.initialBalance, totalIncome, totalExpenses, netBalance]);
+
+  const [cards, setCards] = useState(initialCards);
+
+  useEffect(() => {
+    setCards(initialCards);
+  }, [initialCards]);
+
   return (
     <>
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard 
-          title="Saldo Inicial" 
-          value={settings.initialBalance} 
-          change="Configurado" 
-          trend="up" 
-          icon={Briefcase} 
-          color="bg-slate-500/10 text-slate-500"
-        />
-        <StatCard 
-          title="Renda Total" 
-          value={totalIncome} 
-          change="+12.4%" 
-          trend="up" 
-          icon={TrendingUp} 
-          color="bg-emerald-500/10 text-emerald-500"
-        />
-        <StatCard 
-          title="Despesas Totais" 
-          value={totalExpenses} 
-          change="-5.2%" 
-          trend="down" 
-          icon={TrendingDown} 
-          color="bg-rose-500/10 text-rose-500"
-        />
-        <StatCard 
-          title="Saldo Líquido" 
-          value={netBalance} 
-          change="+18.1%" 
-          trend="up" 
-          icon={Wallet} 
-          color="bg-primary/10 text-primary"
-        />
-      </div>
+      <DraggableGrid
+        items={cards}
+        onReorder={setCards}
+        storageKey="stat-cards"
+      />
 
       {/* Charts */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="glass-card p-4 md:p-8"
+        <NeonChart
+          title="Tendência de Fluxo de Caixa"
+          subtitle="Desempenho de flutuação mensal"
+          period={selectedPeriod}
+          periods={['7d', '30d', '90d', '12m']}
+          onPeriodChange={handlePeriodChange}
+          onChartClick={handleChartClick}
         >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
-            <div>
-              <h4 className="text-base md:text-lg font-bold">Tendência de Fluxo de Caixa</h4>
-              <p className="text-xs text-slate-500 font-medium">Desempenho de flutuação mensal</p>
-            </div>
-            <select className="bg-slate-800 border border-white/10 rounded-xl text-xs font-bold uppercase tracking-widest py-2 px-4 focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900 w-full sm:w-auto">
-              <option>Últimos 12 Meses</option>
-              <option>Últimos 6 Meses</option>
-            </select>
-          </div>
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%" minHeight={0}>
-              <AreaChart data={chartData} onClick={handleChartClick}>
-                <defs>
-                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#1152d4" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#1152d4" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: Math.max(10, fontSize * 0.625), fontWeight: 600 }} 
-                  dy={10}
-                />
-                <YAxis hide />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1a2235', border: '1px solid #ffffff10', borderRadius: '12px' }}
-                  itemStyle={{ fontSize: `${Math.max(12, fontSize * 0.75)}px`, fontWeight: 'bold' }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="renda" 
-                  stroke="#1152d4" 
-                  strokeWidth={3}
-                  fillOpacity={1} 
-                  fill="url(#colorIncome)" 
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
+          <AreaChart data={filteredChartData}>
+            <defs>
+              <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#1152d4" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="#1152d4" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" />
+            <XAxis 
+              dataKey="name" 
+              axisLine={false} 
+              tickLine={false} 
+              tick={{ fill: '#64748b', fontSize: Math.max(10, fontSize * 0.625), fontWeight: 600 }} 
+              dy={10}
+            />
+            <YAxis hide />
+            <Tooltip content={<NeonTooltip />} />
+            <Area 
+              type="monotone" 
+              dataKey="renda" 
+              stroke="#1152d4" 
+              strokeWidth={3}
+              fillOpacity={1} 
+              fill="url(#colorIncome)" 
+            />
+          </AreaChart>
+        </NeonChart>
 
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="glass-card p-4 md:p-8"
+        <NeonChart
+          title="Comparação Mensal"
+          subtitle="Detalhamento de Renda vs Despesas"
+          period={selectedPeriod}
+          periods={['7d', '30d', '90d', '12m']}
+          onPeriodChange={handlePeriodChange}
+          onChartClick={handleChartClick}
         >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
-            <div>
-              <h4 className="text-base md:text-lg font-bold">Comparação Mensal</h4>
-              <p className="text-xs text-slate-500 font-medium">Detalhamento de Renda vs Despesas</p>
-            </div>
-            <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-widest">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-primary"></span>
-                <span className="text-slate-400">Renda</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-white/10"></span>
-                <span className="text-slate-400">Despesa</span>
-              </div>
-            </div>
-          </div>
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%" minHeight={0}>
-              <BarChart data={chartData} onClick={handleChartClick}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: Math.max(10, fontSize * 0.625), fontWeight: 600 }} 
-                  dy={10}
-                />
-                <YAxis hide />
-                <Tooltip 
-                  cursor={{ fill: '#ffffff05' }}
-                  contentStyle={{ backgroundColor: '#1a2235', border: '1px solid #ffffff10', borderRadius: '12px' }}
-                  itemStyle={{ fontSize: `${Math.max(12, fontSize * 0.75)}px`, fontWeight: 'bold' }}
-                />
-                <Bar dataKey="renda" fill="#1152d4" radius={[4, 4, 0, 0]} barSize={12} />
-                <Bar dataKey="despesa" fill="#ffffff10" radius={[4, 4, 0, 0]} barSize={12} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
+          <BarChart data={filteredChartData}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" />
+            <XAxis 
+              dataKey="name" 
+              axisLine={false} 
+              tickLine={false} 
+              tick={{ fill: '#64748b', fontSize: Math.max(10, fontSize * 0.625), fontWeight: 600 }} 
+              dy={10}
+            />
+            <YAxis hide />
+            <Tooltip content={<NeonTooltip />} cursor={{ fill: '#ffffff05' }} />
+            <Bar dataKey="renda" fill="#1152d4" radius={[4, 4, 0, 0]} barSize={12} />
+            <Bar dataKey="despesa" fill="#ffffff10" radius={[4, 4, 0, 0]} barSize={12} />
+          </BarChart>
+        </NeonChart>
       </div>
 
       {/* Rankings Section */}

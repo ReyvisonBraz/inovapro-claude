@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Style A - Sombreado 3D</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #f1f5f9; padding: 2rem; }
+    h1 { text-align: center; margin-bottom: 0.5rem; color: #f1f5f9; }
+    p { text-align: center; color: #94a3b8; margin-bottom: 2rem; }
+    
+    .container { max-width: 900px; margin: 0 auto; }
+    
+    .card { background: #1e293b; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 1.5rem; }
+
+    .preview-3d {
+      background: linear-gradient(145deg, #1e293b, #0f172a);
+      border-radius: 16px;
+      padding: 2rem;
+    }
+
+    .stat-card {
+      background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      box-shadow: 
+        0 8px 16px rgba(0,0,0,0.4),
+        0 16px 32px rgba(0,0,0,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .stat-label { 
+      color: #94a3b8; 
+      font-size: 0.75rem; 
+      text-transform: uppercase; 
+      letter-spacing: 0.05em;
+    }
+    .stat-value { 
+      color: #f1f5f9; 
+      font-size: 2rem; 
+      font-weight: 700; 
+      margin: 0.5rem 0;
+    }
+    .stat-trend { 
+      color: #4ade80; 
+      font-size: 0.9rem;
+    }
+    .stat-trend.negative { color: #f87171; }
+    .trend-bar { 
+      height: 8px; 
+      background: rgba(255,255,255,0.1); 
+      border-radius: 4px; 
+      margin-top: 0.75rem; 
+      overflow: hidden;
+    }
+    .trend-fill { 
+      height: 100%; 
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6); 
+      border-radius: 4px;
+    }
+    .trend-fill.green { background: linear-gradient(90deg, #22c55e, #4ade80); }
+    .trend-fill.red { background: linear-gradient(90deg, #ef4444, #f97316); }
+
+    /* Grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    .stats-grid .stat-card { margin-bottom: 0; }
+
+    /* Highlight card */
+    .stat-card.highlight {
+      background: linear-gradient(180deg, #1e3a5f 0%, #1e293b 100%);
+      border-color: rgba(59, 130, 246, 0.2);
+      box-shadow: 
+        0 8px 16px rgba(0,0,0,0.4),
+        0 16px 32px rgba(0,0,0,0.3),
+        0 0 30px rgba(59, 130, 246, 0.1),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .info { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 8px; padding: 1rem; margin-top: 1rem; }
+    .info p { color: #60a5fa; margin: 0; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>STYLE A: SOMBREADO 3D</h1>
+    <p>Cards com profundidade, sombras suaves e efeito "levitar"</p>
+
+    <div class="preview-3d">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Saldo Inicial</div>
+          <div class="stat-value">R$ 125.430</div>
+          <div class="stat-trend">↑ 12.5% vs mês anterior</div>
+          <div class="trend-bar"><div class="trend-fill" style="width: 75%"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Receitas</div>
+          <div class="stat-value">R$ 84.200</div>
+          <div class="stat-trend">↑ 8.3% vs mês anterior</div>
+          <div class="trend-bar"><div class="trend-fill green" style="width: 60%"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Despesas</div>
+          <div class="stat-value">R$ 52.180</div>
+          <div class="stat-trend negative">↓ 3.1% vs mês anterior</div>
+          <div class="trend-bar"><div class="trend-fill red" style="width: 45%"></div></div>
+        </div>
+        <div class="stat-card highlight">
+          <div class="stat-label">Saldo Líquido</div>
+          <div class="stat-value" style="color: #60a5fa;">R$ 73.020</div>
+          <div class="stat-trend">↑ 15.2% vs mês anterior</div>
+          <div class="trend-bar"><div class="trend-fill" style="width: 85%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info">
+      <p>✓ Sombras profundas (16px e 32px)<br>
+      ✓ Cards com gradiente e borda sutil<br>
+      ✓ Borda azul no card de saldo<br>
+      ✓ Barras de progresso coloridas por tipo</p>
+    </div>
+  </div>
+</body>
+</html>
