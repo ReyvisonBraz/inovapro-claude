@@ -240,7 +240,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
                       <div className="h-1 bg-white/5 rounded-full overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
-                          animate={{ width: `${sortedCategories.length > 0 && data.total / sortedCategories[0][1].total * 100}%` }}
+                          animate={{ width: `${sortedCategories.length > 0 && sortedCategories[0][1].total ? (data.total / sortedCategories[0][1].total * 100) : 0}%` }}
                           className="h-full bg-primary"
                         />
                       </div>
