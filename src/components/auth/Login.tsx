@@ -65,7 +65,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <label className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">Usuário</label>
               <div className="relative">
                 <UserIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input 
+                <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -80,7 +80,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <label className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">Senha</label>
               <div className="relative">
                 <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input 
+                <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -91,7 +91,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
             </div>
 
-            <button 
+            <button
               type="submit"
               disabled={loading}
               className={cn(
@@ -103,7 +103,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </button>
           </form>
         </div>
-        
+
         <p className="text-center mt-8 text-xs text-slate-600">
           &copy; {new Date().getFullYear()} INOVA PRO. Todos os direitos reservados.
         </p>

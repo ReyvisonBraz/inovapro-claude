@@ -31,6 +31,7 @@ export interface Transaction {
   updatedBy?: number;
   paymentId?: number;
   saleId?: string;
+  customerId?: number;
   customerName?: string;
   customerPhone?: string;
   tags?: string[];

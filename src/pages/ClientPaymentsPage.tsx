@@ -13,6 +13,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { useReceipt } from '../hooks/useReceipt';
 import { format } from 'date-fns';
 import { sendWhatsAppPaymentReminder } from '../lib/whatsappUtils';
+import api from '../lib/api';
 import { ClientPayment } from '../types';
 
 export const ClientPaymentsPage: React.FC = () => {

@@ -125,12 +125,12 @@ export const Dashboard = ({
             <YAxis hide />
             <Tooltip content={<NeonTooltip />} />
             <Area 
-              type="monotone" 
-              dataKey="renda" 
-              stroke="#1152d4" 
+              type="monotone"
+              dataKey="income"
+              stroke="#1152d4"
               strokeWidth={3}
-              fillOpacity={1} 
-              fill="url(#colorIncome)" 
+              fillOpacity={1}
+              fill="url(#colorIncome)"
             />
           </AreaChart>
         </NeonChart>
@@ -154,8 +154,8 @@ export const Dashboard = ({
             />
             <YAxis hide />
             <Tooltip content={<NeonTooltip />} cursor={{ fill: '#ffffff05' }} />
-            <Bar dataKey="renda" fill="#1152d4" radius={[4, 4, 0, 0]} barSize={12} />
-            <Bar dataKey="despesa" fill="#ffffff10" radius={[4, 4, 0, 0]} barSize={12} />
+            <Bar dataKey="income" fill="#1152d4" radius={[4, 4, 0, 0]} barSize={12} />
+            <Bar dataKey="expense" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={12} />
           </BarChart>
         </NeonChart>
       </div>
@@ -198,7 +198,7 @@ export const Dashboard = ({
                   <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: `${((amount as number) / Math.max(...sortedIncomeRanking.map(([, a]) => a as number))) * 100}%` }}
+                      animate={{ width: `${((amount as number) / Math.max(1, ...sortedIncomeRanking.map(([, a]) => a as number))) * 100}%` }}
                       className="h-full bg-emerald-500"
                     />
                   </div>
@@ -247,7 +247,7 @@ export const Dashboard = ({
                   <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: `${((amount as number) / Math.max(...sortedExpenseRanking.map(([, a]) => a as number))) * 100}%` }}
+                      animate={{ width: `${((amount as number) / Math.max(1, ...sortedExpenseRanking.map(([, a]) => a as number))) * 100}%` }}
                       className="h-full bg-rose-500"
                     />
                   </div>
