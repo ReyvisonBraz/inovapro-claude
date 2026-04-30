@@ -153,8 +153,8 @@ export const Reports = ({
                           contentStyle={{ backgroundColor: '#1a2235', border: '1px solid #ffffff10', borderRadius: '12px' }}
                           itemStyle={{ fontSize: `${Math.max(12, fontSize * 0.75)}px`, fontWeight: 'bold' }}
                         />
-                        <Bar dataKey="renda" fill="#1152d4" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="despesa" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="income" fill="#1152d4" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="expense" fill="#ef4444" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -237,13 +237,13 @@ export const Reports = ({
                     {chartData.map((data, index) => (
                       <tr key={index} className="hover:bg-white/[0.02] transition-all">
                         <td className="px-8 py-6 text-sm font-bold">{data.name}</td>
-                        <td className="px-8 py-6 text-sm font-bold text-emerald-500">{formatCurrency(data.renda)}</td>
-                        <td className="px-8 py-6 text-sm font-bold text-rose-500">{formatCurrency(data.despesa)}</td>
+                        <td className="px-8 py-6 text-sm font-bold text-emerald-500">{formatCurrency(data.income || 0)}</td>
+                        <td className="px-8 py-6 text-sm font-bold text-rose-500">{formatCurrency(data.expense || 0)}</td>
                         <td className={cn(
                           "px-8 py-6 text-sm font-black",
-                          data.renda - data.despesa >= 0 ? "text-emerald-500" : "text-rose-500"
+                          (data.income || 0) - (data.expense || 0) >= 0 ? "text-emerald-500" : "text-rose-500"
                         )}>
-                          {formatCurrency(data.renda - data.despesa)}
+                          {formatCurrency((data.income || 0) - (data.expense || 0))}
                         </td>
                       </tr>
                     ))}

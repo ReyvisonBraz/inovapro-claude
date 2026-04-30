@@ -43,15 +43,20 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
   drillDownData,
   filters,
 }) => {
-  const [history, setHistory] = useState<{ level: number; category?: string }[]>([{ level: drillDownData.currentLevel || 0 }]);
+  const [history, setHistory] = useState<{ level: number; category?: string }[]>([{ level: drillDownData?.currentLevel || 0 }]);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'date', direction: 'desc' });
 
   useEffect(() => {
-    setHistory([{ level: drillDownData.currentLevel || 0 }]);
-  }, [drillDownData]);
+    setHistory([{ level: drillDownData?.currentLevel || 0 }]);
+  }, [drillDownData?.currentLevel]);
+
+  if (!isOpen || !drillDownData || !drillDownData.levels || drillDownData.levels.length === 0) return null;
 
   const currentEntry = history[history.length - 1];
+  if (!currentEntry || currentEntry.level < 0 || currentEntry.level >= drillDownData.levels.length) return null;
+
   const currentLevel = drillDownData.levels[currentEntry.level];
+  if (!currentLevel) return null;
 
   const drillDownDataFiltered = useMemo(() => {
     if (!currentLevel) return [];

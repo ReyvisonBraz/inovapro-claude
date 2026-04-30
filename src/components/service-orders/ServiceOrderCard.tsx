@@ -139,7 +139,12 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
               <div className="flex items-center gap-2 mt-1.5">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 text-slate-300 border border-white/10 text-xs font-bold">
                   <Smartphone size={14} className="text-primary" />
+                  {order.equipmentType && <span className="text-primary">{order.equipmentType}</span>}
+                  {order.equipmentType && (order.equipmentBrand || order.equipmentModel) && ' - '}
                   {order.equipmentBrand} {order.equipmentModel}
+                  {!order.equipmentType && !order.equipmentBrand && !order.equipmentModel && (
+                    <span className="text-slate-500 italic">Sem equipamento</span>
+                  )}
                 </span>
               </div>
             </div>

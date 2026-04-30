@@ -184,6 +184,35 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
     },
   });
 
+  // API wrappers que retornam void (para compatibilidade com Settings)
+  const addBrandAPI = async (name: string, equipmentType: string): Promise<void> => {
+    await addBrandMutation.mutateAsync({ name, equipmentType });
+  };
+  const updateBrandAPI = async (id: number, name: string, equipmentType: string): Promise<void> => {
+    await updateBrandMutation.mutateAsync({ id, brand: { name, equipmentType } });
+  };
+  const deleteBrandAPI = async (id: number): Promise<void> => {
+    await deleteBrandMutation.mutateAsync(id);
+  };
+  const addModelAPI = async (brandId: number, name: string): Promise<void> => {
+    await addModelMutation.mutateAsync({ brandId, name });
+  };
+  const updateModelAPI = async (id: number, brandId: number, name: string): Promise<void> => {
+    await updateModelMutation.mutateAsync({ id, model: { brandId, name } });
+  };
+  const deleteModelAPI = async (id: number): Promise<void> => {
+    await deleteModelMutation.mutateAsync(id);
+  };
+  const addEquipmentTypeAPI = async (name: string, icon?: string): Promise<void> => {
+    await addEquipmentTypeMutation.mutateAsync({ name, icon });
+  };
+  const updateEquipmentTypeAPI = async (id: number, name: string, icon?: string): Promise<void> => {
+    await updateEquipmentTypeMutation.mutateAsync({ id, type: { name, icon } });
+  };
+  const deleteEquipmentTypeAPI = async (id: number): Promise<void> => {
+    await deleteEquipmentTypeMutation.mutateAsync(id);
+  };
+
   return {
     serviceOrders: serviceOrdersData || { data: [], meta: { total: 0, page: 1, totalPages: 1, limit: 20 } },
     serviceOrdersPage,
@@ -197,15 +226,15 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
     deleteServiceOrderAPI: (id: number) => deleteMutation.mutateAsync(id),
     addServiceOrderStatusAPI: (status: any) => addStatusMutation.mutateAsync(status),
     deleteServiceOrderStatusAPI: (id: number) => deleteStatusMutation.mutateAsync(id),
-    addEquipmentTypeAPI: (name: string, icon?: string) => addEquipmentTypeMutation.mutateAsync({ name, icon }),
-    updateEquipmentTypeAPI: (id: number, name: string, icon?: string) => updateEquipmentTypeMutation.mutateAsync({ id, type: { name, icon } }),
-    deleteEquipmentTypeAPI: (id: number) => deleteEquipmentTypeMutation.mutateAsync(id),
-    addBrandAPI: (name: string, equipmentType: string) => addBrandMutation.mutateAsync({ name, equipmentType }),
-    updateBrandAPI: (id: number, name: string, equipmentType: string) => updateBrandMutation.mutateAsync({ id, brand: { name, equipmentType } }),
-    deleteBrandAPI: (id: number) => deleteBrandMutation.mutateAsync(id),
-    addModelAPI: (brandId: number, name: string) => addModelMutation.mutateAsync({ brandId, name }),
-    updateModelAPI: (id: number, brandId: number, name: string) => updateModelMutation.mutateAsync({ id, model: { brandId, name } }),
-    deleteModelAPI: (id: number) => deleteModelMutation.mutateAsync(id),
+    addBrandAPI,
+    updateBrandAPI,
+    deleteBrandAPI,
+    addModelAPI,
+    updateModelAPI,
+    deleteModelAPI,
+    addEquipmentTypeAPI,
+    updateEquipmentTypeAPI,
+    deleteEquipmentTypeAPI,
     isLoading,
     isError
   };

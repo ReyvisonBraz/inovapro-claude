@@ -29,10 +29,13 @@ interface SettingsLayoutProps {
   models: Model[];
   equipmentTypes: EquipmentType[];
   addBrand: (name: string, equipmentType: string) => Promise<void>;
+  updateBrand: (id: number, name: string, equipmentType: string) => Promise<void>;
   deleteBrand: (id: number) => Promise<void>;
   addModel: (brandId: number, name: string) => Promise<void>;
+  updateModel: (id: number, brandId: number, name: string) => Promise<void>;
   deleteModel: (id: number) => Promise<void>;
   addEquipmentType: (name: string, icon?: string) => void;
+  updateEquipmentType: (id: number, name: string, icon?: string) => void;
   deleteEquipmentType: (id: number) => void;
 }
 
@@ -160,15 +163,18 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = (props) => {
           {activeTab === 'categories' && <CategorySettings categories={props.categories} addCategory={props.addCategory} deleteCategory={props.deleteCategory} />}
           {activeTab === 'whatsapp' && <WhatsAppSettings settings={settings} updateSettings={updateSettings} />}
           {activeTab === 'equipment' && (
-            <EquipmentSettings 
+            <EquipmentSettings
               brands={props.brands}
               models={props.models}
               equipmentTypes={props.equipmentTypes}
               onAddBrand={props.addBrand}
+              onUpdateBrand={props.updateBrand}
               onDeleteBrand={props.deleteBrand}
               onAddModel={props.addModel}
+              onUpdateModel={props.updateModel}
               onDeleteModel={props.deleteModel}
               onAddEquipmentType={props.addEquipmentType}
+              onUpdateEquipmentType={props.updateEquipmentType}
               onDeleteEquipmentType={props.deleteEquipmentType}
             />
           )}

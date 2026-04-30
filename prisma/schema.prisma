@@ -3,47 +3,53 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" // Preparado para Supabase/Render
+  provider = "postgresql"
 }
 
 model Transaction {
   id          Int      @id @default(autoincrement())
   description String
   category    String
-  type        String   // 'income' | 'expense'
+  type        String
   amount      Float
   date        String
   status      String   @default("Concluído")
+  paymentId   Int?
+  saleId      String?
   createdBy   Int?
   updatedBy   Int?
+  customerId  Int?
+  customerName String?
+  customerPhone String?
+  customer    Customer? @relation(fields: [customerId], references: [id])
 }
 
 model Settings {
-  id                      Int     @id @default(1)
-  appName                 String? @default("Financeiro Pro")
-  appVersion              String? @default("Versão Empresarial")
-  fiscalYear              String? @default("2024")
-  primaryColor            String? @default("#1152d4")
-  categories              String? @default("Alimentação,Trabalho,Utilidades,Viagem,Lazer,Outros")
-  incomeCategories        String? @default("Salário,Vendas,Serviços,Investimentos,Outros")
-  expenseCategories       String? @default("Alimentação,Trabalho,Utilidades,Viagem,Lazer,Outros")
-  profileName             String? @default("Inova Informática")
-  profileAvatar           String? @default("https://picsum.photos/seed/inova/100/100")
-  initialBalance          Float?  @default(0)
-  showWarnings            Int?    @default(1)
-  hiddenColumns           String? @default("[]")
-  settingsPassword        String? @default("1234")
+  id                       Int     @id @default(1)
+  appName                  String? @default("Financeiro Pro")
+  appVersion               String? @default("Versão Empresarial")
+  fiscalYear               String? @default("2024")
+  primaryColor             String? @default("#1152d4")
+  categories               String? @default("Alimentação,Trabalho,Utilidades,Viagem,Lazer,Outros")
+  incomeCategories         String? @default("Salário,Vendas,Serviços,Investimentos,Outros")
+  expenseCategories        String? @default("Alimentação,Trabalho,Utilidades,Viagem,Lazer,Outros")
+  profileName              String? @default("Inova Informática")
+  profileAvatar            String? @default("https://picsum.photos/seed/inova/100/100")
+  initialBalance           Float?  @default(0)
+  showWarnings             Int?    @default(1)
+  hiddenColumns            String? @default("[]")
+  settingsPassword         String? @default("1234")
   receiptLayout           String? @default("a4")
-  receiptLogo             String?
-  companyCnpj             String?
-  companyAddress          String?
-  pixKey                  String?
-  pixQrCode               String?
-  whatsappBillingTemplate String?
-  whatsappOSTemplate      String?
-  sendPulseClientId       String?
-  sendPulseClientSecret   String?
-  sendPulseTemplateId     String?
+  receiptLogo              String?
+  companyCnpj              String?
+  companyAddress           String?
+  pixKey                   String?
+  pixQrCode                String?
+  whatsappBillingTemplate  String?
+  whatsappOSTemplate       String?
+  sendPulseClientId        String?
+  sendPulseClientSecret    String?
+  sendPulseTemplateId      String?
 }
 
 model Customer {
@@ -61,6 +67,7 @@ model Customer {
   updatedBy      Int?
   ClientPayments ClientPayment[]
   ServiceOrders  ServiceOrder[]
+  Transactions   Transaction[]
 }
 
 model ClientPayment {
@@ -75,6 +82,7 @@ model ClientPayment {
   status            String?  @default("pending")
   installmentsCount Int?     @default(1)
   type              String?  @default("income")
+  saleId            String?
   paymentHistory    String?  @default("[]")
   createdBy         Int?
   updatedBy         Int?
@@ -137,6 +145,9 @@ model InventoryItem {
 model ServiceOrder {
   id                 Int      @id @default(autoincrement())
   customerId         Int
+  firstName          String?
+  lastName           String?
+  phone              String?
   equipmentType      String?
   equipmentBrand     String?
   equipmentModel     String?
@@ -145,9 +156,10 @@ model ServiceOrder {
   reportedProblem    String?
   arrivalPhotoUrl    String?
   arrivalPhotoBase64 String?
-  status             String?  @default("awaiting_diagnosis")
+  status             String?  @default("Aguardando Análise")
   technicalAnalysis  String?
   servicesPerformed  String?
+  services           String?  @default("[]")
   partsUsed          String?  @default("[]")
   serviceFee         Float?   @default(0)
   totalAmount        Float?   @default(0)

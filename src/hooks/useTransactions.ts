@@ -3,13 +3,13 @@ import api from '../lib/api';
 import { Transaction } from '../types';
 import { useFilterStore } from '../store/useFilterStore';
 import { useTransactionStore } from '../store/useTransactionStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { format, endOfMonth, parseISO } from 'date-fns';
 
 export function useTransactions(showToast: (message: string, type: 'success' | 'error') => void) {
   const queryClient = useQueryClient();
-  const { 
-    transactionsPage, setTransactionsPage 
-  } = useTransactionStore();
+  const { isAuthenticated } = useAuthStore();
+  const { transactionsPage, setTransactionsPage } = useTransactionStore();
   const { 
     searchTerm, filterType, filterCategory,
     dateFilterMode, selectedDate, selectedMonth, startDate, endDate,
@@ -34,6 +34,7 @@ export function useTransactions(showToast: (message: string, type: 'success' | '
     ],
     staleTime: 0,
     refetchOnMount: true,
+    enabled: isAuthenticated,
     queryFn: async () => {
       const params = new URLSearchParams({
         page: transactionsPage.toString(),

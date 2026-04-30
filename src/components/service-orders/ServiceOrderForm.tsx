@@ -125,6 +125,16 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
   const watchedArrivalPhotosRaw = watch('arrivalPhotoBase64');
   const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = watchedArrivalPhotosRaw ? JSON.parse(watchedArrivalPhotosRaw) : [];
 
+  // Estado para pular validação de equipamento
+  const [skipEquipmentValidation, setSkipEquipmentValidation] = useState(false);
+
+  // Reset skipEquipmentValidation when switching from simplified
+  useEffect(() => {
+    if (!isSimplified && skipEquipmentValidation) {
+      // Keep the value, just don't skip
+    }
+  }, [isSimplified]);
+
   const compressImage = (file: File, maxWidth = 800, quality = 0.7): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -290,21 +300,31 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
 
   const onFormSubmit = async (data: ServiceOrderFormData) => {
     let hasError = false;
-    if (!isSimplified) {
+    const shouldValidateEquipment = !isSimplified && !skipEquipmentValidation;
+
+    if (shouldValidateEquipment) {
       if (!data.equipmentType) { setError('equipmentType', { message: 'Obrigatório no modo completo', type: 'manual' }); hasError = true; }
       if (!data.equipmentBrand) { setError('equipmentBrand', { message: 'Obrigatório no modo completo', type: 'manual' }); hasError = true; }
       if (!data.equipmentModel) { setError('equipmentModel', { message: 'Obrigatório no modo completo', type: 'manual' }); hasError = true; }
       if (!data.reportedProblem) { setError('reportedProblem', { message: 'Obrigatório no modo completo', type: 'manual' }); hasError = true; }
     }
-    
+
     if (hasError) {
-      showToast('Preencha os campos obrigatórios ou ative o Preenchimento Simplificado no topo', 'error');
+      showToast('Preencha os campos obrigatórios ou ative "Pular equipamento"', 'error');
       return;
     }
 
+    // Se skipEquipmentValidation, limpa os campos de equipamento para não salvar dados inválidos
     const orderData = {
       ...data,
-      createdBy: currentUser?.id
+      createdBy: currentUser?.id,
+      ...(skipEquipmentValidation && {
+        equipmentType: null,
+        equipmentBrand: null,
+        equipmentModel: null,
+        equipmentColor: null,
+        equipmentSerial: null,
+      })
     };
 
     if (editingOrder) {
@@ -451,11 +471,34 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
 
             {/* Equipamento */}
             <div className="space-y-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="h-1 w-8 bg-indigo-500 rounded-full" />
-                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-400">Dados do Equipamento</h4>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-1 w-8 bg-indigo-500 rounded-full" />
+                  <h4 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-400">Dados do Equipamento</h4>
+                </div>
+                <label className="flex items-center gap-2 text-xs font-bold text-amber-400 cursor-pointer hover:text-amber-300 transition-colors shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={skipEquipmentValidation}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setSkipEquipmentValidation(checked);
+                      if (checked) {
+                        showToast('Equipamento será ignorado nesta OS', 'warning');
+                        clearErrors(['equipmentType', 'equipmentBrand', 'equipmentModel']);
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-amber-500/50 bg-amber-500/10 text-amber-400 focus:ring-amber-500/20"
+                  />
+                  Pular
+                </label>
               </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {skipEquipmentValidation && (
+                <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-300 font-bold">
+                  ⚠️ Modo simplificado ativo - dados do equipamento não serão salvos nesta OS
+                </div>
+              )}
+                <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 ${skipEquipmentValidation ? 'opacity-50 pointer-events-none' : ''}`}>
                   <div className="space-y-2">
                     <label className="text-xs font-black uppercase tracking-widest text-indigo-400 ml-1 mb-2 block">
                       Tipo {!isSimplified && <span className="text-rose-500">*</span>}

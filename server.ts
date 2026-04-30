@@ -1,6 +1,5 @@
 import express from "express";
-
-import Database from "better-sqlite3";
+import 'dotenv/config';
 import path from "path";
 import { fileURLToPath } from "url";
 import { z } from "zod";
@@ -9,20 +8,10 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { generateToken, requireAuth } from "./src/middleware/auth.js";
+import { prisma, testConnection, disconnect } from "./src/lib/prisma.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// --- Validação de variáveis de ambiente ---
-if (process.env.NODE_ENV === 'production') {
-  const required = ['JWT_SECRET', 'GEMINI_API_KEY', 'ADMIN_PASSWORD'];
-  for (const v of required) {
-    if (!process.env[v]) {
-      console.error(`[STARTUP] Env var obrigatória ausente: ${v}`);
-      process.exit(1);
-    }
-  }
-}
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] uncaughtException:', err.message, err.stack);
@@ -34,10 +23,7 @@ process.on('unhandledRejection', (reason) => {
   process.exit(1);
 });
 
-const dbPath = process.env.DB_PATH || path.resolve(__dirname, 'data/finance.db');
-const db = new Database(dbPath);
-
-// --- Zod Schemas for Validation ---
+// Zod Schemas
 const TransactionSchema = z.object({
   description: z.string().min(0),
   category: z.string().min(1),
@@ -45,7 +31,10 @@ const TransactionSchema = z.object({
   amount: z.coerce.number().positive(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}/),
   createdBy: z.coerce.number().optional(),
-  updatedBy: z.coerce.number().optional()
+  updatedBy: z.coerce.number().optional(),
+  customerId: z.coerce.number().optional().nullable(),
+  customerName: z.string().optional().nullable(),
+  customerPhone: z.string().optional().nullable()
 });
 
 const CustomerSchema = z.object({
@@ -73,7 +62,7 @@ const ClientPaymentSchema = z.object({
   installmentsCount: z.coerce.number().int().positive().optional(),
   type: z.enum(['income', 'expense']).optional(),
   saleId: z.string().optional().nullable(),
-  paymentHistory: z.string().optional(), // JSON string
+  paymentHistory: z.string().optional(),
   createdBy: z.coerce.number().optional(),
   updatedBy: z.coerce.number().optional()
 });
@@ -116,351 +105,25 @@ const ServiceOrderSchema = z.object({
   updatedBy: z.coerce.number().optional()
 });
 
-// --- Helper for Paginated Responses ---
-function getPaginatedData(tableName: string, page: number = 1, limit: number = 20, options: { 
-  where?: string, 
-  params?: any[], 
-  orderBy?: string,
-  join?: string,
-  select?: string
-} = {}) {
-  const offset = (page - 1) * limit;
-  const whereClause = options.where ? `WHERE ${options.where}` : "";
-  const params = options.params || [];
-  const orderBy = options.orderBy || "id DESC";
-  const join = options.join || "";
-  const select = options.select || "*";
-  
-  const countQuery = `SELECT COUNT(*) as total FROM ${tableName} ${join} ${whereClause}`;
-  const total = db.prepare(countQuery).get(...params).total;
-  
-  const dataQuery = `SELECT ${select} FROM ${tableName} ${join} ${whereClause} ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
-  const data = db.prepare(dataQuery).all(...params, limit, offset);
-  
-  return {
-    data,
-    meta: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit)
-    }
-  };
-}
-
-// Inicializar o banco de dados SQLite
-db.exec(`
-  CREATE TABLE IF NOT EXISTS transactions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    description TEXT NOT NULL,
-    category TEXT NOT NULL,
-    type TEXT CHECK(type IN ('income', 'expense')) NOT NULL,
-    amount REAL NOT NULL,
-    date TEXT NOT NULL,
-    status TEXT DEFAULT 'Concluído'
-  );
-
-  CREATE TABLE IF NOT EXISTS settings (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
-    appName TEXT DEFAULT 'INOVA PRO',
-    appVersion TEXT DEFAULT 'Versão Empresarial',
-    fiscalYear TEXT DEFAULT '2024',
-    primaryColor TEXT DEFAULT '#1152d4',
-    categories TEXT DEFAULT 'Alimentação,Trabalho,Utilidades,Viagem,Lazer,Outros',
-    incomeCategories TEXT DEFAULT 'Salário,Vendas,Serviços,Investimentos,Outros',
-    expenseCategories TEXT DEFAULT 'Alimentação,Trabalho,Utilidades,Viagem,Lazer,Outros',
-    profileName TEXT DEFAULT 'Inova Informática',
-    profileAvatar TEXT DEFAULT 'https://picsum.photos/seed/inova/100/100',
-    initialBalance REAL DEFAULT 0,
-    showWarnings INTEGER DEFAULT 1,
-    hiddenColumns TEXT DEFAULT '[]',
-    settingsPassword TEXT DEFAULT '',
-    receiptLayout TEXT DEFAULT 'a4',
-    receiptLogo TEXT,
-    companyCnpj TEXT,
-    companyAddress TEXT,
-    pixKey TEXT,
-    pixQrCode TEXT
-  );
-
-  CREATE TABLE IF NOT EXISTS customers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    firstName TEXT NOT NULL,
-    lastName TEXT NOT NULL,
-    nickname TEXT,
-    cpf TEXT,
-    companyName TEXT,
-    phone TEXT NOT NULL,
-    observation TEXT,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS client_payments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    customerId INTEGER NOT NULL,
-    description TEXT NOT NULL,
-    totalAmount REAL NOT NULL,
-    paidAmount REAL DEFAULT 0,
-    purchaseDate TEXT NOT NULL,
-    dueDate TEXT NOT NULL,
-    paymentMethod TEXT NOT NULL,
-    status TEXT DEFAULT 'pending',
-    installmentsCount INTEGER DEFAULT 1,
-    type TEXT DEFAULT 'income',
-    saleId TEXT,
-    FOREIGN KEY (customerId) REFERENCES customers(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    type TEXT CHECK(type IN ('income', 'expense')) NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS receipts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    paymentId INTEGER NOT NULL,
-    content TEXT NOT NULL,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (paymentId) REFERENCES client_payments(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL,
-    role TEXT CHECK(role IN ('owner', 'manager', 'employee')) NOT NULL DEFAULT 'employee',
-    name TEXT NOT NULL,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS audit_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    userId INTEGER,
-    action TEXT NOT NULL,
-    entity TEXT NOT NULL,
-    entityId INTEGER,
-    details TEXT,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (userId) REFERENCES users(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS inventory_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    category TEXT CHECK(category IN ('product', 'service')) NOT NULL,
-    sku TEXT,
-    unitPrice REAL NOT NULL,
-    stockLevel INTEGER DEFAULT 0,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    createdBy INTEGER,
-    updatedBy INTEGER,
-    FOREIGN KEY (createdBy) REFERENCES users(id),
-    FOREIGN KEY (updatedBy) REFERENCES users(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS service_orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    customerId INTEGER NOT NULL,
-    equipmentBrand TEXT,
-    equipmentModel TEXT,
-    equipmentType TEXT,
-    equipmentColor TEXT,
-    equipmentSerial TEXT,
-    reportedProblem TEXT,
-    arrivalPhotoUrl TEXT,
-    arrivalPhotoBase64 TEXT,
-    status TEXT DEFAULT 'Aguardando Análise',
-    technicalAnalysis TEXT,
-    servicesPerformed TEXT,
-    services TEXT DEFAULT '[]',
-    partsUsed TEXT DEFAULT '[]',
-    serviceFee REAL DEFAULT 0,
-    totalAmount REAL DEFAULT 0,
-    finalObservations TEXT,
-    entryDate TEXT,
-    analysisPrediction TEXT,
-    customerPassword TEXT,
-    accessories TEXT,
-    ramInfo TEXT,
-    ssdInfo TEXT,
-    priority TEXT DEFAULT 'medium',
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    createdBy INTEGER,
-    updatedBy INTEGER,
-    FOREIGN KEY (customerId) REFERENCES customers(id),
-    FOREIGN KEY (createdBy) REFERENCES users(id),
-    FOREIGN KEY (updatedBy) REFERENCES users(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS service_order_statuses (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    color TEXT NOT NULL,
-    priority INTEGER DEFAULT 0,
-    isDefault INTEGER DEFAULT 0
-  );
-
-  CREATE TABLE IF NOT EXISTS brands (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE
-  );
-
-  CREATE TABLE IF NOT EXISTS models (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    brandId INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    FOREIGN KEY (brandId) REFERENCES brands(id),
-    UNIQUE(brandId, name)
-  );
-
-  CREATE TABLE IF NOT EXISTS equipment_types (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    icon TEXT
-  );
-`);
-
-// Garantir que as colunas novas existem (migrações simples)
-const migrations = [
-  { name: 'incomeCategories', table: 'settings', type: "TEXT DEFAULT 'Salário,Vendas,Serviços,Investimentos,Outros'" },
-  { name: 'expenseCategories', table: 'settings', type: "TEXT DEFAULT 'Alimentação,Trabalho,Utilidades,Viagem,Lazer,Outros'" },
-  { name: 'appVersion', table: 'settings', type: "TEXT DEFAULT 'Versão Empresarial'" },
-  { name: 'initialBalance', table: 'settings', type: "REAL DEFAULT 0" },
-  { name: 'showWarnings', table: 'settings', type: "INTEGER DEFAULT 1" },
-  { name: 'hiddenColumns', table: 'settings', type: "TEXT DEFAULT '[]'" },
-  { name: 'settingsPassword', table: 'settings', type: "TEXT DEFAULT ''" },
-  { name: 'receiptLayout', table: 'settings', type: "TEXT DEFAULT 'a4'" },
-  { name: 'receiptLogo', table: 'settings', type: "TEXT" },
-  { name: 'companyCnpj', table: 'settings', type: "TEXT" },
-  { name: 'companyAddress', table: 'settings', type: "TEXT" },
-  { name: 'pixKey', table: 'settings', type: "TEXT" },
-  { name: 'pixQrCode', table: 'settings', type: "TEXT" },
-  { name: 'whatsappBillingTemplate', table: 'settings', type: "TEXT DEFAULT 'Olá {nome_cliente}, gostaríamos de lembrar sobre o débito pendente de {valor_divida}. Podemos ajudar com algo?'" },
-  { name: 'whatsappOSTemplate', table: 'settings', type: "TEXT DEFAULT 'Olá {nome_cliente}, sua Ordem de Serviço #{os_id} ({equipamento}) está com o status: {status}.'" },
-  { name: 'equipmentType', table: 'service_orders', type: "TEXT" },
-  { name: 'equipmentColor', table: 'service_orders', type: "TEXT" },
-  { name: 'sendPulseClientId', table: 'settings', type: "TEXT" },
-  { name: 'sendPulseClientSecret', table: 'settings', type: "TEXT" },
-  { name: 'sendPulseTemplateId', table: 'settings', type: "TEXT" },
-  { name: 'nickname', table: 'customers', type: "TEXT" },
-  { name: 'cpf', table: 'customers', type: "TEXT" },
-  { name: 'companyName', table: 'customers', type: "TEXT" },
-  { name: 'observation', table: 'customers', type: "TEXT" },
-  { name: 'creditLimit', table: 'customers', type: "REAL DEFAULT 0" },
-  { name: 'paymentHistory', table: 'client_payments', type: "TEXT DEFAULT '[]'" },
-  { name: 'createdBy', table: 'transactions', type: "INTEGER" },
-  { name: 'updatedBy', table: 'transactions', type: "INTEGER" },
-  { name: 'createdBy', table: 'client_payments', type: "INTEGER" },
-  { name: 'updatedBy', table: 'client_payments', type: "INTEGER" },
-  { name: 'createdBy', table: 'customers', type: "INTEGER" },
-  { name: 'updatedBy', table: 'customers', type: "INTEGER" },
-  { name: 'permissions', table: 'users', type: "TEXT DEFAULT '[]'" },
-  { name: 'entryDate', table: 'service_orders', type: "TEXT" },
-  { name: 'analysisPrediction', table: 'service_orders', type: "TEXT" },
-  { name: 'customerPassword', table: 'service_orders', type: "TEXT" },
-  { name: 'accessories', table: 'service_orders', type: "TEXT" },
-  { name: 'ramInfo', table: 'service_orders', type: "TEXT" },
-  { name: 'ssdInfo', table: 'service_orders', type: "TEXT" },
-  { name: 'priority', table: 'service_orders', type: "TEXT DEFAULT 'medium'" },
-  { name: 'arrivalPhotoBase64', table: 'service_orders', type: "TEXT" },
-  { name: 'minQuantity', table: 'inventory_items', type: "INTEGER DEFAULT 5" },
-  { name: 'costPrice', table: 'inventory_items', type: "REAL DEFAULT 0" },
-  { name: 'salePrice', table: 'inventory_items', type: "REAL DEFAULT 0" },
-  { name: 'quantity', table: 'inventory_items', type: "INTEGER DEFAULT 0" },
-  { name: 'saleId', table: 'client_payments', type: "TEXT" },
-  { name: 'icon', table: 'equipment_types', type: "TEXT" },
-  { name: 'services', table: 'service_orders', type: "TEXT DEFAULT '[]'" },
-  { name: 'paymentId', table: 'transactions', type: "INTEGER" },
-  { name: 'saleId', table: 'transactions', type: "TEXT" },
-  { name: 'equipmentType', table: 'brands', type: "TEXT" }
-];
-
-migrations.forEach(m => {
-  try {
-    db.prepare(`ALTER TABLE ${m.table} ADD COLUMN ${m.name} ${m.type}`).run();
-  } catch (e) {
-    // Coluna já existe ou outro erro
-  }
-});
-
-// Indexes para queries frequentes
-db.exec(`
-  CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type);
-  CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
-  CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
-  CREATE INDEX IF NOT EXISTS idx_client_payments_customer ON client_payments(customerId);
-  CREATE INDEX IF NOT EXISTS idx_service_orders_status ON service_orders(status);
-  CREATE INDEX IF NOT EXISTS idx_service_orders_customer ON service_orders(customerId);
-`);
-
-// Inserir usuário Admin padrão se não existir
-const usersCount = db.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
-if (usersCount.count === 0) {
-  const allPermissions = JSON.stringify(['view_dashboard', 'manage_transactions', 'view_reports', 'manage_customers', 'manage_payments', 'manage_settings', 'manage_users']);
-  const defaultPassword = process.env.ADMIN_PASSWORD || 'admin';
-  const hashedPassword = bcrypt.hashSync(defaultPassword, 10);
-  db.prepare("INSERT INTO users (username, password, role, name, permissions) VALUES (?, ?, ?, ?, ?)").run('admin', hashedPassword, 'owner', 'Administrador', allPermissions);
-}
-
-// Inserir configurações padrão se não existirem
-const settingsCount = db.prepare("SELECT COUNT(*) as count FROM settings").get() as { count: number };
-if (settingsCount.count === 0) {
-  db.prepare("INSERT INTO settings (id) VALUES (1)").run();
-}
-
-// Inserir categorias padrão se não existirem
-const categoriesCount = db.prepare("SELECT COUNT(*) as count FROM categories").get() as { count: number };
-if (categoriesCount.count === 0) {
-  const insertCat = db.prepare("INSERT INTO categories (name, type) VALUES (?, ?)");
-  const income = ['Entrada', 'Salário', 'Vendas', 'Serviços', 'Investimentos', 'Outros'];
-  const expense = ['Saída', 'Alimentação', 'Trabalho', 'Utilidades', 'Viagem', 'Lazer', 'Outros'];
-  
-  income.forEach(c => insertCat.run(c, 'income'));
-  expense.forEach(c => insertCat.run(c, 'expense'));
-}
-
-// Garantir que Entrada e Saída existam mesmo em bancos já populados
-db.prepare("INSERT INTO categories (name, type) SELECT 'Entrada', 'income' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Entrada' AND type = 'income')").run();
-db.prepare("INSERT INTO categories (name, type) SELECT 'Saída', 'expense' WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Saída' AND type = 'expense')").run();
-
-// Inserir status de OS padrão se não existirem
-const statusCount = db.prepare("SELECT COUNT(*) as count FROM service_order_statuses").get() as { count: number };
-if (statusCount.count === 0) {
-  const insertStatus = db.prepare("INSERT INTO service_order_statuses (name, color, priority, isDefault) VALUES (?, ?, ?, ?)");
-  insertStatus.run('Aguardando Análise', '#f59e0b', 1, 1);
-  insertStatus.run('Em Manutenção', '#3b82f6', 2, 1);
-  insertStatus.run('Urgente', '#f43f5e', 3, 1);
-  insertStatus.run('Aguardando Peças', '#f97316', 4, 1);
-  insertStatus.run('Pronto para Retirada', '#10b981', 5, 1);
-  insertStatus.run('Concluído', '#64748b', 6, 1);
-  insertStatus.run('Sem Conserto', '#ef4444', 7, 1);
-}
-
-// Inserir tipos de equipamento padrão se não existirem
-const equipmentTypesCount = db.prepare("SELECT COUNT(*) as count FROM equipment_types").get() as { count: number };
-if (equipmentTypesCount.count === 0) {
-  const insertType = db.prepare("INSERT INTO equipment_types (name) VALUES (?)");
-  const defaultTypes = ['Notebook', 'Desktop', 'Smartphone', 'Tablet', 'Monitor', 'Impressora', 'Console'];
-  defaultTypes.forEach(t => insertType.run(t));
-}
-
-// Inserir dados iniciais se o banco estiver vazio
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001; // Different port for testing
+
+  // Test database connection
+  const connected = await testConnection();
+  if (!connected) {
+    console.error('[STARTUP] Failed to connect to database');
+    process.exit(1);
+  }
 
   app.use(helmet({
-    contentSecurityPolicy: false, // Disable CSP to avoid blocking assets on mobile
+    contentSecurityPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" }
   }));
 
   const allowedOrigins = [
-    // Explicitly configured production URL
     process.env.APP_URL,
-    // Allow any Vercel deployment (preview + production)
     /^https:\/\/.*\.vercel\.app$/,
-    // Local dev
     'http://localhost:3000',
     'http://localhost:5173',
     'http://127.0.0.1:3000',
@@ -469,7 +132,6 @@ async function startServer() {
 
   app.use(cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, Postman, etc.)
       if (!origin) return callback(null, true);
       const allowed = allowedOrigins.some((o) =>
         typeof o === 'string' ? o === origin : (o as RegExp).test(origin)
@@ -490,1053 +152,1721 @@ async function startServer() {
     legacyHeaders: false,
   });
 
-  // Health check (público)
+  // Health check
   app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' });
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0-prisma' });
   });
 
-  // Rota de login (pública)
-  app.post("/api/login", loginLimiter, (req, res) => {
-    const { username, password } = req.body;
-    const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username) as any;
-
-    if (!user || !bcrypt.compareSync(password, user.password)) {
-      return res.status(401).json({ error: "Credenciais inválidas" });
-    }
-
+  // 📤 Export ALL data (for migration purposes)
+  app.get('/api/export-all', requireAuth, async (req, res) => {
     try {
-      user.permissions = JSON.parse(user.permissions || '[]');
-    } catch (e) {
-      user.permissions = [];
-    }
-
-    if (user.role === 'owner') {
-      user.permissions = ['view_dashboard', 'manage_transactions', 'view_reports', 'manage_customers', 'manage_payments', 'manage_settings', 'manage_users'];
-    }
-
-    const token = generateToken({ userId: user.id, username: user.username, role: user.role });
-
-    delete user.password;
-    res.json({ token, user });
-  });
-
-  // Todas as rotas abaixo exigem autenticação
-  app.use('/api', requireAuth);
-
-  // Rotas da API
-
-  // Buscar todas as transações
-  app.get("/api/transactions", (req, res) => {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
-    const search = req.query.search as string;
-    const type = req.query.type as string;
-    const category = req.query.category as string;
-    const startDate = req.query.startDate as string;
-    const endDate = req.query.endDate as string;
-    const minAmount = parseFloat(req.query.minAmount as string);
-    const maxAmount = parseFloat(req.query.maxAmount as string);
-    
-    let whereConditions = [];
-    let params = [];
-
-    if (search) {
-      whereConditions.push("(description LIKE ? OR category LIKE ? OR CAST(amount AS TEXT) LIKE ?)");
-      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
-    }
-
-    if (type && type !== 'all') {
-      whereConditions.push("type = ?");
-      params.push(type);
-    }
-
-    if (category && category !== 'all') {
-      whereConditions.push("category = ?");
-      params.push(category);
-    }
-
-    if (startDate) {
-      whereConditions.push("date >= ?");
-      params.push(startDate);
-    }
-
-    if (endDate) {
-      whereConditions.push("date <= ?");
-      params.push(endDate);
-    }
-
-    if (!isNaN(minAmount)) {
-      whereConditions.push("amount >= ?");
-      params.push(minAmount);
-    }
-
-    if (!isNaN(maxAmount)) {
-      whereConditions.push("amount <= ?");
-      params.push(maxAmount);
-    }
-
-    let options: any = { 
-      orderBy: "t.date DESC, t.id DESC",
-      select: "t.*, c.firstName || ' ' || c.lastName as customerName, c.phone as customerPhone",
-      join: "LEFT JOIN client_payments cp ON t.paymentId = cp.id LEFT JOIN customers c ON cp.customerId = c.id"
-    };
-    if (whereConditions.length > 0) {
-      options.where = whereConditions.map(c => c.startsWith('(') ? c : `t.${c}`).join(" AND ");
-      options.params = params;
-    }
-    
-    const result = getPaginatedData("transactions t", page, limit, options);
-    res.json(result);
-  });
-
-  // Adicionar uma nova transação
-  app.post("/api/transactions", (req, res) => {
-    try {
-      const validatedData = TransactionSchema.parse(req.body);
-      const { description, category, type, amount, date, createdBy } = validatedData;
-      const info = db.prepare(
-        "INSERT INTO transactions (description, category, type, amount, date, createdBy) VALUES (?, ?, ?, ?, ?, ?)"
-      ).run(description, category, type, amount, date, createdBy || 1);
+      console.log('[EXPORT] Starting full data export...');
       
-      // Audit Log
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'transaction', info.lastInsertRowid, `Created transaction: ${description}`);
-      
-      res.json({ id: info.lastInsertRowid });
+      const [customers, transactions, serviceOrders, clientPayments, categories, brands, models, equipmentTypes] = await Promise.all([
+        prisma.customer.findMany(),
+        prisma.transaction.findMany(),
+        prisma.serviceOrder.findMany(),
+        prisma.clientPayment.findMany(),
+        prisma.category.findMany(),
+        prisma.brand.findMany(),
+        prisma.model.findMany(),
+        prisma.equipmentType.findMany()
+      ]);
+
+      const data = {
+        exportedAt: new Date().toISOString(),
+        customers,
+        transactions,
+        serviceOrders,
+        clientPayments,
+        categories,
+        brands,
+        models,
+        equipmentTypes
+      };
+
+      console.log(`[EXPORT] Done: ${customers.length} customers, ${transactions.length} transactions, ${serviceOrders.length} OS, ${clientPayments.length} payments`);
+
+      res.json(data);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        console.log('[TRANSACTION POST] Validation error:', error.issues);
-        return res.status(400).json({ error: "Validation failed", details: error.issues });
+      console.error('[EXPORT] Error:', error);
+      res.status(500).json({ error: 'Export failed' });
+    }
+  });
+
+  // Login
+  app.post("/api/login", loginLimiter, async (req, res) => {
+    try {
+      const { username, password } = req.body;
+
+      const user = await prisma.user.findUnique({ where: { username } });
+
+      if (!user || !bcrypt.compareSync(password, user.password)) {
+        return res.status(401).json({ error: "Credenciais inválidas" });
       }
-      console.log('[TRANSACTION POST] Server error:', error);
+
+      let permissions = [];
+      try {
+        permissions = JSON.parse(user.permissions || '[]');
+      } catch (e) {
+        permissions = [];
+      }
+
+      if (user.role === 'owner') {
+        permissions = ['view_dashboard', 'manage_transactions', 'view_reports', 'manage_customers', 'manage_payments', 'manage_settings', 'manage_users'];
+      }
+
+      const token = generateToken({ userId: user.id, username: user.username, role: user.role });
+
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ token, user: { ...userWithoutPassword, permissions } });
+    } catch (error) {
+      console.error('[LOGIN] Error:', error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  // Deletar uma transação
-  app.delete("/api/transactions/:id", (req, res) => {
-    const txId = req.params.id;
-    console.log('[TRANSACTION DELETE] Deleting transaction ID:', txId);
-    const tx = db.prepare("SELECT * FROM transactions WHERE id = ?").get(txId) as any;
-    
-    if (tx) {
-      // Se a transação estiver vinculada a um pagamento, atualiza o valor pago no pagamento
-      if (tx.paymentId) {
-        const payment = db.prepare("SELECT * FROM client_payments WHERE id = ?").get(tx.paymentId) as any;
-        if (payment) {
-          const newPaidAmount = Math.max(0, payment.paidAmount - tx.amount);
-          const newStatus = newPaidAmount >= payment.totalAmount ? 'paid' : 'pending';
-          db.prepare("UPDATE client_payments SET paidAmount = ?, status = ? WHERE id = ?")
-            .run(newPaidAmount, newStatus, tx.paymentId);
+  // All routes below require auth
+  app.use('/api', requireAuth);
+
+  // ============================================
+  // CATEGORIES (Migrated to Prisma)
+  // ============================================
+  app.get("/api/categories", async (req, res) => {
+    try {
+      const categories = await prisma.category.findMany({
+        orderBy: { name: 'asc' }
+      });
+      res.json(categories);
+    } catch (error) {
+      console.error('[CATEGORIES GET] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/categories", async (req, res) => {
+    try {
+      const { name, type } = req.body;
+      const category = await prisma.category.create({
+        data: { name, type }
+      });
+      res.json({ id: category.id });
+    } catch (error) {
+      console.error('[CATEGORIES POST] Error:', error);
+      res.status(400).json({ error: "Failed to create category" });
+    }
+  });
+
+  app.delete("/api/categories/:id", async (req, res) => {
+    try {
+      await prisma.category.delete({
+        where: { id: parseInt(req.params.id) }
+      });
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[CATEGORIES DELETE] Error:', error);
+      res.status(400).json({ error: "Failed to delete category" });
+    }
+  });
+
+  // ============================================
+  // SETTINGS (Migrated to Prisma)
+  // ============================================
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await prisma.settings.findUnique({
+        where: { id: 1 }
+      });
+      if (settings) {
+        let hiddenCols: string[] = [];
+        try {
+          hiddenCols = JSON.parse(settings.hiddenColumns || '[]');
+        } catch (e) {
+          // keep empty array
+        }
+        const response = {
+          ...settings,
+          showWarnings: settings.showWarnings ? true : false,
+          hiddenColumns: hiddenCols
+        };
+        res.json(response);
+      } else {
+        res.json(null);
+      }
+    } catch (error) {
+      console.error('[SETTINGS GET] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    try {
+      const {
+        appName, appVersion, fiscalYear, primaryColor, categories,
+        incomeCategories, expenseCategories, profileName, profileAvatar, initialBalance, showWarnings,
+        hiddenColumns, settingsPassword, receiptLayout, receiptLogo,
+        sendPulseClientId, sendPulseClientSecret, sendPulseTemplateId
+      } = req.body;
+
+      await prisma.settings.update({
+        where: { id: 1 },
+        data: {
+          appName,
+          appVersion,
+          fiscalYear,
+          primaryColor,
+          categories,
+          incomeCategories,
+          expenseCategories,
+          profileName,
+          profileAvatar,
+          initialBalance,
+          showWarnings: showWarnings ? 1 : 0,
+          hiddenColumns: JSON.stringify(hiddenColumns || []),
+          settingsPassword,
+          receiptLayout: receiptLayout || 'a4',
+          receiptLogo,
+          sendPulseClientId,
+          sendPulseClientSecret,
+          sendPulseTemplateId
+        }
+      });
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[SETTINGS POST] Error:', error);
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+
+  // ============================================
+  // USERS (Migrated to Prisma)
+  // ============================================
+  app.get("/api/users", async (req, res) => {
+    try {
+      const users = await prisma.user.findMany({
+        select: {
+          id: true,
+          username: true,
+          role: true,
+          name: true,
+          permissions: true,
+          createdAt: true
+        },
+        orderBy: { name: 'asc' }
+      });
+
+      const usersWithPermissions = users.map(u => {
+        try {
+          return { ...u, permissions: JSON.parse(u.permissions || '[]') };
+        } catch (e) {
+          return { ...u, permissions: [] };
+        }
+      });
+
+      res.json(usersWithPermissions);
+    } catch (error) {
+      console.error('[USERS GET] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/users", async (req, res) => {
+    try {
+      const { username, password, role, name, permissions } = req.body;
+      const hashedPassword = bcrypt.hashSync(password, 10);
+
+      const user = await prisma.user.create({
+        data: {
+          username,
+          password: hashedPassword,
+          role,
+          name,
+          permissions: JSON.stringify(permissions || [])
+        }
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          userId: undefined,
+          action: 'create',
+          entity: 'user',
+          entityId: user.id,
+          details: `Created user ${username}`
+        }
+      });
+
+      res.json({ id: user.id });
+    } catch (error: any) {
+      console.error('[USERS POST] Error:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/users/:id", async (req, res) => {
+    try {
+      const { name, role, password, permissions } = req.body;
+      const userId = parseInt(req.params.id);
+
+      const updateData: any = {
+        name,
+        role,
+        permissions: JSON.stringify(permissions || [])
+      };
+
+      if (password) {
+        updateData.password = bcrypt.hashSync(password, 10);
+      }
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: updateData
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          userId: undefined,
+          action: 'update',
+          entity: 'user',
+          entityId: userId,
+          details: `Updated user ${name}`
+        }
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('[USERS PUT] Error:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+
+      // Clear FK references
+      await prisma.auditLog.updateMany({
+        where: { userId },
+        data: { userId: null }
+      });
+
+      await prisma.user.delete({
+        where: { id: userId }
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('[USERS DELETE] Error:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // CUSTOMERS (Migrated to Prisma)
+  // ============================================
+  app.get("/api/customers", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const search = req.query.search as string;
+
+      const where = search ? {
+        OR: [
+          { firstName: { contains: search, mode: 'insensitive' as const } },
+          { lastName: { contains: search, mode: 'insensitive' as const } },
+          { nickname: { contains: search, mode: 'insensitive' as const } },
+          { phone: { contains: search, mode: 'insensitive' as const } },
+          { companyName: { contains: search, mode: 'insensitive' as const } }
+        ]
+      } : {};
+
+      const [customers, total] = await Promise.all([
+        prisma.customer.findMany({
+          where,
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: { firstName: 'asc' }
+        }),
+        prisma.customer.count({ where })
+      ]);
+
+      res.json({
+        data: customers,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
+    } catch (error) {
+      console.error('[CUSTOMERS GET] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/customers", async (req, res) => {
+    try {
+      const validatedData = CustomerSchema.parse(req.body);
+      const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, createdBy } = validatedData;
+
+      const customer = await prisma.customer.create({
+        data: {
+          firstName,
+          lastName,
+          nickname,
+          cpf,
+          companyName,
+          phone,
+          observation,
+          creditLimit
+        }
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          action: 'create',
+          entity: 'customer',
+          entityId: customer.id,
+          details: `Created customer: ${firstName} ${lastName}`
+        }
+      });
+
+      res.json({ id: customer.id });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Validation failed", details: error.issues });
+      }
+      console.error('[CUSTOMERS POST] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.put("/api/customers/:id", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const validatedData = CustomerSchema.parse(req.body);
+      const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, updatedBy } = validatedData;
+
+      const fullName = `${firstName} ${lastName}`;
+
+      // 📝 AUDIT: Registrar alteração antes de fazer update
+      console.log(`[CUSTOMER UPDATE] Cascade updating customer ${customerId}: ${fullName}`);
+
+      // Update customer record
+      await prisma.customer.update({
+        where: { id: customerId },
+        data: {
+          firstName,
+          lastName,
+          nickname,
+          cpf,
+          companyName,
+          phone,
+          observation,
+          creditLimit
+        }
+      });
+
+      // 🔄 CASCADE: Update related ServiceOrders with new customer name
+      await prisma.serviceOrder.updateMany({
+        where: { customerId },
+        data: {
+          firstName,
+          lastName,
+          phone
+        }
+      });
+
+      // 🔄 CASCADE: Update related Transactions with new customer name
+      // Transactions use customerName string field (denormalized for display)
+      await prisma.transaction.updateMany({
+        where: { customerId },
+        data: {
+          customerName: fullName,
+          customerPhone: phone
+        }
+      });
+
+      // 🔄 CASCADE: Update ClientPayments linked to this customer
+      // (Payments already have customer relation, but good to log)
+      await prisma.auditLog.create({
+        data: {
+          userId: updatedBy || undefined,
+          action: 'update',
+          entity: 'customer',
+          entityId: customerId,
+          details: `Updated customer ${fullName} - cascade updated ${fullName} transactions and service orders`
+        }
+      });
+
+      res.json({ success: true, cascadeUpdated: true });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Validation failed", details: error.issues });
+      }
+      console.error('[CUSTOMERS PUT] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/customers/:id/payments", async (req, res) => {
+    try {
+      const payments = await prisma.clientPayment.findMany({
+        where: { customerId: parseInt(req.params.id) }
+      });
+      res.json(payments);
+    } catch (error) {
+      console.error('[CUSTOMERS/:id/payments] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/customers/:id", async (req, res) => {
+    try {
+      // Delete related records first
+      const payments = await prisma.clientPayment.findMany({
+        where: { customerId: parseInt(req.params.id) }
+      });
+
+      for (const p of payments) {
+        await prisma.transaction.deleteMany({
+          where: { paymentId: p.id }
+        });
+        await prisma.receipt.deleteMany({
+          where: { paymentId: p.id }
+        });
+      }
+
+      await prisma.clientPayment.deleteMany({
+        where: { customerId: parseInt(req.params.id) }
+      });
+
+      await prisma.serviceOrder.deleteMany({
+        where: { customerId: parseInt(req.params.id) }
+      });
+
+      await prisma.customer.delete({
+        where: { id: parseInt(req.params.id) }
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('[CUSTOMERS DELETE] Error:', error);
+      res.status(400).json({ error: "Não foi possível excluir cliente" });
+    }
+  });
+
+  // ============================================
+  // TRANSACTIONS (Migrated to Prisma)
+  // ============================================
+  app.get("/api/transactions", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const search = req.query.search as string;
+      const type = req.query.type as string;
+      const category = req.query.category as string;
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
+      const minAmount = parseFloat(req.query.minAmount as string);
+      const maxAmount = parseFloat(req.query.maxAmount as string);
+
+      const where: any = {};
+
+      if (search) {
+        where.OR = [
+          { description: { contains: search, mode: 'insensitive' } },
+          { category: { contains: search, mode: 'insensitive' } }
+        ];
+      }
+
+      if (type && type !== 'all') {
+        where.type = type;
+      }
+
+      if (category && category !== 'all') {
+        where.category = category;
+      }
+
+      if (startDate) {
+        where.date = { ...where.date, gte: startDate };
+      }
+
+      if (endDate) {
+        where.date = { ...where.date, lte: endDate };
+      }
+
+      if (!isNaN(minAmount)) {
+        where.amount = { ...where.amount, gte: minAmount };
+      }
+
+      if (!isNaN(maxAmount)) {
+        where.amount = { ...where.amount, lte: maxAmount };
+      }
+
+      const [transactions, total] = await Promise.all([
+        prisma.transaction.findMany({
+          where,
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: [
+            { date: 'desc' },
+            { id: 'desc' }
+          ]
+        }),
+        prisma.transaction.count({ where })
+      ]);
+
+      // Transform to match expected format (no customer relation in this schema)
+      const data = transactions;
+
+      res.json({
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
+    } catch (error) {
+      console.error('[TRANSACTIONS GET] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/transactions", async (req, res) => {
+    try {
+      const validatedData = TransactionSchema.parse(req.body);
+      const { description, category, type, amount, date, createdBy, customerId, customerName, customerPhone } = validatedData;
+
+      let finalCustomerId = customerId;
+      let finalCustomerName = customerName;
+      let finalCustomerPhone = customerPhone;
+
+      // Se tiver customerId mas não tiver name, buscar do banco
+      if (customerId && !customerName) {
+        const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+        if (customer) {
+          finalCustomerName = `${customer.firstName} ${customer.lastName}`;
+          finalCustomerPhone = customer.phone;
         }
       }
 
-      db.prepare("DELETE FROM transactions WHERE id = ?").run(txId);
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'transaction', txId, `Deleted transaction: ${tx.description}`);
-      console.log('[TRANSACTION DELETE] Successfully deleted:', txId);
-    } else {
-      console.log('[TRANSACTION DELETE] Transaction not found:', txId);
+      const transaction = await prisma.transaction.create({
+        data: {
+          description,
+          category,
+          type,
+          amount,
+          date,
+          createdBy: createdBy || 1,
+          customerId: finalCustomerId,
+          customerName: finalCustomerName,
+          customerPhone: finalCustomerPhone
+        }
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          userId: createdBy || undefined,
+          action: 'create',
+          entity: 'transaction',
+          entityId: transaction.id,
+          details: `Created transaction: ${description}`
+        }
+      });
+
+      res.json({ id: transaction.id });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Validation failed", details: error.issues });
+      }
+      console.error('[TRANSACTIONS POST] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
     }
-    
-    res.json({ success: true });
   });
 
-  // Atualizar uma transação
-  app.put("/api/transactions/:id", (req, res) => {
+  app.put("/api/transactions/:id", async (req, res) => {
     try {
       const validatedData = TransactionSchema.parse(req.body);
       const { description, category, type, amount, date, updatedBy } = validatedData;
 
-      const descriptionToSave = description || 'Sem descrição';
+      await prisma.transaction.update({
+        where: { id: parseInt(req.params.id) },
+        data: {
+          description: description || 'Sem descrição',
+          category,
+          type,
+          amount,
+          date,
+          updatedBy: updatedBy || 1
+        }
+      });
 
-      db.prepare(`
-        UPDATE transactions
-        SET description = ?, category = ?, type = ?, amount = ?, date = ?, updatedBy = ?
-        WHERE id = ?
-      `).run(descriptionToSave, category, type, amount, date, updatedBy || 1, req.params.id);
-
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'transaction', req.params.id, `Updated transaction: ${descriptionToSave}`);
-
-      res.json({ success: true });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        console.log('[TRANSACTION PUT] Validation error:', error.issues);
-        return res.status(400).json({ error: "Validation failed", details: error.issues });
-      }
-      console.log('[TRANSACTION PUT] Server error:', error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  // Rota de Estatísticas
-  app.get("/api/stats", (req, res) => {
-    const totalIncome = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'income'").get().total || 0;
-    const totalExpenses = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE type = 'expense'").get().total || 0;
-    const pendingPayments = db.prepare("SELECT COUNT(*) as count FROM client_payments WHERE status != 'paid'").get().count || 0;
-    const activeOS = db.prepare("SELECT COUNT(*) as count FROM service_orders WHERE status NOT IN ('completed', 'delivered', 'cancelled')").get().count || 0;
-    
-    // Dados para o gráfico (últimos 12 meses) — query única com GROUP BY (evita N+1)
-    const monthlyRows = db.prepare(`
-      SELECT
-        strftime('%Y-%m', date) as month,
-        type,
-        SUM(amount) as total
-      FROM transactions
-      WHERE date >= date('now', '-12 months')
-      GROUP BY strftime('%Y-%m', date), type
-      ORDER BY month ASC
-    `).all() as { month: string; type: string; total: number }[];
-
-    // Mapeia os resultados flat para um dicionário por mês
-    const byMonth: Record<string, { income: number; expense: number }> = {};
-    for (const row of monthlyRows) {
-      if (!byMonth[row.month]) byMonth[row.month] = { income: 0, expense: 0 };
-      if (row.type === 'income') byMonth[row.month].income = Number(row.total);
-      else byMonth[row.month].expense = Number(row.total);
-    }
-
-    // Garante todos os 12 meses na saída, mesmo meses sem transações
-    const chartData = [];
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const month = d.toISOString().slice(0, 7); // YYYY-MM
-      const name = d.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase();
-      const { income = 0, expense = 0 } = byMonth[month] || {};
-      chartData.push({ name, income, expense });
-    }
-
-    // Ranking de categorias
-    const incomeRanking = db.prepare("SELECT category, SUM(amount) as total FROM transactions WHERE type = 'income' GROUP BY category ORDER BY total DESC").all() as any[];
-    const expenseRanking = db.prepare("SELECT category, SUM(amount) as total FROM transactions WHERE type = 'expense' GROUP BY category ORDER BY total DESC").all() as any[];
-
-    res.json({
-      totalIncome,
-      totalExpenses,
-      netBalance: totalIncome - totalExpenses,
-      pendingPayments,
-      activeOS,
-      chartData,
-      sortedIncomeRanking: incomeRanking.map(r => [r.category, r.total]),
-      sortedExpenseRanking: expenseRanking.map(r => [r.category, r.total])
-    });
-  });
-
-  // Rotas de Configurações
-  app.get("/api/settings", (req, res) => {
-    const settings = db.prepare("SELECT * FROM settings WHERE id = 1").get() as any;
-    if (settings) {
-      // Converter tipos do SQLite para o Frontend
-      settings.showWarnings = !!settings.showWarnings;
-      try {
-        settings.hiddenColumns = JSON.parse(settings.hiddenColumns || '[]');
-      } catch (e) {
-        settings.hiddenColumns = [];
-      }
-    }
-    res.json(settings);
-  });
-
-  app.post("/api/settings", (req, res) => {
-    const { 
-      appName, appVersion, fiscalYear, primaryColor, categories, 
-      incomeCategories, expenseCategories,
-      profileName, profileAvatar, initialBalance, showWarnings, 
-      hiddenColumns, settingsPassword, receiptLayout, receiptLogo,
-      sendPulseClientId, sendPulseClientSecret, sendPulseTemplateId
-    } = req.body;
-    
-    db.prepare(`
-      UPDATE settings 
-      SET appName = ?, appVersion = ?, fiscalYear = ?, primaryColor = ?, 
-          categories = ?, incomeCategories = ?, expenseCategories = ?, profileName = ?, profileAvatar = ?, 
-          initialBalance = ?, showWarnings = ?, hiddenColumns = ?, 
-          settingsPassword = ?, receiptLayout = ?, receiptLogo = ?,
-          sendPulseClientId = ?, sendPulseClientSecret = ?, sendPulseTemplateId = ?
-      WHERE id = 1
-    `).run(
-      appName, appVersion, fiscalYear, primaryColor, 
-      categories, incomeCategories, expenseCategories, profileName, profileAvatar, initialBalance, 
-      showWarnings ? 1 : 0, JSON.stringify(hiddenColumns || []), 
-      settingsPassword, receiptLayout || 'a4', receiptLogo || '',
-      sendPulseClientId || '', sendPulseClientSecret || '', sendPulseTemplateId || ''
-    );
-    res.json({ success: true });
-  });
-
-  // Rotas de Clientes
-  app.get("/api/customers", (req, res) => {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
-    const search = req.query.search as string;
-    
-    let options: any = { orderBy: "firstName ASC" };
-    if (search) {
-      options.where = "firstName LIKE ? OR lastName LIKE ? OR nickname LIKE ? OR phone LIKE ? OR companyName LIKE ?";
-      options.params = [`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%` ];
-    }
-    
-    const result = getPaginatedData("customers", page, limit, options);
-    res.json(result);
-  });
-
-  app.post("/api/customers", (req, res) => {
-    try {
-      const validatedData = CustomerSchema.parse(req.body);
-      const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, createdBy } = validatedData;
-      const result = db.prepare(`
-        INSERT INTO customers (firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, createdBy) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(firstName, lastName, nickname || null, cpf || null, companyName || null, phone || '', observation || null, creditLimit || 0, createdBy || 1);
-      
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'customer', result.lastInsertRowid, `Created customer: ${firstName} ${lastName}`);
-
-      res.json({ id: result.lastInsertRowid });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Validation failed", details: error.issues });
-      }
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  app.put("/api/customers/:id", (req, res) => {
-    try {
-      const validatedData = CustomerSchema.parse(req.body);
-      const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, updatedBy } = validatedData;
-      db.prepare(`
-        UPDATE customers 
-        SET firstName = ?, lastName = ?, nickname = ?, cpf = ?, companyName = ?, phone = ?, observation = ?, creditLimit = ?, updatedBy = ?
-        WHERE id = ?
-      `).run(firstName, lastName, nickname || null, cpf || null, companyName || null, phone || '', observation || null, creditLimit || 0, updatedBy || 1, req.params.id);
-      
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'customer', req.params.id, `Updated customer: ${firstName} ${lastName}`);
+      await prisma.auditLog.create({
+        data: {
+          userId: updatedBy || undefined,
+          action: 'update',
+          entity: 'transaction',
+          entityId: parseInt(req.params.id),
+          details: `Updated transaction: ${description || 'Sem descrição'}`
+        }
+      });
 
       res.json({ success: true });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Validation failed", details: error.issues });
       }
+      console.error('[TRANSACTIONS PUT] Error:', error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/customers/:id/payments", (req, res) => {
-    const payments = db.prepare("SELECT * FROM client_payments WHERE customerId = ?").all(req.params.id);
-    res.json(payments);
-  });
+  app.delete("/api/transactions/:id", async (req, res) => {
+    try {
+      const txId = parseInt(req.params.id);
+      const tx = await prisma.transaction.findUnique({
+        where: { id: txId }
+      });
 
-  app.delete("/api/customers/:id", (req, res) => {
-    db.prepare("DELETE FROM transactions WHERE paymentId IN (SELECT id FROM client_payments WHERE customerId = ?)").run(req.params.id);
-    db.prepare("DELETE FROM client_payments WHERE customerId = ?").run(req.params.id);
-    db.prepare("DELETE FROM customers WHERE id = ?").run(req.params.id);
-    res.json({ success: true });
-  });
+      if (tx?.paymentId) {
+        const payment = await prisma.clientPayment.findUnique({
+          where: { id: tx.paymentId }
+        });
+        if (payment) {
+          const newPaidAmount = Math.max(0, payment.paidAmount - tx.amount);
+          const newStatus = newPaidAmount >= payment.totalAmount ? 'paid' : 'pending';
+          await prisma.clientPayment.update({
+            where: { id: tx.paymentId },
+            data: { paidAmount: newPaidAmount, status: newStatus }
+          });
+        }
+      }
 
-  // Rotas de Pagamentos de Clientes
-  app.get("/api/client-payments", (req, res) => {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
-    const search = req.query.search as string;
-    
-    let options: any = {
-      select: "cp.*, c.firstName || ' ' || c.lastName as customerName",
-      join: "cp JOIN customers c ON cp.customerId = c.id",
-      orderBy: "cp.dueDate ASC"
-    };
-    
-    if (search) {
-      options.where = "c.firstName LIKE ? OR c.lastName LIKE ? OR cp.description LIKE ? OR cp.saleId LIKE ?";
-      options.params = [`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%` ];
+      await prisma.transaction.delete({
+        where: { id: txId }
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          userId: undefined,
+          action: 'delete',
+          entity: 'transaction',
+          entityId: txId,
+          details: `Deleted transaction: ${tx?.description || ''}`
+        }
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[TRANSACTIONS DELETE] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
     }
-    
-    const result = getPaginatedData("client_payments", page, limit, options);
-    res.json(result);
   });
 
-  app.post("/api/client-payments", (req, res) => {
+  // ============================================
+  // STATS (Migrated to Prisma)
+  // ============================================
+  app.get("/api/stats", async (req, res) => {
+    try {
+      const twelveMonthsAgo = new Date();
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+      const twelveMonthsAgoStr = twelveMonthsAgo.toISOString().split('T')[0];
+
+      const [totalIncome, totalExpenses, pendingPayments, activeOS] = await Promise.all([
+        prisma.transaction.aggregate({
+          where: { type: 'income' },
+          _sum: { amount: true }
+        }),
+        prisma.transaction.aggregate({
+          where: { type: 'expense' },
+          _sum: { amount: true }
+        }),
+        prisma.clientPayment.count({
+          where: { status: { not: 'paid' } }
+        }),
+        prisma.serviceOrder.count({
+          where: {
+            status: { notIn: ['Concluído', 'Entregue', 'canceled'] }
+          }
+        })
+      ]);
+
+      // Monthly chart data
+      const monthlyTransactions = await prisma.transaction.findMany({
+        where: {
+          date: { gte: twelveMonthsAgoStr }
+        },
+        select: {
+          date: true,
+          type: true,
+          amount: true
+        }
+      });
+
+      // Group by month
+      const byMonth: Record<string, { income: number; expense: number }> = {};
+      for (const tx of monthlyTransactions) {
+        const month = tx.date.substring(0, 7);
+        if (!byMonth[month]) byMonth[month] = { income: 0, expense: 0 };
+        if (tx.type === 'income') byMonth[month].income += Number(tx.amount);
+        else byMonth[month].expense += Number(tx.amount);
+      }
+
+      // Ensure all 12 months
+      const chartData = [];
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        const month = d.toISOString().slice(0, 7);
+        const name = d.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase();
+        const { income = 0, expense = 0 } = byMonth[month] || {};
+        chartData.push({ name, income, expense });
+      }
+
+      // Category rankings
+      const incomeRanking = await prisma.transaction.groupBy({
+        by: ['category'],
+        where: { type: 'income' },
+        _sum: { amount: true },
+        orderBy: { _sum: { amount: 'desc' } }
+      });
+
+      const expenseRanking = await prisma.transaction.groupBy({
+        by: ['category'],
+        where: { type: 'expense' },
+        _sum: { amount: true },
+        orderBy: { _sum: { amount: 'desc' } }
+      });
+
+      res.json({
+        totalIncome: totalIncome._sum.amount || 0,
+        totalExpenses: totalExpenses._sum.amount || 0,
+        netBalance: (totalIncome._sum.amount || 0) - (totalExpenses._sum.amount || 0),
+        pendingPayments,
+        activeOS,
+        chartData,
+        sortedIncomeRanking: incomeRanking.map(r => [r.category, r._sum.amount || 0]),
+        sortedExpenseRanking: expenseRanking.map(r => [r.category, r._sum.amount || 0])
+      });
+    } catch (error) {
+      console.error('[STATS] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // ============================================
+  // CLIENT PAYMENTS (Migrated to Prisma)
+  // ============================================
+  app.get("/api/client-payments", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const search = req.query.search as string;
+
+      const where: any = search ? {
+        OR: [
+          { description: { contains: search, mode: 'insensitive' } },
+          { saleId: { contains: search, mode: 'insensitive' } },
+          { customer: { firstName: { contains: search, mode: 'insensitive' } } },
+          { customer: { lastName: { contains: search, mode: 'insensitive' } } }
+        ]
+      } : {};
+
+      const [payments, total] = await Promise.all([
+        prisma.clientPayment.findMany({
+          where,
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: { dueDate: 'asc' },
+          include: {
+            customer: {
+              select: {
+                firstName: true,
+                lastName: true
+              }
+            }
+          }
+        }),
+        prisma.clientPayment.count({ where })
+      ]);
+
+      const data = payments.map(p => ({
+        ...p,
+        customerName: `${p.customer.firstName} ${p.customer.lastName}`
+      }));
+
+      res.json({
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
+    } catch (error) {
+      console.error('[CLIENT_PAYMENTS GET] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/client-payments", async (req, res) => {
     try {
       const validatedData = ClientPaymentSchema.parse(req.body);
-      const { 
-        customerId, description, totalAmount, paidAmount, 
-        purchaseDate, dueDate, paymentMethod, status, installmentsCount, type, saleId, createdBy 
+      const {
+        customerId, description, totalAmount, paidAmount,
+        purchaseDate, dueDate, paymentMethod, status, installmentsCount, type, saleId, createdBy
       } = validatedData;
-      
-      // Initialize payment history if there's an initial payment
+
       const initialPaymentHistory = paidAmount && paidAmount > 0 ? JSON.stringify([{
         amount: paidAmount,
         date: new Date().toISOString()
       }]) : '[]';
 
-      const result = db.prepare(`
-        INSERT INTO client_payments 
-        (customerId, description, totalAmount, paidAmount, purchaseDate, dueDate, paymentMethod, status, installmentsCount, type, paymentHistory, saleId, createdBy)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        customerId, description, totalAmount, paidAmount || 0, 
-        purchaseDate, dueDate, paymentMethod, status || 'pending', 
-        installmentsCount || 1, type || 'income', initialPaymentHistory, saleId || null, createdBy || 1
-      );
-      
-      // Se houver um valor pago inicialmente, cria uma transação financeira
+      const payment = await prisma.clientPayment.create({
+        data: {
+          customerId,
+          description,
+          totalAmount,
+          paidAmount: paidAmount || 0,
+          purchaseDate,
+          dueDate,
+          paymentMethod,
+          status: status || 'pending',
+          installmentsCount: installmentsCount || 1,
+          type: type || 'income',
+          saleId,
+          paymentHistory: initialPaymentHistory
+        }
+      });
+
+      // Create transaction if there's initial payment
       if (paidAmount && paidAmount > 0) {
-        const customer = db.prepare("SELECT firstName, lastName FROM customers WHERE id = ?").get(customerId) as any;
+        const customer = await prisma.customer.findUnique({
+          where: { id: customerId }
+        });
         const customerName = customer ? `${customer.firstName} ${customer.lastName}` : 'Cliente';
-        
-        db.prepare(`
-          INSERT INTO transactions (description, category, type, amount, date, createdBy, paymentId, saleId)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-          `Pagamento: ${description} (${customerName})`,
-          'Vendas',
-          'income',
-          paidAmount,
-          purchaseDate || new Date().toISOString().split('T')[0],
-          createdBy || 1,
-          result.lastInsertRowid,
-          saleId || null
-        );
+
+        await prisma.transaction.create({
+          data: {
+            description: `Pagamento: ${description} (${customerName})`,
+            category: 'Vendas',
+            type: 'income',
+            amount: paidAmount,
+            date: purchaseDate || new Date().toISOString().split('T')[0],
+            createdBy: createdBy || 1,
+            paymentId: payment.id,
+            saleId,
+            customerId,
+            customerName,
+            customerPhone: customer?.phone
+          }
+        });
       }
 
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'client_payment', result.lastInsertRowid, `Created payment: ${description}`);
+      await prisma.auditLog.create({
+        data: {
+          userId: createdBy || undefined,
+          action: 'create',
+          entity: 'client_payment',
+          entityId: payment.id,
+          details: `Created payment: ${description}`
+        }
+      });
 
-      res.json({ id: result.lastInsertRowid });
+      res.json({ id: payment.id });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Validation failed", details: error.issues });
       }
+      console.error('[CLIENT_PAYMENTS POST] Error:', error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.patch("/api/client-payments/:id", (req, res) => {
-    const { paidAmount, status, paymentHistory, updatedBy } = req.body;
-    
-    if (paymentHistory) {
-      db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, paymentHistory = ?, updatedBy = ? WHERE id = ?").run(paidAmount, status, JSON.stringify(paymentHistory), updatedBy || 1, req.params.id);
-    } else {
-      db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, updatedBy = ? WHERE id = ?").run(paidAmount, status, updatedBy || 1, req.params.id);
-    }
-    
-    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'client_payment', req.params.id, `Updated payment status: ${status}`);
-
-    res.json({ success: true });
-  });
-
-  app.put("/api/client-payments/:id", (req, res) => {
-    // Alias para PATCH para compatibilidade com o frontend
-    const { paidAmount, status, paymentHistory, updatedBy } = req.body;
-    
-    if (paymentHistory) {
-      db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, paymentHistory = ?, updatedBy = ? WHERE id = ?").run(paidAmount, status, JSON.stringify(paymentHistory), updatedBy || 1, req.params.id);
-    } else {
-      db.prepare("UPDATE client_payments SET paidAmount = ?, status = ?, updatedBy = ? WHERE id = ?").run(paidAmount, status, updatedBy || 1, req.params.id);
-    }
-    
-    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'client_payment', req.params.id, `Updated payment (PUT) status: ${status}`);
-
-    res.json({ success: true });
-  });
-
-  app.post("/api/client-payments/:id/pay", (req, res) => {
-    const { amount, date, updatedBy } = req.body;
-    const paymentId = req.params.id;
-
-    const payment = db.prepare("SELECT * FROM client_payments WHERE id = ?").get(paymentId) as any;
-    if (!payment) return res.status(404).json({ error: "Payment not found" });
-
-    const newPaidAmount = payment.paidAmount + amount;
-    const newStatus = newPaidAmount >= payment.totalAmount ? 'paid' : 'partial';
-    
-    let history = [];
+  app.patch("/api/client-payments/:id", async (req, res) => {
     try {
-      history = JSON.parse(payment.paymentHistory || '[]');
-    } catch (e) {}
-    
-    history.push({ amount, date: date || new Date().toISOString() });
+      const { paidAmount, status, paymentHistory, updatedBy } = req.body;
 
-    db.prepare(`
-      UPDATE client_payments 
-      SET paidAmount = ?, status = ?, paymentHistory = ?, updatedBy = ?
-      WHERE id = ?
-    `).run(newPaidAmount, newStatus, JSON.stringify(history), updatedBy || 1, paymentId);
+      const updateData: any = {
+        paidAmount,
+        status,
+        updatedBy: updatedBy || 1
+      };
 
-    // Criar transação financeira
-    const customer = db.prepare("SELECT firstName, lastName FROM customers WHERE id = ?").get(payment.customerId) as any;
-    const customerName = customer ? `${customer.firstName} ${customer.lastName}` : 'Cliente';
+      if (paymentHistory) {
+        updateData.paymentHistory = JSON.stringify(paymentHistory);
+      }
 
-    db.prepare(`
-      INSERT INTO transactions (description, category, type, amount, date, createdBy, paymentId, saleId)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      `Recebimento: ${payment.description} (${customerName})`,
-      'Vendas',
-      'income',
-      amount,
-      (date || new Date().toISOString()).split('T')[0],
-      updatedBy || 1,
-      paymentId,
-      payment.saleId || null
-    );
+      await prisma.clientPayment.update({
+        where: { id: parseInt(req.params.id) },
+        data: updateData
+      });
 
-    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'client_payment', paymentId, `Recorded payment of ${amount}`);
+      await prisma.auditLog.create({
+        data: {
+          userId: updatedBy || undefined,
+          action: 'update',
+          entity: 'client_payment',
+          entityId: parseInt(req.params.id),
+          details: `Updated payment status: ${status}`
+        }
+      });
 
-    res.json({ success: true, newPaidAmount, newStatus });
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[CLIENT_PAYMENTS PATCH] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
 
-  app.delete("/api/client-payments/:id", (req, res) => {
-    db.prepare("DELETE FROM transactions WHERE paymentId = ?").run(req.params.id);
-    db.prepare("DELETE FROM client_payments WHERE id = ?").run(req.params.id);
-    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'client_payment', req.params.id, `Deleted payment ID: ${req.params.id}`);
-    res.json({ success: true });
-  });
+  app.post("/api/client-payments/:id/pay", async (req, res) => {
+    try {
+      const { amount, date, updatedBy } = req.body;
+      const paymentId = parseInt(req.params.id);
 
-  app.delete("/api/client-payments/group/:saleId", (req, res) => {
-    const { saleId } = req.params;
-    db.prepare("DELETE FROM transactions WHERE saleId = ?").run(saleId);
-    db.prepare("DELETE FROM client_payments WHERE saleId = ?").run(saleId);
-    db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'delete', 'client_payment_group', 0, `Deleted payment group: ${saleId}`);
-    res.json({ success: true });
-  });
+      const payment = await prisma.clientPayment.findUnique({
+        where: { id: paymentId }
+      });
 
-  // Rotas de Categorias
-  app.get("/api/categories", (req, res) => {
-    const categories = db.prepare("SELECT * FROM categories ORDER BY name ASC").all();
-    res.json(categories);
-  });
+      if (!payment) {
+        return res.status(404).json({ error: "Payment not found" });
+      }
 
-  app.post("/api/categories", (req, res) => {
-    const { name, type } = req.body;
-    const result = db.prepare("INSERT INTO categories (name, type) VALUES (?, ?)").run(name, type);
-    res.json({ id: result.lastInsertRowid });
-  });
+      const newPaidAmount = payment.paidAmount + amount;
+      const newStatus = newPaidAmount >= payment.totalAmount ? 'paid' : 'partial';
 
-  app.delete("/api/categories/:id", (req, res) => {
-    db.prepare("DELETE FROM categories WHERE id = ?").run(req.params.id);
-    res.json({ success: true });
-  });
-
-  // Rotas de Recibos
-  app.get("/api/receipts/:paymentId", (req, res) => {
-    const receipts = db.prepare("SELECT * FROM receipts WHERE paymentId = ? ORDER BY createdAt DESC").all();
-    res.json(receipts);
-  });
-
-  app.post("/api/receipts", (req, res) => {
-    const { paymentId, content } = req.body;
-    const result = db.prepare("INSERT INTO receipts (paymentId, content) VALUES (?, ?)").run(paymentId, content);
-    res.json({ id: result.lastInsertRowid });
-  });
-
-  // Rotas de Usuários
-  app.get("/api/users", (req, res) => {
-    const users = db.prepare("SELECT id, username, role, name, permissions, createdAt FROM users ORDER BY name ASC").all();
-    
-    // Parse permissions for each user
-    const usersWithPermissions = users.map((u: any) => {
+      let history = [];
       try {
-        u.permissions = JSON.parse(u.permissions || '[]');
-      } catch (e) {
-        u.permissions = [];
-      }
-      return u;
-    });
+        history = JSON.parse(payment.paymentHistory || '[]');
+      } catch (e) {}
 
-    res.json(usersWithPermissions);
-  });
+      history.push({ amount, date: date || new Date().toISOString() });
 
-  app.post("/api/users", (req, res) => {
-    const { username, password, role, name, permissions } = req.body;
-    try {
-      const permsString = JSON.stringify(permissions || []);
-      const hashedPassword = bcrypt.hashSync(password, 10);
-      const result = db.prepare("INSERT INTO users (username, password, role, name, permissions) VALUES (?, ?, ?, ?, ?)").run(username, hashedPassword, role, name, permsString);
-      
-      // Log action
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'create', 'user', result.lastInsertRowid, `Created user ${username}`);
-      
-      res.json({ id: result.lastInsertRowid });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+      await prisma.clientPayment.update({
+        where: { id: paymentId },
+        data: {
+          paidAmount: newPaidAmount,
+          status: newStatus,
+          paymentHistory: JSON.stringify(history),
+          updatedBy: updatedBy || 1
+        }
+      });
+
+      // Create transaction
+      const customer = await prisma.customer.findUnique({
+        where: { id: payment.customerId }
+      });
+      const customerName = customer ? `${customer.firstName} ${customer.lastName}` : 'Cliente';
+
+      await prisma.transaction.create({
+        data: {
+          description: `Recebimento: ${payment.description} (${customerName})`,
+          category: 'Vendas',
+          type: 'income',
+          amount,
+          date: (date || new Date().toISOString()).split('T')[0],
+          createdBy: updatedBy || 1,
+          paymentId,
+          saleId: payment.saleId || null,
+          customerId: payment.customerId,
+          customerName,
+          customerPhone: customer?.phone
+        }
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          userId: updatedBy || undefined,
+          action: 'update',
+          entity: 'client_payment',
+          entityId: paymentId,
+          details: `Recorded payment of ${amount}`
+        }
+      });
+
+      res.json({ success: true, newPaidAmount, newStatus });
+    } catch (error) {
+      console.error('[CLIENT_PAYMENTS PAY] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.put("/api/users/:id", (req, res) => {
-    const { name, role, password, permissions } = req.body;
-
+  app.delete("/api/client-payments/:id", async (req, res) => {
     try {
-      const permsString = JSON.stringify(permissions || []);
+      const paymentId = parseInt(req.params.id);
 
-      if (password) {
-        const hashedPassword = bcrypt.hashSync(password, 10);
-        db.prepare("UPDATE users SET name = ?, role = ?, password = ?, permissions = ? WHERE id = ?").run(name, role, hashedPassword, permsString, req.params.id);
-      } else {
-        db.prepare("UPDATE users SET name = ?, role = ?, permissions = ? WHERE id = ?").run(name, role, permsString, req.params.id);
-      }
-      
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(1, 'update', 'user', req.params.id, `Updated user ${name}`);
-      
+      await prisma.transaction.deleteMany({
+        where: { paymentId }
+      });
+
+      await prisma.clientPayment.delete({
+        where: { id: paymentId }
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          userId: undefined,
+          action: 'delete',
+          entity: 'client_payment',
+          entityId: paymentId,
+          details: `Deleted payment ID: ${paymentId}`
+        }
+      });
+
       res.json({ success: true });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+    } catch (error) {
+      console.error('[CLIENT_PAYMENTS DELETE] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.delete("/api/users/:id", (req, res) => {
+  // ============================================
+  // AUDIT LOGS
+  // ============================================
+  app.get("/api/audit-logs", async (req, res) => {
     try {
-      const userId = req.params.id;
-      
-      // Remove foreign key references to avoid constraint errors
-      db.prepare("UPDATE audit_logs SET userId = NULL WHERE userId = ?").run(userId);
-      db.prepare("UPDATE inventory_items SET createdBy = NULL WHERE createdBy = ?").run(userId);
-      db.prepare("UPDATE inventory_items SET updatedBy = NULL WHERE updatedBy = ?").run(userId);
-      db.prepare("UPDATE service_orders SET createdBy = NULL WHERE createdBy = ?").run(userId);
-      db.prepare("UPDATE service_orders SET updatedBy = NULL WHERE updatedBy = ?").run(userId);
-      
-      db.prepare("DELETE FROM users WHERE id = ?").run(userId);
-      res.json({ success: true });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+      const logs = await prisma.auditLog.findMany({
+        take: 100,
+        orderBy: { timestamp: 'desc' },
+        include: {
+          user: {
+            select: { name: true }
+          }
+        }
+      });
+
+      const logsWithUserName = logs.map(l => ({
+        ...l,
+        userName: l.user?.name || null
+      }));
+
+      res.json(logsWithUserName);
+    } catch (error) {
+      console.error('[AUDIT_LOGS] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  // Rotas de Auditoria
-  app.get("/api/audit-logs", (req, res) => {
-    const logs = db.prepare(`
-      SELECT l.*, u.name as userName 
-      FROM audit_logs l 
-      LEFT JOIN users u ON l.userId = u.id 
-      ORDER BY l.timestamp DESC 
-      LIMIT 100
-    `).all();
-    res.json(logs);
-  });
-
-  // Rotas de Inventário
-  app.get("/api/inventory", (req, res) => {
-    const items = db.prepare("SELECT * FROM inventory_items ORDER BY name ASC").all();
-    res.json(items);
-  });
-
-  app.post("/api/inventory", (req, res) => {
-    const { name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, createdBy } = req.body;
+  // ============================================
+  // INVENTORY
+  // ============================================
+  app.get("/api/inventory", async (req, res) => {
     try {
+      const items = await prisma.inventoryItem.findMany({
+        orderBy: { name: 'asc' }
+      });
+      res.json(items);
+    } catch (error) {
+      console.error('[INVENTORY GET] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/inventory", async (req, res) => {
+    try {
+      const { name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, createdBy } = req.body;
+
       const finalUnitPrice = unitPrice !== undefined ? unitPrice : (salePrice || 0);
       const finalStockLevel = stockLevel !== undefined ? stockLevel : (quantity || 0);
-      
-      const result = db.prepare("INSERT INTO inventory_items (name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, createdBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(
-        name, category, sku, costPrice || 0, finalUnitPrice, finalStockLevel, minQuantity || 5, finalUnitPrice, finalStockLevel, createdBy || 1
-      );
-      
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'InventoryItem', result.lastInsertRowid, `Created item ${name}`);
-      
-      res.json({ id: result.lastInsertRowid });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+
+      const item = await prisma.inventoryItem.create({
+        data: {
+          name,
+          category,
+          sku,
+          costPrice: costPrice || 0,
+          salePrice: finalUnitPrice,
+          quantity: finalStockLevel,
+          minQuantity: minQuantity || 5,
+          unitPrice: finalUnitPrice,
+          stockLevel: finalStockLevel,
+          createdBy: createdBy || 1
+        }
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          userId: createdBy || undefined,
+          action: 'create',
+          entity: 'InventoryItem',
+          entityId: item.id,
+          details: `Created item ${name}`
+        }
+      });
+
+      res.json({ id: item.id });
+    } catch (error: any) {
+      console.error('[INVENTORY POST] Error:', error);
+      res.status(400).json({ error: error.message });
     }
   });
 
-  app.put("/api/inventory/:id", (req, res) => {
-    const { name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, updatedBy } = req.body;
+  app.put("/api/inventory/:id", async (req, res) => {
     try {
+      const { name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, updatedBy } = req.body;
+
       const finalUnitPrice = unitPrice !== undefined ? unitPrice : (salePrice || 0);
       const finalStockLevel = stockLevel !== undefined ? stockLevel : (quantity || 0);
-      
-      db.prepare("UPDATE inventory_items SET name = ?, category = ?, sku = ?, costPrice = ?, salePrice = ?, quantity = ?, minQuantity = ?, unitPrice = ?, stockLevel = ?, updatedBy = ? WHERE id = ?").run(
-        name, category, sku, costPrice || 0, finalUnitPrice, finalStockLevel, minQuantity || 5, finalUnitPrice, finalStockLevel, updatedBy || 1, req.params.id
-      );
-      
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'InventoryItem', req.params.id, `Updated item ${name}`);
-      
+
+      await prisma.inventoryItem.update({
+        where: { id: parseInt(req.params.id) },
+        data: {
+          name,
+          category,
+          sku,
+          costPrice: costPrice || 0,
+          salePrice: finalUnitPrice,
+          quantity: finalStockLevel,
+          minQuantity: minQuantity || 5,
+          unitPrice: finalUnitPrice,
+          stockLevel: finalStockLevel,
+          updatedBy: updatedBy || 1
+        }
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          userId: updatedBy || undefined,
+          action: 'update',
+          entity: 'InventoryItem',
+          entityId: parseInt(req.params.id),
+          details: `Updated item ${name}`
+        }
+      });
+
       res.json({ success: true });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+    } catch (error: any) {
+      console.error('[INVENTORY PUT] Error:', error);
+      res.status(400).json({ error: error.message });
     }
   });
 
-  app.delete("/api/inventory/:id", (req, res) => {
+  app.delete("/api/inventory/:id", async (req, res) => {
     try {
-      db.prepare("DELETE FROM inventory_items WHERE id = ?").run(req.params.id);
+      await prisma.inventoryItem.delete({
+        where: { id: parseInt(req.params.id) }
+      });
       res.json({ success: true });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+    } catch (error: any) {
+      console.error('[INVENTORY DELETE] Error:', error);
+      res.status(400).json({ error: error.message });
     }
   });
 
-  // Rotas de Ordens de Serviço (OS)
-  app.get("/api/service-orders", (req, res) => {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
-    const search = req.query.search as string;
-    const status = req.query.status as string;
-    const priority = req.query.priority as string;
-    const sortByQuery = req.query.sortBy as string || 'newest';
-    
-    let orderBy = 'so.createdAt DESC';
-    if (sortByQuery === 'oldest') orderBy = 'so.createdAt ASC';
-    if (sortByQuery === 'priority') orderBy = "CASE WHEN so.priority = 'urgent' THEN 1 WHEN so.priority = 'high' THEN 2 WHEN so.priority = 'medium' THEN 3 ELSE 4 END, so.createdAt DESC";
-    if (sortByQuery === 'prediction') orderBy = 'so.analysisPrediction ASC, so.createdAt DESC';
-    if (sortByQuery === 'amount-desc') orderBy = 'CAST(so.totalAmount AS REAL) DESC, so.createdAt DESC';
-    if (sortByQuery === 'amount-asc') orderBy = 'CAST(so.totalAmount AS REAL) ASC, so.createdAt DESC';
-    
-    let options: any = {
-      select: "so.*, c.firstName, c.lastName, c.phone",
-      join: "so LEFT JOIN customers c ON so.customerId = c.id",
-      orderBy: orderBy,
-      where: [],
-      params: []
-    };
-    
-    if (search) {
-      const searchLower = search.toLowerCase().trim();
-      const osIdMatch = searchLower.match(/^(?:#?os-?)?(\d+)$/i);
-      
-      if (osIdMatch) {
-        const osId = osIdMatch[1];
-        options.where.push("(CAST(so.id AS TEXT) = ? OR CAST(so.id AS TEXT) LIKE ? OR c.firstName LIKE ? OR c.lastName LIKE ? OR so.equipmentBrand LIKE ? OR so.equipmentModel LIKE ? OR so.equipmentType LIKE ?)");
-        options.params.push(osId, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
-      } else {
-        options.where.push("(c.firstName LIKE ? OR c.lastName LIKE ? OR so.equipmentBrand LIKE ? OR so.equipmentModel LIKE ? OR so.equipmentType LIKE ? OR so.equipmentSerial LIKE ? OR CAST(so.id AS TEXT) LIKE ?)");
-        options.params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+  // ============================================
+  // SERVICE ORDERS (Migrated to Prisma)
+  // ============================================
+  app.get("/api/service-orders", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const search = req.query.search as string;
+      const status = req.query.status as string;
+      const priority = req.query.priority as string;
+      const sortBy = req.query.sortBy as string || 'newest';
+
+      const where: any = {};
+
+      if (search) {
+        where.OR = [
+          { id: parseInt(search) || 0 },
+          { equipmentBrand: { contains: search, mode: 'insensitive' } },
+          { equipmentModel: { contains: search, mode: 'insensitive' } },
+          { equipmentType: { contains: search, mode: 'insensitive' } },
+          { equipmentSerial: { contains: search, mode: 'insensitive' } },
+          { customer: { firstName: { contains: search, mode: 'insensitive' } } },
+          { customer: { lastName: { contains: search, mode: 'insensitive' } } }
+        ];
       }
-    }
 
-    if (status && status !== 'all') {
-      options.where.push("so.status = ?");
-      options.params.push(status);
-    }
-
-    if (priority && priority !== 'all') {
-      options.where.push("so.priority = ?");
-      options.params.push(priority);
-    }
-
-    const dateFilter = req.query.dateFilter as string;
-    if (dateFilter && dateFilter !== 'all') {
-      const now = new Date();
-      if (dateFilter === 'today') {
-        options.where.push("date(so.createdAt) = date('now', 'localtime')");
-      } else if (dateFilter === 'week') {
-        options.where.push("date(so.createdAt) >= date('now', 'localtime', '-7 days')");
-      } else if (dateFilter === 'month') {
-        options.where.push("date(so.createdAt) >= date('now', 'localtime', 'start of month')");
+      if (status && status !== 'all') {
+        where.status = status;
       }
-    }
 
-    if (options.where.length > 0) {
-      options.where = options.where.join(" AND ");
-    } else {
-      delete options.where;
-    }
-    
-    const result = getPaginatedData("service_orders", page, limit, options);
-    
-    // Calculate status counts for all orders (not just the current page)
-    const counts = db.prepare(`
-      SELECT 
-        COUNT(CASE WHEN status IN ('Aguardando Análise', 'Aguardando Peças') THEN 1 END) as awaiting,
-        COUNT(CASE WHEN status IN ('Em Manutenção', 'Em Reparo', 'Aprovado') THEN 1 END) as active,
-        COUNT(CASE WHEN status IN ('Pronto para Retirada', 'Pronto', 'Concluído') THEN 1 END) as ready,
-        COUNT(CASE WHEN status = 'Urgente' OR (priority = 'high' AND status NOT IN ('Pronto para Retirada', 'Pronto', 'Concluído', 'Entregue')) THEN 1 END) as urgent
-      FROM service_orders
-    `).get() as any;
+      if (priority && priority !== 'all') {
+        where.priority = priority;
+      }
 
-    (result.meta as any).counts = counts;
-    
-    result.data = result.data.map((o: any) => {
-      try {
-        o.partsUsed = JSON.parse(o.partsUsed || '[]');
-      } catch (e) {
-        o.partsUsed = [];
-      }
-      try {
-        o.services = JSON.parse(o.services || '[]');
-      } catch (e) {
-        o.services = [];
-      }
-      return o;
-    });
-    
-    res.json(result);
+      let orderBy: any = { createdAt: 'desc' };
+      if (sortBy === 'oldest') orderBy = { createdAt: 'asc' };
+      if (sortBy === 'priority') orderBy = [
+        { priority: 'asc' },
+        { createdAt: 'desc' }
+      ];
+      if (sortBy === 'amount-desc') orderBy = { totalAmount: 'desc' };
+      if (sortBy === 'amount-asc') orderBy = { totalAmount: 'asc' };
+
+      const [orders, total] = await Promise.all([
+        prisma.serviceOrder.findMany({
+          where,
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy,
+          include: {
+            customer: {
+              select: {
+                firstName: true,
+                lastName: true,
+                phone: true
+              }
+            }
+          }
+        }),
+        prisma.serviceOrder.count({ where })
+      ]);
+
+      // Get status counts
+      const counts = await prisma.serviceOrder.aggregate({
+        _count: true,
+        where: {
+          status: { in: ['Aguardando Análise', 'Aguardando Peças'] }
+        }
+      });
+      const activeCount = await prisma.serviceOrder.aggregate({
+        _count: true,
+        where: {
+          status: { in: ['Em Manutenção', 'Em Reparo', 'Aprovado'] }
+        }
+      });
+      const readyCount = await prisma.serviceOrder.aggregate({
+        _count: true,
+        where: {
+          status: { in: ['Pronto para Retirada', 'Pronto', 'Concluído'] }
+        }
+      });
+      const urgentCount = await prisma.serviceOrder.aggregate({
+        _count: true,
+        where: {
+          OR: [
+            { status: 'Urgente' },
+            { AND: [{ priority: 'high' }, { status: { notIn: ['Pronto para Retirada', 'Pronto', 'Concluído', 'Entregue'] } }] }
+          ]
+        }
+      });
+
+      const data = orders.map(o => ({
+        ...o,
+        firstName: o.customer.firstName,
+        lastName: o.customer.lastName,
+        phone: o.customer.phone,
+        partsUsed: o.partsUsed ? JSON.parse(o.partsUsed as string || '[]') : [],
+        services: o.services ? JSON.parse(o.services as string || '[]') : []
+      }));
+
+      res.json({
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+          counts: {
+            awaiting: counts._count,
+            active: activeCount._count,
+            ready: readyCount._count,
+            urgent: urgentCount._count
+          }
+        }
+      });
+    } catch (error) {
+      console.error('[SERVICE_ORDERS GET] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
 
-  app.post("/api/service-orders", (req, res) => {
+  app.post("/api/service-orders", async (req, res) => {
     try {
       const validatedData = ServiceOrderSchema.parse(req.body);
-      const { 
-        customerId, equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
-        reportedProblem, arrivalPhotoUrl, arrivalPhotoBase64, status, entryDate, analysisPrediction, 
+      const {
+        customerId, equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial,
+        reportedProblem, arrivalPhotoUrl, arrivalPhotoBase64, status, entryDate, analysisPrediction,
         customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy,
         technicalAnalysis, servicesPerformed, services, partsUsed, serviceFee, totalAmount, finalObservations
       } = validatedData;
-      
-      const partsString = JSON.stringify(partsUsed || []);
-      const servicesString = JSON.stringify(services || []);
-      
-      const result = db.prepare(`
-        INSERT INTO service_orders (
-          customerId, equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, 
-          reportedProblem, arrivalPhotoUrl, arrivalPhotoBase64, status, entryDate, analysisPrediction, 
-          customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy,
-          technicalAnalysis, servicesPerformed, services, partsUsed, serviceFee, totalAmount, finalObservations
-        ) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        customerId, equipmentType || null, equipmentBrand || null, equipmentModel || null, equipmentColor || null, equipmentSerial || null, 
-        reportedProblem, arrivalPhotoUrl || null, arrivalPhotoBase64 || null, status || 'Aguardando Análise', 
-        entryDate || null, analysisPrediction || null, customerPassword || null, accessories || null, 
-        ramInfo || null, ssdInfo || null, priority || 'medium', createdBy || 1,
-        technicalAnalysis || null, servicesPerformed || null, servicesString, partsString, 
-        serviceFee || 0, totalAmount || 0, finalObservations || null
-      );
-      
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(createdBy || 1, 'create', 'ServiceOrder', result.lastInsertRowid, `Created OS for customer ${customerId}`);
-      
-      res.json({ id: result.lastInsertRowid });
+
+      // 📝 AUDIT: Buscar dados do cliente para salvar na OS
+      const customer = await prisma.customer.findUnique({
+        where: { id: customerId }
+      });
+
+      const order = await prisma.serviceOrder.create({
+        data: {
+          customerId,
+          firstName: customer?.firstName,
+          lastName: customer?.lastName,
+          phone: customer?.phone,
+          equipmentType,
+          equipmentBrand,
+          equipmentModel,
+          equipmentColor,
+          equipmentSerial,
+          reportedProblem,
+          arrivalPhotoUrl,
+          arrivalPhotoBase64,
+          status: status || 'Aguardando Análise',
+          entryDate,
+          analysisPrediction,
+          customerPassword,
+          accessories,
+          ramInfo,
+          ssdInfo,
+          priority: priority || 'medium',
+          createdBy: createdBy || 1,
+          technicalAnalysis,
+          servicesPerformed,
+          services: JSON.stringify(services || []),
+          partsUsed: JSON.stringify(partsUsed || []),
+          serviceFee: serviceFee || 0,
+          totalAmount: totalAmount || 0,
+          finalObservations
+        }
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          userId: createdBy || undefined,
+          action: 'create',
+          entity: 'ServiceOrder',
+          entityId: order.id,
+          details: `Created OS for customer ${customer?.firstName} ${customer?.lastName}`
+        }
+      });
+
+      res.json({ id: order.id });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        console.error("Validation failed for Service Order:", error.issues);
         return res.status(400).json({ error: "Validation failed", details: error.issues });
       }
-      console.error("Internal server error in POST /api/service-orders:", error);
+      console.error('[SERVICE_ORDERS POST] Error:', error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.put("/api/service-orders/:id", (req, res) => {
+  app.put("/api/service-orders/:id", async (req, res) => {
     try {
       const validatedData = ServiceOrderSchema.partial().parse(req.body);
-      const { 
-        status, technicalAnalysis, servicesPerformed, services, partsUsed, 
-        serviceFee, totalAmount, finalObservations, entryDate, analysisPrediction, 
-        customerPassword, accessories, ramInfo, ssdInfo, priority, 
-        equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, arrivalPhotoBase64, updatedBy 
+      const {
+        status, technicalAnalysis, servicesPerformed, services, partsUsed,
+        serviceFee, totalAmount, finalObservations, entryDate, analysisPrediction,
+        customerPassword, accessories, ramInfo, ssdInfo, priority,
+        equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial, arrivalPhotoBase64, updatedBy
       } = validatedData as any;
-      
-      // Fetch old OS to compare parts and update inventory
-      const oldOs = db.prepare("SELECT partsUsed FROM service_orders WHERE id = ?").get(req.params.id) as any;
-      let oldParts: any[] = [];
-      try {
-        oldParts = JSON.parse(oldOs?.partsUsed || '[]');
-      } catch (e) {}
 
-      const newParts = partsUsed ? (typeof partsUsed === 'string' ? JSON.parse(partsUsed) : partsUsed) : null;
-      const newServices = services ? (typeof services === 'string' ? JSON.parse(services) : services) : null;
-      
-      // Update inventory based on parts changes if partsUsed was provided
-      if (newParts) {
-        // 1. Add back old parts
-        oldParts.forEach((p: any) => {
-          if (p.id) {
-            db.prepare("UPDATE inventory_items SET stockLevel = stockLevel + ? WHERE id = ?").run(p.quantity, p.id);
-          }
-        });
-        
-        // 2. Deduct new parts
-        newParts.forEach((p: any) => {
-          if (p.id) {
-            db.prepare("UPDATE inventory_items SET stockLevel = stockLevel - ? WHERE id = ?").run(p.quantity, p.id);
-          }
-        });
-      }
+      const updateData: any = {};
 
-      const partsString = newParts ? JSON.stringify(newParts) : null;
-      const servicesString = newServices ? JSON.stringify(newServices) : null;
-      
-      db.prepare(`
-        UPDATE service_orders 
-        SET status = COALESCE(?, status), 
-            technicalAnalysis = COALESCE(?, technicalAnalysis), 
-            servicesPerformed = COALESCE(?, servicesPerformed), 
-            services = COALESCE(?, services),
-            partsUsed = COALESCE(?, partsUsed), 
-            serviceFee = COALESCE(?, serviceFee), 
-            totalAmount = COALESCE(?, totalAmount), 
-            finalObservations = COALESCE(?, finalObservations), 
-            entryDate = COALESCE(?, entryDate), 
-            analysisPrediction = COALESCE(?, analysisPrediction), 
-            customerPassword = COALESCE(?, customerPassword), 
-            accessories = COALESCE(?, accessories), 
-            ramInfo = COALESCE(?, ramInfo), 
-            ssdInfo = COALESCE(?, ssdInfo), 
-            priority = COALESCE(?, priority), 
-            equipmentType = COALESCE(?, equipmentType), 
-            equipmentBrand = COALESCE(?, equipmentBrand), 
-            equipmentModel = COALESCE(?, equipmentModel), 
-            equipmentColor = COALESCE(?, equipmentColor), 
-            equipmentSerial = COALESCE(?, equipmentSerial), 
-            arrivalPhotoBase64 = COALESCE(?, arrivalPhotoBase64), 
-            updatedBy = ? 
-        WHERE id = ?
-      `).run(
-        status ?? null, technicalAnalysis ?? null, servicesPerformed ?? null, servicesString, partsString, 
-        serviceFee ?? null, totalAmount ?? null, finalObservations ?? null, entryDate ?? null, 
-        analysisPrediction ?? null, customerPassword ?? null, accessories ?? null, 
-        ramInfo ?? null, ssdInfo ?? null, priority ?? null, 
-        equipmentType ?? null, equipmentBrand ?? null, equipmentModel ?? null, equipmentColor ?? null, equipmentSerial ?? null, 
-        arrivalPhotoBase64 ?? null, updatedBy || 1, req.params.id
-      );
-      
-      db.prepare("INSERT INTO audit_logs (userId, action, entity, entityId, details) VALUES (?, ?, ?, ?, ?)").run(updatedBy || 1, 'update', 'ServiceOrder', req.params.id, `Updated OS #${req.params.id}`);
-      
+      if (status !== undefined) updateData.status = status;
+      if (technicalAnalysis !== undefined) updateData.technicalAnalysis = technicalAnalysis;
+      if (servicesPerformed !== undefined) updateData.servicesPerformed = servicesPerformed;
+      if (services !== undefined) updateData.services = JSON.stringify(services);
+      if (partsUsed !== undefined) updateData.partsUsed = JSON.stringify(partsUsed);
+      if (serviceFee !== undefined) updateData.serviceFee = serviceFee;
+      if (totalAmount !== undefined) updateData.totalAmount = totalAmount;
+      if (finalObservations !== undefined) updateData.finalObservations = finalObservations;
+      if (entryDate !== undefined) updateData.entryDate = entryDate;
+      if (analysisPrediction !== undefined) updateData.analysisPrediction = analysisPrediction;
+      if (customerPassword !== undefined) updateData.customerPassword = customerPassword;
+      if (accessories !== undefined) updateData.accessories = accessories;
+      if (ramInfo !== undefined) updateData.ramInfo = ramInfo;
+      if (ssdInfo !== undefined) updateData.ssdInfo = ssdInfo;
+      if (priority !== undefined) updateData.priority = priority;
+      if (equipmentType !== undefined) updateData.equipmentType = equipmentType;
+      if (equipmentBrand !== undefined) updateData.equipmentBrand = equipmentBrand;
+      if (equipmentModel !== undefined) updateData.equipmentModel = equipmentModel;
+      if (equipmentColor !== undefined) updateData.equipmentColor = equipmentColor;
+      if (equipmentSerial !== undefined) updateData.equipmentSerial = equipmentSerial;
+      if (arrivalPhotoBase64 !== undefined) updateData.arrivalPhotoBase64 = arrivalPhotoBase64;
+      if (updatedBy !== undefined) updateData.updatedBy = updatedBy;
+
+      await prisma.serviceOrder.update({
+        where: { id: parseInt(req.params.id) },
+        data: updateData
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          userId: updatedBy || undefined,
+          action: 'update',
+          entity: 'ServiceOrder',
+          entityId: parseInt(req.params.id),
+          details: `Updated OS #${req.params.id}`
+        }
+      });
+
       res.json({ success: true });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Validation failed", details: error.issues });
       }
+      console.error('[SERVICE_ORDERS PUT] Error:', error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.delete("/api/service-orders/:id", (req, res) => {
+  app.delete("/api/service-orders/:id", async (req, res) => {
     try {
-      // When deleting an OS, should we return parts to stock?
-      // For now, let's just delete.
-      db.prepare("DELETE FROM service_orders WHERE id = ?").run(req.params.id);
+      await prisma.serviceOrder.delete({
+        where: { id: parseInt(req.params.id) }
+      });
       res.json({ success: true });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+    } catch (error: any) {
+      console.error('[SERVICE_ORDERS DELETE] Error:', error);
+      res.status(400).json({ error: error.message });
     }
   });
 
-  // Rotas de Status de OS
-  app.get("/api/service-order-statuses", (req, res) => {
-    const statuses = db.prepare("SELECT * FROM service_order_statuses ORDER BY priority ASC").all();
-    res.json(statuses);
-  });
-
-  app.post("/api/service-order-statuses", (req, res) => {
-    const { name, color, priority, isDefault } = req.body;
-    const result = db.prepare("INSERT INTO service_order_statuses (name, color, priority, isDefault) VALUES (?, ?, ?, ?)").run(name, color, priority || 0, isDefault ? 1 : 0);
-    res.json({ id: result.lastInsertRowid });
-  });
-
-  app.delete("/api/service-order-statuses/:id", (req, res) => {
-    db.prepare("DELETE FROM service_order_statuses WHERE id = ? AND isDefault = 0").run(req.params.id);
-    res.json({ success: true });
-  });
-
-  // Rotas de Marcas e Modelos
-  app.get("/api/brands", (req, res) => {
-    const brands = db.prepare("SELECT * FROM brands ORDER BY name ASC").all();
-    res.json(brands);
-  });
-
-  app.post("/api/brands", (req, res) => {
-    const { name, equipmentType } = req.body;
+  // ============================================
+  // SERVICE ORDER STATUSES
+  // ============================================
+  app.get("/api/service-order-statuses", async (req, res) => {
     try {
-      const result = db.prepare("INSERT INTO brands (name, equipmentType) VALUES (?, ?)").run(name, equipmentType);
-      res.json({ id: result.lastInsertRowid });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+      const statuses = await prisma.serviceOrderStatus.findMany({
+        orderBy: { priority: 'asc' }
+      });
+      res.json(statuses);
+    } catch (error) {
+      console.error('[SERVICE_ORDER_STATUSES GET] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.put("/api/brands/:id", (req, res) => {
-    const { name, equipmentType } = req.body;
+  app.post("/api/service-order-statuses", async (req, res) => {
     try {
-      const oldBrand = db.prepare("SELECT name FROM brands WHERE id = ?").get(req.params.id) as any;
-      db.prepare("UPDATE brands SET name = ?, equipmentType = ? WHERE id = ?").run(name, equipmentType, req.params.id);
-      
-      if (oldBrand && oldBrand.name !== name) {
-        db.prepare("UPDATE service_orders SET equipmentBrand = ? WHERE equipmentBrand = ?").run(name, oldBrand.name);
-      }
+      const { name, color, priority, isDefault } = req.body;
+      const status = await prisma.serviceOrderStatus.create({
+        data: { name, color, priority, isDefault }
+      });
+      res.json({ id: status.id });
+    } catch (error: any) {
+      console.error('[SERVICE_ORDER_STATUSES POST] Error:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/service-order-statuses/:id", async (req, res) => {
+    try {
+      const { name, color, priority, isDefault } = req.body;
+      await prisma.serviceOrderStatus.update({
+        where: { id: parseInt(req.params.id) },
+        data: { name, color, priority, isDefault }
+      });
       res.json({ success: true });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+    } catch (error: any) {
+      console.error('[SERVICE_ORDER_STATUSES PUT] Error:', error);
+      res.status(400).json({ error: error.message });
     }
   });
 
-  app.delete("/api/brands/:id", (req, res) => {
+  app.delete("/api/service-order-statuses/:id", async (req, res) => {
     try {
-      db.prepare("DELETE FROM brands WHERE id = ?").run(req.params.id);
-      db.prepare("DELETE FROM models WHERE brandId = ?").run(req.params.id);
+      await prisma.serviceOrderStatus.delete({
+        where: { id: parseInt(req.params.id) }
+      });
       res.json({ success: true });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+    } catch (error: any) {
+      console.error('[SERVICE_ORDER_STATUSES DELETE] Error:', error);
+      res.status(400).json({ error: error.message });
     }
   });
 
-  app.get("/api/models", (req, res) => {
-    const models = db.prepare("SELECT * FROM models ORDER BY name ASC").all();
-    res.json(models);
-  });
-
-  app.post("/api/models", (req, res) => {
-    const { brandId, name } = req.body;
+  // ============================================
+  // BRANDS & MODELS
+  // ============================================
+  app.get("/api/brands", async (req, res) => {
     try {
-      const result = db.prepare("INSERT INTO models (brandId, name) VALUES (?, ?)").run(brandId, name);
-      res.json({ id: result.lastInsertRowid });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+      const brands = await prisma.brand.findMany({
+        include: { Models: true },
+        orderBy: { name: 'asc' }
+      });
+      res.json(brands);
+    } catch (error) {
+      console.error('[BRANDS GET] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.put("/api/models/:id", (req, res) => {
-    const { brandId, name } = req.body;
+  app.post("/api/brands", async (req, res) => {
     try {
-      const oldModel = db.prepare("SELECT name FROM models WHERE id = ?").get(req.params.id) as any;
-      db.prepare("UPDATE models SET brandId = ?, name = ? WHERE id = ?").run(brandId, name, req.params.id);
-      
-      if (oldModel && oldModel.name !== name) {
-        db.prepare("UPDATE service_orders SET equipmentModel = ? WHERE equipmentModel = ?").run(name, oldModel.name);
-      }
+      const { name, equipmentType } = req.body;
+      const brand = await prisma.brand.create({
+        data: { name, equipmentType }
+      });
+      res.json({ id: brand.id });
+    } catch (error: any) {
+      console.error('[BRANDS POST] Error:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/brands/:id", async (req, res) => {
+    try {
+      const { name, equipmentType } = req.body;
+      await prisma.brand.update({
+        where: { id: parseInt(req.params.id) },
+        data: { name, equipmentType }
+      });
       res.json({ success: true });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+    } catch (error: any) {
+      console.error('[BRANDS PUT] Error:', error);
+      res.status(400).json({ error: error.message });
     }
   });
 
-  app.delete("/api/models/:id", (req, res) => {
+  app.delete("/api/brands/:id", async (req, res) => {
     try {
-      db.prepare("DELETE FROM models WHERE id = ?").run(req.params.id);
+      await prisma.brand.delete({
+        where: { id: parseInt(req.params.id) }
+      });
       res.json({ success: true });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+    } catch (error: any) {
+      console.error('[BRANDS DELETE] Error:', error);
+      res.status(400).json({ error: error.message });
     }
   });
 
-  // Rotas de Tipos de Equipamento
-  app.get("/api/equipment-types", (req, res) => {
-    const types = db.prepare("SELECT * FROM equipment_types ORDER BY name ASC").all();
-    res.json(types);
-  });
-
-  app.post("/api/equipment-types", (req, res) => {
-    const { name, icon } = req.body;
+  app.get("/api/models", async (req, res) => {
     try {
-      const result = db.prepare("INSERT INTO equipment_types (name, icon) VALUES (?, ?)").run(name, icon);
-      res.json({ id: result.lastInsertRowid });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+      const models = await prisma.model.findMany({
+        include: { brand: true },
+        orderBy: { name: 'asc' }
+      });
+      res.json(models);
+    } catch (error) {
+      console.error('[MODELS GET] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.put("/api/equipment-types/:id", (req, res) => {
-    const { name, icon } = req.body;
+  app.post("/api/models", async (req, res) => {
     try {
-      const oldType = db.prepare("SELECT name FROM equipment_types WHERE id = ?").get(req.params.id) as any;
-      db.prepare("UPDATE equipment_types SET name = ?, icon = ? WHERE id = ?").run(name, icon, req.params.id);
-      
+      const { brandId, name } = req.body;
+      const model = await prisma.model.create({
+        data: { brandId, name }
+      });
+      res.json({ id: model.id });
+    } catch (error: any) {
+      console.error('[MODELS POST] Error:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/models/:id", async (req, res) => {
+    try {
+      await prisma.model.delete({
+        where: { id: parseInt(req.params.id) }
+      });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('[MODELS DELETE] Error:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // EQUIPMENT TYPES
+  // ============================================
+  app.get("/api/equipment-types", async (req, res) => {
+    try {
+      const types = await prisma.equipmentType.findMany({
+        orderBy: { name: 'asc' }
+      });
+      res.json(types);
+    } catch (error) {
+      console.error('[EQUIPMENT_TYPES GET] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/equipment-types", async (req, res) => {
+    try {
+      const { name, icon } = req.body;
+      const type = await prisma.equipmentType.create({
+        data: { name, icon }
+      });
+      res.json({ id: type.id });
+    } catch (error: any) {
+      console.error('[EQUIPMENT_TYPES POST] Error:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/equipment-types/:id", async (req, res) => {
+    try {
+      const { name, icon } = req.body;
+      const oldType = await prisma.equipmentType.findUnique({
+        where: { id: parseInt(req.params.id) }
+      });
+
+      await prisma.equipmentType.update({
+        where: { id: parseInt(req.params.id) },
+        data: { name, icon }
+      });
+
       if (oldType && oldType.name !== name) {
-        db.prepare("UPDATE service_orders SET equipmentType = ? WHERE equipmentType = ?").run(name, oldType.name);
-        db.prepare("UPDATE brands SET equipmentType = ? WHERE equipmentType = ?").run(name, oldType.name);
+        await prisma.serviceOrder.updateMany({
+          where: { equipmentType: oldType.name },
+          data: { equipmentType: name }
+        });
+        await prisma.brand.updateMany({
+          where: { equipmentType: oldType.name },
+          data: { equipmentType: name }
+        });
       }
+
       res.json({ success: true });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+    } catch (error: any) {
+      console.error('[EQUIPMENT_TYPES PUT] Error:', error);
+      res.status(400).json({ error: error.message });
     }
   });
 
-  app.delete("/api/equipment-types/:id", (req, res) => {
+  app.delete("/api/equipment-types/:id", async (req, res) => {
     try {
-      db.prepare("DELETE FROM equipment_types WHERE id = ?").run(req.params.id);
+      await prisma.equipmentType.delete({
+        where: { id: parseInt(req.params.id) }
+      });
       res.json({ success: true });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
+    } catch (error: any) {
+      console.error('[EQUIPMENT_TYPES DELETE] Error:', error);
+      res.status(400).json({ error: error.message });
     }
   });
 
-  // Proxy Gemini AI (chave fica apenas no servidor)
+  // ============================================
+  // RECEIPTS
+  // ============================================
+  app.get("/api/receipts/:paymentId", async (req, res) => {
+    try {
+      const receipts = await prisma.receipt.findMany({
+        where: { paymentId: parseInt(req.params.paymentId) },
+        orderBy: { createdAt: 'desc' }
+      });
+      res.json(receipts);
+    } catch (error) {
+      console.error('[RECEIPTS GET] Error:', error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/receipts", async (req, res) => {
+    try {
+      const { paymentId, content } = req.body;
+      const receipt = await prisma.receipt.create({
+        data: { paymentId, content }
+      });
+      res.json({ id: receipt.id });
+    } catch (error: any) {
+      console.error('[RECEIPTS POST] Error:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // AI PROXY
+  // ============================================
   app.post('/api/ai/generate', async (req, res) => {
     try {
       const { prompt, model = 'gemini-2.0-flash' } = req.body;
@@ -1549,35 +1879,30 @@ async function startServer() {
 
       res.json({ text });
     } catch (err: any) {
+      console.error('[AI] Error:', err);
       res.status(500).json({ error: 'Erro ao chamar Gemini', detail: err.message });
     }
   });
 
-  // Configuração do Vite para desenvolvimento
-  if (process.env.NODE_ENV !== "production") {
-    const { createServer: createViteServer } = await import("vite");
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    // Servir arquivos estáticos em produção
-    app.use(express.static(path.join(__dirname, "dist")));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(__dirname, "dist", "index.html"));
-    });
-  }
-
+  // ============================================
+  // ERROR HANDLER
+  // ============================================
   app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error('[ERROR]', new Date().toISOString(), err.message);
     if (process.env.NODE_ENV !== 'production') console.error(err.stack);
     res.status(500).json({ error: 'Erro interno do servidor' });
   });
 
+  // ============================================
+  // SERVER START
+  // ============================================
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Servidor rodando em http://localhost:${PORT}`);
+    console.log(`[PRISMA SERVER] Rodando em http://localhost:${PORT}`);
+    console.log(`[PRISMA SERVER] Conectado ao Supabase`);
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error('[FATAL]', err);
+  process.exit(1);
+});

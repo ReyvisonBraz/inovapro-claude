@@ -16,25 +16,32 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Suppress 401 errors when no token exists - these are expected during initial load
+    if (error.response?.status === 401 && !localStorage.getItem('token')) {
+      return Promise.reject(new Error('Not authenticated'));
+    }
+
     if (error.response?.status === 401) {
       const isLoginPage = window.location.pathname === '/login';
-      
-      // Only remove and redirect if not already on login page to avoid loops
+
       if (!isLoginPage) {
         localStorage.removeItem('token');
         localStorage.removeItem('currentUser');
-        
-        // Prevent infinite reload loops by checking sessionStorage
+
         const now = Date.now();
         const lastReload = parseInt(sessionStorage.getItem('last_auth_reload') || '0');
-        
-        if (now - lastReload > 5000) { // Only reload if it's been more than 5 seconds
+
+        if (now - lastReload > 5000) {
           sessionStorage.setItem('last_auth_reload', now.toString());
           window.location.href = '/login';
         }
       }
     }
-    console.error('API Error:', error.response?.data || error.message);
+
+    // Only log real errors, not expected auth failures
+    if (!error.message?.includes('Not authenticated')) {
+      console.error('API Error:', error.response?.data || error.message);
+    }
     return Promise.reject(error);
   }
 );

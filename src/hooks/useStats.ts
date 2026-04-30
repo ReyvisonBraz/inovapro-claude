@@ -1,13 +1,15 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
 import { useFilterStore } from '../store/useFilterStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { DrillDownModal, DrillDownData } from '../components/ui/DrillDownModal';
 import { Transaction } from '../types';
 
 export const useStats = (month?: string) => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
   const {
     reportTypeFilter,
     reportCategoryFilter,
@@ -50,6 +52,7 @@ export const useStats = (month?: string) => {
     transactions: [] as Transaction[],
   }, isLoading, error, refetch: fetchStats } = useQuery({
     queryKey: ['stats', month],
+    enabled: isAuthenticated,
     queryFn: async () => {
       const res = await api.get('/stats', { params: { month } });
       return res.data;
