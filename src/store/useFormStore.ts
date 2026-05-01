@@ -1,44 +1,55 @@
 import { create } from 'zustand';
 import { format } from 'date-fns';
 
+interface NewTxForm {
+  description: string;
+  category: string;
+  type: 'income' | 'expense';
+  amount: string;
+  date: string;
+}
+
+interface NewCustomerForm {
+  firstName: string;
+  lastName: string;
+  nickname: string;
+  cpf: string;
+  companyName: string;
+  phone: string;
+  observation: string;
+  creditLimit: string;
+}
+
+interface NewClientPaymentForm {
+  customerId: number;
+  description: string;
+  totalAmount: string;
+  paidAmount: string;
+  purchaseDate: string;
+  dueDate: string;
+  paymentMethod: string;
+  status?: 'pending' | 'partial' | 'paid';
+  installmentsCount: number;
+  installmentInterval: 'monthly' | 'weekly' | 'biweekly' | 'daily';
+  type: 'income' | 'expense';
+}
+
+interface NewServiceOrderForm {
+  [key: string]: unknown;
+}
+
 interface FormState {
-  newTx: {
-    description: string;
-    category: string;
-    type: 'income' | 'expense';
-    amount: string;
-    date: string;
-  };
-  setNewTx: (tx: any) => void;
+  newTx: NewTxForm;
+  setNewTx: (tx: Partial<NewTxForm>) => void;
 
-  newCustomer: {
-    firstName: string;
-    lastName: string;
-    nickname: string;
-    cpf: string;
-    companyName: string;
-    phone: string;
-    observation: string;
-    creditLimit: string;
-  };
-  setNewCustomer: (customer: any) => void;
+  newCustomer: NewCustomerForm;
+  setNewCustomer: (customer: Partial<NewCustomerForm>) => void;
 
-  newClientPayment: {
-    customerId: number;
-    description: string;
-    totalAmount: string;
-    paidAmount: string;
-    purchaseDate: string;
-    dueDate: string;
-    paymentMethod: string;
-    installmentsCount: number;
-    installmentInterval: 'monthly' | 'weekly' | 'biweekly' | 'daily';
-    type: 'income' | 'expense';
-  };
-  setNewClientPayment: (payment: any) => void;
+  newClientPayment: NewClientPaymentForm;
+  setNewClientPayment: (payment: Partial<NewClientPaymentForm>) => void;
 
-  newServiceOrder: any;
-  setNewServiceOrder: (order: any) => void;
+  newServiceOrder: NewServiceOrderForm | null;
+  setNewServiceOrder: (order: NewServiceOrderForm | null) => void;
 }
 
 export const useFormStore = create<FormState>((set) => ({
