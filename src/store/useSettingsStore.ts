@@ -7,6 +7,9 @@ interface SettingsState {
   setSettings: (newSettings: Partial<AppSettings> | ((prev: AppSettings) => AppSettings)) => void;
   categories: Category[];
   setCategories: (categories: Category[]) => void;
+  isLoading: boolean;
+  isError: boolean;
+  errorMessage: string | null;
   fetchSettings: () => Promise<void>;
   fetchCategories: () => Promise<void>;
   saveSettingsAPI: (newSettings: Partial<AppSettings>) => Promise<void>;
@@ -50,30 +53,42 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   })),
   categories: [],
   setCategories: (categories) => set({ categories }),
+  isLoading: false,
+  isError: false,
+  errorMessage: null,
   fetchSettings: async () => {
+    set({ isLoading: true, isError: false, errorMessage: null });
     try {
       const { data } = await api.get('/settings');
-      set({ settings: data });
-    } catch (err) {
-      console.error("Failed to fetch settings", err);
+      set({ settings: data, isLoading: false });
+    } catch (err: any) {
+      const message = err?.response?.data?.error || 'Erro ao carregar configurações';
+      set({ isLoading: false, isError: true, errorMessage: message });
+      console.error('[useSettingsStore] fetchSettings failed:', message);
     }
   },
   fetchCategories: async () => {
+    set({ isLoading: true, isError: false, errorMessage: null });
     try {
       const { data } = await api.get('/categories');
-      set({ categories: data });
-    } catch (err) {
-      console.error("Failed to fetch categories", err);
+      set({ categories: data, isLoading: false });
+    } catch (err: any) {
+      const message = err?.response?.data?.error || 'Erro ao carregar categorias';
+      set({ isLoading: false, isError: true, errorMessage: message });
+      console.error('[useSettingsStore] fetchCategories failed:', message);
     }
   },
   saveSettingsAPI: async (newSettings) => {
     const { settings } = useSettingsStore.getState();
     const updatedSettings = { ...settings, ...newSettings };
+    set({ isLoading: true, isError: false, errorMessage: null });
     try {
       await api.post('/settings', updatedSettings);
-      set({ settings: updatedSettings });
-    } catch (err) {
-      console.error("Failed to save settings", err);
+      set({ settings: updatedSettings, isLoading: false });
+    } catch (err: any) {
+      const message = err?.response?.data?.error || 'Erro ao salvar configurações';
+      set({ isLoading: false, isError: true, errorMessage: message });
+      console.error('[useSettingsStore] saveSettingsAPI failed:', message);
       throw err;
     }
   },

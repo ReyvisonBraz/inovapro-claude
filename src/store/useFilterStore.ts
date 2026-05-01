@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 
 interface FilterState {
   // Transactions Filters
@@ -166,14 +166,12 @@ export const useFilterStore = create<FilterState>((set) => ({
   handlePrevMonth: () => set((state) => {
     const [year, month] = state.dashboardMonth.split('-');
     const d = new Date(parseInt(year), parseInt(month) - 1, 1);
-    d.setMonth(d.getMonth() - 1);
-    return { dashboardMonth: format(d, 'yyyy-MM') };
+    return { dashboardMonth: format(subMonths(d, 1), 'yyyy-MM') };
   }),
   handleNextMonth: () => set((state) => {
     const [year, month] = state.dashboardMonth.split('-');
     const d = new Date(parseInt(year), parseInt(month) - 1, 1);
-    d.setMonth(d.getMonth() + 1);
-    return { dashboardMonth: format(d, 'yyyy-MM') };
+    return { dashboardMonth: format(addMonths(d, 1), 'yyyy-MM') };
   }),
   resetFilters: () => set({
     searchTerm: '',
@@ -186,5 +184,16 @@ export const useFilterStore = create<FilterState>((set) => ({
     filterCategory: 'all',
     filterMinAmount: '',
     filterMaxAmount: '',
+    paymentSearchTerm: '',
+    paymentFilterStatus: 'all',
+    paymentSortMode: 'date',
+    osSearchTerm: '',
+    osStatusFilter: 'all',
+    osPriorityFilter: 'all',
+    osSortBy: 'newest',
+    osDateFilter: 'all',
+    customerSearchTerm: '',
+    inventorySearchTerm: '',
+    inventoryCategoryFilter: 'all',
   }),
 }));

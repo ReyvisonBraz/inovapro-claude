@@ -1,8 +1,21 @@
+/*
+ * Script de importação de dados para o Supabase.
+ *
+ * ⚠️ SEGURANÇA: Este script NÃO deve conter credenciais hardcoded.
+ *    Use variáveis de ambiente ou um arquivo .env na raiz do projeto.
+ *
+ * Uso:
+ *   DB_HOST=seu-host DB_USER=postgres DB_PASSWORD=sua-senha node scripts/import-to-supabase.js
+ *   — ou —
+ *   Configure as variáveis no .env e execute: node scripts/import-to-supabase.js
+ */
+
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
+import 'dotenv/config';
 
 function getData(filename) {
   try {
@@ -14,11 +27,11 @@ function getData(filename) {
 }
 
 const pool = new pg.Pool({
-  host: 'db.dqpxwyixiluiyfjxakge.supabase.co',
-  port: 5432,
-  user: 'postgres',
-  password: '1GG1lyfMNmkIp6NP',
-  database: 'postgres'
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '5432'),
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'postgres'
 });
 
 const adapter = new PrismaPg(pool);
