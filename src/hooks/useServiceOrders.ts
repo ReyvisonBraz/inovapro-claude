@@ -93,9 +93,11 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
         return data;
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-      if (showToast) showToast('Ordem de serviço salva com sucesso!', 'success');
+      if (!variables.id && showToast) {
+        showToast('Ordem de serviço salva com sucesso!', 'success');
+      }
     },
     onError: (error: any) => {
       console.error('Failed to save service order', error);

@@ -91,20 +91,27 @@ router.put('/:id', async (req: Request, res: Response) => {
     const fields = ['status', 'technicalAnalysis', 'servicesPerformed', 'services', 'partsUsed',
       'serviceFee', 'totalAmount', 'finalObservations', 'entryDate', 'analysisPrediction',
       'customerPassword', 'accessories', 'ramInfo', 'ssdInfo', 'priority', 'equipmentType',
-      'equipmentBrand', 'equipmentModel', 'equipmentColor', 'equipmentSerial', 'arrivalPhotoBase64', 'updatedBy'] as const;
+      'equipmentBrand', 'equipmentModel', 'equipmentColor', 'equipmentSerial', 'arrivalPhotoBase64',
+      'reportedProblem', 'updatedBy', 'firstName', 'lastName', 'phone'] as const;
     const updateData: Record<string, unknown> = {};
     for (const field of fields) {
       const value = (validatedData as any)[field];
       if (value !== undefined) {
         if (field === 'services' || field === 'partsUsed') {
-          updateData[field] = JSON.stringify(value);
+          updateData[field] = JSON.stringify(value ?? []);
+        } else if (typeof value === 'string' && value === '' && ['equipmentType', 'equipmentBrand', 'equipmentModel', 'equipmentColor', 'equipmentSerial', 'reportedProblem', 'technicalAnalysis', 'arrivalPhotoBase64', 'customerPassword', 'accessories', 'ramInfo', 'ssdInfo', 'servicesPerformed', 'finalObservations', 'analysisPrediction'].includes(field)) {
+          updateData[field] = null;
         } else {
           updateData[field] = value;
         }
       }
     }
-    await prisma.serviceOrder.update({ where: { id: parseInt(req.params.id) }, data: updateData as any });
-    res.json({ success: true });
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'Nenhum campo para atualizar' });
+    }
+    const updated = await prisma.serviceOrder.update({ where: { id: parseInt(req.params.id) }, data: updateData as any });
+    info('Ordem de serviço atualizada', { details: { id: updated.id } });
+    res.json({ success: true, data: { ...updated, services: JSON.parse((updated.services as string) || '[]'), partsUsed: JSON.parse((updated.partsUsed as string) || '[]') } });
   } catch (err) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: 'Falha na validação', details: err.issues });
