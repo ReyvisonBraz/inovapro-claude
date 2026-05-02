@@ -122,8 +122,14 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
   const watchedEquipmentBrand = watch('equipmentBrand');
   const watchedArrivalPhoto = watch('arrivalPhotoBase64');
   const watchedPriority = watch('priority');
-  const watchedArrivalPhotosRaw = watch('arrivalPhotoBase64');
-  const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = watchedArrivalPhotosRaw ? JSON.parse(watchedArrivalPhotosRaw) : [];
+const watchedArrivalPhotosRaw = watch('arrivalPhotoBase64');
+const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => {
+  try {
+    return watchedArrivalPhotosRaw ? JSON.parse(watchedArrivalPhotosRaw) : [];
+  } catch {
+    return [];
+  }
+})();
 
   // Estado para pular validação de equipamento
   const [skipEquipmentValidation, setSkipEquipmentValidation] = useState(false);
@@ -317,13 +323,13 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
     // Se skipEquipmentValidation, limpa os campos de equipamento para não salvar dados inválidos
     const orderData = {
       ...data,
-      createdBy: currentUser?.id,
+      ...(editingOrder ? { updatedBy: currentUser?.id } : { createdBy: currentUser?.id }),
       ...(skipEquipmentValidation && {
-        equipmentType: null,
-        equipmentBrand: null,
-        equipmentModel: null,
-        equipmentColor: null,
-        equipmentSerial: null,
+        equipmentType: '',
+        equipmentBrand: '',
+        equipmentModel: '',
+        equipmentColor: '',
+        equipmentSerial: '',
       })
     };
 
