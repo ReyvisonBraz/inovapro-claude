@@ -6,6 +6,11 @@ import { z } from 'zod';
 
 const router = Router();
 
+const safeParseJSON = (str: string | null | undefined, fallback: unknown = []) => {
+  try { return str ? JSON.parse(str) : fallback; }
+  catch { return fallback; }
+};
+
 router.get('/', async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -45,12 +50,36 @@ router.get('/', async (req: Request, res: Response) => {
       firstName: o.customer.firstName,
       lastName: o.customer.lastName,
       phone: o.customer.phone,
-      partsUsed: JSON.parse((o.partsUsed as string) || '[]'),
-      services: JSON.parse((o.services as string) || '[]'),
+      partsUsed: safeParseJSON(o.partsUsed as string, []),
+      services: safeParseJSON(o.services as string, []),
     }));
     res.json({ data, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } });
   } catch (err) {
     error('[SERVICE_ORDERS GET] Erro ao listar ordens de serviço', err);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+router.get('/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const order = await prisma.serviceOrder.findUnique({
+      where: { id },
+      include: { customer: { select: { firstName: true, lastName: true, phone: true } } },
+    });
+    if (!order) {
+      return res.status(404).json({ error: 'Ordem de serviço não encontrada' });
+    }
+    res.json({
+      ...order,
+      firstName: order.customer.firstName,
+      lastName: order.customer.lastName,
+      phone: order.customer.phone,
+      partsUsed: safeParseJSON(order.partsUsed as string, []),
+      services: safeParseJSON(order.services as string, []),
+    });
+  } catch (err) {
+    error('[SERVICE_ORDERS GET/:id] Erro ao buscar OS', err, { details: { id: req.params.id } });
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -111,7 +140,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     }
     const updated = await prisma.serviceOrder.update({ where: { id: parseInt(req.params.id) }, data: updateData as any });
     info('Ordem de serviço atualizada', { details: { id: updated.id } });
-    res.json({ success: true, data: { ...updated, services: JSON.parse((updated.services as string) || '[]'), partsUsed: JSON.parse((updated.partsUsed as string) || '[]') } });
+    res.json({ success: true, data: { ...updated, services: safeParseJSON(updated.services as string, []), partsUsed: safeParseJSON(updated.partsUsed as string, []) } });
   } catch (err) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: 'Falha na validação', details: err.issues });

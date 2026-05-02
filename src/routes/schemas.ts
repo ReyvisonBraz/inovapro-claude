@@ -50,7 +50,7 @@ export const ServiceOrderSchema = z.object({
   equipmentModel: z.string().optional().nullable(),
   equipmentColor: z.string().optional().nullable(),
   equipmentSerial: z.string().optional().nullable(),
-  reportedProblem: z.string().min(1),
+  reportedProblem: z.string().optional().nullable(),
   arrivalPhotoUrl: z.string().optional().nullable(),
   arrivalPhotoBase64: z.string().optional().nullable(),
   status: z.string().optional(),
