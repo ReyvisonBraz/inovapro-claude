@@ -3,21 +3,14 @@ import { z } from 'zod';
 export const customerSchema = z.object({
   firstName: z.string().min(1, 'Nome é obrigatório'),
   lastName: z.string().min(1, 'Sobrenome é obrigatório'),
-  nickname: z.string().optional(),
-  cpf: z.string().optional(),
-  companyName: z.string().optional(),
+  nickname: z.string().optional().nullable(),
+  cpf: z.string().optional().nullable(),
+  companyName: z.string().optional().nullable(),
   phone: z.string().min(10, 'Telefone inválido'),
-  observation: z.string().optional(),
-  creditLimit: z.union([z.string(), z.number()]).optional(),
+  observation: z.string().optional().nullable(),
+  creditLimit: z.coerce.number().nonnegative().optional(),
+  createdBy: z.coerce.number().optional(),
+  updatedBy: z.coerce.number().optional(),
 });
 
-export type CustomerFormData = {
-  firstName: string;
-  lastName: string;
-  nickname?: string;
-  cpf?: string;
-  companyName?: string;
-  phone: string;
-  observation?: string;
-  creditLimit?: string | number;
-};
+export type CustomerFormData = z.infer<typeof customerSchema>;

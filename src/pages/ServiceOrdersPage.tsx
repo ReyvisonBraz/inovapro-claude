@@ -246,7 +246,7 @@ export const ServiceOrdersPage: React.FC = () => {
           companyName: '',
           phone: '',
           observation: '',
-          creditLimit: ''
+          creditLimit: undefined
         });
         setCustomerRegistrationSource('service-orders');
         setIsAddingCustomer(true);

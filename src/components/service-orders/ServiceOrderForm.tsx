@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { FormProvider, useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -12,6 +12,11 @@ import { ServiceOrder, Customer, InventoryItem, ServiceOrderStatus, Brand, Model
 import { cn, formatCurrency } from '../../lib/utils';
 import { CustomerSearchSelect } from '../customers/CustomerSearchSelect';
 import { SearchableSelect } from '../ui/SearchableSelect';
+import { ServicesAndPartsSection } from './form-sections/ServicesAndPartsSection';
+import { EquipmentSection } from './form-sections/EquipmentSection';
+import { CustomerSection } from './form-sections/CustomerSection';
+import { AnalysisSection } from './form-sections/AnalysisSection';
+import { ClosingSection } from './form-sections/ClosingSection';
 import { serviceOrderSchema, ServiceOrderFormData } from '../../schemas/serviceOrderSchema';
 import { format, parseISO } from 'date-fns';
 
@@ -104,11 +109,13 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
     }
   });
 
+  // @ts-ignore - React Hook Form tem problemas com inferência complexa de Zod
   const { fields: serviceFields, append: appendService, remove: removeService } = useFieldArray({
     control,
     name: 'services'
   });
 
+  // @ts-ignore - React Hook Form tem problemas com inferência complexa de Zod
   const { fields: partFields, append: appendPart, remove: removePart, update: updatePart } = useFieldArray({
     control,
     name: 'partsUsed'
@@ -131,6 +138,7 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
   }
 })();
 
+  const [isSimplified, setIsSimplified] = useState(false);
   // Estado para pular validação de equipamento
   const [skipEquipmentValidation, setSkipEquipmentValidation] = useState(false);
 
@@ -257,9 +265,9 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
     }
   }, [editingOrder, reset]);
 
-  const [partSearch, setPartSearch] = useState('');
-  const [isAddingPart, setIsAddingPart] = useState(false);
-  const [isSimplified, setIsSimplified] = useState(false);
+  
+  
+
 
   useEffect(() => {
     if (isSimplified) {
@@ -417,546 +425,51 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
           {/* Modal Body */}
           <div className="p-4 sm:p-6 md:p-8 space-y-6 md:space-y-8 overflow-y-auto flex-1 custom-scrollbar">
             
-            {/* Toggle Simplificado */}
-            <label className="flex items-center gap-4 bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl w-full sm:w-fit cursor-pointer hover:bg-emerald-500/20 transition-colors shadow-lg shadow-emerald-500/5">
-              <div className="relative flex items-center justify-center">
-                <input 
-                  type="checkbox" 
-                  checked={isSimplified} 
-                  onChange={(e) => setIsSimplified(e.target.checked)} 
-                  className="peer appearance-none w-6 h-6 border-2 border-emerald-500/50 rounded-lg checked:bg-emerald-500 checked:border-emerald-500 transition-all"
-                />
-                <Check size={16} className="absolute text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-black text-emerald-400">Preenchimento Simplificado</span>
-                <span className="text-xs font-bold text-slate-400">Torna os detalhes técnicos não obrigatórios</span>
-              </div>
-            </label>
+            {/* Cliente e Data Componentizado */}
+            <CustomerSection 
+              isSimplified={isSimplified}
+              setIsSimplified={setIsSimplified}
+              customers={customers}
+              onTriggerAddCustomer={onTriggerAddCustomer}
+            />
 
-            {/* Cliente e Data */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest text-primary/80 ml-1 flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-lg w-fit mb-2">
-                  <UserIcon size={14} /> Cliente <span className="text-rose-500">*</span>
-                </label>
-                <div className="flex gap-2">
-                  <CustomerSearchSelect 
-                    customers={customers}
-                    selectedId={watchedCustomerId}
-                    onSelect={(id) => setValue('customerId', id)}
-                    className="flex-1"
-                  />
-                  <button 
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onTriggerAddCustomer();
-                    }}
-                    className="h-14 w-14 flex items-center justify-center bg-primary/10 text-primary border border-primary/20 rounded-2xl hover:bg-primary/20 transition-all shadow-lg shadow-primary/5"
-                    title="Adicionar Novo Cliente"
-                  >
-                    <Plus size={20} />
-                  </button>
-                </div>
-                {errors.customerId && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.customerId.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest text-primary/80 ml-1 flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-lg w-fit mb-2">
-                  <Calendar size={14} /> Data de Entrada <span className="text-rose-500">*</span>
-                </label>
-                <input 
-                  type="date"
-                  {...register('entryDate')}
-                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary text-white placeholder:text-slate-500 outline-none transition-all [color-scheme:dark]"
-                />
-                {errors.entryDate && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.entryDate.message}</p>}
-              </div>
-            </div>
+            {/* Equipamento Componentizado */}
+            <EquipmentSection 
+              skipEquipmentValidation={skipEquipmentValidation}
+              setSkipEquipmentValidation={setSkipEquipmentValidation}
+              isSimplified={isSimplified}
+              equipmentTypes={equipmentTypes}
+              brands={brands}
+              models={models}
+              onAddEquipmentType={onAddEquipmentType}
+              onAddBrand={onAddBrand}
+              onAddModel={onAddModel}
+              setQuickAddModal={setQuickAddModal}
+              showToast={showToast}
+              watchedArrivalPhotos={watchedArrivalPhotos}
+              addPhoto={addPhoto}
+              removePhoto={removePhoto}
+            />
 
-            {/* Equipamento */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-1 w-8 bg-indigo-500 rounded-full" />
-                  <h4 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-400">Dados do Equipamento</h4>
-                </div>
-                <label className="flex items-center gap-2 text-xs font-bold text-amber-400 cursor-pointer hover:text-amber-300 transition-colors shrink-0">
-                  <input
-                    type="checkbox"
-                    checked={skipEquipmentValidation}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setSkipEquipmentValidation(checked);
-                      if (checked) {
-                        showToast('Equipamento será ignorado nesta OS', 'warning');
-                        clearErrors(['equipmentType', 'equipmentBrand', 'equipmentModel']);
-                      }
-                    }}
-                    className="w-4 h-4 rounded border-amber-500/50 bg-amber-500/10 text-amber-400 focus:ring-amber-500/20"
-                  />
-                  Pular
-                </label>
-              </div>
-              {skipEquipmentValidation && (
-                <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-300 font-bold">
-                  ⚠️ Modo simplificado ativo - dados do equipamento não serão salvos nesta OS
-                </div>
-              )}
-                <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 ${skipEquipmentValidation ? 'opacity-50 pointer-events-none' : ''}`}>
-                  <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-indigo-400 ml-1 mb-2 block">
-                      Tipo {!isSimplified && <span className="text-rose-500">*</span>}
-                    </label>
-                    <div className="flex gap-2">
-                      <SearchableSelect
-                        options={equipmentTypes.map(t => ({ value: t.name, label: t.name }))}
-                        value={watchedEquipmentType || ''}
-                        onChange={(val) => {
-                          setValue('equipmentType', val as string);
-                          setValue('equipmentBrand', '');
-                          setValue('equipmentModel', '');
-                        }}
-                        placeholder="Selecione o Tipo"
-                        onAdd={(val) => onAddEquipmentType(val)}
-                        className="h-12 flex-1"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setQuickAddModal({ isOpen: true, type: 'type', title: 'Novo Tipo de Equipamento', placeholder: 'Ex: Notebook, Smartphone...', value: '' })}
-                        className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-primary/10 text-primary border border-primary/20 rounded-xl hover:bg-primary/20 transition-all shadow-lg shadow-primary/5"
-                        title="Adicionar Novo Tipo"
-                      >
-                        <Plus size={18} />
-                      </button>
-                    </div>
-                    {errors.equipmentType && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.equipmentType.message}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-black uppercase tracking-widest text-indigo-400 ml-1">
-                        Marca {!isSimplified && <span className="text-rose-500">*</span>}
-                      </label>
-                    </div>
-                    <div className="flex gap-2">
-                      <SearchableSelect
-                        options={brands
-                          .filter(b => !watchedEquipmentType || b.equipmentType === watchedEquipmentType)
-                          .map(b => ({ value: b.name, label: b.name }))}
-                        value={watchedEquipmentBrand || ''}
-                        onChange={(val) => {
-                          setValue('equipmentBrand', val as string);
-                          setValue('equipmentModel', '');
-                        }}
-                        placeholder="Selecione a Marca"
-                        onAdd={(val) => onAddBrand(val, watchedEquipmentType || '')}
-                        disabled={!watchedEquipmentType}
-                        className="h-12 flex-1"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!watchedEquipmentType) {
-                            showToast('Selecione um tipo primeiro!', 'error');
-                            return;
-                          }
-                          setQuickAddModal({ isOpen: true, type: 'brand', title: 'Nova Marca', placeholder: 'Ex: Samsung, Apple...', value: '' });
-                        }}
-                        disabled={!watchedEquipmentType}
-                        className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-primary/10 text-primary border border-primary/20 rounded-xl hover:bg-primary/20 transition-all shadow-lg shadow-primary/5 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Adicionar Nova Marca"
-                      >
-                        <Plus size={18} />
-                      </button>
-                    </div>
-                    {errors.equipmentBrand && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.equipmentBrand.message}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-black uppercase tracking-widest text-indigo-400 ml-1">
-                        Modelo {!isSimplified && <span className="text-rose-500">*</span>}
-                      </label>
-                    </div>
-                    <div className="flex gap-2">
-                      <SearchableSelect
-                        options={models
-                          .filter(m => {
-                            const brand = brands.find(b => b.name === watchedEquipmentBrand);
-                            return brand ? m.brandId === brand.id : false;
-                          })
-                          .map(m => ({ value: m.name, label: m.name }))}
-                        value={watch('equipmentModel') || ''}
-                        onChange={(val) => setValue('equipmentModel', val as string)}
-                        placeholder="Selecione o Modelo"
-                        onAdd={(val) => {
-                          const brand = brands.find(b => b.name === watchedEquipmentBrand);
-                          if (brand) {
-                            onAddModel(brand.id, val);
-                          } else {
-                            showToast('Selecione uma marca primeiro!', 'error');
-                          }
-                        }}
-                        disabled={!watchedEquipmentBrand}
-                        className="h-12 flex-1"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!watchedEquipmentBrand) {
-                            showToast('Selecione uma marca primeiro!', 'error');
-                            return;
-                          }
-                          setQuickAddModal({ isOpen: true, type: 'model', title: 'Novo Modelo', placeholder: 'Ex: Galaxy S23, iPhone 15...', value: '' });
-                        }}
-                        disabled={!watchedEquipmentBrand}
-                        className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-primary/10 text-primary border border-primary/20 rounded-xl hover:bg-primary/20 transition-all shadow-lg shadow-primary/5 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Adicionar Novo Modelo"
-                      >
-                        <Plus size={18} />
-                      </button>
-                    </div>
-                    {errors.equipmentModel && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.equipmentModel.message}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-purple-400 ml-1">Cor do Equipamento</label>
-                    <input 
-                      {...register('equipmentColor')}
-                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary text-slate-200 placeholder:text-slate-500 outline-none transition-all"
-                      placeholder="Ex: Preto, Prata, Azul"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-purple-400 ml-1">Nº de Série</label>
-                    <input 
-                      {...register('equipmentSerial')}
-                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary text-slate-200 outline-none transition-all"
-                      placeholder="Opcional"
-                    />
-                  </div>
-                </div>
-            </div>
+            {/* Problema e Análise Componentizado */}
+            <AnalysisSection 
+              isSimplified={isSimplified}
+              statuses={statuses}
+            />
 
-            {/* Especificações e Senha */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-pink-400 ml-1 flex items-center gap-2">
-                  <Cpu size={12} /> RAM
-                </label>
-                <input 
-                  {...register('ramInfo')}
-                  className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-pink-500 text-slate-200 outline-none transition-all"
-                  placeholder="Ex: 8GB DDR4"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-pink-400 ml-1 flex items-center gap-2">
-                  <HardDrive size={12} /> SSD/HD
-                </label>
-                <input 
-                  {...register('ssdInfo')}
-                  className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-pink-500 text-slate-200 outline-none transition-all"
-                  placeholder="Ex: 240GB SSD"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-pink-400 ml-1 flex items-center gap-2">
-                  <Lock size={12} /> Senha do Equipamento
-                </label>
-                <input 
-                  {...register('customerPassword')}
-                  className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-pink-500 text-slate-200 outline-none transition-all"
-                  placeholder="Opcional"
-                />
-              </div>
-            </div>
-
-            {/* Acessórios */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">Acessórios Inclusos</label>
-              <input 
-                {...register('accessories')}
-                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary text-slate-200 outline-none transition-all"
-                placeholder="Ex: Carregador, Capa, Cabo USB..."
-              />
-            </div>
-
-            {/* Foto de Entrada */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="h-1 w-8 bg-primary rounded-full" />
-                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Fotos do Equipamento ({watchedArrivalPhotos.length}/3)</h4>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {watchedArrivalPhotos.map((photo, index) => (
-                  <div key={index} className="relative aspect-video rounded-2xl overflow-hidden border-2 border-primary/30">
-                    <img src={photo.base64} alt={`Foto ${index + 1}`} className="w-full h-full object-cover" />
-                    <div className="absolute top-2 left-2 bg-primary/80 text-white text-xs px-2 py-1 rounded-lg font-bold">
-                      {index + 1}
-                    </div>
-                    <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-lg">
-                      {format(new Date(photo.timestamp), 'HH:mm')}
-                    </div>
-                    <button 
-                      onClick={() => removePhoto(index)}
-                      className="absolute top-2 right-2 p-2 bg-rose-500 text-white rounded-xl shadow-lg hover:scale-110 transition-all"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-                {watchedArrivalPhotos.length < 3 && (
-                  <label className="cursor-pointer flex flex-col items-center justify-center aspect-video border-2 border-dashed border-white/20 rounded-2xl bg-white/5 hover:bg-white/10 transition-all">
-                    <div className="p-3 bg-primary/10 text-primary rounded-xl group-hover:scale-110 transition-all">
-                      <Camera size={24} />
-                    </div>
-                    <p className="text-xs text-slate-400 mt-2">Adicionar foto</p>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      capture="environment"
-                      className="hidden" 
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) addPhoto(file);
-                      }}
-                    />
-                  </label>
-                )}
-              </div>
-            </div>
-
-            {/* Problema e Análise */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-rose-500 ml-1 flex items-center gap-2 bg-rose-500/5 px-2 py-1 rounded-md w-fit mb-1">
-                  <AlertCircle size={12} /> Problema Relatado {!isSimplified && <span className="text-rose-500">*</span>}
-                </label>
-                <textarea 
-                  {...register('reportedProblem')}
-                  className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all resize-none"
-                  placeholder="Descreva o defeito informado pelo cliente..."
-                />
-                {errors.reportedProblem && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.reportedProblem.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-amber-500 ml-1 flex items-center gap-2 bg-amber-500/5 px-2 py-1 rounded-md w-fit mb-1">
-                  <ClipboardList size={12} /> Análise Técnica
-                </label>
-                <textarea 
-                  {...register('technicalAnalysis')}
-                  className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all resize-none"
-                  placeholder="Diagnóstico técnico inicial..."
-                />
-              </div>
-            </div>
-
-            {/* Status e Prioridade */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">Status Atual</label>
-                <select 
-                  {...register('status')}
-                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900 transition-all"
-                >
-                  {statuses.map(s => (
-                    <option key={s.id} value={s.name}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">Prioridade</label>
-                <div className="flex gap-2">
-                  {(['low', 'medium', 'high'] as const).map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setValue('priority', p)}
-                      className={cn(
-                        "flex-1 h-14 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all",
-                        watchedPriority === p 
-                          ? p === 'high' ? "bg-rose-500/10 text-rose-500 border-rose-500/20 shadow-lg shadow-rose-500/5" : 
-                            p === 'medium' ? "bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-lg shadow-amber-500/5" :
-                            "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-lg shadow-emerald-500/5"
-                          : "bg-white/5 text-slate-500 border-transparent hover:bg-white/10"
-                      )}
-                    >
-                      {p === 'low' ? 'Baixa' : p === 'medium' ? 'Normal' : 'Alta'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Serviços e Peças */}
-            <div className="space-y-4 pt-6 border-t border-white/5">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <div className="h-1 w-8 bg-primary rounded-full" />
-                  <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                    <Wrench size={12} /> Serviços e Peças
-                  </h4>
-                </div>
-                <div className="flex gap-2">
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      const name = prompt('Nome do serviço:');
-                      const price = parseFloat(prompt('Preço do serviço:') || '0');
-                      if (name && !isNaN(price)) {
-                        appendService({ name, price });
-                      }
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl text-xs font-black uppercase tracking-widest border border-primary/20 hover:bg-primary/20 transition-all"
-                  >
-                    <Plus size={14} /> Serviço
-                  </button>
-                  <button 
-                    onClick={() => setIsAddingPart(!isAddingPart)}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-500 rounded-xl text-xs font-black uppercase tracking-widest border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
-                  >
-                    {isAddingPart ? <X size={14} /> : <Plus size={14} />}
-                    Peça
-                  </button>
-                </div>
-              </div>
-
-              {/* Services List */}
-              <div className="space-y-3">
-                {serviceFields.map((field, idx) => (
-                  <div key={field.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 group hover:border-primary/20 transition-all">
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-slate-200">{watchedServices[idx].name}</p>
-                      <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Mão de Obra</p>
-                    </div>
-                    <div className="flex items-center gap-6">
-                      <span className="text-sm font-black text-primary w-24 text-right">{formatCurrency(watchedServices[idx].price)}</span>
-                      <button 
-                        type="button"
-                        onClick={() => removeService(idx)}
-                        className="p-2 rounded-xl text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {isAddingPart && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-3 p-6 rounded-3xl bg-white/5 border border-white/10 shadow-xl"
-                >
-                  <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                    <input 
-                      value={partSearch}
-                      onChange={(e) => setPartSearch(e.target.value)}
-                      placeholder="Buscar no inventário..."
-                      className="w-full h-12 pl-12 pr-4 bg-white/5 border border-white/10 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary transition-all"
-                    />
-                  </div>
-                  <div className="max-h-[200px] overflow-y-auto space-y-1 pr-2 custom-scrollbar">
-                    {inventoryItems
-                      .filter(item => item.name.toLowerCase().includes(partSearch.toLowerCase()) && item.category === 'product')
-                      .map(item => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => {
-                            const existingIdx = watchedParts.findIndex(p => p.id === item.id);
-                            if (existingIdx !== -1) {
-                              const p = watchedParts[existingIdx];
-                              updatePart(existingIdx, {
-                                ...p,
-                                quantity: p.quantity + 1,
-                                subtotal: (p.quantity + 1) * p.unitPrice
-                              });
-                            } else {
-                              appendPart({ 
-                                id: item.id, 
-                                name: item.name, 
-                                quantity: 1, 
-                                unitPrice: item.unitPrice, 
-                                subtotal: item.unitPrice 
-                              });
-                            }
-                            setPartSearch('');
-                          }}
-                          className="w-full flex justify-between items-center p-3 rounded-xl hover:bg-white/5 text-left transition-all group border border-transparent hover:border-white/5"
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-sm font-bold text-slate-200">{item.name}</span>
-                            <span className="text-xs text-slate-500 font-bold uppercase tracking-widest">Estoque: {item.stockLevel}</span>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <span className="text-sm font-black text-primary">{formatCurrency(item.unitPrice)}</span>
-                            <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all">
-                              <Plus size={16} />
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                  </div>
-                </motion.div>
-              )}
-
-              <div className="space-y-3">
-                {partFields.map((field, idx) => (
-                  <div key={field.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 group hover:border-primary/20 transition-all gap-4 sm:gap-0">
-                    <div className="flex-1 w-full">
-                      <p className="text-sm font-bold text-slate-200 truncate">{watchedParts[idx].name}</p>
-                      <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">{formatCurrency(watchedParts[idx].unitPrice)} x {watchedParts[idx].quantity}</p>
-                    </div>
-                    <div className="flex items-center justify-between w-full sm:w-auto gap-4 sm:gap-6">
-                      <div className="flex items-center gap-3 bg-white/5 p-1 rounded-xl border border-white/10">
-                        <button 
-                          type="button"
-                          onClick={() => {
-                            if (watchedParts[idx].quantity > 1) {
-                              const p = watchedParts[idx];
-                              updatePart(idx, {
-                                ...p,
-                                quantity: p.quantity - 1,
-                                subtotal: (p.quantity - 1) * p.unitPrice
-                              });
-                            }
-                          }}
-                          className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
-                        >
-                          <ChevronDown size={16} />
-                        </button>
-                        <span className="text-sm font-black w-6 text-center">{watchedParts[idx].quantity}</span>
-                        <button 
-                          type="button"
-                          onClick={() => {
-                            const p = watchedParts[idx];
-                            updatePart(idx, {
-                              ...p,
-                              quantity: p.quantity + 1,
-                              subtotal: (p.quantity + 1) * p.unitPrice
-                            });
-                          }}
-                          className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
-                        >
-                          <ChevronUp size={16} />
-                        </button>
-                      </div>
-                      <span className="text-sm font-black text-slate-300 w-24 text-right">{formatCurrency(watchedParts[idx].subtotal)}</span>
-                      <button 
-                        type="button"
-                        onClick={() => removePart(idx)}
-                        className="p-2 rounded-xl text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Serviços e Peças Componentizado */}
+            <ServicesAndPartsSection 
+              inventoryItems={inventoryItems}
+              serviceFields={serviceFields}
+              watchedServices={watchedServices}
+              appendService={appendService}
+              removeService={removeService}
+              partFields={partFields}
+              watchedParts={watchedParts}
+              appendPart={appendPart}
+              removePart={removePart}
+              updatePart={updatePart}
+            />
 
             {/* Seção de Fechamento (Apenas Edição) */}
             {editingOrder && (

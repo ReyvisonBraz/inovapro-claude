@@ -9,16 +9,9 @@ interface NewTxForm {
   date: string;
 }
 
-interface NewCustomerForm {
-  firstName: string;
-  lastName: string;
-  nickname: string;
-  cpf: string;
-  companyName: string;
-  phone: string;
-  observation: string;
-  creditLimit: string;
-}
+import { CustomerFormData } from '../schemas/customerSchema';
+
+interface NewCustomerForm extends CustomerFormData {}
 
 interface NewClientPaymentForm {
   customerId: number;
@@ -70,7 +63,7 @@ export const useFormStore = create<FormState>((set) => ({
     companyName: '',
     phone: '+55',
     observation: '',
-    creditLimit: ''
+    creditLimit: undefined
   },
   setNewCustomer: (customer) => set((state) => ({ newCustomer: { ...state.newCustomer, ...customer } })),
 

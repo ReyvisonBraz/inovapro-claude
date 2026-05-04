@@ -73,16 +73,6 @@ export const CustomersPage: React.FC = () => {
       }}
       onEdit={(customer) => {
         setEditingCustomer(customer);
-        setNewCustomer({
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-          nickname: customer.nickname || '',
-          cpf: customer.cpf || '',
-          companyName: customer.companyName || '',
-          phone: customer.phone,
-          observation: customer.observation || '',
-          creditLimit: customer.creditLimit?.toString() || ''
-        });
         setIsAddingCustomer(true);
       }}
       onPageChange={setCustomersPage}

@@ -17,6 +17,7 @@ import { useAuth } from '../../hooks/useAuth';
 
 // Modals
 import { CustomerModal } from '../customers/modals/CustomerModal';
+import { CustomerFormData } from '../../schemas/customerSchema';
 import { CustomerWarningModal } from '../customers/modals/CustomerWarningModal';
 import { CustomerSuccessModal } from '../customers/modals/CustomerSuccessModal';
 import { CustomerDeleteWarningModal } from '../customers/modals/CustomerDeleteWarningModal';
@@ -74,7 +75,7 @@ export const GlobalModals: React.FC = () => {
   const { serviceOrders } = useServiceOrders();
   const { fetchAuditLogs } = useAuditLogs();
 
-  const handleAddCustomer = async (formData: any, force: boolean = false) => {
+  const handleAddCustomer = async (formData: CustomerFormData, force: boolean = false) => {
     // Validação de avisos
     if (!force && settings.showWarnings) {
       const hasSimilarCpf = customers.data.some((c: any) => c.cpf === formData.cpf && c.cpf !== '');

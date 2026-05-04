@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { prisma } from '../lib/prisma.js';
 import { TransactionSchema } from './schemas.js';
 import { error, info } from '../lib/server-logger.js';
 import { z } from 'zod';
+import { transactionService } from '../services/transaction.service.js';
 
 const router = Router();
 
@@ -17,27 +17,12 @@ router.get('/', async (req: Request, res: Response) => {
     const endDate = req.query.endDate as string;
     const minAmount = parseFloat(req.query.minAmount as string);
     const maxAmount = parseFloat(req.query.maxAmount as string);
-    const where: Record<string, unknown> = {};
-    if (search) {
-      where.OR = [
-        { description: { contains: search, mode: 'insensitive' } },
-        { category: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-    if (type && type !== 'all') where.type = type;
-    if (category && category !== 'all') where.category = category;
-    if (startDate) where.date = { ...(where.date as object || {}), gte: startDate };
-    if (endDate) where.date = { ...(where.date as object || {}), lte: endDate };
-    if (!isNaN(minAmount)) where.amount = { ...(where.amount as object || {}), gte: minAmount };
-    if (!isNaN(maxAmount)) where.amount = { ...(where.amount as object || {}), lte: maxAmount };
-    const [transactions, total] = await Promise.all([
-      prisma.transaction.findMany({
-        where, skip: (page - 1) * limit, take: limit,
-        orderBy: [{ date: 'desc' }, { id: 'desc' }],
-      }),
-      prisma.transaction.count({ where }),
-    ]);
-    res.json({ data: transactions, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } });
+
+    const result = await transactionService.findMany({
+      page, limit, search, type, category, startDate, endDate, minAmount, maxAmount
+    });
+
+    res.json(result);
   } catch (err) {
     error('[TRANSACTIONS GET] Erro ao listar transações', err);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -47,25 +32,9 @@ router.get('/', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   try {
     const validatedData = TransactionSchema.parse(req.body);
-    const { description, category, type, amount, date, createdBy, customerId, customerName, customerPhone } = validatedData;
-    let finalCustomerId = customerId;
-    let finalCustomerName = customerName;
-    let finalCustomerPhone = customerPhone;
-    if (customerId && !customerName) {
-      const customer = await prisma.customer.findUnique({ where: { id: customerId } });
-      if (customer) {
-        finalCustomerName = `${customer.firstName} ${customer.lastName}`;
-        finalCustomerPhone = customer.phone;
-      }
-    }
-    const transaction = await prisma.transaction.create({
-      data: {
-        description, category, type, amount, date,
-        createdBy: createdBy || 1,
-        customerId: finalCustomerId, customerName: finalCustomerName, customerPhone: finalCustomerPhone,
-      },
-    });
-    info('Transação criada', { details: { id: transaction.id, description, type, amount, date } });
+    const transaction = await transactionService.create(validatedData as any);
+    
+    info('Transação criada', { details: { id: transaction.id, description: transaction.description, type: transaction.type, amount: transaction.amount, date: transaction.date } });
     res.json({ id: transaction.id });
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -78,12 +47,11 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.put('/:id', async (req: Request, res: Response) => {
   try {
+    const id = parseInt(req.params.id);
     const validatedData = TransactionSchema.parse(req.body);
-    const { description, category, type, amount, date, updatedBy } = validatedData;
-    await prisma.transaction.update({
-      where: { id: parseInt(req.params.id) },
-      data: { description: description || 'Sem descrição', category, type, amount, date, updatedBy: updatedBy || 1 },
-    });
+    
+    await transactionService.update(id, validatedData as any);
+    
     res.json({ success: true });
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -97,19 +65,8 @@ router.put('/:id', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const txId = parseInt(req.params.id);
-    const tx = await prisma.transaction.findUnique({ where: { id: txId } });
-    if (tx?.paymentId) {
-      const payment = await prisma.clientPayment.findUnique({ where: { id: tx.paymentId } });
-      if (payment) {
-        const newPaidAmount = Math.max(0, payment.paidAmount - tx.amount);
-        const newStatus = newPaidAmount >= payment.totalAmount ? 'paid' : 'pending';
-        await prisma.clientPayment.update({
-          where: { id: tx.paymentId },
-          data: { paidAmount: newPaidAmount, status: newStatus },
-        });
-      }
-    }
-    await prisma.transaction.delete({ where: { id: txId } });
+    const tx = await transactionService.delete(txId);
+    
     info('Transação excluída', { details: { id: txId, paymentId: tx?.paymentId } });
     res.json({ success: true });
   } catch (err) {
