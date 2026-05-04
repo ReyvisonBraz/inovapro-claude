@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "tsx server.ts",
-    "dev": "npm run dev:api & npm run dev:frontend",
+    "dev": "npx concurrently \"npm run dev:api\" \"npm run dev:frontend\"",
     "dev:api": "tsx server.ts",
     "dev:frontend": "vite --port 5173",
     "start:sqlite": "tsx server.sqlite.backup.ts",
