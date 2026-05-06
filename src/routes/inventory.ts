@@ -17,13 +17,23 @@ router.get('/', async (_req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   try {
     const { name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, createdBy } = req.body;
-    const finalUnitPrice = unitPrice !== undefined ? unitPrice : (salePrice || 0);
-    const finalStockLevel = stockLevel !== undefined ? stockLevel : (quantity || 0);
+    const pCostPrice = isNaN(parseFloat(costPrice)) ? 0 : parseFloat(costPrice);
+    const pUnitPrice = unitPrice !== undefined && unitPrice !== '' ? parseFloat(unitPrice) : (isNaN(parseFloat(salePrice)) ? 0 : parseFloat(salePrice));
+    const pStockLevel = stockLevel !== undefined && stockLevel !== '' ? parseInt(stockLevel) : (isNaN(parseInt(quantity)) ? 0 : parseInt(quantity));
+    const pMinQuantity = isNaN(parseInt(minQuantity)) ? 5 : parseInt(minQuantity);
+
     const item = await prisma.inventoryItem.create({
       data: {
-        name, category, sku, costPrice: costPrice || 0, salePrice: finalUnitPrice,
-        quantity: finalStockLevel, minQuantity: minQuantity || 5, unitPrice: finalUnitPrice,
-        stockLevel: finalStockLevel, createdBy: createdBy || 1,
+        name, 
+        category, 
+        sku: sku || null, 
+        costPrice: pCostPrice, 
+        salePrice: pUnitPrice,
+        quantity: pStockLevel, 
+        minQuantity: pMinQuantity, 
+        unitPrice: pUnitPrice,
+        stockLevel: pStockLevel, 
+        createdBy: parseInt(createdBy) || 1,
       },
     });
     info('Item de inventário criado', { details: { id: item.id, name } });
@@ -37,14 +47,24 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, updatedBy } = req.body;
-    const finalUnitPrice = unitPrice !== undefined ? unitPrice : (salePrice || 0);
-    const finalStockLevel = stockLevel !== undefined ? stockLevel : (quantity || 0);
+    const pCostPrice = isNaN(parseFloat(costPrice)) ? 0 : parseFloat(costPrice);
+    const pUnitPrice = unitPrice !== undefined && unitPrice !== '' ? parseFloat(unitPrice) : (isNaN(parseFloat(salePrice)) ? 0 : parseFloat(salePrice));
+    const pStockLevel = stockLevel !== undefined && stockLevel !== '' ? parseInt(stockLevel) : (isNaN(parseInt(quantity)) ? 0 : parseInt(quantity));
+    const pMinQuantity = isNaN(parseInt(minQuantity)) ? 5 : parseInt(minQuantity);
+
     await prisma.inventoryItem.update({
       where: { id: parseInt(req.params.id) },
       data: {
-        name, category, sku, costPrice: costPrice || 0, salePrice: finalUnitPrice,
-        quantity: finalStockLevel, minQuantity: minQuantity || 5, unitPrice: finalUnitPrice,
-        stockLevel: finalStockLevel, updatedBy: updatedBy || 1,
+        name, 
+        category, 
+        sku: sku || null, 
+        costPrice: pCostPrice, 
+        salePrice: pUnitPrice,
+        quantity: pStockLevel, 
+        minQuantity: pMinQuantity, 
+        unitPrice: pUnitPrice,
+        stockLevel: pStockLevel, 
+        updatedBy: parseInt(updatedBy) || 1,
       },
     });
     res.json({ success: true });

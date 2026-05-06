@@ -92,7 +92,7 @@ export function CustomerSearchSelect({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute top-full left-0 right-0 mt-2 z-[100] bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-80"
+            className="absolute top-full left-0 right-0 mt-2 z-[100] bg-[#0a0f18] border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-80"
           >
             <div className="p-3 border-b border-white/5">
               <div className="relative">

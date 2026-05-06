@@ -71,18 +71,8 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
   setShowQRCodeModal,
   onGeneratePayment
 }) => {
-  const {
-    register,
-    handleSubmit,
-    control,
-    setValue,
-    watch,
-    reset,
-    setError,
-    clearErrors,
-    formState: { errors }
-  } = useForm<ServiceOrderFormData>({
-    resolver: zodResolver(serviceOrderSchema),
+  const methods = useForm<ServiceOrderFormData>({
+    resolver: zodResolver(serviceOrderSchema) as any,
     defaultValues: {
       customerId: 0,
       entryDate: format(new Date(), 'yyyy-MM-dd'),
@@ -108,6 +98,18 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
       partsUsed: [],
     }
   });
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    reset,
+    setError,
+    clearErrors,
+    formState: { errors }
+  } = methods;
 
   // @ts-ignore - React Hook Form tem problemas com inferência complexa de Zod
   const { fields: serviceFields, append: appendService, remove: removeService } = useFieldArray({
@@ -396,7 +398,7 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
   };
 
   return (
-    <>
+    <FormProvider {...methods}>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <motion.div 
           initial={{ opacity: 0 }}
@@ -409,7 +411,7 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-3xl glass-modal p-0 max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border-white/10"
+          className="relative w-full max-w-5xl glass-modal p-0 max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border-white/10"
         >
           {/* Modal Header */}
           <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
@@ -556,7 +558,7 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
             </button>
             <button 
               type="button"
-              onClick={handleSubmit(onFormSubmit)}
+              onClick={handleSubmit(onFormSubmit as any)}
               className="flex-[2] h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-primary text-white font-black shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 order-1 sm:order-2"
             >
               <Check size={20} />
@@ -610,6 +612,6 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
           </div>
         )}
       </AnimatePresence>
-    </>
+    </FormProvider>
   );
 };

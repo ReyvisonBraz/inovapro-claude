@@ -15,6 +15,17 @@ import { useToast } from '../ui/Toast';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useAuthStore } from '../../store/useAuthStore';
 
+const AVAILABLE_PERMISSIONS = [
+  { id: 'view_dashboard', label: 'Ver Início/Dashboard' },
+  { id: 'manage_transactions', label: 'Gerenciar Transações (Fluxo)' },
+  { id: 'manage_payments', label: 'Vendas e Pagamentos' },
+  { id: 'manage_service_orders', label: 'Ordens de Serviço' },
+  { id: 'manage_customers', label: 'Clientes' },
+  { id: 'manage_inventory', label: 'Estoque' },
+  { id: 'view_reports', label: 'Relatórios' },
+  { id: 'manage_settings', label: 'Configurações' },
+];
+
 interface SettingsProps {
   settings: AppSettings;
   onUpdateSettings: (settings: Partial<AppSettings>) => void;
@@ -92,10 +103,14 @@ const Settings: React.FC<SettingsProps> = ({
   ];
 
   const handleUpdatePassword = () => {
+    if (!localPassword) {
+      showToast('Digite uma nova senha para atualizar', 'warning');
+      return;
+    }
     onUpdateSettings({ settingsPassword: localPassword });
+    setLocalPassword(''); // limpa
     showToast('Senha de configurações atualizada!', 'success');
   };
-
 
   const handleSaveUser = () => {
     if (!userForm.username || !userForm.name || (!editingUser && !userForm.password)) {
@@ -298,8 +313,8 @@ const Settings: React.FC<SettingsProps> = ({
                       type="password"
                       value={settings.sendPulseClientSecret || ''}
                       onChange={(e) => onUpdateSettings({ sendPulseClientSecret: e.target.value })}
-                      placeholder="Seu Client Secret da SendPulse"
-                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
+                      placeholder="Nova Chave Secreta (Deixe em branco para manter a atual)"
+                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none placeholder:text-slate-600"
                     />
                   </div>
                   <div className="space-y-2">
@@ -312,10 +327,10 @@ const Settings: React.FC<SettingsProps> = ({
                     />
                   </div>
                   <button 
-                    onClick={() => showToast('Configurações de WhatsApp salvas!', 'success')}
-                    className="w-full h-12 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all"
+                    onClick={() => showToast('Configurações salvas automaticamente.', 'info')}
+                    className="w-full h-12 bg-white/5 text-slate-300 rounded-xl font-bold hover:bg-white/10 transition-all border border-white/10"
                   >
-                    Salvar Configurações API
+                    As alterações são salvas automaticamente
                   </button>
                 </div>
               </div>
@@ -383,8 +398,34 @@ const Settings: React.FC<SettingsProps> = ({
                           <option value="owner">Proprietário</option>
                         </select>
                       </div>
+                      
+                      {userForm.role !== 'owner' && (
+                        <div className="md:col-span-2 space-y-3 mt-2">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Permissões de Acesso</label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {AVAILABLE_PERMISSIONS.map(perm => (
+                              <label key={perm.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+                                <input 
+                                  type="checkbox"
+                                  checked={userForm.permissions?.includes(perm.id) || false}
+                                  onChange={(e) => {
+                                    const currentPerms = userForm.permissions || [];
+                                    if (e.target.checked) {
+                                      setUserForm({...userForm, permissions: [...currentPerms, perm.id]});
+                                    } else {
+                                      setUserForm({...userForm, permissions: currentPerms.filter(p => p !== perm.id)});
+                                    }
+                                  }}
+                                  className="w-4 h-4 rounded bg-white/10 border-white/20 text-primary focus:ring-primary focus:ring-offset-slate-900"
+                                />
+                                <span className="text-sm font-bold text-slate-300">{perm.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex gap-3 pt-2">
+                    <div className="flex gap-3 pt-4 border-t border-white/5">
                       <button 
                         onClick={() => setIsAddingUser(false)}
                         className="flex-1 h-12 rounded-xl font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
@@ -409,7 +450,9 @@ const Settings: React.FC<SettingsProps> = ({
                           </div>
                           <div>
                             <p className="text-sm font-bold">{user.name}</p>
-                            <p className="text-xs text-slate-500">{user.username} • {user.role}</p>
+                            <p className="text-xs text-slate-500">
+                              {user.username} • {user.role === 'owner' ? 'Proprietário' : user.role === 'manager' ? 'Gerente' : 'Funcionário'}
+                            </p>
                           </div>
                         </div>
                         <div className="flex gap-2">
@@ -455,8 +498,8 @@ const Settings: React.FC<SettingsProps> = ({
                         type="password"
                         value={localPassword}
                         onChange={(e) => setLocalPassword(e.target.value)}
-                        className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
-                        placeholder="Nova senha..."
+                        className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none placeholder:text-slate-600"
+                        placeholder="Digite a nova senha de acesso (Mínimo 4 caracteres)"
                       />
                     </div>
                     <button 

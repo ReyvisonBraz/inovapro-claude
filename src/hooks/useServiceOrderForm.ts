@@ -66,6 +66,7 @@ export const useServiceOrderForm = ({
   useEffect(() => {
     if (newServiceOrder && isAdding && !editingOrder) {
       setNewOrder(prev => ({
+        ...(prev as any),
         ...prev,
         customerId: newServiceOrder.customerId || prev.customerId,
         equipmentType: newServiceOrder.equipmentType || prev.equipmentType,

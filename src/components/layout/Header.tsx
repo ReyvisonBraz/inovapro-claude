@@ -113,7 +113,7 @@ export const Header = () => {
                 companyName: '',
                 phone: '',
                 observation: '',
-                creditLimit: ''
+                creditLimit: undefined
               });
               setCustomerRegistrationSource('customers');
               setIsAddingCustomer(true);

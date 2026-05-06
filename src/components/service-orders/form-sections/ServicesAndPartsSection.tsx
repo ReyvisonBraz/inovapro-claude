@@ -3,6 +3,9 @@ import { motion } from 'motion/react';
 import { Wrench, Plus, X, Search, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { InventoryItem } from '../../../types';
 import { formatCurrency } from '../../../lib/utils';
+import { ProductModal } from '../../inventory/modals/ProductModal';
+import { useInventory } from '../../../hooks/useInventory';
+import { useToast } from '../../ui/Toast';
 
 interface ServicesAndPartsSectionProps {
   inventoryItems: InventoryItem[];
@@ -31,6 +34,11 @@ export const ServicesAndPartsSection: React.FC<ServicesAndPartsSectionProps> = (
 }) => {
   const [partSearch, setPartSearch] = useState('');
   const [isAddingPart, setIsAddingPart] = useState(false);
+  const [serviceSearch, setServiceSearch] = useState('');
+  const [isAddingService, setIsAddingService] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
+  const { showToast } = useToast();
+  const { saveInventoryItemAPI } = useInventory(showToast);
 
   return (
     <div className="space-y-4 pt-6 border-t border-white/5">
@@ -43,20 +51,21 @@ export const ServicesAndPartsSection: React.FC<ServicesAndPartsSectionProps> = (
         </div>
         <div className="flex gap-2">
           <button 
-            type="button"
             onClick={() => {
-              const name = prompt('Nome do serviço:');
-              const price = parseFloat(prompt('Preço do serviço:') || '0');
-              if (name && !isNaN(price)) {
-                appendService({ name, price });
-              }
+              setIsAddingService(!isAddingService);
+              setIsAddingPart(false);
             }}
+            type="button"
             className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl text-xs font-black uppercase tracking-widest border border-primary/20 hover:bg-primary/20 transition-all"
           >
-            <Plus size={14} /> Serviço
+            {isAddingService ? <X size={14} /> : <Plus size={14} />}
+            Serviço
           </button>
           <button 
-            onClick={() => setIsAddingPart(!isAddingPart)}
+            onClick={() => {
+              setIsAddingPart(!isAddingPart);
+              setIsAddingService(false);
+            }}
             type="button"
             className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-500 rounded-xl text-xs font-black uppercase tracking-widest border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
           >
@@ -88,6 +97,66 @@ export const ServicesAndPartsSection: React.FC<ServicesAndPartsSectionProps> = (
         ))}
       </div>
 
+      {isAddingService && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-3 p-6 rounded-3xl bg-white/5 border border-white/10 shadow-xl mb-4"
+        >
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <input 
+              value={serviceSearch}
+              onChange={(e) => setServiceSearch(e.target.value)}
+              placeholder="Buscar serviço no catálogo..."
+              className="w-full h-12 pl-12 pr-4 bg-white/5 border border-white/10 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary transition-all"
+            />
+          </div>
+          <div className="max-h-[200px] overflow-y-auto space-y-1 pr-2 custom-scrollbar">
+            {inventoryItems
+              .filter(item => item.name.toLowerCase().includes(serviceSearch.toLowerCase()) && item.category === 'service')
+              .length === 0 ? (
+                <div className="p-4 text-center">
+                  <p className="text-xs text-slate-500 mb-2">Nenhum serviço encontrado</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowProductModal(true)}
+                    className="flex items-center justify-center gap-2 w-full py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20 transition-all"
+                  >
+                    <Plus size={14} /> Cadastrar "{serviceSearch}"
+                  </button>
+                </div>
+              ) : (
+              inventoryItems
+                .filter(item => item.name.toLowerCase().includes(serviceSearch.toLowerCase()) && item.category === 'service')
+                .map(item => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    appendService({ name: item.name, price: item.unitPrice });
+                    setServiceSearch('');
+                    setIsAddingService(false);
+                  }}
+                  className="w-full flex justify-between items-center p-3 rounded-xl hover:bg-white/5 text-left transition-all group border border-transparent hover:border-white/5"
+                >
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-slate-200">{item.name}</span>
+                    <span className="text-xs text-slate-500 font-bold uppercase tracking-widest">Mão de Obra</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm font-black text-primary">{formatCurrency(item.unitPrice)}</span>
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all">
+                      <Plus size={16} />
+                    </div>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </motion.div>
+      )}
+
       {isAddingPart && (
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
@@ -106,7 +175,21 @@ export const ServicesAndPartsSection: React.FC<ServicesAndPartsSectionProps> = (
           <div className="max-h-[200px] overflow-y-auto space-y-1 pr-2 custom-scrollbar">
             {inventoryItems
               .filter(item => item.name.toLowerCase().includes(partSearch.toLowerCase()) && item.category === 'product')
-              .map(item => (
+              .length === 0 ? (
+                <div className="p-4 text-center">
+                  <p className="text-xs text-slate-500 mb-2">Nenhum produto encontrado no inventário</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowProductModal(true)}
+                    className="flex items-center justify-center gap-2 w-full py-2 bg-emerald-500/10 text-emerald-500 rounded-lg text-xs font-bold hover:bg-emerald-500/20 transition-colors"
+                  >
+                    <Plus size={14} /> Cadastrar "{partSearch}"
+                  </button>
+                </div>
+              ) : (
+              inventoryItems
+                .filter(item => item.name.toLowerCase().includes(partSearch.toLowerCase()) && item.category === 'product')
+                .map(item => (
                 <button
                   key={item.id}
                   type="button"
@@ -143,7 +226,8 @@ export const ServicesAndPartsSection: React.FC<ServicesAndPartsSectionProps> = (
                     </div>
                   </div>
                 </button>
-              ))}
+              ))
+            )}
           </div>
         </motion.div>
       )}
@@ -201,6 +285,37 @@ export const ServicesAndPartsSection: React.FC<ServicesAndPartsSectionProps> = (
           </div>
         ))}
       </div>
+
+      <ProductModal
+        isOpen={showProductModal}
+        onClose={() => setShowProductModal(false)}
+        editingItem={null}
+        onSave={(data) => {
+          saveInventoryItemAPI(data as any).then((savedItem) => {
+            if (savedItem && savedItem.id) {
+              if (savedItem.category === 'product') {
+                appendPart({
+                  id: savedItem.id,
+                  name: savedItem.name,
+                  quantity: 1,
+                  unitPrice: savedItem.unitPrice,
+                  subtotal: savedItem.unitPrice
+                });
+                setPartSearch('');
+                setIsAddingPart(false);
+              } else {
+                appendService({
+                  name: savedItem.name,
+                  price: savedItem.unitPrice
+                });
+                setServiceSearch('');
+                setIsAddingService(false);
+              }
+              setShowProductModal(false);
+            }
+          });
+        }}
+      />
     </div>
   );
 };

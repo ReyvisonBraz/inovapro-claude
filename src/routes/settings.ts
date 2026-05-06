@@ -8,10 +8,11 @@ router.get('/', async (_req: Request, res: Response) => {
   try {
     const settings = await prisma.settings.findUnique({ where: { id: 1 } });
     if (settings) {
+      const { settingsPassword, sendPulseClientSecret, ...safeSettings } = settings;
       let hiddenCols: string[] = [];
       try { hiddenCols = JSON.parse(settings.hiddenColumns || '[]'); } catch { /* empty */ }
       res.json({
-        ...settings,
+        ...safeSettings,
         showWarnings: settings.showWarnings ? true : false,
         hiddenColumns: hiddenCols,
       });
@@ -33,16 +34,21 @@ router.post('/', async (req: Request, res: Response) => {
       sendPulseClientId, sendPulseClientSecret, sendPulseTemplateId,
     } = req.body;
 
+    const updateData: any = {
+      appName, appVersion, fiscalYear, primaryColor, categories,
+      incomeCategories, expenseCategories, profileName, profileAvatar,
+      initialBalance, showWarnings: showWarnings ? 1 : 0,
+      hiddenColumns: JSON.stringify(hiddenColumns || []), 
+      receiptLayout: receiptLayout || 'a4', receiptLogo,
+      sendPulseClientId, sendPulseTemplateId,
+    };
+
+    if (settingsPassword) updateData.settingsPassword = settingsPassword;
+    if (sendPulseClientSecret) updateData.sendPulseClientSecret = sendPulseClientSecret;
+
     await prisma.settings.update({
       where: { id: 1 },
-      data: {
-        appName, appVersion, fiscalYear, primaryColor, categories,
-        incomeCategories, expenseCategories, profileName, profileAvatar,
-        initialBalance, showWarnings: showWarnings ? 1 : 0,
-        hiddenColumns: JSON.stringify(hiddenColumns || []), settingsPassword,
-        receiptLayout: receiptLayout || 'a4', receiptLogo,
-        sendPulseClientId, sendPulseClientSecret, sendPulseTemplateId,
-      },
+      data: updateData,
     });
     res.json({ success: true });
   } catch (err) {

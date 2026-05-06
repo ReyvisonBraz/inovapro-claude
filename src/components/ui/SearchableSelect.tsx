@@ -81,14 +81,27 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           disabled && "opacity-50 cursor-not-allowed"
         )}
       >
-        <span className={cn("text-sm font-medium truncate", !selectedOption && "text-slate-500")}>
+        <span className={cn("text-sm font-medium truncate flex-1", !selectedOption && "text-slate-500")}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <ChevronDown size={18} className={cn("text-slate-500 transition-transform", isOpen && "rotate-180")} />
+        <div className="flex items-center gap-1">
+          {selectedOption && !disabled && (
+            <div 
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange('');
+              }}
+              className="p-1 rounded-md hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 transition-colors"
+            >
+              <X size={16} />
+            </div>
+          )}
+          <ChevronDown size={18} className={cn("text-slate-500 transition-transform", isOpen && "rotate-180")} />
+        </div>
       </div>
 
       {isOpen && (
-        <div className="absolute z-[100] w-full mt-2 bg-slate-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="absolute z-[100] w-full mt-2 bg-[#0a0f18] border border-white/10 rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.8)] overflow-hidden animate-in fade-in zoom-in duration-200">
           <div className="p-2 border-bottom border-white/5">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />

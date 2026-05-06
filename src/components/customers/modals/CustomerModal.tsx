@@ -69,7 +69,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
     watch,
     formState: { errors, isSubmitting }
   } = useForm<CustomerFormData>({
-    resolver: zodResolver(customerSchema),
+    resolver: zodResolver(customerSchema) as any,
     defaultValues: {
       firstName: '',
       lastName: '',
@@ -144,7 +144,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
               </button>
             </div>
             
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
+            <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4 md:space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-primary flex justify-between">

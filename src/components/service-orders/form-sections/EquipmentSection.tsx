@@ -53,34 +53,12 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
             <div className="h-1 w-8 bg-indigo-500 rounded-full" />
             <h4 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-400">Dados do Equipamento</h4>
           </div>
-          <label className="flex items-center gap-2 text-xs font-bold text-amber-400 cursor-pointer hover:text-amber-300 transition-colors shrink-0">
-            <input
-              type="checkbox"
-              checked={skipEquipmentValidation}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                setSkipEquipmentValidation(checked);
-                if (checked) {
-                  showToast('Equipamento será ignorado nesta OS', 'warning');
-                  clearErrors(['equipmentType', 'equipmentBrand', 'equipmentModel']);
-                }
-              }}
-              className="w-4 h-4 rounded border-amber-500/50 bg-amber-500/10 text-amber-400 focus:ring-amber-500/20"
-            />
-            Pular
-          </label>
         </div>
         
-        {skipEquipmentValidation && (
-          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-300 font-bold">
-            ⚠️ Modo simplificado ativo - dados do equipamento não serão salvos nesta OS
-          </div>
-        )}
-        
-        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 ${skipEquipmentValidation ? 'opacity-50 pointer-events-none' : ''}`}>
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`}>
           <div className="space-y-2">
             <label className="text-xs font-black uppercase tracking-widest text-indigo-400 ml-1 mb-2 block">
-              Tipo {!isSimplified && <span className="text-rose-500">*</span>}
+              Tipo
             </label>
             <div className="flex gap-2">
               <SearchableSelect
@@ -110,7 +88,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-black uppercase tracking-widest text-indigo-400 ml-1">
-                Marca {!isSimplified && <span className="text-rose-500">*</span>}
+                Marca
               </label>
             </div>
             <div className="flex gap-2">
@@ -150,7 +128,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-black uppercase tracking-widest text-indigo-400 ml-1">
-                Modelo {!isSimplified && <span className="text-rose-500">*</span>}
+                Modelo
               </label>
             </div>
             <div className="flex gap-2">
@@ -214,7 +192,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
       </div>
 
       {/* Especificações e Senha */}
-      <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${skipEquipmentValidation ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className={`grid grid-cols-1 md:grid-cols-3 gap-6`}>
         <div className="space-y-2">
           <label className="text-xs font-bold uppercase tracking-widest text-pink-400 ml-1 flex items-center gap-2">
             <Cpu size={12} /> RAM
@@ -248,7 +226,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
       </div>
 
       {/* Acessórios */}
-      <div className={`space-y-2 ${skipEquipmentValidation ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className={`space-y-2`}>
         <label className="text-xs font-bold uppercase tracking-widest text-indigo-400 ml-1">Acessórios Deixados</label>
         <textarea 
           {...register('accessories')}
@@ -258,7 +236,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
       </div>
 
       {/* Foto de Entrada */}
-      <div className={`space-y-2 ${skipEquipmentValidation ? 'opacity-50 pointer-events-none' : ''}`}>
+      <div className={`space-y-2`}>
         <label className="text-xs font-bold uppercase tracking-widest text-sky-400 ml-1 flex items-center gap-2">
           <Camera size={14} /> Fotos na Chegada
         </label>

@@ -17,6 +17,23 @@ import { printBlankForm } from './lib/printUtils';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { PageLoader } from './components/ui/PageLoader';
 
+// Componente para proteger rotas por permissão
+const ProtectedRoute = ({ children, permission }: { children: React.ReactNode, permission: string }) => {
+  const { hasPermission } = useAuth();
+  if (!hasPermission(permission)) {
+    return (
+      <div className="flex flex-col items-center justify-center p-20 glass-card text-center space-y-4">
+        <div className="w-16 h-16 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mb-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <h2 className="text-2xl font-black text-rose-500">Acesso Negado</h2>
+        <p className="text-slate-400 font-medium">Você não tem permissão para acessar esta área.</p>
+      </div>
+    );
+  }
+  return <>{children}</>;
+};
+
 // Lazy loaded pages
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const TransactionsPage = lazy(() => import('./pages/TransactionsPage').then(m => ({ default: m.TransactionsPage })));
@@ -178,14 +195,14 @@ export default function App() {
           <ErrorBoundary>
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/transactions" element={<TransactionsPage />} />
-                <Route path="/vendas" element={<ClientPaymentsPage />} />
-                <Route path="/ordens" element={<ServiceOrdersPage />} />
-                <Route path="/clientes" element={<CustomersPage />} />
-                <Route path="/estoque" element={<InventoryPage />} />
-                <Route path="/relatorios" element={<ReportsPage />} />
-                <Route path="/configuracoes" element={<SettingsPage />} />
+                <Route path="/dashboard" element={<ProtectedRoute permission="view_dashboard"><DashboardPage /></ProtectedRoute>} />
+                <Route path="/transactions" element={<ProtectedRoute permission="manage_transactions"><TransactionsPage /></ProtectedRoute>} />
+                <Route path="/vendas" element={<ProtectedRoute permission="manage_payments"><ClientPaymentsPage /></ProtectedRoute>} />
+                <Route path="/ordens" element={<ProtectedRoute permission="manage_service_orders"><ServiceOrdersPage /></ProtectedRoute>} />
+                <Route path="/clientes" element={<ProtectedRoute permission="manage_customers"><CustomersPage /></ProtectedRoute>} />
+                <Route path="/estoque" element={<ProtectedRoute permission="manage_inventory"><InventoryPage /></ProtectedRoute>} />
+                <Route path="/relatorios" element={<ProtectedRoute permission="view_reports"><ReportsPage /></ProtectedRoute>} />
+                <Route path="/configuracoes" element={<ProtectedRoute permission="manage_settings"><SettingsPage /></ProtectedRoute>} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </Suspense>
