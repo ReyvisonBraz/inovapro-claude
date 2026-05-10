@@ -1,5 +1,6 @@
 import React, { useEffect, lazy, Suspense } from 'react';
 import { useLocation, useNavigate, Routes, Route, Navigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { User, Screen } from './types';
 import { Login } from './components/auth/Login';
 import { useAuth } from './hooks/useAuth';
@@ -16,18 +17,18 @@ import { GlobalModals } from './components/layout/GlobalModals';
 import { printBlankForm } from './lib/printUtils';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { PageLoader } from './components/ui/PageLoader';
+import { useIsMobile } from './hooks/useMediaQuery';
 
-// Componente para proteger rotas por permissão
 const ProtectedRoute = ({ children, permission }: { children: React.ReactNode, permission: string }) => {
   const { hasPermission } = useAuth();
   if (!hasPermission(permission)) {
     return (
-      <div className="flex flex-col items-center justify-center p-20 glass-card text-center space-y-4">
-        <div className="w-16 h-16 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mb-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <div className="flex flex-col items-center justify-center p-10 glass-card text-center space-y-4 rounded-2xl">
+        <div className="w-14 h-14 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>
-        <h2 className="text-2xl font-black text-rose-500">Acesso Negado</h2>
-        <p className="text-slate-400 font-medium">Você não tem permissão para acessar esta área.</p>
+        <h2 className="text-xl font-bold text-rose-500">Acesso Negado</h2>
+        <p className="text-sm text-slate-400 font-medium">Você não tem permissão para acessar esta área.</p>
       </div>
     );
   }
@@ -44,9 +45,8 @@ const ServiceOrdersPage = lazy(() => import('./pages/ServiceOrdersPage').then(m 
 const InventoryPage = lazy(() => import('./pages/InventoryPage').then(m => ({ default: m.InventoryPage })));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 
-// --- Aplicativo Principal ---
-
 export default function App() {
+  const isMobile = useIsMobile()
   const {
     activeScreen, setActiveScreen,
     isSidebarOpen, setIsSidebarOpen,
@@ -65,20 +65,15 @@ export default function App() {
     setDirectMode
   } = useAppStore();
 
-  const {
-    searchTerm, setSearchTerm,
-  } = useFilterStore();
-
-  const {
-    passwordInput, setPasswordInput,
-    editingTransaction, setEditingTransaction,
-    editingCustomer, setEditingCustomer,
-  } = useModalStore();
-
+  const { searchTerm, setSearchTerm } = useFilterStore();
+  const { passwordInput, setPasswordInput, editingTransaction, setEditingTransaction, editingCustomer, setEditingCustomer } = useModalStore();
   const location = useLocation();
   const navigate = useNavigate();
+  const { setNewCustomer, setNewTx } = useFormStore();
+  const { showToast } = useToast();
+  const { settings, fetchSettings, fetchCategories } = useSettings(showToast);
+  const { isAuthenticated, currentUser, login, logout, hasPermission } = useAuth();
 
-  // Sincronizar URL com activeScreen
   useEffect(() => {
     const path = location.pathname;
     const screenMap: Record<string, Screen> = {
@@ -91,7 +86,6 @@ export default function App() {
       '/relatorios': 'reports',
       '/configuracoes': 'settings'
     };
-
     const targetScreen = screenMap[path];
     if (targetScreen && activeScreen !== targetScreen) {
       setActiveScreen(targetScreen);
@@ -101,46 +95,10 @@ export default function App() {
     }
   }, [location.pathname, activeScreen, setActiveScreen, navigate]);
 
-  const {
-    setNewCustomer,
-    setNewTx,
-  } = useFormStore();
-
-  const { showToast } = useToast();
-
-  const {
-    settings,
-    fetchSettings,
-    fetchCategories,
-  } = useSettings(showToast);
-
-  const {
-    isAuthenticated,
-    currentUser,
-    login,
-    logout,
-    hasPermission,
-  } = useAuth();
-
   useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}px`;
     localStorage.setItem('app_font_size', fontSize.toString());
   }, [fontSize]);
-
-  const handlePrintBlankForm = () => {
-    printBlankForm(settings);
-  };
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const osId = params.get('osId');
-    const mode = params.get('mode');
-    if (osId) {
-      setDirectOsId(parseInt(osId));
-      setDirectMode(mode);
-      navigate('/ordens');
-    }
-  }, []);
 
   useEffect(() => {
     if (editingTransaction) {
@@ -161,11 +119,16 @@ export default function App() {
     }
   }, [isAuthenticated]);
 
-
-
-
-
-
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const osId = params.get('osId');
+    const mode = params.get('mode');
+    if (osId) {
+      setDirectOsId(parseInt(osId));
+      setDirectMode(mode);
+      navigate('/ordens');
+    }
+  }, []);
 
   const handleLogin = (token: string, user: User) => {
     login(token, user);
@@ -182,45 +145,64 @@ export default function App() {
   }
 
   return (
-    <div className="flex min-h-screen bg-bg-dark text-slate-100 selection:bg-primary/30">
-      <div className="flex flex-1 app-main-wrapper">
+    <div className="flex min-h-screen bg-bg-dark text-slate-100 selection:bg-primary/30 overflow-x-hidden">
+      <div className="flex flex-1 relative">
+
+        {/* Mobile sidebar overlay */}
+        {isMobile && isSidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
 
         <Sidebar />
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0">
-        <Header />
+        <main className="flex-1 flex flex-col min-w-0 relative pb-20 lg:pb-0">
+          <Header />
 
-        <div className="p-6 lg:p-10 max-w-7xl mx-auto w-full space-y-10">
-          <ErrorBoundary>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/dashboard" element={<ProtectedRoute permission="view_dashboard"><DashboardPage /></ProtectedRoute>} />
-                <Route path="/transactions" element={<ProtectedRoute permission="manage_transactions"><TransactionsPage /></ProtectedRoute>} />
-                <Route path="/vendas" element={<ProtectedRoute permission="manage_payments"><ClientPaymentsPage /></ProtectedRoute>} />
-                <Route path="/ordens" element={<ProtectedRoute permission="manage_service_orders"><ServiceOrdersPage /></ProtectedRoute>} />
-                <Route path="/clientes" element={<ProtectedRoute permission="manage_customers"><CustomersPage /></ProtectedRoute>} />
-                <Route path="/estoque" element={<ProtectedRoute permission="manage_inventory"><InventoryPage /></ProtectedRoute>} />
-                <Route path="/relatorios" element={<ProtectedRoute permission="view_reports"><ReportsPage /></ProtectedRoute>} />
-                <Route path="/configuracoes" element={<ProtectedRoute permission="manage_settings"><SettingsPage /></ProtectedRoute>} />
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              </Routes>
-            </Suspense>
-          </ErrorBoundary>
-        </div>
+          <div className="page-container flex-1">
+            <ErrorBoundary>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={location.pathname}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
+                      <Route path="/dashboard" element={<ProtectedRoute permission="view_dashboard"><DashboardPage /></ProtectedRoute>} />
+                      <Route path="/transactions" element={<ProtectedRoute permission="manage_transactions"><TransactionsPage /></ProtectedRoute>} />
+                      <Route path="/vendas" element={<ProtectedRoute permission="manage_payments"><ClientPaymentsPage /></ProtectedRoute>} />
+                      <Route path="/ordens" element={<ProtectedRoute permission="manage_service_orders"><ServiceOrdersPage /></ProtectedRoute>} />
+                      <Route path="/clientes" element={<ProtectedRoute permission="manage_customers"><CustomersPage /></ProtectedRoute>} />
+                      <Route path="/estoque" element={<ProtectedRoute permission="manage_inventory"><InventoryPage /></ProtectedRoute>} />
+                      <Route path="/relatorios" element={<ProtectedRoute permission="view_reports"><ReportsPage /></ProtectedRoute>} />
+                      <Route path="/configuracoes" element={<ProtectedRoute permission="manage_settings"><SettingsPage /></ProtectedRoute>} />
+                      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    </Routes>
+                  </Suspense>
+                </motion.div>
+              </AnimatePresence>
+            </ErrorBoundary>
+          </div>
 
-        {/* Mobile Bottom Navigation */}
-        <MobileNav />
+          {/* Mobile footer removed - only on desktop */}
+          <footer className="hidden lg:block py-8 px-10 text-center border-t border-white/5 mt-8">
+            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">
+              &copy; {new Date().getFullYear()} INOVA PRO. Todos os direitos reservados.
+            </p>
+          </footer>
+        </main>
 
-        <footer className="py-10 px-10 text-center border-t border-white/5">
-          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">© {new Date().getFullYear()} INOVA PRO. Todos os direitos reservados.</p>
-        </footer>
-      </main>
-
-      <GlobalModals />
+        <GlobalModals />
       </div>
 
-      {/* Print styles and Dynamic Theme */}
+      {/* Mobile bottom nav */}
+      <MobileNav />
+
       <style>{`
         :root {
           --color-primary: ${settings?.primaryColor || '#1152d4'};

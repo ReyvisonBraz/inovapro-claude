@@ -98,7 +98,7 @@ export const Dashboard = ({
       />
 
       {/* Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+      <div className="responsive-grid-2">
         <NeonChart
           title="Tendência de Fluxo de Caixa"
           subtitle="Desempenho de flutuação mensal"
@@ -161,7 +161,7 @@ export const Dashboard = ({
       </div>
 
       {/* Rankings Section */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+      <div className="responsive-grid-2">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

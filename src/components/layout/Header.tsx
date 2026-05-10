@@ -1,14 +1,15 @@
 import React from 'react';
-import { 
-  Menu, 
-  Search, 
-  Plus, 
-  Download, 
-  Printer, 
-  Users, 
-  Package, 
+import {
+  Menu,
+  Search,
+  Plus,
+  Download,
+  Printer,
+  Users,
+  Package,
   CreditCard,
-  Search as SearchIcon
+  Search as SearchIcon,
+  X
 } from 'lucide-react';
 import { NotificationCenter } from './NotificationCenter';
 import { Screen } from '../../types';
@@ -24,8 +25,11 @@ import { useCustomers } from '../../hooks/useCustomers';
 import { useInventory } from '../../hooks/useInventory';
 import { useFormStore } from '../../store/useFormStore';
 import { useModalStore } from '../../store/useModalStore';
+import { cn } from '../../lib/utils';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 
 export const Header = () => {
+  const isMobile = useIsMobile();
   const { settings } = useSettingsStore();
   const {
     activeScreen, setActiveScreen,
@@ -43,7 +47,6 @@ export const Header = () => {
   } = useAppStore();
 
   const { searchTerm, setSearchTerm } = useFilterStore();
-
   const { clientPayments } = useClientPayments();
   const { serviceOrders } = useServiceOrders();
   const { transactions } = useTransactions(() => {});
@@ -52,7 +55,7 @@ export const Header = () => {
   const { setNewCustomer } = useFormStore();
   const { setEditingTransaction, setEditingCustomer } = useModalStore();
 
-  const { 
+  const {
     exportTransactionsToCSV,
     exportServiceOrdersToCSV,
     exportCustomersToCSV,
@@ -60,184 +63,223 @@ export const Header = () => {
     exportPaymentsToCSV
   } = useExportData();
 
-  const { 
-    upcomingDebts,
-    dueTodayDebts,
-    overdueDebts,
-    overdueServiceOrders,
-    dueTodayServiceOrders,
-    upcomingServiceOrders,
-    totalPaymentNotifications,
-    totalServiceOrderNotifications,
+  const {
+    overdueDebts, dueTodayDebts, upcomingDebts,
+    overdueServiceOrders, dueTodayServiceOrders, upcomingServiceOrders,
+    totalPaymentNotifications, totalServiceOrderNotifications,
     totalNotifications
   } = useNotifications(clientPayments.data, serviceOrders.data);
 
   const getHeaderConfig = () => {
     switch (activeScreen) {
       case 'dashboard':
-        return { title: 'Painel de Controle' };
+        return { title: 'Painel de Controle', subtitle: 'Visão geral do negócio' };
       case 'transactions':
-        return { 
+        return {
           title: 'Transações Diárias',
-          export: { label: 'Exportar CSV', icon: Download, onClick: () => exportTransactionsToCSV(transactions.data) },
-          newButton: { 
-            label: 'Nova Entrada', 
-            icon: Plus, 
-            onClick: () => {
-              setEditingTransaction(null);
-              setIsAdding(true);
-            } 
-          }
+          subtitle: 'Receitas e despesas',
+          export: { label: 'Exportar', icon: Download, onClick: () => exportTransactionsToCSV(transactions.data) },
+          newButton: { label: 'Nova Entrada', icon: Plus, onClick: () => { setEditingTransaction(null); setIsAdding(true); } }
         };
       case 'service-orders':
-        return { 
+        return {
           title: 'Ordens de Serviço',
-          export: { label: 'Exportar CSV', icon: Download, onClick: () => exportServiceOrdersToCSV(serviceOrders.data, customers.data) },
-          searchButton: { label: 'Buscar OS', icon: SearchIcon, onClick: () => setIsSearchingOS(true) },
+          subtitle: 'Assistência técnica',
+          export: { label: 'Exportar', icon: Download, onClick: () => exportServiceOrdersToCSV(serviceOrders.data, customers.data) },
+          searchButton: { label: 'Buscar', icon: SearchIcon, onClick: () => setIsSearchingOS(true) },
           newButton: { label: 'Nova Ordem', icon: Plus, onClick: () => setIsAddingServiceOrder(true) }
         };
       case 'customers':
-        return { 
-          title: 'Gestão de Clientes',
-          export: { label: 'Exportar CSV', icon: Download, onClick: () => exportCustomersToCSV(customers.data) },
-          newButton: { 
-            label: 'Novo Cliente', 
-            icon: Users, 
+        return {
+          title: 'Clientes',
+          subtitle: 'Gestão de clientes',
+          export: { label: 'Exportar', icon: Download, onClick: () => exportCustomersToCSV(customers.data) },
+          newButton: {
+            label: 'Novo Cliente', icon: Users,
             onClick: () => {
               setEditingCustomer(null);
-              setNewCustomer({
-                firstName: '',
-                lastName: '',
-                nickname: '',
-                cpf: '',
-                companyName: '',
-                phone: '',
-                observation: '',
-                creditLimit: undefined
-              });
+              setNewCustomer({ firstName: '', lastName: '', nickname: '', cpf: '', companyName: '', phone: '', observation: '', creditLimit: undefined });
               setCustomerRegistrationSource('customers');
               setIsAddingCustomer(true);
-            } 
+            }
           }
         };
       case 'inventory':
-        return { 
+        return {
           title: 'Produtos & Serviços',
-          export: { label: 'Exportar CSV', icon: Download, onClick: () => exportInventoryToCSV(inventoryItems) },
+          subtitle: 'Catálogo e estoque',
+          export: { label: 'Exportar', icon: Download, onClick: () => exportInventoryToCSV(inventoryItems) },
           newButton: { label: 'Novo Item', icon: Package, onClick: () => setIsAddingInventoryItem(true) }
         };
       case 'client-payments':
-        return { 
+        return {
           title: 'Vendas e Pagamentos',
-          export: { label: 'Exportar CSV', icon: Download, onClick: () => exportPaymentsToCSV(clientPayments.data) },
+          subtitle: 'Recebíveis e cobranças',
+          export: { label: 'Exportar', icon: Download, onClick: () => exportPaymentsToCSV(clientPayments.data) },
           newButton: { label: 'Novo Pagamento', icon: CreditCard, onClick: () => setIsAddingClientPayment(true) }
         };
       case 'reports':
-        return { 
-          title: 'Relatórios e Análises',
-          export: { label: 'Imprimir', icon: Printer, onClick: () => window.print() }
-        };
+        return { title: 'Relatórios', subtitle: 'Análises e métricas', export: { label: 'Imprimir', icon: Printer, onClick: () => window.print() } };
       case 'settings':
-        return { title: 'Configurações do Sistema' };
+        return { title: 'Configurações', subtitle: 'Personalize o sistema' };
       default:
-        return { title: 'INOVA PRO' };
+        return { title: 'INOVA PRO', subtitle: '' };
     }
   };
 
   const config = getHeaderConfig();
 
-  return (
-    <header className="sticky top-0 z-40 bg-bg-dark/80 backdrop-blur-xl border-b border-white/5 px-6 py-4 flex items-center justify-between shadow-2xl shadow-black/20">
-      <div className="flex items-center gap-4">
-        <button 
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="lg:hidden p-2.5 text-slate-400 hover:bg-white/5 rounded-xl transition-colors"
-        >
-          <Menu size={20} />
-        </button>
-        <div className="flex flex-col">
-          <h2 className="text-xl font-black tracking-tighter italic leading-none">{config.title}</h2>
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 hidden sm:block">Ano Fiscal {settings.fiscalYear}</span>
-        </div>
-      </div>
+  if (isMobile) {
+    return (
+      <header className="sticky top-0 z-30 bg-bg-dark/90 backdrop-blur-xl border-b border-white/[0.04] mobile-safe-top">
+        <div className="flex items-center justify-between px-4 h-14">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors"
+            >
+              <Menu size={20} />
+            </button>
+            <div className="flex flex-col">
+              <h1 className="text-sm font-bold font-display tracking-tight text-white leading-tight">{config.title}</h1>
+              {config.subtitle && (
+                <span className="text-[10px] font-medium text-slate-500 leading-tight">{config.subtitle}</span>
+              )}
+            </div>
+          </div>
 
-      <div className="flex items-center gap-2 sm:gap-4">
-        {activeScreen === 'transactions' && (
-          <div className="hidden md:flex items-center bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus-within:border-primary/50 transition-all w-64">
-            <Search size={16} className="text-slate-500" />
-            <input 
-              type="text" 
-              placeholder="Buscar transação..."
-              className="bg-transparent border-none focus:ring-0 text-sm ml-2 w-full placeholder:text-slate-600 font-medium"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+          <div className="flex items-center gap-1">
+            <NotificationCenter
+              showNotifications={showNotifications}
+              setShowNotifications={setShowNotifications}
+              notificationTab={notificationTab}
+              setNotificationTab={setNotificationTab}
+              totalNotifications={totalNotifications}
+              totalPaymentNotifications={totalPaymentNotifications}
+              totalServiceOrderNotifications={totalServiceOrderNotifications}
+              overdueDebts={overdueDebts}
+              dueTodayDebts={dueTodayDebts}
+              upcomingDebts={upcomingDebts}
+              overdueServiceOrders={overdueServiceOrders}
+              dueTodayServiceOrders={dueTodayServiceOrders}
+              upcomingServiceOrders={upcomingServiceOrders}
+              setActiveScreen={setActiveScreen}
             />
+            {config.newButton && (
+              <button
+                onClick={config.newButton.onClick}
+                className="w-9 h-9 flex items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/25 active:scale-90 transition-all"
+              >
+                <Plus size={18} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Search bar inline for transactions */}
+        {activeScreen === 'transactions' && (
+          <div className="px-4 pb-3">
+            <div className="flex items-center bg-white/[0.04] border border-white/[0.06] rounded-xl px-3.5 h-10 focus-within:border-primary/40 transition-all">
+              <Search size={15} className="text-slate-500 shrink-0" />
+              <input
+                type="text"
+                placeholder="Buscar transação..."
+                className="bg-transparent border-none focus:ring-0 text-sm ml-2.5 w-full placeholder:text-slate-600 font-medium outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <button onClick={() => setSearchTerm('')} className="p-1 text-slate-500 hover:text-white">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
           </div>
         )}
+      </header>
+    );
+  }
 
-        <div className="flex items-center bg-white/5 rounded-xl p-1 border border-white/10">
-          <button
-            onClick={() => setFontSize(Math.max(fontSize - 2, 12))}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-            title="Diminuir fonte"
-          >
-            <span className="text-sm font-bold">A-</span>
-          </button>
-          <div className="w-[1px] h-4 bg-white/10 mx-1"></div>
-          <button
-            onClick={() => setFontSize(Math.min(fontSize + 2, 24))}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-            title="Aumentar fonte"
-          >
-            <span className="text-sm font-bold">A+</span>
-          </button>
+  return (
+    <header className="sticky top-0 z-30 bg-bg-dark/80 backdrop-blur-xl border-b border-white/[0.04]">
+      <div className="flex items-center justify-between px-6 lg:px-10 h-16">
+        <div className="flex items-center gap-4">
+          <div className="flex flex-col">
+            <h1 className="text-lg font-bold font-display tracking-tight text-white">{config.title}</h1>
+            {config.subtitle && (
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{config.subtitle} · Ano Fiscal {settings.fiscalYear}</span>
+            )}
+          </div>
         </div>
 
-        <NotificationCenter 
-          showNotifications={showNotifications}
-          setShowNotifications={setShowNotifications}
-          notificationTab={notificationTab}
-          setNotificationTab={setNotificationTab}
-          totalNotifications={totalNotifications}
-          totalPaymentNotifications={totalPaymentNotifications}
-          totalServiceOrderNotifications={totalServiceOrderNotifications}
-          overdueDebts={overdueDebts}
-          dueTodayDebts={dueTodayDebts}
-          upcomingDebts={upcomingDebts}
-          overdueServiceOrders={overdueServiceOrders}
-          dueTodayServiceOrders={dueTodayServiceOrders}
-          upcomingServiceOrders={upcomingServiceOrders}
-          setActiveScreen={setActiveScreen}
-        />
-        <div className="h-8 w-[1px] bg-white/10 mx-2 hidden sm:block"></div>
-        <div className="flex gap-2">
-           {config.searchButton && (
-             <button 
-              onClick={config.searchButton?.onClick}
-              className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-400 hover:text-slate-200 hover:bg-white/[0.03] border border-white/10 transition-all hover:border-white/20"
-            >
-              {React.createElement(config.searchButton?.icon || SearchIcon, { size: 16 })}
-              {config.searchButton?.label}
+        <div className="flex items-center gap-3">
+          {activeScreen === 'transactions' && (
+            <div className="flex items-center bg-white/[0.04] border border-white/[0.06] rounded-xl px-4 h-10 focus-within:border-primary/40 transition-all w-56">
+              <Search size={15} className="text-slate-500 shrink-0" />
+              <input
+                type="text"
+                placeholder="Buscar transação..."
+                className="bg-transparent border-none focus:ring-0 text-sm ml-2.5 w-full placeholder:text-slate-600 font-medium outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <button onClick={() => setSearchTerm('')} className="p-1 text-slate-500 hover:text-white">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center bg-white/[0.04] rounded-lg p-0.5 border border-white/[0.06]">
+            <button onClick={() => setFontSize(Math.max(fontSize - 2, 12))} className="px-2 py-1.5 text-slate-500 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors text-xs font-bold">
+              A-
             </button>
-           )}
-           {config.export && (
-             <button 
-              onClick={config.export?.onClick}
-              className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-400 hover:text-slate-200 hover:bg-white/[0.03] border border-white/10 transition-all hover:border-white/20"
-            >
-              {React.createElement(config.export?.icon || Download, { size: 16 })}
-              {config.export?.label || 'Exportar'}
+            <div className="w-px h-3 bg-white/[0.08]" />
+            <button onClick={() => setFontSize(Math.min(fontSize + 2, 24))} className="px-2 py-1.5 text-slate-500 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors text-xs font-bold">
+              A+
             </button>
-           )}
-           {config.newButton && (
-            <button 
-              onClick={config.newButton?.onClick}
-              className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-[0_10px_20px_-5px_rgba(17,82,212,0.4)] hover:shadow-[0_15px_25px_-5px_rgba(17,82,212,0.5)] hover:scale-[1.02] active:scale-95"
-            >
-              {React.createElement(config.newButton?.icon || Plus, { size: 18 })}
-              {config.newButton?.label}
-            </button>
-           )}
+          </div>
+
+          <NotificationCenter
+            showNotifications={showNotifications}
+            setShowNotifications={setShowNotifications}
+            notificationTab={notificationTab}
+            setNotificationTab={setNotificationTab}
+            totalNotifications={totalNotifications}
+            totalPaymentNotifications={totalPaymentNotifications}
+            totalServiceOrderNotifications={totalServiceOrderNotifications}
+            overdueDebts={overdueDebts}
+            dueTodayDebts={dueTodayDebts}
+            upcomingDebts={upcomingDebts}
+            overdueServiceOrders={overdueServiceOrders}
+            dueTodayServiceOrders={dueTodayServiceOrders}
+            upcomingServiceOrders={upcomingServiceOrders}
+            setActiveScreen={setActiveScreen}
+          />
+
+          <div className="h-6 w-px bg-white/[0.06]" />
+
+          <div className="flex items-center gap-2">
+            {config.searchButton && (
+              <button onClick={config.searchButton.onClick} className="btn-secondary h-10 px-3.5 text-xs">
+                {React.createElement(config.searchButton.icon || SearchIcon, { size: 15 })}
+                <span className="hidden xl:inline">{config.searchButton.label}</span>
+              </button>
+            )}
+            {config.export && (
+              <button onClick={config.export.onClick} className="btn-secondary h-10 px-3.5 text-xs">
+                {React.createElement(config.export.icon || Download, { size: 15 })}
+                <span className="hidden xl:inline">{config.export.label}</span>
+              </button>
+            )}
+            {config.newButton && (
+              <button onClick={config.newButton.onClick} className="btn-primary h-10 px-5 text-xs shadow-lg shadow-primary/25">
+                {React.createElement(config.newButton.icon || Plus, { size: 16 })}
+                <span>{config.newButton.label}</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </header>

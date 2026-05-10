@@ -3,33 +3,27 @@ import { motion } from 'motion/react';
 
 export const PageLoader: React.FC = () => {
   return (
-    <div className="flex-1 flex items-center justify-center min-h-[60vh]">
-      <div className="relative">
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 180, 360],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full"
-        />
-        <motion.div
-          animate={{
-            opacity: [0.3, 1, 0.3],
-          }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="mt-6 text-center text-slate-400 font-medium tracking-wider text-xs uppercase"
+    <div className="flex-1 flex items-center justify-center min-h-[50vh]">
+      <div className="flex flex-col items-center gap-6">
+        <div className="relative">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+            className="w-10 h-10 border-[3px] border-white/[0.06] border-t-primary rounded-full"
+          />
+          <motion.div
+            animate={{ rotate: -360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+            className="absolute inset-0 w-10 h-10 border-[3px] border-transparent border-r-primary/30 rounded-full"
+          />
+        </div>
+        <motion.p
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+          className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]"
         >
-          Carregando...
-        </motion.div>
+          Carregando
+        </motion.p>
       </div>
     </div>
   );

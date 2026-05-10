@@ -49,7 +49,7 @@ export const DraggableGrid: React.FC<DraggableGridProps> = ({
   }, [items, onReorder, storageKey]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
       {items.map((item, index) => (
         <motion.div
           key={item.id}

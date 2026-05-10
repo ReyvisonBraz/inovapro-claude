@@ -74,7 +74,7 @@ export const NeonChart: React.FC<NeonChartProps> = ({
           ))}
         </select>
       </div>
-      <div className="h-72 w-full">
+      <div className="h-56 sm:h-72 w-full">
         <ResponsiveContainer width="100%" height="100%" minHeight={0}>
           {React.Children.map(children, (child) => {
             if (!React.isValidElement(child)) return child;
