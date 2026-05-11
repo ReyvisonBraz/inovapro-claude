@@ -338,14 +338,26 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   <div className="hidden lg:col-span-1 lg:block">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 ml-1 flex items-center gap-1.5 mb-1.5">
                       <Calendar size={11} />
-                      Data selecionada
+                      Data
                     </label>
-                    <div className="h-[48px] bg-white/[0.03] border border-white/10 rounded-xl px-3 flex items-center text-sm font-semibold text-slate-200">
-                      {dateValue
-                        ? new Date(dateValue + 'T00:00:00').toLocaleDateString('pt-BR', {
-                            weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
-                          })
-                        : '—'}
+                    <div className="relative">
+                      <input
+                        type="date"
+                        {...register('date')}
+                        className={cn(
+                          'w-full h-12 bg-white/[0.03] border rounded-xl px-3 text-sm font-semibold focus:ring-2 focus:ring-primary/10 focus:border-primary/40 outline-none transition-all [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:hover:opacity-100',
+                          errors.date ? 'border-red-500/50' : 'border-white/10'
+                        )}
+                      />
+                      {dateValue && (
+                        <div className="mt-1 px-1 text-[11px] text-slate-500 font-medium">
+                          {
+                            new Date(dateValue + 'T00:00:00').toLocaleDateString('pt-BR', {
+                              weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+                            })
+                          }
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
