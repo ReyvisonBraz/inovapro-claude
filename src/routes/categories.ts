@@ -27,7 +27,19 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    await prisma.category.delete({ where: { id: parseInt(req.params.id) } });
+    const id = parseInt(req.params.id);
+    const category = await prisma.category.findUnique({ where: { id } });
+    if (!category) return res.status(404).json({ error: 'Categoria não encontrada.' });
+
+    const txCount = await prisma.transaction.count({ where: { category: category.name } });
+    if (txCount > 0) {
+      return res.status(400).json({
+        error: `Categoria "${category.name}" está em uso por ${txCount} transação(ões). ` +
+          `Altere a categoria dessas transações antes de excluí-la.`
+      });
+    }
+
+    await prisma.category.delete({ where: { id } });
     res.json({ success: true });
   } catch (err) {
     error('[CATEGORIES DELETE] Erro ao excluir categoria', err, { details: { id: req.params.id } });

@@ -88,7 +88,19 @@ router.put('/brands/:id', async (req: Request, res: Response) => {
 
 router.delete('/brands/:id', async (req: Request, res: Response) => {
   try {
-    await prisma.brand.delete({ where: { id: parseInt(req.params.id) } });
+    const id = parseInt(req.params.id);
+    const brand = await prisma.brand.findUnique({ where: { id } });
+    if (!brand) return res.status(404).json({ error: 'Marca não encontrada.' });
+
+    const modelCount = await prisma.model.count({ where: { brandId: id } });
+    if (modelCount > 0) {
+      return res.status(400).json({
+        error: `Marca "${brand.name}" possui ${modelCount} modelo(s) vinculado(s). ` +
+          `Exclua os modelos primeiro antes de excluir a marca.`
+      });
+    }
+
+    await prisma.brand.delete({ where: { id } });
     res.json({ success: true });
   } catch (err: any) {
     error('[BRANDS DELETE] Erro ao excluir marca', err, { details: { id: req.params.id } });
@@ -132,7 +144,19 @@ router.put('/models/:id', async (req: Request, res: Response) => {
 
 router.delete('/models/:id', async (req: Request, res: Response) => {
   try {
-    await prisma.model.delete({ where: { id: parseInt(req.params.id) } });
+    const id = parseInt(req.params.id);
+    const model = await prisma.model.findUnique({ where: { id } });
+    if (!model) return res.status(404).json({ error: 'Modelo não encontrado.' });
+
+    const osCount = await prisma.serviceOrder.count({ where: { equipmentModel: model.name } });
+    if (osCount > 0) {
+      return res.status(400).json({
+        error: `Modelo "${model.name}" está em uso por ${osCount} ordem(ns) de serviço. ` +
+          `Altere o modelo nessas OS antes de excluí-lo.`
+      });
+    }
+
+    await prisma.model.delete({ where: { id } });
     res.json({ success: true });
   } catch (err: any) {
     error('[MODELS DELETE] Erro ao excluir modelo', err, { details: { id: req.params.id } });

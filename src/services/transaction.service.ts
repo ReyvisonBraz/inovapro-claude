@@ -117,20 +117,21 @@ export class TransactionService {
   async delete(id: number) {
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.findUnique({ where: { id } });
-      
-      if (transaction?.paymentId) {
+      if (!transaction) throw new Error('Transação não encontrada.');
+
+      if (transaction.paymentId) {
         const payment = await tx.clientPayment.findUnique({ where: { id: transaction.paymentId } });
         if (payment) {
           const newPaidAmount = Math.max(0, payment.paidAmount - transaction.amount);
           const newStatus = newPaidAmount >= payment.totalAmount ? 'paid' : 'pending';
-          
+
           await tx.clientPayment.update({
             where: { id: transaction.paymentId },
             data: { paidAmount: newPaidAmount, status: newStatus },
           });
         }
       }
-      
+
       await tx.transaction.delete({ where: { id } });
       return transaction;
     });

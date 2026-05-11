@@ -66,12 +66,22 @@ router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const txId = parseInt(req.params.id);
     const tx = await transactionService.delete(txId);
-    
-    info('Transação excluída', { details: { id: txId, paymentId: tx?.paymentId } });
-    res.json({ success: true });
-  } catch (err) {
+
+    if (tx?.paymentId) {
+      info('Transação excluída — valor ajustado no pagamento vinculado', { details: { id: txId, paymentId: tx.paymentId } });
+      res.json({
+        success: true,
+        warning: `Esta transação fazia parte de um pagamento (ID ${tx.paymentId}). ` +
+          `O valor foi descontado do total pago. O saldo do pagamento foi recalculado automaticamente.`
+      });
+    } else {
+      info('Transação excluída', { details: { id: txId } });
+      res.json({ success: true });
+    }
+  } catch (err: any) {
     error('[TRANSACTIONS DELETE] Erro ao excluir transação', err, { details: { id: req.params.id } });
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    const msg = err?.message || 'Erro interno do servidor';
+    res.status(500).json({ error: msg });
   }
 });
 
