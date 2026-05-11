@@ -42,7 +42,7 @@ export const PasswordModal = ({ isOpen, onClose, onUnlock, passwordInput, setPas
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
                 placeholder="••••••••"
-                className="glass-input w-full text-center text-2xl tracking-[0.5em]"
+                className="glass-input w-full text-center text-2xl tracking-[0.5em] px-4"
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && onUnlock()}
               />
