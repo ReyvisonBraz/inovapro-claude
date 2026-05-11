@@ -118,13 +118,26 @@ app.get('/api/ping', (_req, res) => {
   });
 });
 
+import pgLib from 'pg';
+
 app.get('/api/db-test', async (_req, res) => {
+  const testPool = new pgLib.Pool({
+    host: process.env.DB_HOST || 'db.dqpxwyixiluiyfjxakge.supabase.co',
+    port: 6543,
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || process.env.DATABASE_URL?.split('://')[1]?.split('@')[0]?.split(':')[1] || '',
+    database: process.env.DB_NAME || 'postgres',
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 10000,
+  });
   try {
-    await prisma.$connect();
-    const count = await prisma.user.count();
-    res.json({ ok: true, db: 'conectado', users: count });
+    const r = await testPool.query('SELECT 1 AS ok, version() AS v');
+    const rc = await testPool.query("SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname='public'");
+    await testPool.end();
+    res.json({ ok: true, tables: rc.rows[0].count, pg: r.rows[0] });
   } catch (err: any) {
-    res.status(500).json({ ok: false, erro: err?.message || String(err) });
+    await testPool.end().catch(() => {});
+    res.status(500).json({ ok: false, erro: err?.message || String(err), code: err?.code });
   }
 });
 
