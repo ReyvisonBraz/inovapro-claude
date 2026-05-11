@@ -96,7 +96,7 @@ app.use(express.urlencoded({ limit: '5mb', extended: true }));
 app.use(requestLogger);
 
 /*
- * ─── Health Check ───
+ * ─── Health Check e Diagnóstico ───
  */
 app.get('/health', (_req, res) => {
   res.json({
@@ -105,6 +105,27 @@ app.get('/health', (_req, res) => {
     version: '1.0.0-prisma',
     uptime: process.uptime(),
   });
+});
+
+app.get('/api/ping', (_req, res) => {
+  res.json({
+    ok: true,
+    env: {
+      DATABASE_URL: process.env.DATABASE_URL ? 'definido' : 'ausente',
+      DB_HOST: process.env.DB_HOST || 'ausente',
+      NODE_ENV: process.env.NODE_ENV || 'ausente',
+    },
+  });
+});
+
+app.get('/api/db-test', async (_req, res) => {
+  try {
+    await prisma.$connect();
+    const count = await prisma.user.count();
+    res.json({ ok: true, db: 'conectado', users: count });
+  } catch (err: any) {
+    res.status(500).json({ ok: false, erro: err?.message || String(err) });
+  }
 });
 
 /*
