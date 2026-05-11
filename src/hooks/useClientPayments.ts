@@ -32,7 +32,7 @@ export function useClientPayments() {
     },
     onError: (error: any) => {
       console.error('Failed to save payment', error);
-      showToast(error.message || 'Erro ao salvar pagamento.', 'error');
+      showToast(error.response?.data?.error || error.message || 'Erro ao salvar pagamento.', 'error');
     },
   });
 
@@ -55,7 +55,7 @@ export function useClientPayments() {
     },
     onError: (error: any) => {
       console.error('Failed to save payment', error);
-      showToast(error.message || 'Erro ao salvar pagamento.', 'error');
+      showToast(error.response?.data?.error || error.message || 'Erro ao salvar pagamento.', 'error');
     },
   });
 
@@ -69,7 +69,7 @@ export function useClientPayments() {
     },
     onError: (error: any) => {
       console.error('Failed to delete payment', error);
-      showToast('Erro ao excluir pagamento.', 'error');
+      showToast(error.response?.data?.error || 'Erro ao excluir pagamento.', 'error');
     },
   });
 
@@ -84,7 +84,7 @@ export function useClientPayments() {
     },
     onError: (error: any) => {
       console.error('Failed to record payment', error);
-      showToast(error.message || 'Erro ao registrar pagamento.', 'error');
+      showToast(error.response?.data?.error || error.message || 'Erro ao registrar pagamento.', 'error');
     },
   });
 

@@ -75,9 +75,9 @@ router.delete('/:id', async (req: Request, res: Response) => {
     
     info('Pagamento excluído', { details: { id: paymentId } });
     res.json({ success: true });
-  } catch (err) {
+  } catch (err: any) {
     error('[CLIENT_PAYMENTS DELETE] Erro ao excluir pagamento', err, { details: { id: req.params.id } });
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    res.status(500).json({ error: err?.message || 'Erro interno do servidor' });
   }
 });
 

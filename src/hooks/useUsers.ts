@@ -30,7 +30,7 @@ export const useUsers = () => {
     },
     onError: (error: any) => {
       console.error('Failed to add user', error);
-      showToast('Erro ao adicionar usuário.', 'error');
+      showToast(error.response?.data?.error || 'Erro ao adicionar usuário.', 'error');
     },
   });
 
@@ -45,7 +45,7 @@ export const useUsers = () => {
     },
     onError: (error: any) => {
       console.error('Failed to update user', error);
-      showToast('Erro ao atualizar usuário.', 'error');
+      showToast(error.response?.data?.error || 'Erro ao atualizar usuário.', 'error');
     },
   });
 
@@ -59,7 +59,7 @@ export const useUsers = () => {
     },
     onError: (error: any) => {
       console.error('Failed to delete user', error);
-      showToast('Erro ao excluir usuário.', 'error');
+      showToast(error.response?.data?.error || 'Erro ao excluir usuário.', 'error');
     },
   });
 

@@ -185,6 +185,7 @@ export class ClientPaymentService {
   async delete(id: number) {
     return prisma.$transaction(async (tx) => {
       await tx.transaction.deleteMany({ where: { paymentId: id } });
+      await tx.receipt.deleteMany({ where: { paymentId: id } });
       const deleted = await tx.clientPayment.delete({ where: { id } });
       return deleted;
     });
