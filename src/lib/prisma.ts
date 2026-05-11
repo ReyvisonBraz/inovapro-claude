@@ -6,7 +6,7 @@
  *    e NUNCA devem conter senhas reais.
  *
  * Variáveis esperadas no .env:
- *   DATABASE_URL (opcional — usada pelo Railway/Prisma CLI)
+ *   DATABASE_URL (opcional — usada pelo Prisma CLI/Serverless)
  *   DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME (conexão direta)
  */
 
