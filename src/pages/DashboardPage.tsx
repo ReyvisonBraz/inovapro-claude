@@ -2,17 +2,15 @@ import React from 'react';
 import { Dashboard } from '../components/dashboard/Dashboard';
 import { DrillDownModal } from '../components/ui/DrillDownModal';
 import { useStats } from '../hooks/useStats';
-import { useSettingsStore } from '../store/useSettingsStore';
 import { useFilterStore } from '../store/useFilterStore';
 
 export const DashboardPage: React.FC = () => {
   const { dashboardMonth } = useFilterStore();
   const { stats, handleChartClick, drillDownModal } = useStats(dashboardMonth);
-  const { settings } = useSettingsStore();
 
   return (
     <>
-      <Dashboard 
+      <Dashboard
         totalIncome={stats.totalIncome}
         totalExpenses={stats.totalExpenses}
         netBalance={stats.netBalance}
@@ -23,6 +21,12 @@ export const DashboardPage: React.FC = () => {
         pendingPayments={stats.pendingPayments ?? 0}
         activeOS={stats.activeOS ?? 0}
         recentTransactions={stats.recentTransactions ?? []}
+        monthIncome={stats.monthIncome ?? 0}
+        monthExpenses={stats.monthExpenses ?? 0}
+        monthNet={stats.monthNet ?? 0}
+        monthOSCount={stats.monthOSCount ?? 0}
+        osStatusCount={stats.osStatusCount ?? {}}
+        topProducts={stats.topProducts ?? []}
       />
       <DrillDownModal
         isOpen={drillDownModal.isOpen}
