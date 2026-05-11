@@ -20,6 +20,9 @@ export const DashboardPage: React.FC = () => {
         handleChartClick={(data) => handleChartClick(data, stats.transactions || [])}
         sortedIncomeRanking={stats.sortedIncomeRanking}
         sortedExpenseRanking={stats.sortedExpenseRanking}
+        pendingPayments={stats.pendingPayments ?? 0}
+        activeOS={stats.activeOS ?? 0}
+        recentTransactions={stats.recentTransactions ?? []}
       />
       <DrillDownModal
         isOpen={drillDownModal.isOpen}

@@ -10,9 +10,12 @@ router.get('/', async (_req: Request, res: Response) => {
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
     const twelveMonthsAgoStr = twelveMonthsAgo.toISOString().split('T')[0];
 
-    const [totalIncome, totalExpenses] = await Promise.all([
+    const [totalIncome, totalExpenses, pendingPayments, activeOS, recentTx] = await Promise.all([
       prisma.transaction.aggregate({ where: { type: 'income' }, _sum: { amount: true } }),
       prisma.transaction.aggregate({ where: { type: 'expense' }, _sum: { amount: true } }),
+      prisma.clientPayment.count({ where: { status: { in: ['pending', 'partial'] } } }),
+      prisma.serviceOrder.count({ where: { NOT: { status: { in: ['Concluído', 'Cancelado', 'Entregue'] } } } }),
+      prisma.transaction.findMany({ orderBy: { date: 'desc' }, take: 5 }),
     ]);
 
     const monthlyTransactions = await prisma.transaction.findMany({
@@ -55,6 +58,9 @@ router.get('/', async (_req: Request, res: Response) => {
       chartData,
       sortedIncomeRanking: incomeRanking.map(r => [r.category, r._sum.amount || 0]),
       sortedExpenseRanking: expenseRanking.map(r => [r.category, r._sum.amount || 0]),
+      pendingPayments,
+      activeOS,
+      recentTransactions: recentTx,
     });
   } catch (err) {
     error('[STATS] Erro ao calcular estatísticas', err);
