@@ -8,9 +8,13 @@ function getPoolConfig() {
     const parsed = new URL(url);
     const params = Object.fromEntries(parsed.searchParams);
     const ssl = params.sslmode !== 'disable';
+    let port = parseInt(parsed.port || '5432');
+    if (parsed.hostname.endsWith('.supabase.co') && port === 5432) {
+      port = 6543;
+    }
     return {
       host: parsed.hostname,
-      port: parseInt(parsed.port || '5432'),
+      port,
       user: decodeURIComponent(parsed.username),
       password: decodeURIComponent(parsed.password),
       database: parsed.pathname.replace(/^\//, ''),
