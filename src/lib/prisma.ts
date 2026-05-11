@@ -8,18 +8,23 @@ function getPoolConfig() {
     const parsed = new URL(url);
     const params = Object.fromEntries(parsed.searchParams);
     const ssl = params.sslmode !== 'disable';
+
+    let host = parsed.hostname;
     let port = parseInt(parsed.port || '5432');
-    if (parsed.hostname.endsWith('.supabase.co') && port === 5432) {
+    let user = decodeURIComponent(parsed.username);
+    const pass = decodeURIComponent(parsed.password);
+    const dbName = parsed.pathname.replace(/^\//, '');
+
+    if (host.endsWith('.supabase.co')) {
+      const projectRef = host.split('.').at(-3);
+      host = 'aws-1-us-west-2.pooler.supabase.com';
       port = 6543;
+      if (projectRef && !user.includes('.')) {
+        user = `${user}.${projectRef}`;
+      }
     }
-    return {
-      host: parsed.hostname,
-      port,
-      user: decodeURIComponent(parsed.username),
-      password: decodeURIComponent(parsed.password),
-      database: parsed.pathname.replace(/^\//, ''),
-      ssl: ssl ? { rejectUnauthorized: false } : false,
-    };
+
+    return { host, port, user, password: pass, database: dbName, ssl: ssl ? { rejectUnauthorized: false } : false };
   }
   const ssl = process.env.DB_SSL === 'true';
   return {
