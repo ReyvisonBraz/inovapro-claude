@@ -181,7 +181,7 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                         e.stopPropagation();
                         onTriggerAddCustomer();
                       }}
-                      className="h-14 w-14 flex items-center justify-center bg-primary/10 text-primary border border-primary/20 rounded-2xl hover:bg-primary/20 transition-all shadow-lg shadow-primary/5"
+                      className="h-12 md:h-14 w-12 md:w-14 flex items-center justify-center bg-primary/10 text-primary border border-primary/20 rounded-xl md:rounded-2xl hover:bg-primary/20 transition-all shadow-lg shadow-primary/5"
                       title="Adicionar Novo Cliente"
                     >
                       <Plus size={20} />
@@ -213,7 +213,7 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                     type="number"
                     step="0.01"
                     {...register('totalAmount')}
-                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-base font-black focus:ring-2 focus:ring-primary outline-none transition-all text-white"
+                    className="w-full h-12 md:h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-base font-black focus:ring-2 focus:ring-primary outline-none transition-all text-white"
                     placeholder="0.00"
                   />
                 </div>
@@ -230,7 +230,7 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                     type="number"
                     step="0.01"
                     {...register('paidAmount')}
-                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-base font-black focus:ring-2 focus:ring-primary outline-none transition-all text-white"
+                    className="w-full h-12 md:h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-base font-black focus:ring-2 focus:ring-primary outline-none transition-all text-white"
                     placeholder="0.00"
                   />
                 </div>
@@ -244,7 +244,7 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                 <input 
                   type="date"
                   {...register('purchaseDate')}
-                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-base font-bold focus:ring-2 focus:ring-primary outline-none transition-all [color-scheme:dark] text-white"
+                  className="w-full h-12 md:h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-base font-bold focus:ring-2 focus:ring-primary outline-none transition-all [color-scheme:dark] text-white"
                 />
                 {errors.purchaseDate && <p className="text-rose-500 text-xs font-bold mt-1">{errors.purchaseDate.message}</p>}
               </div>
@@ -256,7 +256,7 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                 <input 
                   type="date"
                   {...register('dueDate')}
-                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-base font-bold focus:ring-2 focus:ring-primary outline-none transition-all [color-scheme:dark] text-white"
+                  className="w-full h-12 md:h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-base font-bold focus:ring-2 focus:ring-primary outline-none transition-all [color-scheme:dark] text-white"
                 />
                 {errors.dueDate && <p className="text-rose-500 text-xs font-bold mt-1">{errors.dueDate.message}</p>}
               </div>
@@ -267,7 +267,7 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                 </label>
                 <select 
                   {...register('paymentMethod')}
-                  className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-base font-bold focus:ring-2 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900 transition-all"
+                  className="w-full h-12 md:h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-base font-bold focus:ring-2 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900 transition-all"
                 >
                   <option value="Dinheiro">Dinheiro</option>
                   <option value="PIX">PIX</option>
@@ -282,7 +282,7 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                 <label className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
                   <Layers size={14} /> Nº de Parcelas
                 </label>
-                <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-2xl p-1 h-14">
+                <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-2xl p-1 h-12 md:h-14">
                   <button 
                     type="button" 
                     onClick={() => setValue('installmentsCount', Math.max(1, Number(installmentsCount) - 1))}
@@ -309,7 +309,7 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                   <label className="text-xs font-black uppercase tracking-widest text-slate-400">Intervalo das Parcelas</label>
                   <select 
                     {...register('installmentInterval')}
-                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-base font-bold focus:ring-2 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900 transition-all"
+                    className="w-full h-12 md:h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-base font-bold focus:ring-2 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900 transition-all"
                   >
                     <option value="monthly">Mensal</option>
                     <option value="15days">A cada 15 dias</option>
@@ -339,13 +339,13 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
             {/* Lado Direito - Resumo do Parcelamento */}
             {preview && preview.length > 0 && (
               <div className="w-full lg:w-80 xl:w-96 flex-shrink-0 transition-all duration-300">
-                <div className="bg-black/20 border border-white/5 rounded-2xl p-5 flex flex-col h-full lg:max-h-full max-h-[350px]">
+                <div className="bg-black/20 border border-white/5 rounded-2xl p-4 md:p-5 flex flex-col h-full lg:max-h-full max-h-[250px] md:max-h-[350px]">
                   <h4 className="text-sm font-black uppercase tracking-widest text-primary mb-4 flex items-center gap-2 shrink-0">
                     <Layers size={16} /> Resumo do Parcelamento
                   </h4>
                   <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
                     {preview.map((p, i) => (
-                      <div key={i} className="flex justify-between items-center bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
+                      <div key={i} className="flex justify-between items-center bg-white/5 p-3 md:p-4 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
                         <div>
                           <span className="block text-xs font-bold text-slate-400 uppercase tracking-widest">Parcela {i + 1}</span>
                           <span className="block text-sm font-bold text-slate-200 mt-1">{p.date}</span>

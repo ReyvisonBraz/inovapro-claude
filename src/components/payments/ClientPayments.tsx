@@ -110,32 +110,32 @@ export const ClientPayments = ({
         </div>
         <button 
           onClick={() => setIsAddingClientPayment(true)}
-          className="w-full md:w-auto bg-primary hover:bg-primary/90 text-white px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95"
+          className="w-full md:w-auto bg-primary hover:bg-primary/90 text-white px-4 md:px-6 py-2.5 md:py-4 rounded-xl md:rounded-2xl text-sm md:text-base font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95"
         >
-          <Plus size={20} />
+          <Plus size={18} />
           Novo Registro
         </button>
       </div>
 
       <div className="glass-card overflow-hidden">
-        <div className="p-4 border-b border-white/5 flex flex-col md:flex-row gap-4">
+        <div className="p-3 md:p-4 border-b border-white/5 flex flex-col md:flex-row gap-3 md:gap-4">
           <div className="relative flex-1 w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+            <Search className="absolute left-3.5 md:left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
             <input 
               type="text"
               placeholder="Buscar por cliente ou descrição..."
               value={paymentSearchTerm}
               onChange={(e) => setPaymentSearchTerm(e.target.value)}
-              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
+              className="w-full h-10 md:h-12 bg-white/5 border border-white/10 rounded-xl pl-10 md:pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
             />
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+          <div className="grid grid-cols-2 sm:flex gap-2 w-full md:w-auto">
             <select
               value={paymentFilterStatus}
               onChange={(e) => setPaymentFilterStatus(e.target.value)}
-              className="flex-1 sm:flex-none h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
+              className="h-10 md:h-12 bg-white/5 border border-white/10 rounded-xl px-3 md:px-4 text-xs md:text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
             >
-              <option value="all">Todos os Status</option>
+              <option value="all">Status</option>
               <option value="paid">Pagos</option>
               <option value="partial">Parciais</option>
               <option value="pending">Pendentes</option>
@@ -144,11 +144,11 @@ export const ClientPayments = ({
             <select
               value={paymentSortMode}
               onChange={(e) => setPaymentSortMode(e.target.value as any)}
-              className="flex-1 sm:flex-none h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
+              className="h-10 md:h-12 bg-white/5 border border-white/10 rounded-xl px-3 md:px-4 text-xs md:text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
             >
-              <option value="date">Mais Recentes</option>
-              <option value="amount">Maior Valor</option>
-              <option value="alphabetical">Ordem Alfabética</option>
+              <option value="date">Recentes</option>
+              <option value="amount">Valor</option>
+              <option value="alphabetical">A-Z</option>
             </select>
           </div>
         </div>
@@ -162,7 +162,7 @@ export const ClientPayments = ({
               const someOverdue = item.payments.some(p => new Date(p.dueDate) < new Date() && p.status !== 'paid');
 
               return (
-                <div key={item.saleId} className="p-2 space-y-1.5 bg-white/[0.02] border-l-4 border-primary rounded-lg">
+                <div key={item.saleId} className="p-2.5 md:p-3 space-y-1.5 bg-white/[0.02] border-l-4 border-primary rounded-lg">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-1.5">
                       <button onClick={() => togglePaymentExpansion(item.saleId)} className="p-0.5 rounded hover:bg-white/10 text-slate-400 transition-colors shrink-0">
@@ -226,7 +226,7 @@ export const ClientPayments = ({
 
             const payment = item;
             return (
-              <div key={payment.id} className="p-3 space-y-2">
+              <div key={payment.id} className="p-3 md:p-4 space-y-2">
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <button 

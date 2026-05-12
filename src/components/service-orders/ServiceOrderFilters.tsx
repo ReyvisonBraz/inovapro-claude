@@ -97,7 +97,7 @@ export const ServiceOrderFilters: React.FC<ServiceOrderFiltersProps> = ({
               onClick={() => setShowColumnConfig(!showColumnConfig)}
               className={cn(
                 "h-12 px-5 rounded-xl border flex items-center gap-2 text-xs font-bold transition-all",
-                showColumnConfig ? "bg-primary/10 border-primary text-primary" : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10"
+                showColumnConfig ? "bg-primary/15 border-primary text-primary" : "bg-white/10 border-white/20 text-slate-300 hover:bg-white/20"
               )}
             >
               <Filter size={16} />

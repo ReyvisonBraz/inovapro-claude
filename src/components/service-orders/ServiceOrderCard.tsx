@@ -131,8 +131,8 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
             
             <div className="flex flex-col">
               <h4 className={cn(
-                "font-black text-white tracking-tight leading-tight truncate",
-                isGrid ? "text-lg" : "text-lg md:text-2xl"
+                "font-black text-white tracking-tight leading-tight break-words line-clamp-2",
+                isGrid ? "text-base" : "text-base md:text-2xl"
               )}>
                 {order.firstName} {order.lastName}
               </h4>
@@ -292,17 +292,15 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
             <Printer size={18} />
           </button>
 
-          {order.status === 'Concluído' && !clientPayments.data.some((p: any) => p.description?.includes(`OS #${order.id.toString().padStart(4, '0')}`)) && (
-            <button 
-              onClick={() => {
-                onGeneratePayment?.(order);
-              }}
-              className="p-2 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 transition-all"
-              title="Gerar Pagamento"
-            >
-              <Wallet size={18} />
-            </button>
-          )}
+          <button 
+            onClick={() => {
+              onGeneratePayment?.(order);
+            }}
+            className="p-2 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 transition-all"
+            title="Transações / Gerar Pagamento"
+          >
+            <Wallet size={18} />
+          </button>
 
           <button 
             onClick={() => {
