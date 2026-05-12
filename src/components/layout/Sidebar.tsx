@@ -110,25 +110,39 @@ export const Sidebar = () => {
       </nav>
 
       {/* User footer */}
-      <div className="p-3 border-t border-white/[0.04] shrink-0">
-        <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.04]">
-          <div className="flex items-center gap-3 mb-2.5">
-            <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+      <div className="p-2 lg:p-3 border-t border-white/[0.04] shrink-0">
+        <div className={cn(
+          "rounded-xl bg-white/[0.03] border border-white/[0.04]",
+          isSidebarCollapsed && !isMobile ? "p-2 flex flex-col items-center gap-2" : "p-3"
+        )}>
+          <div className={cn(
+            "flex items-center",
+            isSidebarCollapsed && !isMobile ? "flex-col gap-1" : "gap-3 mb-2.5"
+          )}>
+            <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-xl bg-primary/15 flex items-center justify-center text-primary font-bold text-xs shrink-0">
               {currentUser?.name?.charAt(0)?.toUpperCase()}
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-xs font-semibold text-white truncate">{currentUser?.name}</span>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">
-                {currentUser?.role === 'owner' ? 'Proprietário' : currentUser?.role === 'manager' ? 'Gerente' : 'Funcionário'}
-              </span>
-            </div>
+            {(!isSidebarCollapsed || isMobile) && (
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-semibold text-white truncate">{currentUser?.name}</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">
+                  {currentUser?.role === 'owner' ? 'Proprietário' : currentUser?.role === 'manager' ? 'Gerente' : 'Funcionário'}
+                </span>
+              </div>
+            )}
           </div>
           <button
             onClick={logout}
-            className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all group"
+            className={cn(
+              "flex items-center font-bold hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all group",
+              isSidebarCollapsed && !isMobile
+                ? "p-1.5 rounded-lg text-slate-500 justify-center"
+                : "w-full gap-2 px-2.5 py-2 text-xs text-slate-500"
+            )}
+            title="Sair"
           >
-            <LogOut size={13} className="group-hover:translate-x-0.5 transition-transform" />
-            Sair
+            <LogOut size={13} className="group-hover:translate-x-0.5 transition-transform shrink-0" />
+            {(!isSidebarCollapsed || isMobile) && <span>Sair</span>}
           </button>
         </div>
       </div>
@@ -156,7 +170,7 @@ export const Sidebar = () => {
 
   // Desktop: Persistent sidebar
   return (
-    <aside className="sticky top-0 h-screen z-30 border-r border-white/[0.04] hidden lg:flex flex-col shrink-0 transition-all duration-300 bg-bg-elevated"
+    <aside className="sticky top-0 h-screen z-30 border-r border-white/[0.04] hidden lg:flex flex-col shrink-0 overflow-hidden transition-all duration-300 bg-bg-elevated"
       style={{ width: isSidebarCollapsed ? 80 : 256 }}
     >
       {sidebarContent}
