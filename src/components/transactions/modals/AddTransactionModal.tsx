@@ -49,11 +49,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const categoryRef = useRef<HTMLSelectElement>(null);
   const descriptionRef = useRef<HTMLInputElement>(null);
 
-  const cat = (type: 'income' | 'expense') => {
-    const preferred = type === 'income' ? 'Entrada' : 'Saída';
-    const list = categories.filter(c => c.type === type);
-    return list.find(c => c.name === preferred)?.name ?? list[0]?.name ?? '';
-  };
+  const cat = (type: 'income' | 'expense') => type === 'income' ? 'Entrada' : 'Saída';
 
   const {
     register,

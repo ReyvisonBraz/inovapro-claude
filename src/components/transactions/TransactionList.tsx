@@ -63,7 +63,7 @@ export const TransactionList = ({
               <div className="flex flex-col gap-1">
                 <p className="text-sm font-bold">{tx.description}</p>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">
-                  {format(parseLocalDate(tx.date), 'dd/MM/yyyy')} • {tx.category}
+                  {format(parseLocalDate(tx.date), "EE',' dd/MM", { locale: ptBR })} • {tx.category}
                 </p>
               </div>
               <div className="text-right">

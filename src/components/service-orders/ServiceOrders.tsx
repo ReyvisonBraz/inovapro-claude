@@ -207,57 +207,43 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   return (
     <div className="p-4 sm:p-6 lg:p-10 space-y-6 md:space-y-8">
       {/* Header Section */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-primary/10 rounded-2xl border border-primary/20">
-              <Settings2 className="text-primary" size={28} />
-            </div>
-            <div>
-              <h1 className="text-3xl font-black text-white tracking-tight">
-                Ordens de <span className="text-primary">Serviço</span>
-              </h1>
-              <p className="text-slate-500 text-sm font-medium">
-                Gerencie manutenções, orçamentos e status em tempo real
-              </p>
-            </div>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 lg:p-3 bg-primary/10 rounded-xl lg:rounded-2xl border border-primary/20">
+            <Settings2 className="text-primary" size={20} />
+          </div>
+          <div>
+            <h1 className="text-xl lg:text-3xl font-black text-white tracking-tight">
+              Ordens de <span className="text-primary">Serviço</span>
+            </h1>
+            <p className="hidden lg:block text-slate-500 text-sm font-medium">
+              Gerencie manutenções, orçamentos e status em tempo real
+            </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <button 
-            onClick={onPrintBlankForm}
-            className="h-14 px-6 rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:border-primary/30 transition-all flex items-center gap-3 group"
-          >
-            <Printer size={20} className="group-hover:text-primary transition-colors" />
-            <span className="text-sm font-bold">Imprimir Ficha</span>
+        <div className="flex items-center gap-2">
+          <button onClick={onPrintBlankForm} className="p-2.5 lg:h-12 lg:px-4 rounded-xl lg:rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white transition-all flex items-center gap-2 group" title="Imprimir Ficha">
+            <Printer size={18} className="lg:group-hover:text-primary transition-colors" />
+            <span className="hidden lg:inline text-sm font-bold">Imprimir Ficha</span>
           </button>
 
-          <button 
-            onClick={() => setIsSearchingOS(true)}
-            className="h-14 px-6 rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:border-primary/30 transition-all flex items-center gap-3 group"
-          >
-            <Search size={20} className="group-hover:text-primary transition-colors" />
-            <span className="text-sm font-bold">Busca Direta</span>
+          <button onClick={() => setIsSearchingOS(true)} className="p-2.5 lg:h-12 lg:px-4 rounded-xl lg:rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white transition-all flex items-center gap-2 group" title="Buscar OS">
+            <Search size={18} className="lg:group-hover:text-primary transition-colors" />
+            <span className="hidden lg:inline text-sm font-bold">Busca Direta</span>
           </button>
 
-          <button 
-            onClick={() => setShowStatusManager(true)}
-            className="h-14 px-6 rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:border-primary/30 transition-all flex items-center gap-3 group"
-          >
-            <Settings2 size={20} className="group-hover:text-primary transition-colors" />
-            <span className="text-sm font-bold">Status</span>
+          <button onClick={() => setShowStatusManager(true)} className="p-2.5 lg:h-12 lg:px-4 rounded-xl lg:rounded-2xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white transition-all flex items-center gap-2 group" title="Status">
+            <Settings2 size={18} className="lg:group-hover:text-primary transition-colors" />
+            <span className="hidden lg:inline text-sm font-bold">Status</span>
           </button>
 
-          <button 
-            onClick={() => {
-              setEditingOrder(null);
-              setIsAdding(true);
-            }}
-            className="h-14 px-8 rounded-2xl bg-primary text-white font-black text-sm hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3 shadow-lg shadow-primary/25"
+          <button onClick={() => { setEditingOrder(null); setIsAdding(true); }}
+            className="p-2.5 lg:h-12 lg:px-6 rounded-xl lg:rounded-2xl bg-primary text-white font-black text-xs lg:text-sm hover:bg-primary/90 transition-all flex items-center gap-2 shadow-lg shadow-primary/25"
+            title="Nova Ordem"
           >
-            <Plus size={20} strokeWidth={3} />
-            NOVA ORDEM
+            <Plus size={18} strokeWidth={3} />
+            <span className="hidden lg:inline">NOVA ORDEM</span>
           </button>
         </div>
       </div>

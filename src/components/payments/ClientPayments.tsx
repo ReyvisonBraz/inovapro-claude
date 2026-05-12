@@ -162,62 +162,47 @@ export const ClientPayments = ({
               const someOverdue = item.payments.some(p => new Date(p.dueDate) < new Date() && p.status !== 'paid');
 
               return (
-                <div key={item.saleId} className="p-3 space-y-2 bg-white/[0.02] border-l-4 border-primary">
+                <div key={item.saleId} className="p-2 space-y-1.5 bg-white/[0.02] border-l-4 border-primary rounded-lg">
                   <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => togglePaymentExpansion(item.saleId)}
-                        className="p-0.5 rounded-md hover:bg-white/10 text-slate-400 transition-colors shrink-0"
-                      >
-                        {expandedPayments.includes(item.saleId) ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => togglePaymentExpansion(item.saleId)} className="p-0.5 rounded hover:bg-white/10 text-slate-400 transition-colors shrink-0">
+                        {expandedPayments.includes(item.saleId) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                       </button>
-                      <Zap size={14} className="text-primary" />
-                      <p className="text-xs font-bold text-primary">Venda Agrupada</p>
+                      <Zap size={12} className="text-primary" />
+                      <p className="text-[11px] font-bold text-primary">Venda Agrupada</p>
                     </div>
-                    <span className={cn(
-                      "px-1.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-widest border",
+                    <span className={cn("px-1 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border",
                       allPaid ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" :
                       someOverdue ? "bg-rose-500/10 border-rose-500/20 text-rose-500" :
                       "bg-amber-500/10 border-amber-500/20 text-amber-500"
-                    )}>
-                      {allPaid ? 'Concluído' : someOverdue ? 'Vencido' : 'Em Aberto'}
-                    </span>
+                    )}>{allPaid ? 'OK' : someOverdue ? 'Vencido' : 'Aberto'}</span>
                   </div>
                   
                   <AnimatePresence>
                     {expandedPayments.includes(item.saleId) && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden space-y-2"
-                      >
-                        {item.payments.map(payment => (
-                          <div key={payment.id} className="pl-3 border-l border-white/10 space-y-1">
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden space-y-1">
+                        {item.payments.map(p => (
+                          <div key={p.id} className="pl-2 border-l border-white/10 space-y-0.5">
                             <div className="flex justify-between items-start gap-1">
                               <div className="min-w-0">
-                                <p className="text-xs font-bold truncate">{payment.customerName}</p>
-                                <p className="text-xs text-slate-400 truncate">{payment.description}</p>
+                                <p className="text-[11px] font-bold truncate">{p.description}</p>
                               </div>
-                              <span className={cn(
-                                "px-1 py-0.5 rounded text-xs font-bold uppercase tracking-widest border shrink-0",
-                                payment.status === 'paid' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" :
-                                payment.status === 'partial' ? "bg-amber-500/10 border-amber-500/20 text-amber-500" :
-                                "bg-rose-500/10 border-rose-500/20 text-rose-500"
-                              )}>
-                                {payment.status === 'paid' ? 'Pago' : payment.status === 'partial' ? 'Parcial' : 'Pendente'}
-                              </span>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <span className={cn("px-1 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border",
+                                  p.status === 'paid' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" :
+                                  p.status === 'partial' ? "bg-amber-500/10 border-amber-500/20 text-amber-500" :
+                                  "bg-rose-500/10 border-rose-500/20 text-rose-500"
+                                )}>{p.status === 'paid' ? 'Pg' : p.status === 'partial' ? 'Pc' : 'Pd'}</span>
+                                <span className="text-xs font-bold">{formatCurrency(p.totalAmount)}</span>
+                              </div>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <p className="text-xs text-slate-500">{format(parseISO(payment.dueDate), 'dd/MM/yyyy')}</p>
-                              <p className="text-xs font-bold">{formatCurrency(payment.totalAmount)}</p>
-                            </div>
-                            <div className="flex gap-0.5">
-                              {payment.status !== 'paid' && (
-                                <button onClick={() => setIsRecordingPayment(payment)} className="p-1 rounded bg-primary/10 text-primary border border-primary/20"><CheckCircle2 size={10} /></button>
-                              )}
-                              <button onClick={() => generateReceipt(payment, 'simple')} className="p-1 rounded bg-white/5 text-slate-400 border border-white/10"><Zap size={10} /></button>
-                              <button onClick={() => sendWhatsAppReminder(payment)} className="p-1 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"><MessageCircle size={10} /></button>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] text-slate-500">{format(parseISO(p.dueDate), 'dd/MM')}</span>
+                              <div className="flex gap-0.5">
+                                {p.status !== 'paid' && <button onClick={() => setIsRecordingPayment(p)} className="p-1 rounded bg-primary/10 text-primary border border-primary/20"><CheckCircle2 size={10} /></button>}
+                                <button onClick={() => generateReceipt(p, 'simple')} className="p-1 rounded bg-white/5 text-slate-400 border border-white/10"><Zap size={10} /></button>
+                                <button onClick={() => sendWhatsAppReminder(p)} className="p-1 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"><MessageCircle size={10} /></button>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -225,19 +210,14 @@ export const ClientPayments = ({
                     )}
                   </AnimatePresence>
 
-                  <div className="pt-2 border-t border-white/5 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total da Venda</p>
-                      <button 
-                        onClick={() => handleDeleteClientPaymentGroup(item.saleId)}
-                        className="p-1.5 rounded bg-rose-500/10 text-rose-500 border border-rose-500/20"
-                      >
-                        <Trash2 size={12} />
-                      </button>
+                  <div className="pt-1.5 border-t border-white/5 flex justify-between items-center">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Total</span>
+                      <button onClick={() => handleDeleteClientPaymentGroup(item.saleId)} className="p-1 rounded bg-rose-500/10 text-rose-500 border border-rose-500/20"><Trash2 size={10} /></button>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-black text-primary">{formatCurrency(totalGroupAmount)}</p>
-                      <p className="text-xs text-emerald-500 font-bold">Pago: {formatCurrency(totalGroupPaid)}</p>
+                      <span className="text-xs font-black text-primary">{formatCurrency(totalGroupAmount)}</span>
+                      <span className="text-[10px] text-emerald-500 font-bold ml-1">({formatCurrency(totalGroupPaid)})</span>
                     </div>
                   </div>
                 </div>
@@ -246,22 +226,22 @@ export const ClientPayments = ({
 
             const payment = item;
             return (
-              <div key={payment.id} className="p-4 space-y-4">
+              <div key={payment.id} className="p-3 space-y-2">
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <button 
                       onClick={() => togglePaymentExpansion(payment.id)}
                       className="p-1 rounded-md hover:bg-white/10 text-slate-400 transition-colors shrink-0"
                     >
-                      {expandedPayments.includes(payment.id) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      {expandedPayments.includes(payment.id) ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </button>
                     <div className="min-w-0">
-                      <p className="text-sm font-bold truncate">{payment.customerName}</p>
-                      <p className="text-xs text-slate-400 truncate">{payment.description}</p>
+                      <p className="text-xs font-bold truncate">{payment.customerName}</p>
+                      <p className="text-[11px] text-slate-400 truncate">{payment.description}</p>
                     </div>
                   </div>
                   <span className={cn(
-                    "px-2 py-1 rounded-md text-xs font-bold uppercase tracking-widest border shrink-0",
+                    "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border shrink-0",
                     payment.status === 'paid' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" :
                     payment.status === 'partial' ? "bg-amber-500/10 border-amber-500/20 text-amber-500" :
                     "bg-rose-500/10 border-rose-500/20 text-rose-500"
@@ -270,61 +250,27 @@ export const ClientPayments = ({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 bg-black/20 p-3 rounded-xl border border-white/5">
+                <div className="flex items-center justify-between bg-black/20 p-2 rounded-xl border border-white/5">
                   <div>
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-0.5">Vencimento</p>
                     <p className={cn(
-                      "text-sm font-bold",
+                      "text-xs font-bold",
                       new Date(payment.dueDate) < new Date() && payment.status !== 'paid' ? "text-rose-500" : "text-slate-300"
-                    )}>
-                      {format(parseISO(payment.dueDate), 'dd/MM/yyyy')}
-                    </p>
+                    )}>{format(parseISO(payment.dueDate), 'dd/MM')}</p>
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-0.5">Total / Pago</p>
-                    <p className="text-sm font-black">{formatCurrency(payment.totalAmount)}</p>
-                    <p className="text-xs text-emerald-500 font-bold uppercase tracking-widest">{formatCurrency(payment.paidAmount)}</p>
+                  <div className="text-right">
+                    <p className="text-xs font-black">{formatCurrency(payment.totalAmount)}</p>
+                    <p className="text-[10px] text-emerald-500 font-bold">Pago: {formatCurrency(payment.paidAmount)}</p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1">
                   {payment.status !== 'paid' && (
-                    <button 
-                      onClick={() => setIsRecordingPayment(payment)}
-                      className="flex-1 flex justify-center items-center py-3 px-2 rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all"
-                      title="Registrar Pagamento"
-                    >
-                      <CheckCircle2 size={16} />
-                    </button>
+                    <button onClick={() => setIsRecordingPayment(payment)} className="p-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all" title="Registrar Pagamento"><CheckCircle2 size={14} /></button>
                   )}
-                  <button 
-                    onClick={() => generateReceipt(payment, 'simple')}
-                    className="flex-1 flex justify-center items-center py-3 px-2 rounded-lg bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all"
-                    title="Recibo Térmico"
-                  >
-                    <Zap size={16} />
-                  </button>
-                  <button 
-                    onClick={() => generateReceipt(payment, 'a4')}
-                    className="flex-1 flex justify-center items-center py-3 px-2 rounded-lg bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all"
-                    title="Recibo A4"
-                  >
-                    <Printer size={16} />
-                  </button>
-                  <button 
-                    onClick={() => sendWhatsAppReminder(payment)}
-                    className="flex-1 flex justify-center items-center py-3 px-2 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
-                    title="WhatsApp"
-                  >
-                    <MessageCircle size={16} />
-                  </button>
-                  <button 
-                    onClick={() => handleDeleteClientPayment(payment)}
-                    className="flex-1 flex justify-center items-center py-3 px-2 rounded-lg bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
-                    title="Excluir"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <button onClick={() => generateReceipt(payment, 'simple')} className="p-1.5 rounded-lg bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all" title="Recibo"><Zap size={14} /></button>
+                  <button onClick={() => generateReceipt(payment, 'a4')} className="p-1.5 rounded-lg bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all" title="Recibo A4"><Printer size={14} /></button>
+                  <button onClick={() => sendWhatsAppReminder(payment)} className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all" title="WhatsApp"><MessageCircle size={14} /></button>
+                  <button onClick={() => handleDeleteClientPayment(payment)} className="p-1.5 rounded-lg bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all" title="Excluir"><Trash2 size={14} /></button>
                 </div>
 
                 <AnimatePresence>

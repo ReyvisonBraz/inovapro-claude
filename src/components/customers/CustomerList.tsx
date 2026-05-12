@@ -146,108 +146,50 @@ export const CustomerList: React.FC<CustomerListProps> = ({
           return (
             <div 
               key={customer.id}
-              className="group bg-white/5 hover:bg-white/[0.07] border border-white/10 rounded-2xl p-5 transition-all duration-300 hover:shadow-lg hover:shadow-black/20 hover:border-primary/20 relative overflow-hidden"
+              className="group bg-white/5 hover:bg-white/[0.07] border border-white/10 rounded-xl p-3 md:p-5 transition-all relative overflow-hidden"
             >
-              {debt > 0 && (
-                <div className="absolute top-0 right-0 w-2 h-full bg-rose-500/50" />
-              )}
+              {debt > 0 && <div className="absolute top-0 right-0 w-1.5 h-full bg-rose-500/50" />}
               
-              <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
-                {/* Info Principal */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-lg font-bold text-white truncate flex items-center gap-2">
-                      <span className="text-xs font-mono text-slate-500 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">ID: {customer.id}</span>
+              <div className="flex flex-col lg:flex-row gap-3 lg:gap-6 items-start lg:items-center justify-between">
+                <div className="flex-1 min-w-0 w-full">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <h3 className="text-sm md:text-lg font-bold text-white truncate">
                       {customer.firstName} {customer.lastName}
                     </h3>
                     {customer.nickname && (
-                      <span className="px-2 py-0.5 rounded-md bg-white/10 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                      <span className="hidden md:inline px-2 py-0.5 rounded-md bg-white/10 text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">
                         {customer.nickname}
                       </span>
                     )}
                   </div>
-                  
-                  <div className="flex flex-wrap gap-4 text-sm text-slate-500">
-                    {customer.companyName && (
-                      <span className="flex items-center gap-1.5">
-                        <CreditCard size={14} />
-                        {customer.companyName}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1.5">
-                      <Phone size={14} />
-                      {customer.phone}
-                    </span>
-                    {lastPurchase && (
-                      <span className="flex items-center gap-1.5">
-                        <History size={14} />
-                        Última compra: {format(parseISO(lastPurchase), 'dd/MM/yy')}
-                      </span>
-                    )}
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs md:text-sm text-slate-500">
+                    <span className="flex items-center gap-1"><Phone size={12} />{customer.phone}</span>
+                    {customer.companyName && <span className="flex items-center gap-1 hidden md:flex"><CreditCard size={12} />{customer.companyName}</span>}
+                    {lastPurchase && <span className="flex items-center gap-1">Última: {format(parseISO(lastPurchase), 'dd/MM/yy')}</span>}
+                    <span className="md:hidden font-bold">{formatCurrency(debt)}</span>
                   </div>
                 </div>
 
-                {/* Status Financeiro */}
-                <div className="flex items-center gap-4 sm:gap-8 w-full lg:w-auto bg-black/20 p-3 rounded-xl border border-white/5 mt-4 lg:mt-0">
-                  <div className="flex-1 sm:flex-none">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-0.5">Pendências</p>
-                    <p className={cn(
-                      "text-lg font-black tracking-tight",
-                      debt > 0 ? "text-rose-500" : "text-emerald-500"
-                    )}>
-                      {formatCurrency(debt)}
-                    </p>
+                <div className="flex items-center gap-3 w-full lg:w-auto">
+                  <div className="hidden md:flex items-center gap-4 bg-black/20 p-2 rounded-xl border border-white/5">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Dívida</p>
+                      <p className={cn("text-base font-black", debt > 0 ? "text-rose-500" : "text-emerald-500")}>{formatCurrency(debt)}</p>
+                    </div>
+                    <div className="h-6 w-px bg-white/10" />
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Limite</p>
+                      <p className="text-base font-bold text-slate-300">{formatCurrency(customer.creditLimit || 0)}</p>
+                    </div>
                   </div>
-                  <div className="h-8 w-px bg-white/10" />
-                  <div className="flex-1 sm:flex-none">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-0.5">Limite</p>
-                    <p className="text-lg font-bold text-slate-300 tracking-tight">
-                      {formatCurrency(customer.creditLimit || 0)}
-                    </p>
-                  </div>
-                </div>
 
-                {/* Ações */}
-                <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-start lg:justify-end mt-4 lg:mt-0">
-                  <button 
-                    onClick={() => onAddPayment(customer)}
-                    className="flex-1 sm:flex-none flex items-center justify-center p-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all border border-primary/20"
-                    title="Nova Venda"
-                  >
-                    <Plus size={18} />
-                  </button>
-                  <button 
-                    onClick={() => onViewHistory(customer)}
-                    className="flex-1 sm:flex-none flex items-center justify-center p-2.5 rounded-xl bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white transition-all border border-white/10"
-                    title="Histórico"
-                  >
-                    <History size={18} />
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setSelectedCustomerForWhatsApp(customer);
-                      setSelectedDebtForWhatsApp(debt);
-                      setIsWhatsAppModalOpen(true);
-                    }}
-                    className="flex-1 sm:flex-none flex items-center justify-center p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all border border-emerald-500/20"
-                    title="Cobrar no WhatsApp"
-                  >
-                    <MessageCircle size={18} />
-                  </button>
-                  <button 
-                    onClick={() => onEdit(customer)}
-                    className="flex-1 sm:flex-none flex items-center justify-center p-2.5 rounded-xl bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white transition-all border border-white/10"
-                    title="Editar"
-                  >
-                    <Edit size={18} />
-                  </button>
-                  <button 
-                    onClick={() => onDelete(customer.id)}
-                    className="flex-1 sm:flex-none flex items-center justify-center p-2.5 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all border border-rose-500/20"
-                    title="Excluir"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button onClick={() => onAddPayment(customer)} className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all" title="Nova Venda"><Plus size={16} /></button>
+                    <button onClick={() => onViewHistory(customer)} className="p-2 rounded-lg bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all" title="Histórico"><History size={16} /></button>
+                    <button onClick={() => {setSelectedCustomerForWhatsApp(customer);setSelectedDebtForWhatsApp(debt);setIsWhatsAppModalOpen(true);}} className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all" title="WhatsApp"><MessageCircle size={16} /></button>
+                    <button onClick={() => onEdit(customer)} className="p-2 rounded-lg bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all" title="Editar"><Edit size={16} /></button>
+                    <button onClick={() => onDelete(customer.id)} className="p-2 rounded-lg bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all" title="Excluir"><Trash2 size={16} /></button>
+                  </div>
                 </div>
               </div>
             </div>
