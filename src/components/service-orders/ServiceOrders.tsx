@@ -182,6 +182,8 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     const success = await onUpdateOrder(id, { status: newStatus, updatedBy: currentUser?.id || 1 });
     if (success) {
       showToast('Status atualizado com sucesso!', 'success');
+    } else {
+      showToast('Erro ao atualizar status.', 'error');
     }
   };
 

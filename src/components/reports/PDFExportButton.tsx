@@ -4,6 +4,7 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { useFilterStore } from '../../store/useFilterStore';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useToast } from '../ui/Toast';
 
 interface PDFExportButtonProps {
   reportElementId: string;
@@ -11,6 +12,7 @@ interface PDFExportButtonProps {
 
 export const PDFExportButton: React.FC<PDFExportButtonProps> = ({ reportElementId }) => {
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
   const { settings } = useSettingsStore();
   const { reportStartDate, reportEndDate, reportMonth } = useFilterStore();
 
@@ -30,7 +32,7 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({ reportElementI
       });
     } catch (error) {
       console.error('Erro ao exportar PDF:', error);
-      alert('Erro ao exportar PDF. Tente novamente.');
+      showToast('Erro ao exportar PDF. Tente novamente.', 'error');
     } finally {
       setLoading(false);
     }

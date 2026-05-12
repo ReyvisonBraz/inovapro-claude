@@ -313,6 +313,9 @@ export const ServicesAndPartsSection: React.FC<ServicesAndPartsSectionProps> = (
               }
               setShowProductModal(false);
             }
+          }).catch((err) => {
+            console.error('Failed to save inventory item', err);
+            showToast('Erro ao salvar item no inventário.', 'error');
           });
         }}
       />

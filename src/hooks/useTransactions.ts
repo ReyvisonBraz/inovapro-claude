@@ -117,6 +117,7 @@ export function useTransactions(showToast: (message: string, type: 'success' | '
       });
     } catch (err) {
       console.error("Failed to duplicate", err);
+      showToast('Erro ao duplicar transação.', 'error');
     }
   };
 

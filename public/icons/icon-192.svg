@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="32" fill="#0b0f1a"/>
+  <circle cx="96" cy="80" r="28" fill="none" stroke="#1152d4" stroke-width="3"/>
+  <polyline points="78,72 86,86 114,62" fill="none" stroke="#1152d4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="96" y="140" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="800" font-size="36" fill="#ffffff">INOVA</text>
+</svg>

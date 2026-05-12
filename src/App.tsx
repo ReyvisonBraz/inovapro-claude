@@ -8,6 +8,7 @@ import { useToast } from './components/ui/Toast';
 import { useAppStore } from './store/useAppStore';
 import { useFilterStore } from './store/useFilterStore';
 import { useModalStore } from './store/useModalStore';
+import { SplashScreen } from './components/ui/SplashScreen';
 import { useFormStore } from './store/useFormStore';
 import { useSettings } from './hooks/useSettings';
 import { Sidebar } from './components/layout/Sidebar';
@@ -141,10 +142,11 @@ export default function App() {
   };
 
   if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
+    return <SplashScreen><Login onLogin={handleLogin} /></SplashScreen>;
   }
 
   return (
+    <SplashScreen>
     <div className="flex min-h-screen bg-bg-dark text-slate-100 selection:bg-primary/30 overflow-x-hidden">
       <div className="flex flex-1 relative">
 
@@ -209,5 +211,6 @@ export default function App() {
         }
       `}</style>
     </div>
+    </SplashScreen>
   );
 }

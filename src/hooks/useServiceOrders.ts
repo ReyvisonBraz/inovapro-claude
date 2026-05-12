@@ -95,8 +95,8 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-      if (!variables.id && showToast) {
-        showToast('Ordem de serviço salva com sucesso!', 'success');
+      if (showToast) {
+        showToast(variables.id ? 'Ordem de serviço atualizada com sucesso!' : 'Ordem de serviço salva com sucesso!', 'success');
       }
     },
     onError: (error: any) => {
@@ -123,36 +123,64 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
   const addStatusMutation = useMutation({
     mutationFn: (status: any) => api.post('/service-order-statuses', status),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['service-order-statuses'] }),
+    onError: (error: any) => {
+      console.error('Failed to add status', error);
+      if (showToast) showToast('Erro ao adicionar status.', 'error');
+    },
   });
 
   const deleteStatusMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/service-order-statuses/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['service-order-statuses'] }),
+    onError: (error: any) => {
+      console.error('Failed to delete status', error);
+      if (showToast) showToast('Erro ao excluir status.', 'error');
+    },
   });
 
   const addEquipmentTypeMutation = useMutation({
     mutationFn: (type: any) => api.post('/equipment-types', type),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment-types'] }),
+    onError: (error: any) => {
+      console.error('Failed to add equipment type', error);
+      if (showToast) showToast('Erro ao adicionar tipo de equipamento.', 'error');
+    },
   });
 
   const deleteEquipmentTypeMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/equipment-types/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment-types'] }),
+    onError: (error: any) => {
+      console.error('Failed to delete equipment type', error);
+      if (showToast) showToast('Erro ao excluir tipo de equipamento.', 'error');
+    },
   });
 
   const addBrandMutation = useMutation({
     mutationFn: (brand: any) => api.post('/brands', brand),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['brands'] }),
+    onError: (error: any) => {
+      console.error('Failed to add brand', error);
+      if (showToast) showToast('Erro ao adicionar marca.', 'error');
+    },
   });
 
   const deleteBrandMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/brands/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['brands'] }),
+    onError: (error: any) => {
+      console.error('Failed to delete brand', error);
+      if (showToast) showToast('Erro ao excluir marca.', 'error');
+    },
   });
 
   const addModelMutation = useMutation({
     mutationFn: (model: any) => api.post('/models', model),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['models'] }),
+    onError: (error: any) => {
+      console.error('Failed to add model', error);
+      if (showToast) showToast('Erro ao adicionar modelo.', 'error');
+    },
   });
 
   const updateModelMutation = useMutation({
@@ -161,11 +189,19 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
       queryClient.invalidateQueries({ queryKey: ['models'] });
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
     },
+    onError: (error: any) => {
+      console.error('Failed to update model', error);
+      if (showToast) showToast('Erro ao atualizar modelo.', 'error');
+    },
   });
 
   const deleteModelMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/models/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['models'] }),
+    onError: (error: any) => {
+      console.error('Failed to delete model', error);
+      if (showToast) showToast('Erro ao excluir modelo.', 'error');
+    },
   });
 
   const updateEquipmentTypeMutation = useMutation({
@@ -175,6 +211,10 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
       queryClient.invalidateQueries({ queryKey: ['brands'] });
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
     },
+    onError: (error: any) => {
+      console.error('Failed to update equipment type', error);
+      if (showToast) showToast('Erro ao atualizar tipo de equipamento.', 'error');
+    },
   });
 
   const updateBrandMutation = useMutation({
@@ -183,6 +223,10 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
       queryClient.invalidateQueries({ queryKey: ['brands'] });
       queryClient.invalidateQueries({ queryKey: ['models'] });
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+    },
+    onError: (error: any) => {
+      console.error('Failed to update brand', error);
+      if (showToast) showToast('Erro ao atualizar marca.', 'error');
     },
   });
 

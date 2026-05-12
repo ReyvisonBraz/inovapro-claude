@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { AppSettings } from '../../types';
 import { cn } from '../../lib/utils';
 import { ImageIcon, Upload, Trash2 } from 'lucide-react';
+import { useToast } from '../ui/Toast';
 
 interface PrintLayoutProps {
   settings: AppSettings;
@@ -9,6 +10,7 @@ interface PrintLayoutProps {
 }
 
 export const PrintLayout: React.FC<PrintLayoutProps> = ({ settings, updateSettings }) => {
+  const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const qrCodeInputRef = useRef<HTMLInputElement>(null);
@@ -17,7 +19,7 @@ export const PrintLayout: React.FC<PrintLayoutProps> = ({ settings, updateSettin
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert('A imagem deve ter no máximo 2MB.');
+        showToast('A imagem deve ter no máximo 2MB.', 'error');
         return;
       }
       const reader = new FileReader();
@@ -32,7 +34,7 @@ export const PrintLayout: React.FC<PrintLayoutProps> = ({ settings, updateSettin
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert('A imagem deve ter no máximo 2MB.');
+        showToast('A imagem deve ter no máximo 2MB.', 'error');
         return;
       }
       const reader = new FileReader();

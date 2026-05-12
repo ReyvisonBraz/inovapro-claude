@@ -9,6 +9,7 @@ import {
 import { Brand, Model, EquipmentType } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { useToast } from '../ui/Toast';
 
 interface EquipmentSettingsProps {
   brands: Brand[];
@@ -85,6 +86,7 @@ export const EquipmentSettings: React.FC<EquipmentSettingsProps> = ({
   onUpdateEquipmentType,
   onDeleteEquipmentType,
 }) => {
+  const { showToast } = useToast();
   const [selectedType, setSelectedType] = useState<string>('');
   const [newBrandName, setNewBrandName] = useState('');
   const [selectedBrandId, setSelectedBrandId] = useState<number | null>(null);
@@ -124,43 +126,67 @@ export const EquipmentSettings: React.FC<EquipmentSettingsProps> = ({
 
   const handleAddBrand = async () => {
     if (!newBrandName.trim() || !selectedType) return;
-    await onAddBrand(newBrandName.trim(), selectedType);
-    setNewBrandName('');
+    try {
+      await onAddBrand(newBrandName.trim(), selectedType);
+      setNewBrandName('');
+    } catch {
+      showToast('Erro ao adicionar marca.', 'error');
+    }
   };
 
   const handleAddModel = async () => {
     if (!newModelName.trim() || !selectedBrandId) return;
-    await onAddModel(selectedBrandId, newModelName.trim());
-    setNewModelName('');
+    try {
+      await onAddModel(selectedBrandId, newModelName.trim());
+      setNewModelName('');
+    } catch {
+      showToast('Erro ao adicionar modelo.', 'error');
+    }
   };
 
-  const handleAddType = () => {
+  const handleAddType = async () => {
     if (!newTypeName.trim()) return;
-    onAddEquipmentType(newTypeName.trim(), selectedIconName);
-    setNewTypeName('');
-    setSelectedIconName('MonitorCheck');
-    setIsAddingType(false);
+    try {
+      await onAddEquipmentType(newTypeName.trim(), selectedIconName);
+      setNewTypeName('');
+      setSelectedIconName('MonitorCheck');
+      setIsAddingType(false);
+    } catch {
+      showToast('Erro ao adicionar tipo de equipamento.', 'error');
+    }
   };
 
   const saveTypeEdit = async (id: number, currentIcon?: string) => {
     if (!editingTypeName.trim()) return;
-    await onUpdateEquipmentType(id, editingTypeName.trim(), currentIcon);
-    setEditingTypeId(null);
-    if (selectedType === equipmentTypes.find(t => t.id === id)?.name) {
-      setSelectedType(editingTypeName.trim());
+    try {
+      await onUpdateEquipmentType(id, editingTypeName.trim(), currentIcon);
+      setEditingTypeId(null);
+      if (selectedType === equipmentTypes.find(t => t.id === id)?.name) {
+        setSelectedType(editingTypeName.trim());
+      }
+    } catch {
+      showToast('Erro ao atualizar tipo de equipamento.', 'error');
     }
   };
 
   const saveBrandEdit = async (id: number) => {
     if (!editingBrandName.trim()) return;
-    await onUpdateBrand(id, editingBrandName.trim(), selectedType);
-    setEditingBrandId(null);
+    try {
+      await onUpdateBrand(id, editingBrandName.trim(), selectedType);
+      setEditingBrandId(null);
+    } catch {
+      showToast('Erro ao atualizar marca.', 'error');
+    }
   };
 
   const saveModelEdit = async (id: number, brandId: number) => {
     if (!editingModelName.trim()) return;
-    await onUpdateModel(id, brandId, editingModelName.trim());
-    setEditingModelId(null);
+    try {
+      await onUpdateModel(id, brandId, editingModelName.trim());
+      setEditingModelId(null);
+    } catch {
+      showToast('Erro ao atualizar modelo.', 'error');
+    }
   };
 
   return (

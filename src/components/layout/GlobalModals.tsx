@@ -104,6 +104,7 @@ export const GlobalModals: React.FC = () => {
       fetchAuditLogs();
     } catch (err) {
       console.error("Failed to save customer", err);
+      showToast('Erro ao salvar cliente. Tente novamente.', 'error');
     }
   };
 
@@ -115,6 +116,7 @@ export const GlobalModals: React.FC = () => {
       fetchAuditLogs();
     } catch (err) {
       console.error("Failed to delete customer", err);
+      showToast('Erro ao excluir cliente. Tente novamente.', 'error');
     }
   };
 
@@ -171,6 +173,7 @@ export const GlobalModals: React.FC = () => {
       fetchAuditLogs();
     } catch (err) {
       console.error("Failed to delete client payment", err);
+      showToast('Erro ao excluir pagamento.', 'error');
     }
   };
 

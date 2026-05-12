@@ -60,7 +60,7 @@ export const ServiceOrdersPage: React.FC = () => {
     addEquipmentTypeAPI,
     addBrandAPI,
     addModelAPI
-  } = useServiceOrders();
+  } = useServiceOrders(showToast);
   const { customers } = useCustomers();
   const { inventoryItems } = useInventory(showToast);
   const { clientPayments, saveClientPaymentAPI } = useClientPayments();
@@ -216,22 +216,47 @@ export const ServiceOrdersPage: React.FC = () => {
         }
       }}
       onDeleteOrder={async (id) => {
-        await deleteServiceOrderAPI(id);
+        try {
+          await deleteServiceOrderAPI(id);
+          showToast('Ordem de serviço excluída!', 'success');
+        } catch (err) {
+          showToast('Erro ao excluir ordem de serviço.', 'error');
+        }
       }}
       onAddStatus={async (status) => {
-        await addServiceOrderStatusAPI(status);
+        try {
+          await addServiceOrderStatusAPI(status);
+        } catch (err) {
+          showToast('Erro ao adicionar status.', 'error');
+        }
       }}
       onDeleteStatus={async (id) => {
-        await deleteServiceOrderStatusAPI(id);
+        try {
+          await deleteServiceOrderStatusAPI(id);
+        } catch (err) {
+          showToast('Erro ao excluir status.', 'error');
+        }
       }}
       onAddEquipmentType={async (name, icon) => {
-        await addEquipmentTypeAPI(name, icon);
+        try {
+          await addEquipmentTypeAPI(name, icon);
+        } catch (err) {
+          showToast('Erro ao adicionar tipo de equipamento.', 'error');
+        }
       }}
       onAddBrand={async (name, equipmentType) => {
-        await addBrandAPI(name, equipmentType);
+        try {
+          await addBrandAPI(name, equipmentType);
+        } catch (err) {
+          showToast('Erro ao adicionar marca.', 'error');
+        }
       }}
       onAddModel={async (brandId, name) => {
-        await addModelAPI(brandId, name);
+        try {
+          await addModelAPI(brandId, name);
+        } catch (err) {
+          showToast('Erro ao adicionar modelo.', 'error');
+        }
       }}
       onPrintBlankForm={() => {
         printBlankForm(settings);
