@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Filter, LayoutGrid, LayoutList, ChevronDown, Calendar, Briefcase, X, Check } from 'lucide-react';
+import { Search, Filter, LayoutGrid, LayoutList, ChevronDown, X, Check, Circle, SlidersHorizontal } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface ServiceOrderFiltersProps {
@@ -22,6 +22,9 @@ interface ServiceOrderFiltersProps {
   setVisibleColumns: (columns: any) => void;
   filteredOrdersCount: number;
   onClearFilters: () => void;
+  showFiltersExpanded: boolean;
+  onToggleFilters: () => void;
+  filteredOrders: any[];
 }
 
 export const ServiceOrderFilters: React.FC<ServiceOrderFiltersProps> = ({
@@ -43,11 +46,16 @@ export const ServiceOrderFilters: React.FC<ServiceOrderFiltersProps> = ({
   visibleColumns,
   setVisibleColumns,
   filteredOrdersCount,
-  onClearFilters
+  onClearFilters,
+  showFiltersExpanded,
+  onToggleFilters,
+  filteredOrders
 }) => {
+  const hasActiveFilters = searchTerm || statusFilter !== 'all' || priorityFilter !== 'all' || dateFilter !== 'all';
+
   return (
-    <div className="flex flex-col gap-6 mb-8">
-      {/* Search and View Mode Row */}
+    <div className="flex flex-col gap-4 mb-8">
+      {/* Search + Actions */}
       <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
         <div className="relative w-full lg:max-w-xl group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" size={20} />
@@ -135,132 +143,196 @@ export const ServiceOrderFilters: React.FC<ServiceOrderFiltersProps> = ({
         </div>
       </div>
 
-      {/* Filters Row */}
-      <div className="flex flex-wrap items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/10">
-        <div className="flex items-center gap-3 pr-4 border-r border-white/10">
-          <Filter size={16} className="text-primary" />
-          <span className="text-xs font-black uppercase tracking-widest text-slate-500">Filtros</span>
-        </div>
+      {/* Filter Toggle */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={onToggleFilters}
+          className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all group"
+        >
+          <SlidersHorizontal size={16} className="text-primary" />
+          <span className="text-sm font-bold text-slate-300 group-hover:text-white transition-colors">Filtros</span>
+          <ChevronDown size={16} className={cn(
+            "text-slate-500 transition-transform duration-200",
+            showFiltersExpanded && "rotate-180"
+          )} />
+          {hasActiveFilters && (
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          )}
+        </button>
 
-        <label className="relative flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl hover:border-primary/30 hover:bg-white/10 transition-all cursor-pointer group min-w-[140px]">
-          <div className="flex flex-col w-full">
-            <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 group-hover:text-primary/70 leading-none mb-1 transition-colors">Status</span>
-            <div className="flex items-center justify-between w-full gap-2">
-              <span className="text-xs font-bold text-slate-300 group-hover:text-white transition-colors truncate">
-                {statusFilter === 'all' ? 'Todos os Status' : statusFilter}
+        <div className="flex items-center gap-3">
+          {hasActiveFilters && (
+            <button 
+              onClick={onClearFilters}
+              className="px-3 py-2 rounded-xl bg-rose-500/10 text-rose-500 text-[10px] font-black uppercase tracking-widest border border-rose-500/20 hover:bg-rose-500/20 transition-all flex items-center gap-1.5"
+            >
+              <X size={12} />
+              Limpar
+            </button>
+          )}
+          <div className="flex items-center gap-2.5 bg-white/5 px-3.5 py-2 rounded-xl border border-white/10">
+            <div className="flex flex-col items-end">
+              <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none mb-0.5">Resultados</span>
+              <span className="text-xs font-black text-white leading-none">
+                {filteredOrdersCount} <span className="text-slate-500 font-bold">OS</span>
               </span>
-              <ChevronDown size={14} className="text-slate-500 group-hover:text-primary transition-colors shrink-0" />
             </div>
+            <div className="h-6 w-px bg-white/10" />
+            <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_10px_rgba(59,130,246,0.5)] animate-pulse" />
           </div>
-          <select 
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          >
-            <option value="all" className="bg-slate-900 text-white">Todos os Status</option>
-            {statuses.map(s => (
-              <option key={s.id} value={s.name} className="bg-slate-900 text-white">{s.name}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="relative flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl hover:border-primary/30 hover:bg-white/10 transition-all cursor-pointer group min-w-[140px]">
-          <div className="flex flex-col w-full">
-            <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 group-hover:text-primary/70 leading-none mb-1 transition-colors">Prioridade</span>
-            <div className="flex items-center justify-between w-full gap-2">
-              <span className="text-xs font-bold text-slate-300 group-hover:text-white transition-colors truncate">
-                {priorityFilter === 'all' ? 'Todas Prioridades' : 
-                 priorityFilter === 'low' ? 'Baixa' : 
-                 priorityFilter === 'medium' ? 'Média' : 'Alta'}
-              </span>
-              <ChevronDown size={14} className="text-slate-500 group-hover:text-primary transition-colors shrink-0" />
-            </div>
-          </div>
-          <select 
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          >
-            <option value="all" className="bg-slate-900 text-white">Todas Prioridades</option>
-            <option value="low" className="bg-slate-900 text-white">Baixa</option>
-            <option value="medium" className="bg-slate-900 text-white">Média</option>
-            <option value="high" className="bg-slate-900 text-white">Alta</option>
-          </select>
-        </label>
-
-        <label className="relative flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl hover:border-primary/30 hover:bg-white/10 transition-all cursor-pointer group min-w-[140px]">
-          <div className="flex flex-col w-full">
-            <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 group-hover:text-primary/70 leading-none mb-1 transition-colors">Período</span>
-            <div className="flex items-center justify-between w-full gap-2">
-              <span className="text-xs font-bold text-slate-300 group-hover:text-white transition-colors truncate">
-                {dateFilter === 'all' ? 'Todo o Período' : 
-                 dateFilter === 'today' ? 'Hoje' : 
-                 dateFilter === 'week' ? 'Últimos 7 Dias' : 'Este Mês'}
-              </span>
-              <ChevronDown size={14} className="text-slate-500 group-hover:text-primary transition-colors shrink-0" />
-            </div>
-          </div>
-          <select 
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          >
-            <option value="all" className="bg-slate-900 text-white">Todo o Período</option>
-            <option value="today" className="bg-slate-900 text-white">Hoje</option>
-            <option value="week" className="bg-slate-900 text-white">Últimos 7 Dias</option>
-            <option value="month" className="bg-slate-900 text-white">Este Mês</option>
-          </select>
-        </label>
-
-        <label className="relative flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl hover:border-primary/30 hover:bg-white/10 transition-all cursor-pointer group min-w-[140px]">
-          <div className="flex flex-col w-full">
-            <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 group-hover:text-primary/70 leading-none mb-1 transition-colors">Ordenar por</span>
-            <div className="flex items-center justify-between w-full gap-2">
-              <span className="text-xs font-bold text-slate-300 group-hover:text-white transition-colors truncate">
-                {sortBy === 'newest' ? 'Mais Recentes' : 
-                 sortBy === 'oldest' ? 'Mais Antigas' : 
-                 sortBy === 'priority' ? 'Maior Prioridade' : 
-                 sortBy === 'prediction' ? 'Previsão mais Próxima' : 
-                 sortBy === 'amount-desc' ? 'Maior Valor' : 'Menor Valor'}
-              </span>
-              <ChevronDown size={14} className="text-slate-500 group-hover:text-primary transition-colors shrink-0" />
-            </div>
-          </div>
-          <select 
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          >
-            <option value="newest" className="bg-slate-900 text-white">Mais Recentes</option>
-            <option value="oldest" className="bg-slate-900 text-white">Mais Antigas</option>
-            <option value="priority" className="bg-slate-900 text-white">Maior Prioridade</option>
-            <option value="prediction" className="bg-slate-900 text-white">Previsão mais Próxima</option>
-            <option value="amount-desc" className="bg-slate-900 text-white">Maior Valor</option>
-            <option value="amount-asc" className="bg-slate-900 text-white">Menor Valor</option>
-          </select>
-        </label>
-
-        {(searchTerm || statusFilter !== 'all' || priorityFilter !== 'all' || dateFilter !== 'all') && (
-          <button 
-            onClick={onClearFilters}
-            className="px-4 py-2 rounded-xl bg-rose-500/10 text-rose-500 text-[10px] font-black uppercase tracking-widest border border-rose-500/20 hover:bg-rose-500/20 transition-all flex items-center gap-2 ml-2"
-          >
-            <X size={14} />
-            Limpar
-          </button>
-        )}
-
-        <div className="ml-auto flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border border-white/10">
-          <div className="flex flex-col items-end">
-            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none mb-1">Resultados</span>
-            <span className="text-xs font-black text-white leading-none">
-              {filteredOrdersCount} <span className="text-slate-500 font-bold">OS</span>
-            </span>
-          </div>
-          <div className="h-8 w-[1px] bg-white/10" />
-          <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_10px_rgba(59,130,246,0.5)] animate-pulse" />
         </div>
       </div>
+
+      {/* Collapsible Filters */}
+      {showFiltersExpanded && (
+        <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+          {/* Status Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={cn(
+                "bg-white/5 border rounded-xl p-3 flex items-center gap-3 transition-all text-left hover:bg-white/10",
+                statusFilter === 'all' 
+                  ? "border-primary shadow-[0_0_12px_rgba(59,130,246,0.25)]" 
+                  : "border-white/10"
+              )}
+            >
+              <div className={cn(
+                "p-2 rounded-lg transition-colors shrink-0",
+                statusFilter === 'all' ? "bg-primary text-white" : "bg-slate-500/10 text-slate-400"
+              )}>
+                <LayoutGrid size={16} />
+              </div>
+              <div className="min-w-0">
+                <p className={cn(
+                  "text-[10px] font-bold uppercase tracking-wider truncate",
+                  statusFilter === 'all' ? "text-primary" : "text-slate-400"
+                )}>Todas</p>
+                <p className="text-lg font-black text-white">{filteredOrders.length}</p>
+              </div>
+            </button>
+
+            {statuses.map(status => {
+              const count = filteredOrders.filter((o: any) => o.status === status.name).length;
+              const isSelected = statusFilter === status.name;
+              
+              return (
+                <button
+                  key={status.id}
+                  onClick={() => setStatusFilter(status.name)}
+                  className={cn(
+                    "bg-white/5 border rounded-xl p-3 flex items-center gap-3 transition-all text-left hover:bg-white/10",
+                    "border-white/10"
+                  )}
+                  style={isSelected ? { 
+                    borderColor: status.color, 
+                    boxShadow: `0 0 12px ${status.color}35` 
+                  } : {}}
+                >
+                  <div 
+                    className="p-2 rounded-lg transition-colors shrink-0"
+                    style={{ 
+                      backgroundColor: isSelected ? status.color : `${status.color}12`,
+                      color: isSelected ? '#fff' : status.color
+                    }}
+                  >
+                    <Circle size={14} fill="currentColor" />
+                  </div>
+                  <div className="min-w-0">
+                    <p 
+                      className="text-[10px] font-bold uppercase tracking-wider truncate"
+                      style={{ color: isSelected ? status.color : '#94a3b8' }}
+                      title={status.name}
+                    >
+                      {status.name}
+                    </p>
+                    <p className="text-lg font-black text-white">{count}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Filter Dropdowns */}
+          <div className="flex flex-wrap items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/10">
+            <label className="relative flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl hover:border-primary/30 hover:bg-white/10 transition-all cursor-pointer group min-w-[140px] flex-1 sm:flex-none">
+              <div className="flex flex-col w-full">
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 group-hover:text-primary/70 leading-none mb-1 transition-colors">Prioridade</span>
+                <div className="flex items-center justify-between w-full gap-2">
+                  <span className="text-xs font-bold text-slate-300 group-hover:text-white transition-colors truncate">
+                    {priorityFilter === 'all' ? 'Todas Prioridades' : 
+                     priorityFilter === 'low' ? 'Baixa' : 
+                     priorityFilter === 'medium' ? 'Média' : 'Alta'}
+                  </span>
+                  <ChevronDown size={14} className="text-slate-500 group-hover:text-primary transition-colors shrink-0" />
+                </div>
+              </div>
+              <select 
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              >
+                <option value="all">Todas Prioridades</option>
+                <option value="low">Baixa</option>
+                <option value="medium">Média</option>
+                <option value="high">Alta</option>
+              </select>
+            </label>
+
+            <label className="relative flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl hover:border-primary/30 hover:bg-white/10 transition-all cursor-pointer group min-w-[140px] flex-1 sm:flex-none">
+              <div className="flex flex-col w-full">
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 group-hover:text-primary/70 leading-none mb-1 transition-colors">Período</span>
+                <div className="flex items-center justify-between w-full gap-2">
+                  <span className="text-xs font-bold text-slate-300 group-hover:text-white transition-colors truncate">
+                    {dateFilter === 'all' ? 'Todo o Período' : 
+                     dateFilter === 'today' ? 'Hoje' : 
+                     dateFilter === 'week' ? 'Últimos 7 Dias' : 'Este Mês'}
+                  </span>
+                  <ChevronDown size={14} className="text-slate-500 group-hover:text-primary transition-colors shrink-0" />
+                </div>
+              </div>
+              <select 
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              >
+                <option value="all">Todo o Período</option>
+                <option value="today">Hoje</option>
+                <option value="week">Últimos 7 Dias</option>
+                <option value="month">Este Mês</option>
+              </select>
+            </label>
+
+            <label className="relative flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl hover:border-primary/30 hover:bg-white/10 transition-all cursor-pointer group min-w-[140px] flex-1 sm:flex-none">
+              <div className="flex flex-col w-full">
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 group-hover:text-primary/70 leading-none mb-1 transition-colors">Ordenar por</span>
+                <div className="flex items-center justify-between w-full gap-2">
+                  <span className="text-xs font-bold text-slate-300 group-hover:text-white transition-colors truncate">
+                    {sortBy === 'newest' ? 'Mais Recentes' : 
+                     sortBy === 'oldest' ? 'Mais Antigas' : 
+                     sortBy === 'priority' ? 'Maior Prioridade' : 
+                     sortBy === 'prediction' ? 'Previsão mais Próxima' : 
+                     sortBy === 'amount-desc' ? 'Maior Valor' : 'Menor Valor'}
+                  </span>
+                  <ChevronDown size={14} className="text-slate-500 group-hover:text-primary transition-colors shrink-0" />
+                </div>
+              </div>
+              <select 
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              >
+                <option value="newest">Mais Recentes</option>
+                <option value="oldest">Mais Antigas</option>
+                <option value="priority">Maior Prioridade</option>
+                <option value="prediction">Previsão mais Próxima</option>
+                <option value="amount-desc">Maior Valor</option>
+                <option value="amount-asc">Menor Valor</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

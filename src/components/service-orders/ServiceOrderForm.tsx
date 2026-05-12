@@ -18,7 +18,6 @@ import { CustomerSection } from './form-sections/CustomerSection';
 import { AnalysisSection } from './form-sections/AnalysisSection';
 import { ClosingSection } from './form-sections/ClosingSection';
 import { serviceOrderSchema, ServiceOrderFormData } from '../../schemas/serviceOrderSchema';
-import { useToast } from '../ui/Toast';
 import { format, parseISO } from 'date-fns';
 
 interface ServiceOrderFormProps {
@@ -292,27 +291,30 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
     value: ''
   });
 
-  const handleQuickAdd = () => {
+  const handleQuickAdd = async () => {
     if (!quickAddModal.value.trim()) return;
     
-    if (quickAddModal.type === 'type') {
-      onAddEquipmentType(quickAddModal.value.trim());
-      setValue('equipmentType', quickAddModal.value.trim());
-      setValue('equipmentBrand', '');
-      setValue('equipmentModel', '');
-    } else if (quickAddModal.type === 'brand') {
-      onAddBrand(quickAddModal.value.trim(), watchedEquipmentType);
-      setValue('equipmentBrand', quickAddModal.value.trim());
-      setValue('equipmentModel', '');
-    } else if (quickAddModal.type === 'model') {
-      const brand = brands.find(b => b.name === watchedEquipmentBrand);
-      if (brand) {
-        onAddModel(brand.id, quickAddModal.value.trim());
-        setValue('equipmentModel', quickAddModal.value.trim());
+    try {
+      if (quickAddModal.type === 'type') {
+        await onAddEquipmentType(quickAddModal.value.trim());
+        setValue('equipmentType', quickAddModal.value.trim());
+        setValue('equipmentBrand', '');
+        setValue('equipmentModel', '');
+      } else if (quickAddModal.type === 'brand') {
+        await onAddBrand(quickAddModal.value.trim(), watchedEquipmentType);
+        setValue('equipmentBrand', quickAddModal.value.trim());
+        setValue('equipmentModel', '');
+      } else if (quickAddModal.type === 'model') {
+        const brand = brands.find(b => b.name === watchedEquipmentBrand);
+        if (brand) {
+          await onAddModel(brand.id, quickAddModal.value.trim());
+          setValue('equipmentModel', quickAddModal.value.trim());
+        }
       }
+      setQuickAddModal({ ...quickAddModal, isOpen: false, value: '' });
+    } catch {
+      showToast('Erro ao adicionar item.', 'error');
     }
-    
-    setQuickAddModal({ ...quickAddModal, isOpen: false, value: '' });
   };
 
   const onFormSubmit = async (data: ServiceOrderFormData) => {

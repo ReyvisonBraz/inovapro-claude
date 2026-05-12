@@ -54,7 +54,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
   return (
     <div key={order.id} className={cn(
       "glass-card group hover:border-primary/30 transition-all duration-300 overflow-visible",
-      isGrid ? "p-4 flex flex-col h-full" : "p-5"
+      isGrid ? "p-4 flex flex-col h-full" : "p-4 md:p-5"
     )}>
       <div className={cn(
         "flex gap-4",
@@ -132,7 +132,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
             <div className="flex flex-col">
               <h4 className={cn(
                 "font-black text-white tracking-tight leading-tight truncate",
-                isGrid ? "text-xl" : "text-2xl"
+                isGrid ? "text-lg" : "text-lg md:text-2xl"
               )}>
                 {order.firstName} {order.lastName}
               </h4>
@@ -248,7 +248,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
             title="Editar"
           >
             <Edit size={16} />
-            {!isGrid && <span className="text-xs font-bold">Editar</span>}
+            {!isGrid && <span className="hidden md:inline text-xs font-bold">Editar</span>}
           </button>
           
           <div className="h-4 w-px bg-white/10 mx-1" />

@@ -216,12 +216,7 @@ export const ServiceOrdersPage: React.FC = () => {
         }
       }}
       onDeleteOrder={async (id) => {
-        try {
-          await deleteServiceOrderAPI(id);
-          showToast('Ordem de serviço excluída!', 'success');
-        } catch (err) {
-          showToast('Erro ao excluir ordem de serviço.', 'error');
-        }
+        await deleteServiceOrderAPI(id);
       }}
       onAddStatus={async (status) => {
         try {

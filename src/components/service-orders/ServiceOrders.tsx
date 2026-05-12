@@ -1,19 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { useFormStore } from '../../store/useFormStore';
 import { useAppStore } from '../../store/useAppStore';
 import { useToast } from '../../components/ui/Toast';
-import { useSettings } from '../../hooks/useSettings';
 import { 
-  Search, Plus, Filter, LayoutGrid, LayoutList, 
-  Settings2, Download, Printer, QrCode, MessageSquare,
-  ChevronDown, X, Check, RefreshCw, Wrench, Clock, CheckCircle2, Circle
+  Search, Plus, 
+  Settings2, Printer
 } from 'lucide-react';
 import { 
   ServiceOrder, Customer, InventoryItem, ServiceOrderStatus, 
   Brand, Model, User, EquipmentType
 } from '../../types';
-import { cn } from '../../lib/utils';
 import api from '../../lib/api';
 
 // Components
@@ -250,83 +247,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
         </div>
       </div>
 
-      {/* Status Filter Toggle */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => setShowFiltersExpanded(!showFiltersExpanded)}
-          className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all"
-        >
-          <Filter size={16} className="text-primary" />
-          <span className="text-sm font-bold text-slate-300">Filtros</span>
-          <ChevronDown size={16} className={cn("text-slate-500 transition-transform duration-200", showFiltersExpanded && "rotate-180")} />
-        </button>
-        <span className="text-xs text-slate-500 font-medium">
-          {statusFilter !== 'all' ? `Filtrando: ${statusFilter}` : 'Mostrando todos'}
-        </span>
-      </div>
 
-      {/* Summary Cards (Status Filters) - Collapsible */}
-      {showFiltersExpanded && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {/* "All" Card */}
-          <button
-            onClick={() => onStatusFilterChange('all')}
-            className={cn(
-              "bg-white/5 border rounded-2xl p-4 flex items-center gap-4 transition-all text-left hover:bg-white/10",
-              statusFilter === 'all' ? "border-primary shadow-[0_0_15px_rgba(59,130,246,0.3)]" : "border-white/10"
-            )}
-          >
-            <div className={cn(
-              "p-3 rounded-xl transition-colors shrink-0",
-              statusFilter === 'all' ? "bg-primary text-white" : "bg-slate-500/10 text-slate-400"
-            )}>
-              <LayoutGrid size={24} />
-            </div>
-            <div className="min-w-0">
-              <p className={cn("text-xs font-bold uppercase tracking-wider truncate", statusFilter === 'all' ? "text-primary" : "text-slate-400")}>Todas as OS</p>
-              <p className="text-2xl font-black text-white truncate">{orders.data.length}</p>
-            </div>
-          </button>
-
-          {/* Dynamic Status Cards */}
-          {statuses.map(status => {
-            const count = orders.data.filter(o => o.status === status.name).length;
-            const isSelected = statusFilter === status.name;
-            
-            return (
-              <button
-                key={status.id}
-                onClick={() => onStatusFilterChange(status.name)}
-                className={cn(
-                  "bg-white/5 border rounded-2xl p-4 flex items-center gap-4 transition-all text-left hover:bg-white/10",
-                  isSelected ? "shadow-lg" : "border-white/10"
-                )}
-                style={isSelected ? { borderColor: status.color, boxShadow: `0 0 15px ${status.color}40` } : {}}
-              >
-                <div 
-                  className="p-3 rounded-xl transition-colors shrink-0"
-                  style={{ 
-                    backgroundColor: isSelected ? status.color : `${status.color}15`,
-                    color: isSelected ? '#fff' : status.color
-                  }}
-                >
-                  <Circle size={24} fill="currentColor" />
-                </div>
-                <div className="min-w-0">
-                  <p 
-                    className="text-xs font-bold uppercase tracking-wider truncate"
-                    style={{ color: isSelected ? status.color : '#94a3b8' }}
-                    title={status.name}
-                  >
-                    {status.name}
-                  </p>
-                  <p className="text-2xl font-black text-white truncate">{count}</p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       <ServiceOrderFilters 
         searchTerm={searchTerm}
@@ -354,6 +275,9 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
           onDateFilterChange('all');
           onSortByChange('newest');
         }}
+        showFiltersExpanded={showFiltersExpanded}
+        onToggleFilters={() => setShowFiltersExpanded(!showFiltersExpanded)}
+        filteredOrders={orders.data}
       />
 
       <ServiceOrderList 
