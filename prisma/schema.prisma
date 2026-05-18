@@ -156,6 +156,7 @@ model ServiceOrder {
   reportedProblem    String?
   arrivalPhotoUrl    String?
   arrivalPhotoBase64 String?
+  arrivalPhotoUrls   String?
   status             String?  @default("Aguardando Análise")
   technicalAnalysis  String?
   servicesPerformed  String?
@@ -172,6 +173,7 @@ model ServiceOrder {
   ssdInfo            String?
   priority           String?  @default("medium")
   createdAt          DateTime @default(now())
+  updatedAt          DateTime @default(now()) @updatedAt
   createdBy          Int?
   updatedBy          Int?
   customer           Customer @relation(fields: [customerId], references: [id])

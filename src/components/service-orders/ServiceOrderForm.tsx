@@ -34,7 +34,7 @@ interface ServiceOrderFormProps {
   models: Model[];
   currentUser: User | null;
   onAddOrder: (order: any) => Promise<number | null>;
-  onUpdateOrder: (id: number, order: any) => Promise<boolean>;
+  onUpdateOrder: (id: number, order: any, updatedAt?: string) => Promise<boolean>;
   onAddEquipmentType: (name: string) => Promise<void>;
   onAddBrand: (name: string, equipmentType: string) => Promise<void>;
   onAddModel: (brandId: number, name: string) => Promise<void>;
@@ -232,7 +232,15 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
         accessories: editingOrder.accessories || '',
         ramInfo: editingOrder.ramInfo || '',
         ssdInfo: editingOrder.ssdInfo || '',
-        arrivalPhotoBase64: editingOrder.arrivalPhotoBase64 || '',
+        arrivalPhotoBase64: (() => {
+          if (editingOrder.arrivalPhotoUrls) {
+            try {
+              const urls: string[] = JSON.parse(editingOrder.arrivalPhotoUrls);
+              return JSON.stringify(urls.map(url => ({ base64: url, timestamp: '' })));
+            } catch { return ''; }
+          }
+          return editingOrder.arrivalPhotoBase64 || '';
+        })(),
         servicesPerformed: editingOrder.servicesPerformed || '',
         serviceFee: editingOrder.serviceFee || 0,
         totalAmount: editingOrder.totalAmount || 0,
@@ -348,7 +356,7 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
     };
 
     if (editingOrder) {
-      const success = await onUpdateOrder(editingOrder.id, orderData);
+      const success = await onUpdateOrder(editingOrder.id, orderData, editingOrder.updatedAt);
       if (!success) return;
       
       setIsAdding(false);

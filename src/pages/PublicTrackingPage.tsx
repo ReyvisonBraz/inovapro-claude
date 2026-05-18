@@ -17,7 +17,7 @@ type TrackingData = {
   reportedProblem: string | null;
   entryDate: string | null;
   analysisPrediction: string | null;
-  arrivalPhotos: { base64: string; timestamp: string }[];
+  arrivalPhotos: (string | { base64: string; timestamp: string })[];
   totalAmount: number | null;
   serviceFee: number | null;
 };
@@ -202,9 +202,10 @@ export const PublicTrackingPage: React.FC = () => {
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Foto do Equipamento</div>
             <div style={styles.photoGrid}>
-              {photos.map((photo, idx) => (
-                <img key={idx} src={photo.base64} alt={`Foto ${idx + 1}`} style={styles.photo} />
-              ))}
+              {photos.map((photo, idx) => {
+                const src = typeof photo === 'string' ? photo : photo.base64;
+                return <img key={idx} src={src} alt={`Foto ${idx + 1}`} style={styles.photo} />;
+              })}
             </div>
           </div>
         )}

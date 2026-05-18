@@ -1,10 +1,30 @@
 import { prisma } from '../lib/prisma.js';
 import { ServiceOrderFormData } from '../schemas/serviceOrderSchema.js';
+import { uploadPhotoToStorage, isStorageConfigured } from '../lib/storage.js';
 
 const safeParseJSON = (str: string | null | undefined, fallback: unknown = []) => {
   try { return str ? JSON.parse(str) : fallback; }
   catch { return fallback; }
 };
+
+async function migratePhotosToStorage(
+  rawBase64: string | null | undefined,
+  osId: number
+): Promise<string | null> {
+  if (!rawBase64 || !isStorageConfigured()) return null;
+
+  const photos: Array<{ base64: string; timestamp: string }> = safeParseJSON(rawBase64, []);
+  if (!photos.length) return null;
+
+  try {
+    const urls = await Promise.all(
+      photos.map((p, i) => uploadPhotoToStorage(p.base64, osId, i))
+    );
+    return JSON.stringify(urls);
+  } catch {
+    return null;
+  }
+}
 
 export class ServiceOrderService {
   async findMany(options: {
@@ -92,50 +112,68 @@ export class ServiceOrderService {
   }
 
   async create(data: ServiceOrderFormData) {
-    const { 
+    const {
       customerId, equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial,
       reportedProblem, arrivalPhotoUrl, arrivalPhotoBase64, status, entryDate, analysisPrediction,
       customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy, technicalAnalysis,
-      servicesPerformed, services, partsUsed, serviceFee, totalAmount, finalObservations 
+      servicesPerformed, services, partsUsed, serviceFee, totalAmount, finalObservations
     } = data;
-    
+
     const customer = await prisma.customer.findUnique({ where: { id: customerId } });
-    
-    return prisma.serviceOrder.create({
+
+    const created = await prisma.serviceOrder.create({
       data: {
-        customerId, 
-        firstName: customer?.firstName, 
-        lastName: customer?.lastName, 
+        customerId,
+        firstName: customer?.firstName,
+        lastName: customer?.lastName,
         phone: customer?.phone,
-        equipmentType, 
-        equipmentBrand, 
-        equipmentModel, 
-        equipmentColor, 
-        equipmentSerial, 
+        equipmentType,
+        equipmentBrand,
+        equipmentModel,
+        equipmentColor,
+        equipmentSerial,
         reportedProblem,
-        arrivalPhotoUrl, 
-        arrivalPhotoBase64, 
-        status: status || 'Aguardando Análise', 
+        arrivalPhotoUrl,
+        arrivalPhotoBase64,
+        status: status || 'Aguardando Análise',
         entryDate,
-        analysisPrediction, 
-        customerPassword, 
-        accessories, 
-        ramInfo, 
-        ssdInfo, 
+        analysisPrediction,
+        customerPassword,
+        accessories,
+        ramInfo,
+        ssdInfo,
         priority: priority || 'medium',
-        createdBy: createdBy || 1, 
-        technicalAnalysis, 
+        createdBy: createdBy || 1,
+        technicalAnalysis,
         servicesPerformed,
-        services: JSON.stringify(services || []), 
+        services: JSON.stringify(services || []),
         partsUsed: JSON.stringify(partsUsed || []),
-        serviceFee: serviceFee || 0, 
-        totalAmount: totalAmount || 0, 
+        serviceFee: serviceFee || 0,
+        totalAmount: totalAmount || 0,
         finalObservations,
       },
     });
+
+    if (arrivalPhotoBase64 && isStorageConfigured()) {
+      const photoUrls = await migratePhotosToStorage(arrivalPhotoBase64, created.id);
+      if (photoUrls) {
+        return prisma.serviceOrder.update({
+          where: { id: created.id },
+          data: { arrivalPhotoUrls: photoUrls, arrivalPhotoBase64: null },
+        });
+      }
+    }
+
+    return created;
   }
 
-  async update(id: number, data: Partial<ServiceOrderFormData>) {
+  async update(id: number, data: Partial<ServiceOrderFormData>, clientUpdatedAt?: string) {
+    if (clientUpdatedAt) {
+      const current = await prisma.serviceOrder.findUnique({ where: { id }, select: { updatedAt: true } });
+      if (current && new Date(clientUpdatedAt).getTime() !== current.updatedAt.getTime()) {
+        throw new Error('CONFLICT');
+      }
+    }
     const fields = [
       'status', 'technicalAnalysis', 'servicesPerformed', 'services', 'partsUsed',
       'serviceFee', 'totalAmount', 'finalObservations', 'entryDate', 'analysisPrediction',
@@ -171,12 +209,20 @@ export class ServiceOrderService {
     if (Object.keys(updateData).length === 0) {
       throw new Error('Nenhum campo para atualizar');
     }
-    
-    const updated = await prisma.serviceOrder.update({ 
-      where: { id }, 
-      data: updateData as any 
+
+    if (updateData.arrivalPhotoBase64 && isStorageConfigured()) {
+      const photoUrls = await migratePhotosToStorage(updateData.arrivalPhotoBase64 as string, id);
+      if (photoUrls) {
+        updateData.arrivalPhotoUrls = photoUrls;
+        updateData.arrivalPhotoBase64 = null;
+      }
+    }
+
+    const updated = await prisma.serviceOrder.update({
+      where: { id },
+      data: updateData as any,
     });
-    
+
     return {
       ...updated,
       services: safeParseJSON(updated.services as string, []),

@@ -205,13 +205,19 @@ export const ServiceOrdersPage: React.FC = () => {
           return null;
         }
       }}
-      onUpdateOrder={async (id, order) => {
+      onUpdateOrder={async (id, order, updatedAt) => {
         try {
-          await saveServiceOrderAPI(order, id);
+          await saveServiceOrderAPI(order, id, updatedAt);
           showToast("Ordem de Serviço atualizada com sucesso!", "success");
           return true;
         } catch (err: any) {
-          showToast(err.message || "Erro ao atualizar Ordem de Serviço", "error");
+          const isConflict = err.response?.status === 409;
+          showToast(
+            isConflict
+              ? 'Este registro foi modificado por outro usuário. Recarregue a página para continuar.'
+              : err.message || "Erro ao atualizar Ordem de Serviço",
+            "error"
+          );
           return false;
         }
       }}

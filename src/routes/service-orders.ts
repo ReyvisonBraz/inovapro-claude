@@ -3,6 +3,7 @@ import { serviceOrderSchema as ServiceOrderSchema } from '../schemas/serviceOrde
 import { error, info } from '../lib/server-logger.js';
 import { z } from 'zod';
 import { serviceOrderService } from '../services/service-order.service.js';
+import { publicOsCache, PUBLIC_OS_KEY } from '../lib/cache.js';
 
 const router = Router();
 
@@ -61,10 +62,12 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const validatedData = ServiceOrderSchema.partial().parse(req.body);
-    
-    const updatedOrder = await serviceOrderService.update(id, validatedData);
-    
+    const { _clientUpdatedAt, ...bodyRest } = req.body;
+    const validatedData = ServiceOrderSchema.partial().parse(bodyRest);
+
+    const updatedOrder = await serviceOrderService.update(id, validatedData, _clientUpdatedAt);
+
+    publicOsCache.del(PUBLIC_OS_KEY(id));
     info('Ordem de serviço atualizada', { details: { id: updatedOrder.id } });
     res.json({ success: true, data: updatedOrder });
   } catch (err: any) {
@@ -73,6 +76,9 @@ router.put('/:id', async (req: Request, res: Response) => {
     }
     if (err.message === 'Nenhum campo para atualizar') {
       return res.status(400).json({ error: err.message });
+    }
+    if (err.message === 'CONFLICT') {
+      return res.status(409).json({ error: 'Este registro foi modificado por outro usuário. Recarregue a página para continuar.' });
     }
     error('[SERVICE_ORDERS PUT] Erro ao atualizar OS', err, { details: { id: req.params.id } });
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -83,7 +89,8 @@ router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     await serviceOrderService.delete(id);
-    
+
+    publicOsCache.del(PUBLIC_OS_KEY(id));
     info('Ordem de serviço excluída', { details: { id } });
     res.json({ success: true });
   } catch (err: any) {

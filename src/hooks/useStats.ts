@@ -52,6 +52,7 @@ export const useStats = (month?: string) => {
     transactions: [] as Transaction[],
   }, isLoading, error, refetch: fetchStats } = useQuery({
     queryKey: ['stats', month],
+    staleTime: 30_000,
     enabled: isAuthenticated,
     queryFn: async () => {
       const res = await api.get('/stats', { params: { month } });

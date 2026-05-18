@@ -36,7 +36,8 @@ export const serviceOrderSchema = z.object({
     subtotal: z.coerce.number()
   })).optional(),
   createdBy: z.coerce.number().optional(),
-  updatedBy: z.coerce.number().optional()
+  updatedBy: z.coerce.number().optional(),
+  arrivalPhotoUrls: z.string().optional().nullable(),
 });
 
 export type ServiceOrderFormData = z.infer<typeof serviceOrderSchema>;

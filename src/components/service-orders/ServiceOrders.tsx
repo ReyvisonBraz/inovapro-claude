@@ -37,7 +37,7 @@ interface ServiceOrdersProps {
   models: Model[];
   currentUser: User | null;
   onAddOrder: (order: any) => Promise<number | null>;
-  onUpdateOrder: (id: number, order: any) => Promise<boolean>;
+  onUpdateOrder: (id: number, order: any, updatedAt?: string) => Promise<boolean>;
   onDeleteOrder: (id: number) => Promise<void>;
   onAddStatus: (status: any) => Promise<void>;
   onDeleteStatus: (id: number) => Promise<void>;

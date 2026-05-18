@@ -87,18 +87,29 @@ export const ServiceOrderStatusModal: React.FC<ServiceOrderStatusModalProps> = (
                 
                 <div className="grid grid-cols-3 gap-3">
                   {(() => {
-                    const photos = showStatusOnly.arrivalPhotoBase64 
-                      ? JSON.parse(showStatusOnly.arrivalPhotoBase64) 
-                      : [];
+                    const parsePhotos = (raw: string | null | undefined) => {
+                      try { return raw ? JSON.parse(raw) : []; }
+                      catch { return []; }
+                    };
+                    const rawUrls = parsePhotos(showStatusOnly.arrivalPhotoUrls);
+                    const rawBase64 = parsePhotos(showStatusOnly.arrivalPhotoBase64);
+                    const photos: Array<string | { base64: string; timestamp: string }> =
+                      rawUrls.length > 0 ? rawUrls : rawBase64;
                     return photos.length > 0 ? (
-                      photos.map((photo: {base64: string; timestamp: string}, index: number) => (
+                      photos.map((photo, index) => {
+                        const src = typeof photo === 'string' ? photo : photo.base64;
+                        const ts = typeof photo === 'object' ? photo.timestamp : null;
+                        return (
                         <div key={index} className="aspect-square rounded-xl overflow-hidden border border-white/10 bg-white/5 relative">
-                          <img src={photo.base64} alt={`Foto ${index + 1}`} className="w-full h-full object-cover" />
+                          <img src={src} alt={`Foto ${index + 1}`} className="w-full h-full object-cover" />
+                          {ts && (
                           <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-lg">
-                            {format(new Date(photo.timestamp), 'HH:mm')}
+                            {format(new Date(ts), 'HH:mm')}
                           </div>
+                          )}
                         </div>
-                      ))
+                        );
+                      })
                     ) : (
                       <div className="col-span-3 py-8 text-center text-slate-600 text-xs font-medium italic">
                         Nenhuma foto anexada ainda.

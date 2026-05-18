@@ -14,6 +14,7 @@ export const useCustomers = () => {
   // Query para buscar clientes
   const { data: customersData, isLoading, isError, refetch } = useQuery({
     queryKey: ['customers', customersPage, customerSearchTerm],
+    staleTime: 30_000,
     queryFn: async () => {
       const { data } = await api.get(`/customers?page=${customersPage}&limit=20&search=${customerSearchTerm}`);
       return data;

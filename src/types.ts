@@ -195,8 +195,10 @@ export interface ServiceOrder {
   ssdInfo?: string;
   priority?: 'low' | 'medium' | 'high';
   createdAt: string;
+  updatedAt?: string;
   createdBy?: number;
   updatedBy?: number;
+  arrivalPhotoUrls?: string;
 }
 
 export interface EquipmentType {

@@ -8,6 +8,7 @@ export function useInventory(showToast: (message: string, type: 'success' | 'err
   // Query para buscar itens do estoque
   const { data: inventoryItems, isLoading, isError, refetch } = useQuery({
     queryKey: ['inventory'],
+    staleTime: 30_000,
     queryFn: async () => {
       const { data } = await api.get('/inventory');
       return data;

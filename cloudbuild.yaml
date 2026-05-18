@@ -55,6 +55,7 @@ steps:
       - '--set-env-vars=APP_URL=${_APP_URL}'
       - '--update-secrets=GEMINI_API_KEY=gemini-api-key:latest'
       - '--update-secrets=SUPABASE_SERVICE_ROLE_KEY=supabase-service-role-key:latest'
+      - '--set-env-vars=SUPABASE_URL=${_SUPABASE_URL}'
 
 timeout: '900s'
 

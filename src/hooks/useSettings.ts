@@ -9,6 +9,7 @@ export function useSettings(showToast: (message: string, type: 'success' | 'erro
 
   const { data: settings, isLoading: isLoadingSettings } = useQuery({
     queryKey: ['settings'],
+    staleTime: 5 * 60_000,
     queryFn: async () => {
       const { data } = await api.get('/settings');
       setSettings(data);
@@ -18,6 +19,7 @@ export function useSettings(showToast: (message: string, type: 'success' | 'erro
 
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
+    staleTime: 5 * 60_000,
     queryFn: async () => {
       const { data } = await api.get('/categories');
       setCategories(data);

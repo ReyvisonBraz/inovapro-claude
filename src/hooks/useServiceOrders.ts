@@ -21,14 +21,15 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
   // Query para buscar ordens de serviço
   const { data: serviceOrdersData, isLoading, isError, refetch } = useQuery({
     queryKey: [
-      'service-orders', 
-      serviceOrdersPage, 
-      osSearchTerm, 
-      osStatusFilter, 
-      osPriorityFilter, 
-      osSortBy, 
+      'service-orders',
+      serviceOrdersPage,
+      osSearchTerm,
+      osStatusFilter,
+      osPriorityFilter,
+      osSortBy,
       osDateFilter
     ],
+    staleTime: 30_000,
     queryFn: async () => {
       const query = new URLSearchParams({
         page: serviceOrdersPage.toString(),
@@ -84,9 +85,10 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
 
   // Mutações
   const saveMutation = useMutation({
-    mutationFn: async ({ order, id }: { order: any; id?: number }) => {
+    mutationFn: async ({ order, id, updatedAt }: { order: any; id?: number; updatedAt?: string }) => {
       if (id) {
-        const { data } = await api.put(`/service-orders/${id}`, order);
+        const payload = updatedAt ? { ...order, _clientUpdatedAt: updatedAt } : order;
+        const { data } = await api.put(`/service-orders/${id}`, payload);
         return data;
       } else {
         const { data } = await api.post('/service-orders', order);
@@ -101,7 +103,15 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
     },
     onError: (error: any) => {
       console.error('Failed to save service order', error);
-      if (showToast) showToast(error.response?.data?.error || 'Erro ao salvar ordem de serviço.', 'error');
+      const isConflict = error.response?.status === 409;
+      if (showToast) {
+        showToast(
+          isConflict
+            ? 'Este registro foi modificado por outro usuário. Recarregue a página para continuar.'
+            : error.response?.data?.error || 'Erro ao salvar ordem de serviço.',
+          'error'
+        );
+      }
     },
   });
 
@@ -268,7 +278,7 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
     brands: brands || [],
     models: models || [],
     fetchServiceOrders: refetch,
-    saveServiceOrderAPI: (order: any, id?: number) => saveMutation.mutateAsync({ order, id }),
+    saveServiceOrderAPI: (order: any, id?: number, updatedAt?: string) => saveMutation.mutateAsync({ order, id, updatedAt }),
     deleteServiceOrderAPI: (id: number) => deleteMutation.mutateAsync(id),
     addServiceOrderStatusAPI: (status: any) => addStatusMutation.mutateAsync(status),
     deleteServiceOrderStatusAPI: (id: number) => deleteStatusMutation.mutateAsync(id),

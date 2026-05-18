@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
+import { publicOsCache, PUBLIC_OS_KEY } from '../lib/cache.js';
 
 const router = Router();
 
@@ -13,6 +14,12 @@ router.get('/public/os/:id', async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ error: 'ID inválido' });
+    }
+
+    const cacheKey = PUBLIC_OS_KEY(id);
+    const cached = publicOsCache.get(cacheKey);
+    if (cached) {
+      return res.json(cached);
     }
 
     const order = await prisma.serviceOrder.findUnique({
@@ -29,6 +36,7 @@ router.get('/public/os/:id', async (req: Request, res: Response) => {
         entryDate: true,
         analysisPrediction: true,
         arrivalPhotoBase64: true,
+        arrivalPhotoUrls: true,
         partsUsed: true,
         totalAmount: true,
         serviceFee: true,
@@ -39,9 +47,9 @@ router.get('/public/os/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Ordem de serviço não encontrada' });
     }
 
-    const photos = safeParseJSON(order.arrivalPhotoBase64, []);
+    const photos = safeParseJSON(order.arrivalPhotoUrls || order.arrivalPhotoBase64, []);
 
-    res.json({
+    const payload = {
       id: order.id,
       status: order.status,
       equipmentType: order.equipmentType,
@@ -55,7 +63,10 @@ router.get('/public/os/:id', async (req: Request, res: Response) => {
       arrivalPhotos: photos,
       totalAmount: order.totalAmount,
       serviceFee: order.serviceFee,
-    });
+    };
+
+    publicOsCache.set(cacheKey, payload);
+    res.json(payload);
   } catch (err) {
     console.error('[PUBLIC_OS] Erro ao buscar OS:', err);
     res.status(500).json({ error: 'Erro interno do servidor' });

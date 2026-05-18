@@ -8,7 +8,18 @@
       "Bash(npx vitest:*)",
       "Bash(npm audit *)",
       "Bash(npm run *)",
-      "Bash(timeout 8 tsx server.ts)"
+      "Bash(timeout 8 tsx server.ts)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Reyvison\\\\Desktop\\\\REYVISON PROJECTS\\\\inovapro-claude\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Reyvison\\\\Desktop\\\\REYVISON PROJECTS\\\\inovapro-claude\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(npm list *)",
+      "Bash(npx prisma *)",
+      "Bash(Select-String -Pattern \"SUPABASE|supabase\")",
+      "Bash(npx tsc *)",
+      "Bash(ls *.yaml *.json render.yaml railway.json railway.toml)",
+      "Bash(ls -la Dockerfile*)",
+      "PowerShell(gcloud config list --format=\"value\\(core.project\\)\" 2>&1)"
     ]
   }
 }

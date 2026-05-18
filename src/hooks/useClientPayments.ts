@@ -18,6 +18,7 @@ export function useClientPayments() {
 
   const clientPaymentsQuery = useQuery({
     queryKey: ['clientPayments', paymentsPage, paymentSearchTerm],
+    staleTime: 30_000,
     queryFn: () => fetchClientPayments(paymentsPage, paymentSearchTerm),
   });
 

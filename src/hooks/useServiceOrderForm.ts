@@ -9,7 +9,7 @@ interface UseServiceOrderFormProps {
   editingOrder: ServiceOrder | null;
   setEditingOrder: (order: ServiceOrder | null) => void;
   onAddOrder: (order: any) => Promise<number | null>;
-  onUpdateOrder: (id: number, order: any) => Promise<boolean>;
+  onUpdateOrder: (id: number, order: any, updatedAt?: string) => Promise<boolean>;
   currentUser: User | null;
   showToast: (message: string, type: 'success' | 'error') => void;
   onOpenConfirm: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
@@ -146,7 +146,7 @@ export const useServiceOrderForm = ({
     };
 
     if (editingOrder) {
-      const success = await onUpdateOrder(editingOrder.id, orderData);
+      const success = await onUpdateOrder(editingOrder.id, orderData, editingOrder.updatedAt);
       if (!success) return;
       
       setIsAdding(false);
