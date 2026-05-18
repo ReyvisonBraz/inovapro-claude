@@ -60,22 +60,22 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
         "flex gap-4",
         isGrid ? "flex-col" : "flex-col md:flex-row justify-between"
       )}>
-        <div className="flex items-start gap-4 flex-1 min-w-0">
+        <div className="flex items-start gap-3 md:gap-4 flex-1 min-w-0">
           <div className={cn(
             "rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 transition-transform group-hover:scale-110",
-            isGrid ? "h-10 w-10" : "h-12 w-12"
+            isGrid ? "h-10 w-10" : "h-10 w-10 md:h-12 md:w-12"
           )}>
-            <Briefcase size={isGrid ? 20 : 24} />
+            <Briefcase size={20} />
           </div>
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-2">
+
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-1.5 md:gap-2 mb-1.5 md:mb-2">
               {visibleColumns.id && (
-                <span className="text-xs font-black text-primary bg-primary/5 px-2.5 py-1 rounded border border-primary/10">
+                <span className="text-[10px] md:text-xs font-black text-primary bg-primary/5 px-2 py-0.5 md:px-2.5 md:py-1 rounded border border-primary/10 shrink-0">
                   #OS-{order.id.toString().padStart(4, '0')}
                 </span>
               )}
-              
+
               {visibleColumns.status && (
                 <div className="relative">
                   <button 
@@ -129,22 +129,24 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
               )}
             </div>
             
-            <div className="flex flex-col">
+            <div className="flex flex-col min-w-0">
               <h4 className={cn(
-                "font-black text-white tracking-tight leading-tight break-words line-clamp-2",
-                isGrid ? "text-base" : "text-base md:text-2xl"
+                "font-bold md:font-black text-white tracking-tight leading-tight truncate",
+                isGrid ? "text-sm" : "text-sm md:text-2xl"
               )}>
                 {order.firstName} {order.lastName}
               </h4>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 text-slate-300 border border-white/10 text-xs font-bold">
-                  <Smartphone size={14} className="text-primary" />
-                  {order.equipmentType && <span className="text-primary">{order.equipmentType}</span>}
-                  {order.equipmentType && (order.equipmentBrand || order.equipmentModel) && ' - '}
-                  {order.equipmentBrand} {order.equipmentModel}
-                  {!order.equipmentType && !order.equipmentBrand && !order.equipmentModel && (
-                    <span className="text-slate-500 italic">Sem equipamento</span>
-                  )}
+              <div className="flex items-center gap-2 mt-1 md:mt-1.5 min-w-0">
+                <span className="inline-flex items-center gap-1 md:gap-1.5 px-2 md:px-2.5 py-0.5 md:py-1 rounded-md bg-white/5 text-slate-300 border border-white/10 text-[10px] md:text-xs font-bold min-w-0 max-w-full overflow-hidden">
+                  <Smartphone size={12} className="text-primary shrink-0" />
+                  <span className="truncate">
+                    {order.equipmentType && <span className="text-primary">{order.equipmentType}</span>}
+                    {order.equipmentType && (order.equipmentBrand || order.equipmentModel) && ' - '}
+                    {order.equipmentBrand} {order.equipmentModel}
+                    {!order.equipmentType && !order.equipmentBrand && !order.equipmentModel && (
+                      <span className="text-slate-500 italic">Sem equipamento</span>
+                    )}
+                  </span>
                 </span>
               </div>
             </div>

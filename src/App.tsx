@@ -122,6 +122,8 @@ export default function App() {
   }, [isAuthenticated]);
 
   useEffect(() => {
+    // /rastreio is the public client page — it reads osId on its own, don't redirect
+    if (location.pathname === '/rastreio') return;
     const params = new URLSearchParams(window.location.search);
     const osId = params.get('osId');
     const mode = params.get('mode');
@@ -134,7 +136,8 @@ export default function App() {
 
   const handleLogin = (token: string, user: User) => {
     login(token, user);
-    navigate('/dashboard');
+    const { directOsId } = useAppStore.getState();
+    navigate(directOsId ? '/ordens' : '/dashboard');
   };
 
   const handleLogout = () => {
