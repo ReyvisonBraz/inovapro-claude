@@ -107,197 +107,279 @@ export const PrintModal: React.FC<PrintModalProps> = ({
         </html>
       `;
     } else {
-      // A4 Layout - New Design with 2 sections
+      // A4 Layout - Split into CLIENTE (top) + TÉCNICO (bottom) — cut at the middle
       content = `
         <html>
           <head>
             <meta charset="UTF-8">
             <style>
-              * { box-sizing: border-box; }
-              body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; color: #1e293b; line-height: 1.4; background: #fff; font-size: 13px; }
-              .header { text-align: center; border-bottom: 3px solid #3b82f6; padding-bottom: 15px; margin-bottom: 25px; }
-              .header h1 { margin: 0; color: #3b82f6; font-size: 24px; letter-spacing: -0.5px; }
-              .header .subtitle { color: #64748b; font-size: 12px; margin-top: 5px; }
-              .os-badge { display: inline-block; background: #3b82f6; color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; margin-top: 8px; }
-              .date-badge { color: #64748b; font-size: 12px; margin-top: 5px; }
+              * { box-sizing: border-box; margin: 0; padding: 0; }
+              body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; line-height: 1.3; background: #fff; font-size: 11px; }
 
-              /* RECIBO Section */
-              .recibo-section { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 2px solid #f59e0b; border-radius: 12px; padding: 20px; margin-bottom: 25px; }
-              .recibo-title { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #92400e; letter-spacing: 2px; margin-bottom: 15px; border-bottom: 1px dashed #92400e; padding-bottom: 8px; }
-              .recibo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+              @page { size: A4 portrait; margin: 12mm 15mm; }
 
-              /* Phone Highlight */
-              .phone-box { background: #3b82f6; color: white; padding: 15px; border-radius: 10px; text-align: center; }
-              .phone-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; }
-              .phone-value { font-size: 20px; font-weight: 800; margin-top: 5px; }
-              .phone-hint { font-size: 9px; opacity: 0.8; margin-top: 3px; }
+              /* ===== TOP HALF — CLIENTE ===== */
+              .half { height: 48%; display: flex; flex-direction: column; }
+              .half-cliente { padding-bottom: 6mm; }
 
-              /* Customer Info */
-              .customer-box { background: white; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; }
-              .customer-name { font-size: 14px; font-weight: 700; color: #1e293b; }
+              .cut-line { border: none; border-top: 2px dashed #94a3b8; margin: 2mm 0 6mm 0; position: relative; }
+              .cut-line::after { content: "✂  Corte aqui  ✂"; position: absolute; top: -7px; left: 50%; transform: translateX(-50%); background: #fff; padding: 0 12px; font-size: 9px; color: #94a3b8; font-weight: 700; letter-spacing: 1px; }
 
-              /* Problem Section - MOST IMPORTANT */
-              .problem-section { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 3px solid #dc2626; border-radius: 12px; padding: 20px; margin-bottom: 25px; }
-              .problem-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-              .problem-icon { font-size: 24px; }
-              .problem-title { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #991b1b; letter-spacing: 2px; }
-              .problem-content { background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #dc2626; font-size: 15px; font-weight: 600; color: #1e293b; line-height: 1.5; }
+              .os-number { font-size: 26px; font-weight: 900; color: #1e3a5f; letter-spacing: -0.5px; }
+              .os-label { font-size: 8px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px; }
+              .date-info { font-size: 10px; color: #64748b; }
 
-              /* Equipment Section */
-              .equipment-section { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 2px solid #3b82f6; border-radius: 12px; padding: 20px; margin-bottom: 25px; }
-              .equipment-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-              .equipment-icon { font-size: 24px; }
-              .equipment-title { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #1e40af; letter-spacing: 2px; }
-              .equipment-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-              .equipment-item { background: white; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #bfdbfe; }
-              .equipment-label { font-size: 9px; font-weight: 600; text-transform: uppercase; color: #64748b; letter-spacing: 1px; }
-              .equipment-value { font-size: 13px; font-weight: 700; color: #1e293b; margin-top: 4px; }
-              .equipment-value.highlight { color: #3b82f6; font-size: 15px; }
+              /* CLIENTE — Telefone gigante */
+              .cliente-phone-box { background: #1e3a5f; color: #fff; border-radius: 8px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+              .cliente-phone-label { font-size: 8px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
+              .cliente-phone-value { font-size: 28px; font-weight: 900; letter-spacing: 1px; }
+              .cliente-name { font-weight: 700; font-size: 14px; }
 
-              /* Info Grid */
-              .info-section { margin-bottom: 25px; }
-              .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-              .info-box { background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; }
-              .info-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 1px; margin-bottom: 5px; }
-              .info-value { font-size: 14px; font-weight: 600; color: #1e293b; }
+              /* CLIENTE — Problem highlight */
+              .cliente-problem { background: #fef2f2; border: 2px solid #dc2626; border-radius: 8px; padding: 10px 14px; margin-bottom: 6px; }
+              .cliente-problem-label { font-size: 8px; font-weight: 800; text-transform: uppercase; color: #991b1b; letter-spacing: 1px; margin-bottom: 4px; }
+              .cliente-problem-text { font-size: 13px; font-weight: 600; color: #1e293b; }
 
-              /* QR Section */
-              .qr-section { display: flex; align-items: center; gap: 20px; padding: 20px; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1; margin-bottom: 20px; }
-              .qr-item { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-              .qr-item img { width: 80px; height: 80px; }
-              .qr-label { font-size: 9px; font-weight: 700; text-transform: uppercase; color: #64748b; }
-              .qr-hint { font-size: 10px; color: #94a3b8; margin-left: auto; }
+              .cliente-equip { font-size: 12px; font-weight: 600; }
+              .cliente-equip-label { font-size: 8px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 1px; }
 
-              /* Signature */
-              .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
-              .sig-line { border-top: 2px solid #1e293b; padding-top: 8px; text-align: center; font-size: 11px; color: #64748b; }
+              .cliente-qr { display: flex; align-items: center; gap: 10px; }
+              .cliente-qr img { width: 55px; height: 55px; }
+              .cliente-qr-text { font-size: 8px; color: #475569; }
+              .cliente-qr-text strong { font-size: 9px; }
 
-              /* Footer */
-              .footer { text-align: center; margin-top: 30px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; }
+              .cliente-sig { border-top: 1.5px solid #1e293b; padding-top: 4px; margin-top: auto; text-align: center; font-size: 9px; color: #64748b; }
 
-              /* Complete mode additions */
-              .parts-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-              .parts-table th { background: #f1f5f9; padding: 10px; text-align: left; font-size: 11px; text-transform: uppercase; color: #64748b; border-bottom: 2px solid #e2e8f0; }
-              .parts-table td { padding: 10px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
-              .total-box { background: #3b82f6; color: white; padding: 15px; border-radius: 10px; text-align: right; margin-top: 15px; }
-              .total-label { font-size: 12px; opacity: 0.9; }
-              .total-value { font-size: 24px; font-weight: 800; }
+              /* ===== BOTTOM HALF — TÉCNICO ===== */
+              .half-tecnico { padding-top: 2mm; }
 
-              @media print { body { padding: 20px; } }
+              .tech-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+              .tech-os { font-size: 20px; font-weight: 900; color: #1e3a5f; }
+              .tech-status { font-size: 9px; font-weight: 700; padding: 2px 10px; border-radius: 20px; background: #e2e8f0; }
+
+              .tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+              .tech-field { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; }
+              .tech-field-label { font-size: 7px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 1px; }
+              .tech-field-value { font-size: 11px; font-weight: 600; color: #1e293b; margin-top: 1px; word-break: break-word; }
+
+              .tech-section { margin-bottom: 5px; }
+              .tech-section-title { font-size: 8px; font-weight: 800; text-transform: uppercase; color: #475569; letter-spacing: 1.2px; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 4px; }
+
+              .tech-problem { background: #fef2f2; border-left: 3px solid #dc2626; padding: 5px 10px; font-size: 11px; font-weight: 500; border-radius: 0 4px 4px 0; margin-bottom: 5px; }
+
+              .tech-text { font-size: 10px; color: #334155; line-height: 1.4; padding: 3px 8px; background: #f8fafc; border-radius: 4px; margin-bottom: 4px; }
+
+              .tech-parts-table { width: 100%; border-collapse: collapse; font-size: 9px; margin: 4px 0; }
+              .tech-parts-table th { background: #f1f5f9; padding: 4px 6px; text-align: left; font-size: 7px; text-transform: uppercase; color: #64748b; border-bottom: 1.5px solid #e2e8f0; }
+              .tech-parts-table td { padding: 3px 6px; border-bottom: 1px solid #f1f5f9; }
+
+              .tech-total { background: #1e3a5f; color: #fff; padding: 6px 14px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin: 4px 0; }
+              .tech-total-label { font-size: 9px; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; }
+              .tech-total-value { font-size: 18px; font-weight: 900; }
+
+              .tech-footer-info { display: flex; justify-content: space-between; font-size: 8px; color: #94a3b8; margin-top: auto; }
+              .tech-sig { border-top: 1.5px solid #1e293b; padding-top: 3px; text-align: center; font-size: 9px; color: #64748b; }
+
+              .tech-qr img { width: 48px; height: 48px; }
+              .tech-qr-label { font-size: 7px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+
+              .flex-row { display: flex; gap: 10px; align-items: center; }
+              .flex-between { display: flex; justify-content: space-between; align-items: center; }
+              .flex-1 { flex: 1; }
+              .mt-auto { margin-top: auto; }
+
+              .text-mono { font-family: 'Courier New', monospace; font-weight: 700; }
+
+              @media print { body { padding: 0; } }
             </style>
           </head>
           <body>
-            <div class="header">
-              <h1>ORDEM DE SERVIÇO</h1>
-              <p class="subtitle">Assistência Técnica Especializada</p>
-              <div class="os-badge">${osNumber}</div>
-              <p class="date-badge">📅 ${dateFull}</p>
-            </div>
 
-            <!-- RECIBO DO CLIENTE -->
-            <div class="recibo-section">
-              <div class="recibo-title">📋 RECIBO DO CLIENTE - AGENDAMENTO</div>
-              <div class="recibo-grid">
-                <div class="phone-box">
-                  <div class="phone-label">📞 Ligue Agora</div>
-                  <div class="phone-value">${customer.phone || 'Não informado'}</div>
-                  <div class="phone-hint">Para acompanhar seu equipamento</div>
-                </div>
-                <div class="customer-box">
-                  <div class="customer-name">👤 ${customer.firstName} ${customer.lastName}</div>
-                  ${customer.cpf ? `<div style="font-size: 10px; color: #64748b; margin-top: 3px;">CPF: ${customer.cpf}</div>` : ''}
-                </div>
-              </div>
-            </div>
+            <!-- ============================================================ -->
+            <!-- TOPO — CLIENTE (leva para casa)                              -->
+            <!-- ============================================================ -->
+            <div class="half half-cliente">
 
-            <!-- PROBLEMA (MAIS DESTACADO) -->
-            ${selectedOrder.reportedProblem ? `
-            <div class="problem-section">
-              <div class="problem-header">
-                <span class="problem-icon">⚠️</span>
-                <span class="problem-title">Problema Relatado pelo Cliente</span>
+              <div class="flex-between" style="margin-bottom: 6px;">
+                <div>
+                  <div class="os-label">Ordem de Serviço</div>
+                  <div class="os-number">${osNumber}</div>
+                </div>
+                <div style="text-align: right;">
+                  <div class="date-info">${date}</div>
+                </div>
               </div>
-              <div class="problem-content">
-                ${selectedOrder.reportedProblem}
-              </div>
-            </div>
-            ` : ''}
 
-            <!-- EQUIPAMENTO (DESTACADO) -->
-            <div class="equipment-section">
-              <div class="equipment-header">
-                <span class="equipment-icon">📱</span>
-                <span class="equipment-title">Dados do Equipamento</span>
-              </div>
-              <div class="equipment-grid">
-                <div class="equipment-item">
-                  <div class="equipment-label">Tipo</div>
-                  <div class="equipment-value ${selectedOrder.equipmentType ? 'highlight' : ''}">${selectedOrder.equipmentType || 'Não inf.'}</div>
+              <!-- TELEFONE EM DESTAQUE -->
+              <div class="cliente-phone-box">
+                <div>
+                  <div class="cliente-phone-label">Telefone / WhatsApp</div>
+                  <div class="cliente-phone-value">${customer.phone || 'Não informado'}</div>
                 </div>
-                <div class="equipment-item">
-                  <div class="equipment-label">Marca</div>
-                  <div class="equipment-value ${selectedOrder.equipmentBrand ? 'highlight' : ''}">${selectedOrder.equipmentBrand || 'Não inf.'}</div>
-                </div>
-                <div class="equipment-item">
-                  <div class="equipment-label">Modelo</div>
-                  <div class="equipment-value ${selectedOrder.equipmentModel ? 'highlight' : ''}">${selectedOrder.equipmentModel || 'Não inf.'}</div>
+                <div style="text-align: right;">
+                  <div class="cliente-name">${customer.firstName} ${customer.lastName}</div>
+                  ${customer.cpf ? `<div style="font-size: 9px; opacity: 0.7;">CPF: ${customer.cpf}</div>` : ''}
                 </div>
               </div>
-              ${selectedOrder.equipmentSerial || selectedOrder.equipmentColor ? `
-              <div style="margin-top: 12px; display: flex; gap: 15px; font-size: 11px; color: #64748b;">
-                ${selectedOrder.equipmentSerial ? `<span><strong>S/N:</strong> ${selectedOrder.equipmentSerial}</span>` : ''}
-                ${selectedOrder.equipmentColor ? `<span><strong>Cor:</strong> ${selectedOrder.equipmentColor}</span>` : ''}
+
+              <!-- EQUIPAMENTO -->
+              <div style="margin-bottom: 6px;">
+                <div class="cliente-equip-label">Equipamento</div>
+                <div class="cliente-equip">${equipmentDisplay}</div>
+                <div class="flex-row" style="gap: 15px; font-size: 10px; color: #475569;">
+                  ${selectedOrder.equipmentSerial ? `<span><strong>Série:</strong> ${selectedOrder.equipmentSerial}</span>` : ''}
+                  ${selectedOrder.equipmentColor ? `<span><strong>Cor:</strong> ${selectedOrder.equipmentColor}</span>` : ''}
+                </div>
+              </div>
+
+              <!-- PROBLEMA RELATADO -->
+              ${selectedOrder.reportedProblem ? `
+              <div class="cliente-problem">
+                <div class="cliente-problem-label">Problema Relatado</div>
+                <div class="cliente-problem-text">${selectedOrder.reportedProblem}</div>
               </div>
               ` : ''}
+
+              <!-- QR + OBS -->
+              <div class="flex-row" style="margin-top: auto;">
+                <div class="cliente-qr">
+                  <img src="${customerQrImg}" />
+                  <div class="cliente-qr-text">
+                    <strong>Escaneie para acompanhar</strong><br/>
+                    Status do seu equipamento em tempo real
+                  </div>
+                </div>
+                ${selectedOrder.analysisPrediction ? `
+                <div style="margin-left: auto; text-align: right; font-size: 10px; background: #fef3c7; padding: 4px 10px; border-radius: 6px;">
+                  <strong>Previsão:</strong> ${selectedOrder.analysisPrediction}
+                </div>
+                ` : ''}
+              </div>
+
+              <!-- ASSINATURA CLIENTE -->
+              <div class="cliente-sig">
+                <strong>${customer.firstName} ${customer.lastName}</strong> — Assinatura do Cliente
+              </div>
+
             </div>
 
-            <!-- INFORMAÇÕES EXTRAS -->
-            <div class="info-section">
-              <div class="info-grid">
-                <div class="info-box">
-                  <div class="info-label">Status Atual</div>
-                  <div class="info-value">${selectedOrder.status}</div>
+            <!-- ============================================================ -->
+            <!-- LINHA DE CORTE                                               -->
+            <!-- ============================================================ -->
+            <hr class="cut-line" />
+
+            <!-- ============================================================ -->
+            <!-- INFERIOR — TÉCNICO (fica na assistência)                     -->
+            <!-- ============================================================ -->
+            <div class="half half-tecnico">
+
+              <div class="tech-header">
+                <div>
+                  <div class="tech-os">${osNumber}</div>
+                  <div class="date-info">${dateFull}</div>
                 </div>
-                <div class="info-box">
-                  <div class="info-label">Técnico Responsável</div>
-                  <div class="info-value">${technician}</div>
+                <div style="text-align: right;">
+                  <div class="tech-status" style="background: #e2e8f0; display: inline-block;">${selectedOrder.status}</div>
+                  <div style="font-size: 9px; color: #64748b; margin-top: 3px;">Técnico: ${technician}</div>
+                </div>
+              </div>
+
+              <!-- DADOS COMPLETOS DO EQUIPAMENTO -->
+              <div class="tech-grid">
+                <div class="tech-field">
+                  <div class="tech-field-label">Tipo</div>
+                  <div class="tech-field-value">${selectedOrder.equipmentType || '—'}</div>
+                </div>
+                <div class="tech-field">
+                  <div class="tech-field-label">Marca</div>
+                  <div class="tech-field-value">${selectedOrder.equipmentBrand || '—'}</div>
+                </div>
+                <div class="tech-field">
+                  <div class="tech-field-label">Modelo</div>
+                  <div class="tech-field-value">${selectedOrder.equipmentModel || '—'}</div>
+                </div>
+                <div class="tech-field">
+                  <div class="tech-field-label">Nº Série</div>
+                  <div class="tech-field-value">${selectedOrder.equipmentSerial || '—'}</div>
                 </div>
                 ${selectedOrder.customerPassword ? `
-                <div class="info-box">
-                  <div class="info-label">🔑 Senha do Aparelho</div>
-                  <div class="info-value" style="font-family: monospace; font-size: 16px;">${selectedOrder.customerPassword}</div>
+                <div class="tech-field">
+                  <div class="tech-field-label">Senha do Aparelho</div>
+                  <div class="tech-field-value text-mono">${selectedOrder.customerPassword}</div>
                 </div>
                 ` : ''}
                 ${selectedOrder.accessories ? `
-                <div class="info-box">
-                  <div class="info-label">📦 Acessórios</div>
-                  <div class="info-value">${selectedOrder.accessories}</div>
+                <div class="tech-field">
+                  <div class="tech-field-label">Acessórios</div>
+                  <div class="tech-field-value">${selectedOrder.accessories}</div>
+                </div>
+                ` : ''}
+                ${selectedOrder.equipmentColor ? `
+                <div class="tech-field">
+                  <div class="tech-field-label">Cor</div>
+                  <div class="tech-field-value">${selectedOrder.equipmentColor}</div>
+                </div>
+                ` : ''}
+                ${selectedOrder.priority ? `
+                <div class="tech-field">
+                  <div class="tech-field-label">Prioridade</div>
+                  <div class="tech-field-value">${selectedOrder.priority}</div>
                 </div>
                 ` : ''}
               </div>
-            </div>
 
-            <!-- Complete Mode: Parts and Services -->
-            ${printConfig.type === 'complete' ? `
-              ${selectedOrder.partsUsed && selectedOrder.partsUsed.length > 0 ? `
-              <div style="margin-bottom: 20px;">
-                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 10px;">🔧 Peças Utilizadas</div>
-                <table class="parts-table">
+              <!-- RAM / SSD -->
+              ${selectedOrder.ramInfo || selectedOrder.ssdInfo ? `
+              <div class="flex-row" style="gap: 10px; margin-bottom: 5px;">
+                ${selectedOrder.ramInfo ? `<div class="tech-field" style="flex:1; padding:4px 10px;"><span class="tech-field-label">RAM</span><div class="tech-field-value" style="font-size:10px;">${selectedOrder.ramInfo}</div></div>` : ''}
+                ${selectedOrder.ssdInfo ? `<div class="tech-field" style="flex:1; padding:4px 10px;"><span class="tech-field-label">SSD / Armazenamento</span><div class="tech-field-value" style="font-size:10px;">${selectedOrder.ssdInfo}</div></div>` : ''}
+              </div>
+              ` : ''}
+
+              <!-- PROBLEMA RELATADO -->
+              ${selectedOrder.reportedProblem ? `
+              <div class="tech-section">
+                <div class="tech-section-title">Problema Relatado</div>
+                <div class="tech-problem">${selectedOrder.reportedProblem}</div>
+              </div>
+              ` : ''}
+
+              <!-- ANÁLISE TÉCNICA -->
+              ${printConfig.type === 'complete' && selectedOrder.technicalAnalysis ? `
+              <div class="tech-section">
+                <div class="tech-section-title">Análise Técnica</div>
+                <div class="tech-text">${selectedOrder.technicalAnalysis}</div>
+              </div>
+              ` : ''}
+
+              <!-- SERVIÇOS REALIZADOS -->
+              ${printConfig.type === 'complete' && selectedOrder.servicesPerformed ? `
+              <div class="tech-section">
+                <div class="tech-section-title">Serviços Realizados</div>
+                <div class="tech-text">${selectedOrder.servicesPerformed}</div>
+              </div>
+              ` : ''}
+
+              <!-- PEÇAS UTILIZADAS (Complete) -->
+              ${printConfig.type === 'complete' && selectedOrder.partsUsed && selectedOrder.partsUsed.length > 0 ? `
+              <div class="tech-section">
+                <div class="tech-section-title">Peças Utilizadas</div>
+                <table class="tech-parts-table">
                   <thead>
                     <tr>
                       <th>Descrição</th>
-                      <th>Qtd</th>
-                      <th>Vlr. Unit.</th>
-                      <th>Subtotal</th>
+                      <th style="text-align:center;">Qtd</th>
+                      <th style="text-align:right;">Unit.</th>
+                      <th style="text-align:right;">Subtotal</th>
                     </tr>
                   </thead>
                   <tbody>
                     ${selectedOrder.partsUsed.map((p: any) => `
                       <tr>
                         <td>${p.name}</td>
-                        <td>${p.quantity}</td>
-                        <td>${formatCurrency(p.unitPrice)}</td>
-                        <td>${formatCurrency(p.subtotal)}</td>
+                        <td style="text-align:center;">${p.quantity}</td>
+                        <td style="text-align:right;">${formatCurrency(p.unitPrice)}</td>
+                        <td style="text-align:right;">${formatCurrency(p.subtotal)}</td>
                       </tr>
                     `).join('')}
                   </tbody>
@@ -305,59 +387,38 @@ export const PrintModal: React.FC<PrintModalProps> = ({
               </div>
               ` : ''}
 
-              ${selectedOrder.servicesPerformed ? `
-              <div style="margin-bottom: 20px;">
-                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 8px;">🛠️ Serviços Realizados</div>
-                <div style="background: #f8fafc; padding: 12px; border-radius: 8px; font-size: 13px;">${selectedOrder.servicesPerformed}</div>
+              <!-- VALOR TOTAL -->
+              ${printConfig.type === 'complete' && selectedOrder.totalAmount ? `
+              <div class="tech-total">
+                <span class="tech-total-label">Valor Total</span>
+                <span class="tech-total-value">${formatCurrency(selectedOrder.totalAmount)}</span>
               </div>
               ` : ''}
 
-              ${selectedOrder.technicalAnalysis ? `
-              <div style="margin-bottom: 20px;">
-                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 8px;">📝 Análise Técnica</div>
-                <div style="background: #f8fafc; padding: 12px; border-radius: 8px; font-size: 13px;">${selectedOrder.technicalAnalysis}</div>
+              <!-- OBSERVAÇÕES FINAIS -->
+              ${selectedOrder.finalObservations ? `
+              <div class="tech-section">
+                <div class="tech-section-title">Observações</div>
+                <div class="tech-text">${selectedOrder.finalObservations}</div>
               </div>
               ` : ''}
 
-              <div class="total-box">
-                <div class="total-label">Valor Total do Serviço</div>
-                <div class="total-value">${formatCurrency(selectedOrder.totalAmount || 0)}</div>
+              <!-- RODAPÉ TÉCNICO: QR + ASSINATURA -->
+              <div class="flex-between" style="margin-top: auto;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div class="tech-qr">
+                    <img src="${techQrImg}" />
+                  </div>
+                  <div>
+                    <div class="tech-qr-label">QR Técnico</div>
+                    <div style="font-size:7px; color:#94a3b8;">Uso interno</div>
+                  </div>
+                </div>
+                <div class="tech-sig" style="flex:1; margin-left:20px; border-top-color:#1e293b;">
+                  <strong>${technician}</strong> — Assinatura do Técnico
+                </div>
               </div>
-            ` : ''}
 
-            <!-- QR CODE -->
-            <div class="qr-section">
-              <div class="qr-item">
-                <img src="${customerQrImg}" />
-                <div class="qr-label">Cliente</div>
-              </div>
-              <div class="qr-item">
-                <img src="${techQrImg}" />
-                <div class="qr-label">Técnico</div>
-              </div>
-              <div class="qr-hint">
-                <strong>Escaneie para acompanhar</strong><br/>
-                O QR Code de CLIENTE permite acompanhar o status.<br/>
-                O QR Code de TÉCNICO é para uso interno.
-              </div>
-            </div>
-
-            <!-- ASSINATURAS -->
-            <div class="signatures">
-              <div class="sig-line">
-                <strong>${customer.firstName} ${customer.lastName}</strong><br/>
-                Assinatura do Cliente
-              </div>
-              <div class="sig-line">
-                <strong>${technician}</strong><br/>
-                Assinatura do Técnico
-              </div>
-            </div>
-
-            <!-- FOOTER -->
-            <div class="footer">
-              <p>📍 INOVA PRO - Assistência Técnica Especializada</p>
-              <p style="margin-top: 5px;">Obrigado pela preferência! Guarde este comprovante.</p>
             </div>
 
             <script>window.onload = () => { window.print(); setTimeout(() => window.close(), 500); }</script>
