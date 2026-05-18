@@ -35,7 +35,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({
     const dateFull = format(parseISO(selectedOrder.createdAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     const technician = currentUser?.name || 'Não informado';
     const appUrl = window.location.origin;
-    const customerQrUrl = `${appUrl}/?osId=${selectedOrder.id}&mode=status`;
+    const customerQrUrl = `${appUrl}/rastreio?osId=${selectedOrder.id}`;
     const techQrUrl = `${appUrl}/?osId=${selectedOrder.id}&mode=tech`;
 
     const customerQrImg = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(customerQrUrl)}`;
@@ -289,8 +289,8 @@ export const PrintModal: React.FC<PrintModalProps> = ({
                 <div class="flex-row" style="gap:6px;">
                   <div class="cli-qr"><img src="${customerQrImg}" /></div>
                   <div class="cli-qr-text">
-                    <strong>Escaneie para acompanhar</strong><br/>
-                    Status do seu equipamento em tempo real
+                    <strong>Acompanhe pelo celular</strong><br/>
+                    Escaneie o QR Code e veja o status
                   </div>
                 </div>
                 ${selectedOrder.analysisPrediction ? `

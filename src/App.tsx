@@ -45,6 +45,7 @@ const ClientPaymentsPage = lazy(() => import('./pages/ClientPaymentsPage').then(
 const ServiceOrdersPage = lazy(() => import('./pages/ServiceOrdersPage').then(m => ({ default: m.ServiceOrdersPage })));
 const InventoryPage = lazy(() => import('./pages/InventoryPage').then(m => ({ default: m.InventoryPage })));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const PublicTrackingPage = lazy(() => import('./pages/PublicTrackingPage').then(m => ({ default: m.PublicTrackingPage })));
 
 export default function App() {
   const isMobile = useIsMobile()
@@ -142,6 +143,15 @@ export default function App() {
   };
 
   if (!isAuthenticated) {
+    if (location.pathname === '/rastreio') {
+      return (
+        <SplashScreen>
+          <Suspense fallback={<PageLoader />}>
+            <PublicTrackingPage />
+          </Suspense>
+        </SplashScreen>
+      );
+    }
     return <SplashScreen><Login onLogin={handleLogin} /></SplashScreen>;
   }
 

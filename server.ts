@@ -13,6 +13,7 @@ import helmet from 'helmet';
 import { requireAuth } from './src/middleware/auth.js';
 import { prisma, testConnection, disconnect } from './src/lib/prisma.js';
 import authRoutes from './src/routes/auth.js';
+import publicRoutes from './src/routes/public.js';
 import protectedRoutes from './src/routes/index.js';
 import { requestLogger, errorHandler, error, info } from './src/lib/server-logger.js';
 
@@ -134,6 +135,7 @@ app.get('/api/db-test', async (_req, res) => {
  * ─── Rotas ───
  */
 app.use('/api', authRoutes);
+app.use('/api', publicRoutes);
 app.use('/api', requireAuth, protectedRoutes);
 
 /*

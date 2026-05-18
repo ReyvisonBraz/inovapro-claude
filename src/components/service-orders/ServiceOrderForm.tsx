@@ -19,6 +19,7 @@ import { AnalysisSection } from './form-sections/AnalysisSection';
 import { ClosingSection } from './form-sections/ClosingSection';
 import { serviceOrderSchema, ServiceOrderFormData } from '../../schemas/serviceOrderSchema';
 import { format, parseISO } from 'date-fns';
+import { sendWhatsAppStatusUpdate } from '../../lib/whatsappUtils';
 
 interface ServiceOrderFormProps {
   isAdding: boolean;
@@ -352,6 +353,18 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
       
       setIsAdding(false);
       setEditingOrder(null);
+
+      const notifyStatuses = ['Concluído', 'Pronto', 'Aguardando Autorização', 'Aguardando Aprovação'];
+      if (notifyStatuses.includes(orderData.status)) {
+        const appUrl = window.location.origin;
+        const orderWithCustomer = { ...editingOrder, ...orderData };
+        const customer = customers.find(c => c.id === editingOrder.customerId);
+        if (customer?.phone) {
+          setTimeout(() => {
+            sendWhatsAppStatusUpdate(orderWithCustomer, customer, 'INOVA PRO', appUrl);
+          }, 300);
+        }
+      }
 
       if (orderData.status === 'Concluído' && onGeneratePayment) {
         onOpenConfirm(

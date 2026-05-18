@@ -12,6 +12,7 @@ import {
   Brand, Model, User, EquipmentType
 } from '../../types';
 import api from '../../lib/api';
+import { sendWhatsAppStatusUpdate } from '../../lib/whatsappUtils';
 
 // Components
 import { ServiceOrderFilters } from './ServiceOrderFilters';
@@ -179,6 +180,17 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     const success = await onUpdateOrder(id, { status: newStatus, updatedBy: currentUser?.id || 1 });
     if (success) {
       showToast('Status atualizado com sucesso!', 'success');
+
+      const notifyStatuses = ['Concluído', 'Pronto', 'Aguardando Autorização', 'Aguardando Aprovação'];
+      if (notifyStatuses.includes(newStatus)) {
+        const order = orders.data.find(o => o.id === id);
+        const customer = customers.data.find(c => c.id === order?.customerId);
+        if (order && customer?.phone) {
+          setTimeout(() => {
+            sendWhatsAppStatusUpdate(order, customer, 'INOVA PRO', window.location.origin);
+          }, 300);
+        }
+      }
     } else {
       showToast('Erro ao atualizar status.', 'error');
     }
