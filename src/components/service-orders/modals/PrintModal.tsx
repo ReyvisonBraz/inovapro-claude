@@ -107,272 +107,302 @@ export const PrintModal: React.FC<PrintModalProps> = ({
         </html>
       `;
     } else {
-      // A4 Layout - Split into CLIENTE (top) + TÉCNICO (bottom) — cut at the middle
+      // A4 Layout — dividido em CLIENTE (metade superior) + TÉCNICO (metade inferior)
+      // Corte ao meio após impressão
       content = `
         <html>
           <head>
             <meta charset="UTF-8">
             <style>
               * { box-sizing: border-box; margin: 0; padding: 0; }
-              body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; line-height: 1.3; background: #fff; font-size: 11px; }
+              html { height: 100%; }
+              body {
+                height: 100%;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                color: #1e293b; line-height: 1.25; background: #fff; font-size: 9.5px;
+                display: flex; flex-direction: column;
+              }
+              @page { size: A4 portrait; margin: 7mm 10mm; }
 
-              @page { size: A4 portrait; margin: 12mm 15mm; }
+              @media print { html, body { height: 100%; } }
 
-              /* ===== TOP HALF — CLIENTE ===== */
-              .half { height: 48%; display: flex; flex-direction: column; }
-              .half-cliente { padding-bottom: 6mm; }
+              .half {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+              }
 
-              .cut-line { border: none; border-top: 2px dashed #94a3b8; margin: 2mm 0 6mm 0; position: relative; }
-              .cut-line::after { content: "✂  Corte aqui  ✂"; position: absolute; top: -7px; left: 50%; transform: translateX(-50%); background: #fff; padding: 0 12px; font-size: 9px; color: #94a3b8; font-weight: 700; letter-spacing: 1px; }
+              .cut-line {
+                flex-shrink: 0;
+                border: none;
+                border-top: 2px dashed #94a3b8;
+                margin: 1mm 50mm;
+                position: relative;
+              }
+              .cut-line::after {
+                content: "✂  Corte aqui  ✂";
+                position: absolute; top: -6px; left: 50%;
+                transform: translateX(-50%);
+                background: #fff; padding: 0 8px;
+                font-size: 7px; color: #94a3b8;
+                font-weight: 700; letter-spacing: 1px;
+              }
 
-              .os-number { font-size: 26px; font-weight: 900; color: #1e3a5f; letter-spacing: -0.5px; }
-              .os-label { font-size: 8px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px; }
-              .date-info { font-size: 10px; color: #64748b; }
+              /* ===== GERAL ===== */
+              .os-num { font-size: 20px; font-weight: 900; color: #1e3a5f; letter-spacing: -0.3px; }
+              .os-label { font-size: 7px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+              .date-sm { font-size: 8px; color: #64748b; }
 
-              /* CLIENTE — Telefone gigante */
-              .cliente-phone-box { background: #1e3a5f; color: #fff; border-radius: 8px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-              .cliente-phone-label { font-size: 8px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
-              .cliente-phone-value { font-size: 28px; font-weight: 900; letter-spacing: 1px; }
-              .cliente-name { font-weight: 700; font-size: 14px; }
-
-              /* CLIENTE — Problem highlight */
-              .cliente-problem { background: #fef2f2; border: 2px solid #dc2626; border-radius: 8px; padding: 10px 14px; margin-bottom: 6px; }
-              .cliente-problem-label { font-size: 8px; font-weight: 800; text-transform: uppercase; color: #991b1b; letter-spacing: 1px; margin-bottom: 4px; }
-              .cliente-problem-text { font-size: 13px; font-weight: 600; color: #1e293b; }
-
-              .cliente-equip { font-size: 12px; font-weight: 600; }
-              .cliente-equip-label { font-size: 8px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 1px; }
-
-              .cliente-qr { display: flex; align-items: center; gap: 10px; }
-              .cliente-qr img { width: 55px; height: 55px; }
-              .cliente-qr-text { font-size: 8px; color: #475569; }
-              .cliente-qr-text strong { font-size: 9px; }
-
-              .cliente-sig { border-top: 1.5px solid #1e293b; padding-top: 4px; margin-top: auto; text-align: center; font-size: 9px; color: #64748b; }
-
-              /* ===== BOTTOM HALF — TÉCNICO ===== */
-              .half-tecnico { padding-top: 2mm; }
-
-              .tech-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
-              .tech-os { font-size: 20px; font-weight: 900; color: #1e3a5f; }
-              .tech-status { font-size: 9px; font-weight: 700; padding: 2px 10px; border-radius: 20px; background: #e2e8f0; }
-
-              .tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
-              .tech-field { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; }
-              .tech-field-label { font-size: 7px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 1px; }
-              .tech-field-value { font-size: 11px; font-weight: 600; color: #1e293b; margin-top: 1px; word-break: break-word; }
-
-              .tech-section { margin-bottom: 5px; }
-              .tech-section-title { font-size: 8px; font-weight: 800; text-transform: uppercase; color: #475569; letter-spacing: 1.2px; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 2px; margin-bottom: 4px; }
-
-              .tech-problem { background: #fef2f2; border-left: 3px solid #dc2626; padding: 5px 10px; font-size: 11px; font-weight: 500; border-radius: 0 4px 4px 0; margin-bottom: 5px; }
-
-              .tech-text { font-size: 10px; color: #334155; line-height: 1.4; padding: 3px 8px; background: #f8fafc; border-radius: 4px; margin-bottom: 4px; }
-
-              .tech-parts-table { width: 100%; border-collapse: collapse; font-size: 9px; margin: 4px 0; }
-              .tech-parts-table th { background: #f1f5f9; padding: 4px 6px; text-align: left; font-size: 7px; text-transform: uppercase; color: #64748b; border-bottom: 1.5px solid #e2e8f0; }
-              .tech-parts-table td { padding: 3px 6px; border-bottom: 1px solid #f1f5f9; }
-
-              .tech-total { background: #1e3a5f; color: #fff; padding: 6px 14px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin: 4px 0; }
-              .tech-total-label { font-size: 9px; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; }
-              .tech-total-value { font-size: 18px; font-weight: 900; }
-
-              .tech-footer-info { display: flex; justify-content: space-between; font-size: 8px; color: #94a3b8; margin-top: auto; }
-              .tech-sig { border-top: 1.5px solid #1e293b; padding-top: 3px; text-align: center; font-size: 9px; color: #64748b; }
-
-              .tech-qr img { width: 48px; height: 48px; }
-              .tech-qr-label { font-size: 7px; font-weight: 700; text-transform: uppercase; color: #64748b; }
-
-              .flex-row { display: flex; gap: 10px; align-items: center; }
+              .flex-row { display: flex; gap: 6px; align-items: center; }
               .flex-between { display: flex; justify-content: space-between; align-items: center; }
-              .flex-1 { flex: 1; }
-              .mt-auto { margin-top: auto; }
-
               .text-mono { font-family: 'Courier New', monospace; font-weight: 700; }
 
-              @media print { body { padding: 0; } }
+              /* ===== CLIENTE ===== */
+              .cli-phone {
+                background: #1e3a5f; color: #fff; border-radius: 6px;
+                padding: 7px 14px; display: flex; align-items: center;
+                justify-content: space-between; margin-bottom: 5px;
+              }
+              .cli-phone-label { font-size: 7px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.8; }
+              .cli-phone-val   { font-size: 24px; font-weight: 900; letter-spacing: 0.5px; }
+              .cli-name        { font-weight: 700; font-size: 12px; }
+
+              .cli-equip-label { font-size: 7px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+              .cli-equip-val   { font-size: 10px; font-weight: 600; }
+
+              .cli-problem {
+                background: #fef2f2; border: 1.5px solid #dc2626; border-radius: 6px;
+                padding: 6px 12px; margin-bottom: 4px;
+              }
+              .cli-problem-label { font-size: 7px; font-weight: 800; text-transform: uppercase; color: #991b1b; letter-spacing: 0.8px; }
+              .cli-problem-text { font-size: 11px; font-weight: 600; color: #1e293b; }
+
+              .cli-qr img     { width: 42px; height: 42px; }
+              .cli-qr-text    { font-size: 7px; color: #475569; }
+              .cli-qr-text strong { font-size: 8px; }
+
+              .cli-sig {
+                border-top: 1.5px solid #1e293b; padding-top: 3px;
+                margin-top: auto; text-align: center; font-size: 8px; color: #64748b;
+              }
+
+              .cli-pred { font-size: 8px; background: #fef3c7; padding: 2px 8px; border-radius: 4px; }
+
+              /* ===== TÉCNICO ===== */
+              .tch-status { font-size: 8px; font-weight: 700; padding: 1px 8px; border-radius: 20px; background: #e2e8f0; display: inline-block; }
+              .tch-tech   { font-size: 8px; color: #64748b; }
+
+              .tch-grid {
+                display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 4px;
+              }
+              .tch-field {
+                background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 3px 8px;
+              }
+              .tch-field-label { font-size: 6.5px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.6px; }
+              .tch-field-value { font-size: 9px; font-weight: 600; color: #1e293b; word-break: break-word; }
+
+              .tch-sec-title {
+                font-size: 7px; font-weight: 800; text-transform: uppercase;
+                color: #475569; letter-spacing: 0.8px;
+                border-bottom: 1px solid #cbd5e1; padding-bottom: 1px; margin-bottom: 3px;
+              }
+
+              .tch-problem {
+                background: #fef2f2; border-left: 2px solid #dc2626;
+                padding: 3px 8px; font-size: 9px; font-weight: 500;
+                border-radius: 0 3px 3px 0; margin-bottom: 3px;
+              }
+              .tch-text {
+                font-size: 8.5px; color: #334155; line-height: 1.3;
+                padding: 2px 6px; background: #f8fafc; border-radius: 3px; margin-bottom: 3px;
+              }
+
+              .tch-table { width: 100%; border-collapse: collapse; font-size: 7.5px; margin: 2px 0; }
+              .tch-table th { background: #f1f5f9; padding: 2px 5px; text-align: left; font-size: 6.5px; text-transform: uppercase; color: #64748b; border-bottom: 1px solid #e2e8f0; }
+              .tch-table td { padding: 2px 5px; border-bottom: 1px solid #f1f5f9; }
+
+              .tch-total {
+                background: #1e3a5f; color: #fff; padding: 4px 12px; border-radius: 5px;
+                display: flex; justify-content: space-between; align-items: center; margin: 3px 0;
+              }
+              .tch-total-label { font-size: 8px; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.8px; }
+              .tch-total-value { font-size: 15px; font-weight: 900; }
+
+              .tch-qr img { width: 38px; height: 38px; }
+              .tch-qr-label { font-size: 6.5px; font-weight: 700; text-transform: uppercase; color: #64748b; }
+
+              .tch-sig {
+                border-top: 1.5px solid #1e293b; padding-top: 2px;
+                text-align: center; font-size: 8px; color: #64748b;
+              }
+
+              .gap-1 { gap: 4px; }
+              .mb-1 { margin-bottom: 4px; }
+              .mb-2 { margin-bottom: 3px; }
+              .mt-a { margin-top: auto; }
             </style>
           </head>
           <body>
 
-            <!-- ============================================================ -->
-            <!-- TOPO — CLIENTE (leva para casa)                              -->
-            <!-- ============================================================ -->
-            <div class="half half-cliente">
+            <!-- ===================== CLIENTE ===================== -->
+            <div class="half" style="padding-bottom: 1mm;">
 
-              <div class="flex-between" style="margin-bottom: 6px;">
+              <div class="flex-between mb-2">
                 <div>
                   <div class="os-label">Ordem de Serviço</div>
-                  <div class="os-number">${osNumber}</div>
+                  <div class="os-num">${osNumber}</div>
                 </div>
-                <div style="text-align: right;">
-                  <div class="date-info">${date}</div>
+                <div style="text-align:right;">
+                  <div class="date-sm">${date}</div>
                 </div>
               </div>
 
-              <!-- TELEFONE EM DESTAQUE -->
-              <div class="cliente-phone-box">
+              <div class="cli-phone">
                 <div>
-                  <div class="cliente-phone-label">Telefone / WhatsApp</div>
-                  <div class="cliente-phone-value">${customer.phone || 'Não informado'}</div>
+                  <div class="cli-phone-label">Telefone / WhatsApp</div>
+                  <div class="cli-phone-val">${customer.phone || 'Não informado'}</div>
                 </div>
-                <div style="text-align: right;">
-                  <div class="cliente-name">${customer.firstName} ${customer.lastName}</div>
-                  ${customer.cpf ? `<div style="font-size: 9px; opacity: 0.7;">CPF: ${customer.cpf}</div>` : ''}
+                <div style="text-align:right;">
+                  <div class="cli-name">${customer.firstName} ${customer.lastName}</div>
+                  ${customer.cpf ? `<div style="font-size:8px; opacity:0.7;">CPF: ${customer.cpf}</div>` : ''}
                 </div>
               </div>
 
-              <!-- EQUIPAMENTO -->
-              <div style="margin-bottom: 6px;">
-                <div class="cliente-equip-label">Equipamento</div>
-                <div class="cliente-equip">${equipmentDisplay}</div>
-                <div class="flex-row" style="gap: 15px; font-size: 10px; color: #475569;">
+              <div class="mb-2">
+                <div class="cli-equip-label">Equipamento</div>
+                <div class="cli-equip-val">${equipmentDisplay}</div>
+                <div class="flex-row gap-1" style="font-size:8px; color:#475569;">
                   ${selectedOrder.equipmentSerial ? `<span><strong>Série:</strong> ${selectedOrder.equipmentSerial}</span>` : ''}
                   ${selectedOrder.equipmentColor ? `<span><strong>Cor:</strong> ${selectedOrder.equipmentColor}</span>` : ''}
                 </div>
               </div>
 
-              <!-- PROBLEMA RELATADO -->
               ${selectedOrder.reportedProblem ? `
-              <div class="cliente-problem">
-                <div class="cliente-problem-label">Problema Relatado</div>
-                <div class="cliente-problem-text">${selectedOrder.reportedProblem}</div>
+              <div class="cli-problem">
+                <div class="cli-problem-label">Problema Relatado</div>
+                <div class="cli-problem-text">${selectedOrder.reportedProblem}</div>
               </div>
               ` : ''}
 
-              <!-- QR + OBS -->
-              <div class="flex-row" style="margin-top: auto;">
-                <div class="cliente-qr">
-                  <img src="${customerQrImg}" />
-                  <div class="cliente-qr-text">
+              <div class="flex-row mt-a">
+                <div class="flex-row" style="gap:6px;">
+                  <div class="cli-qr"><img src="${customerQrImg}" /></div>
+                  <div class="cli-qr-text">
                     <strong>Escaneie para acompanhar</strong><br/>
                     Status do seu equipamento em tempo real
                   </div>
                 </div>
                 ${selectedOrder.analysisPrediction ? `
-                <div style="margin-left: auto; text-align: right; font-size: 10px; background: #fef3c7; padding: 4px 10px; border-radius: 6px;">
-                  <strong>Previsão:</strong> ${selectedOrder.analysisPrediction}
+                <div style="margin-left:auto;">
+                  <div class="cli-pred"><strong>Previsão:</strong> ${selectedOrder.analysisPrediction}</div>
                 </div>
                 ` : ''}
               </div>
 
-              <!-- ASSINATURA CLIENTE -->
-              <div class="cliente-sig">
+              <div class="cli-sig">
                 <strong>${customer.firstName} ${customer.lastName}</strong> — Assinatura do Cliente
               </div>
-
             </div>
 
-            <!-- ============================================================ -->
-            <!-- LINHA DE CORTE                                               -->
-            <!-- ============================================================ -->
+            <!-- ===================== LINHA DE CORTE ===================== -->
             <hr class="cut-line" />
 
-            <!-- ============================================================ -->
-            <!-- INFERIOR — TÉCNICO (fica na assistência)                     -->
-            <!-- ============================================================ -->
-            <div class="half half-tecnico">
+            <!-- ===================== TÉCNICO ===================== -->
+            <div class="half" style="padding-top: 1mm;">
 
-              <div class="tech-header">
+              <div class="flex-between mb-2">
                 <div>
-                  <div class="tech-os">${osNumber}</div>
-                  <div class="date-info">${dateFull}</div>
+                  <div class="os-num">${osNumber}</div>
+                  <div class="date-sm">${dateFull}</div>
                 </div>
-                <div style="text-align: right;">
-                  <div class="tech-status" style="background: #e2e8f0; display: inline-block;">${selectedOrder.status}</div>
-                  <div style="font-size: 9px; color: #64748b; margin-top: 3px;">Técnico: ${technician}</div>
+                <div style="text-align:right;">
+                  <div><span class="tch-status">${selectedOrder.status}</span></div>
+                  <div class="tch-tech">Técnico: ${technician}</div>
                 </div>
               </div>
 
-              <!-- DADOS COMPLETOS DO EQUIPAMENTO -->
-              <div class="tech-grid">
-                <div class="tech-field">
-                  <div class="tech-field-label">Tipo</div>
-                  <div class="tech-field-value">${selectedOrder.equipmentType || '—'}</div>
+              <div class="tch-grid">
+                <div class="tch-field">
+                  <div class="tch-field-label">Tipo</div>
+                  <div class="tch-field-value">${selectedOrder.equipmentType || '—'}</div>
                 </div>
-                <div class="tech-field">
-                  <div class="tech-field-label">Marca</div>
-                  <div class="tech-field-value">${selectedOrder.equipmentBrand || '—'}</div>
+                <div class="tch-field">
+                  <div class="tch-field-label">Marca</div>
+                  <div class="tch-field-value">${selectedOrder.equipmentBrand || '—'}</div>
                 </div>
-                <div class="tech-field">
-                  <div class="tech-field-label">Modelo</div>
-                  <div class="tech-field-value">${selectedOrder.equipmentModel || '—'}</div>
+                <div class="tch-field">
+                  <div class="tch-field-label">Modelo</div>
+                  <div class="tch-field-value">${selectedOrder.equipmentModel || '—'}</div>
                 </div>
-                <div class="tech-field">
-                  <div class="tech-field-label">Nº Série</div>
-                  <div class="tech-field-value">${selectedOrder.equipmentSerial || '—'}</div>
+                <div class="tch-field">
+                  <div class="tch-field-label">Nº Série</div>
+                  <div class="tch-field-value">${selectedOrder.equipmentSerial || '—'}</div>
                 </div>
                 ${selectedOrder.customerPassword ? `
-                <div class="tech-field">
-                  <div class="tech-field-label">Senha do Aparelho</div>
-                  <div class="tech-field-value text-mono">${selectedOrder.customerPassword}</div>
+                <div class="tch-field">
+                  <div class="tch-field-label">Senha</div>
+                  <div class="tch-field-value text-mono">${selectedOrder.customerPassword}</div>
                 </div>
                 ` : ''}
                 ${selectedOrder.accessories ? `
-                <div class="tech-field">
-                  <div class="tech-field-label">Acessórios</div>
-                  <div class="tech-field-value">${selectedOrder.accessories}</div>
+                <div class="tch-field">
+                  <div class="tch-field-label">Acessórios</div>
+                  <div class="tch-field-value">${selectedOrder.accessories}</div>
                 </div>
                 ` : ''}
                 ${selectedOrder.equipmentColor ? `
-                <div class="tech-field">
-                  <div class="tech-field-label">Cor</div>
-                  <div class="tech-field-value">${selectedOrder.equipmentColor}</div>
+                <div class="tch-field">
+                  <div class="tch-field-label">Cor</div>
+                  <div class="tch-field-value">${selectedOrder.equipmentColor}</div>
                 </div>
                 ` : ''}
                 ${selectedOrder.priority ? `
-                <div class="tech-field">
-                  <div class="tech-field-label">Prioridade</div>
-                  <div class="tech-field-value">${selectedOrder.priority}</div>
+                <div class="tch-field">
+                  <div class="tch-field-label">Prioridade</div>
+                  <div class="tch-field-value">${selectedOrder.priority}</div>
                 </div>
                 ` : ''}
               </div>
 
-              <!-- RAM / SSD -->
               ${selectedOrder.ramInfo || selectedOrder.ssdInfo ? `
-              <div class="flex-row" style="gap: 10px; margin-bottom: 5px;">
-                ${selectedOrder.ramInfo ? `<div class="tech-field" style="flex:1; padding:4px 10px;"><span class="tech-field-label">RAM</span><div class="tech-field-value" style="font-size:10px;">${selectedOrder.ramInfo}</div></div>` : ''}
-                ${selectedOrder.ssdInfo ? `<div class="tech-field" style="flex:1; padding:4px 10px;"><span class="tech-field-label">SSD / Armazenamento</span><div class="tech-field-value" style="font-size:10px;">${selectedOrder.ssdInfo}</div></div>` : ''}
+              <div class="flex-row gap-1 mb-2">
+                ${selectedOrder.ramInfo ? `<div class="tch-field" style="flex:1;padding:2px 8px;"><span class="tch-field-label">RAM</span><div class="tch-field-value">${selectedOrder.ramInfo}</div></div>` : ''}
+                ${selectedOrder.ssdInfo ? `<div class="tch-field" style="flex:1;padding:2px 8px;"><span class="tch-field-label">SSD</span><div class="tch-field-value">${selectedOrder.ssdInfo}</div></div>` : ''}
               </div>
               ` : ''}
 
-              <!-- PROBLEMA RELATADO -->
               ${selectedOrder.reportedProblem ? `
-              <div class="tech-section">
-                <div class="tech-section-title">Problema Relatado</div>
-                <div class="tech-problem">${selectedOrder.reportedProblem}</div>
+              <div class="mb-1">
+                <div class="tch-sec-title">Problema Relatado</div>
+                <div class="tch-problem">${selectedOrder.reportedProblem}</div>
               </div>
               ` : ''}
 
-              <!-- ANÁLISE TÉCNICA -->
               ${printConfig.type === 'complete' && selectedOrder.technicalAnalysis ? `
-              <div class="tech-section">
-                <div class="tech-section-title">Análise Técnica</div>
-                <div class="tech-text">${selectedOrder.technicalAnalysis}</div>
+              <div class="mb-1">
+                <div class="tch-sec-title">Análise Técnica</div>
+                <div class="tch-text">${selectedOrder.technicalAnalysis}</div>
               </div>
               ` : ''}
 
-              <!-- SERVIÇOS REALIZADOS -->
               ${printConfig.type === 'complete' && selectedOrder.servicesPerformed ? `
-              <div class="tech-section">
-                <div class="tech-section-title">Serviços Realizados</div>
-                <div class="tech-text">${selectedOrder.servicesPerformed}</div>
+              <div class="mb-1">
+                <div class="tch-sec-title">Serviços Realizados</div>
+                <div class="tch-text">${selectedOrder.servicesPerformed}</div>
               </div>
               ` : ''}
 
-              <!-- PEÇAS UTILIZADAS (Complete) -->
               ${printConfig.type === 'complete' && selectedOrder.partsUsed && selectedOrder.partsUsed.length > 0 ? `
-              <div class="tech-section">
-                <div class="tech-section-title">Peças Utilizadas</div>
-                <table class="tech-parts-table">
-                  <thead>
-                    <tr>
-                      <th>Descrição</th>
-                      <th style="text-align:center;">Qtd</th>
-                      <th style="text-align:right;">Unit.</th>
-                      <th style="text-align:right;">Subtotal</th>
-                    </tr>
-                  </thead>
+              <div class="mb-1">
+                <div class="tch-sec-title">Peças Utilizadas</div>
+                <table class="tch-table">
+                  <thead><tr>
+                    <th>Descrição</th>
+                    <th style="text-align:center;">Qtd</th>
+                    <th style="text-align:right;">Unit.</th>
+                    <th style="text-align:right;">Subtotal</th>
+                  </tr></thead>
                   <tbody>
                     ${selectedOrder.partsUsed.map((p: any) => `
                       <tr>
@@ -387,34 +417,29 @@ export const PrintModal: React.FC<PrintModalProps> = ({
               </div>
               ` : ''}
 
-              <!-- VALOR TOTAL -->
               ${printConfig.type === 'complete' && selectedOrder.totalAmount ? `
-              <div class="tech-total">
-                <span class="tech-total-label">Valor Total</span>
-                <span class="tech-total-value">${formatCurrency(selectedOrder.totalAmount)}</span>
+              <div class="tch-total">
+                <span class="tch-total-label">Valor Total</span>
+                <span class="tch-total-value">${formatCurrency(selectedOrder.totalAmount)}</span>
               </div>
               ` : ''}
 
-              <!-- OBSERVAÇÕES FINAIS -->
               ${selectedOrder.finalObservations ? `
-              <div class="tech-section">
-                <div class="tech-section-title">Observações</div>
-                <div class="tech-text">${selectedOrder.finalObservations}</div>
+              <div class="mb-1">
+                <div class="tch-sec-title">Observações</div>
+                <div class="tch-text">${selectedOrder.finalObservations}</div>
               </div>
               ` : ''}
 
-              <!-- RODAPÉ TÉCNICO: QR + ASSINATURA -->
-              <div class="flex-between" style="margin-top: auto;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <div class="tech-qr">
-                    <img src="${techQrImg}" />
-                  </div>
+              <div class="flex-between mt-a">
+                <div class="flex-row" style="gap:6px;">
+                  <div class="tch-qr"><img src="${techQrImg}" /></div>
                   <div>
-                    <div class="tech-qr-label">QR Técnico</div>
-                    <div style="font-size:7px; color:#94a3b8;">Uso interno</div>
+                    <div class="tch-qr-label">QR Técnico</div>
+                    <div style="font-size:6.5px; color:#94a3b8;">Uso interno</div>
                   </div>
                 </div>
-                <div class="tech-sig" style="flex:1; margin-left:20px; border-top-color:#1e293b;">
+                <div class="tch-sig" style="flex:1; margin-left:12px;">
                   <strong>${technician}</strong> — Assinatura do Técnico
                 </div>
               </div>
