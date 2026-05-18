@@ -46,6 +46,7 @@ const ServiceOrdersPage = lazy(() => import('./pages/ServiceOrdersPage').then(m 
 const InventoryPage = lazy(() => import('./pages/InventoryPage').then(m => ({ default: m.InventoryPage })));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const PublicTrackingPage = lazy(() => import('./pages/PublicTrackingPage').then(m => ({ default: m.PublicTrackingPage })));
+const TechOrderPage = lazy(() => import('./pages/TechOrderPage').then(m => ({ default: m.TechOrderPage })));
 
 export default function App() {
   const isMobile = useIsMobile()
@@ -137,7 +138,8 @@ export default function App() {
   const handleLogin = (token: string, user: User) => {
     login(token, user);
     const { directOsId } = useAppStore.getState();
-    navigate(directOsId ? '/ordens' : '/dashboard');
+    const returnToOs = location.pathname.startsWith('/os/') ? location.pathname : null;
+    navigate(returnToOs || (directOsId ? '/ordens' : '/dashboard'));
   };
 
   const handleLogout = () => {
@@ -196,6 +198,8 @@ export default function App() {
                       <Route path="/estoque" element={<ProtectedRoute permission="manage_inventory"><InventoryPage /></ProtectedRoute>} />
                       <Route path="/relatorios" element={<ProtectedRoute permission="view_reports"><ReportsPage /></ProtectedRoute>} />
                       <Route path="/configuracoes" element={<ProtectedRoute permission="manage_settings"><SettingsPage /></ProtectedRoute>} />
+                      <Route path="/rastreio" element={<PublicTrackingPage />} />
+                      <Route path="/os/:id" element={<ProtectedRoute permission="manage_service_orders"><TechOrderPage /></ProtectedRoute>} />
                       <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     </Routes>
                   </Suspense>

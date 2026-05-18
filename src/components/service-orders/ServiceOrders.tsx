@@ -200,15 +200,15 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     const status = statuses.find(s => s.name === statusName);
     if (status) {
       return {
-        backgroundColor: `${status.color}15`,
+        backgroundColor: `${status.color}28`,
         color: status.color,
-        borderColor: `${status.color}30`
+        borderColor: `${status.color}50`
       };
     }
     return {
-      backgroundColor: 'rgba(100, 116, 139, 0.1)',
-      color: '#64748b',
-      borderColor: 'rgba(100, 116, 139, 0.2)'
+      backgroundColor: 'rgba(100, 116, 139, 0.15)',
+      color: '#94a3b8',
+      borderColor: 'rgba(100, 116, 139, 0.3)'
     };
   };
 

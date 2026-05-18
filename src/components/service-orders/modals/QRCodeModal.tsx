@@ -18,7 +18,7 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
   const osNumber = selectedOrder ? `#OS-${selectedOrder.id.toString().padStart(4, '0')}` : '';
 
   const customerUrl = `${appUrl}/rastreio?osId=${selectedOrder?.id}`;
-  const techUrl = `${appUrl}/?osId=${selectedOrder?.id}&mode=tech`;
+  const techUrl = `${appUrl}/os/${selectedOrder?.id}`;
 
   const [copied, setCopied] = React.useState<'customer' | 'tech' | null>(null);
 
