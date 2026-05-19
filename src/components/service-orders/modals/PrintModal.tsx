@@ -37,7 +37,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({
     const technician = currentUser?.name || 'Não informado';
     const appUrl = window.location.origin;
     const customerQrUrl = `${appUrl}/rastreio?osId=${selectedOrder.id}`;
-    const techQrUrl = `${appUrl}/?osId=${selectedOrder.id}&mode=tech`;
+    const techQrUrl = `${appUrl}/os/${selectedOrder.id}`;
 
     const customerQrImg = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(customerQrUrl)}`;
     const techQrImg = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(techQrUrl)}`;

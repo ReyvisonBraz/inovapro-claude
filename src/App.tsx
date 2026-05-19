@@ -47,6 +47,7 @@ const InventoryPage = lazy(() => import('./pages/InventoryPage').then(m => ({ de
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const PublicTrackingPage = lazy(() => import('./pages/PublicTrackingPage').then(m => ({ default: m.PublicTrackingPage })));
 const TechOrderPage = lazy(() => import('./pages/TechOrderPage').then(m => ({ default: m.TechOrderPage })));
+const PrintPreviewPage = lazy(() => import('./pages/PrintPreviewPage').then(m => ({ default: m.PrintPreviewPage })));
 
 export default function App() {
   const isMobile = useIsMobile()
@@ -200,6 +201,7 @@ export default function App() {
                       <Route path="/configuracoes" element={<ProtectedRoute permission="manage_settings"><SettingsPage /></ProtectedRoute>} />
                       <Route path="/rastreio" element={<PublicTrackingPage />} />
                       <Route path="/os/:id" element={<ProtectedRoute permission="manage_service_orders"><TechOrderPage /></ProtectedRoute>} />
+                      <Route path="/print-preview" element={<ProtectedRoute permission="manage_service_orders"><PrintPreviewPage /></ProtectedRoute>} />
                       <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     </Routes>
                   </Suspense>

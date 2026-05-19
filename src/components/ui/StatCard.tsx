@@ -12,7 +12,7 @@ interface StatCardProps {
   progress?: number;
 }
 
-export const StatCard = ({ title, value, change, trend, icon: Icon, progress = 60 }: StatCardProps) => {
+export const StatCard = ({ title, value, change, trend, icon: Icon, progress }: StatCardProps) => {
   const [isHovered, setIsHovered] = React.useState(false);
   const isUp = trend === 'up';
 
@@ -57,15 +57,17 @@ export const StatCard = ({ title, value, change, trend, icon: Icon, progress = 6
         <h3 className="text-2xl sm:text-3xl font-bold font-display text-white tracking-tight">
           {formatCurrency(value)}
         </h3>
-        <div className="flex items-center gap-2 pt-1">
-          <div className="h-1 w-16 bg-white/[0.06] rounded-full overflow-hidden">
-            <div
-              className={cn("h-full rounded-full transition-all duration-500", isUp ? "bg-emerald-500" : "bg-rose-500")}
-              style={{ width: `${progress}%` }}
-            />
+        {progress !== undefined && (
+          <div className="flex items-center gap-2 pt-1">
+            <div className="h-1 w-16 bg-white/[0.06] rounded-full overflow-hidden">
+              <div
+                className={cn("h-full rounded-full transition-all duration-500", isUp ? "bg-emerald-500" : "bg-rose-500")}
+                style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
+              />
+            </div>
+            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">vs mês anterior</span>
           </div>
-          <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">vs mês anterior</span>
-        </div>
+        )}
       </div>
     </motion.div>
   );

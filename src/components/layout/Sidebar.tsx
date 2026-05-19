@@ -57,8 +57,11 @@ export const Sidebar = () => {
         isMobile ? 'px-5 justify-between' : (isSidebarCollapsed ? 'px-0 justify-center' : 'px-5 justify-between')
       )}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center">
-            <span className="text-primary font-black text-xs">IP</span>
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center ring-1 ring-primary/25 shrink-0"
+            style={{ background: 'linear-gradient(135deg, rgba(17,82,212,0.28) 0%, rgba(17,82,212,0.10) 100%)' }}
+          >
+            <Wrench size={16} className="text-primary" />
           </div>
           {(!isSidebarCollapsed || isMobile) && (
             <span className="font-display font-bold text-sm tracking-tight text-white">INOVA PRO</span>

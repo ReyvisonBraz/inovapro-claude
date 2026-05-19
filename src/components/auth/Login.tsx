@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { User, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, AlertCircle, Eye, EyeOff, Wrench } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 
@@ -73,8 +73,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-center mb-10"
           >
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/15 mb-5 neon-glow-blue">
-              <span className="font-display font-black text-2xl text-primary">IP</span>
+            <div
+              className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5 ring-1 ring-primary/25"
+              style={{
+                background: 'linear-gradient(135deg, rgba(17,82,212,0.25) 0%, rgba(17,82,212,0.08) 100%)',
+                boxShadow: '0 8px 24px rgba(17,82,212,0.2), inset 0 1px 0 rgba(255,255,255,0.08)'
+              }}
+            >
+              <Wrench size={28} className="text-primary" />
             </div>
             <h1 className="font-display font-bold text-2xl text-white tracking-tight mb-2">
               INOVA PRO

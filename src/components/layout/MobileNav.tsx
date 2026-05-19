@@ -47,22 +47,23 @@ export function MobileNav() {
               key={item.path}
               onClick={() => handleNavigation(item.path, item.screen)}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 w-full h-full transition-all",
+                "relative flex flex-col items-center justify-center gap-1 w-full h-full transition-all",
                 "active:scale-90"
               )}
             >
-              <div className={cn(
-                "relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300",
-                isActive ? "text-primary" : "text-slate-500"
-              )}>
-                <Icon size={20} />
+              <div className="relative flex items-center justify-center">
                 {isActive && (
                   <motion.div
-                    layoutId="mobile-nav-indicator"
-                    className="absolute -bottom-1 w-5 h-0.5 rounded-full bg-primary"
+                    layoutId="mobile-nav-pill"
+                    className="absolute rounded-full bg-primary/15"
+                    style={{ width: 52, height: 28 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                   />
                 )}
+                <Icon size={19} className={cn(
+                  "relative z-10 transition-colors duration-300",
+                  isActive ? "text-primary" : "text-slate-500"
+                )} />
               </div>
               <span className={cn(
                 "text-[10px] font-bold tracking-wider transition-colors duration-300",

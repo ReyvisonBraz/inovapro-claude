@@ -4,7 +4,7 @@ export interface User {
   name: string;
   role: 'owner' | 'manager' | 'employee';
   permissions: string[];
-  createdAt: string;
+  createdAt?: string;
 }
 
 export interface AuditLog {

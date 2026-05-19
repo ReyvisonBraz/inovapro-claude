@@ -19,7 +19,8 @@
       "Bash(npx tsc *)",
       "Bash(ls *.yaml *.json render.yaml railway.json railway.toml)",
       "Bash(ls -la Dockerfile*)",
-      "PowerShell(gcloud config list --format=\"value\\(core.project\\)\" 2>&1)"
+      "PowerShell(gcloud config list --format=\"value\\(core.project\\)\" 2>&1)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")"
     ]
   }
 }

@@ -231,12 +231,19 @@ export const Header = () => {
             </div>
           )}
 
-          <div className="flex items-center bg-white/[0.04] rounded-lg p-0.5 border border-white/[0.06]">
-            <button onClick={() => setFontSize(Math.max(fontSize - 2, 12))} className="px-2 py-1.5 text-slate-500 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors text-xs font-bold">
+          <div className="flex items-center gap-0.5">
+            <button
+              onClick={() => setFontSize(Math.max(fontSize - 2, 12))}
+              title="Diminuir fonte"
+              className="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-slate-300 hover:bg-white/[0.05] rounded-lg transition-colors text-[11px] font-black"
+            >
               A-
             </button>
-            <div className="w-px h-3 bg-white/[0.08]" />
-            <button onClick={() => setFontSize(Math.min(fontSize + 2, 24))} className="px-2 py-1.5 text-slate-500 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors text-xs font-bold">
+            <button
+              onClick={() => setFontSize(Math.min(fontSize + 2, 24))}
+              title="Aumentar fonte"
+              className="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-slate-300 hover:bg-white/[0.05] rounded-lg transition-colors text-[11px] font-black"
+            >
               A+
             </button>
           </div>
