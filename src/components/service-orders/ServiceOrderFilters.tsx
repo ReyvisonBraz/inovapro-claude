@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Filter, LayoutGrid, LayoutList, ChevronDown, X, Check, Circle, SlidersHorizontal } from 'lucide-react';
+import { Search, Filter, LayoutGrid, LayoutList, ChevronDown, X, Check, SlidersHorizontal } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface ServiceOrderFiltersProps {
@@ -187,66 +187,88 @@ export const ServiceOrderFilters: React.FC<ServiceOrderFiltersProps> = ({
       {showFiltersExpanded && (
         <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Status Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {/* Todas */}
             <button
               onClick={() => setStatusFilter('all')}
               className={cn(
-                "bg-white/5 border rounded-xl p-3 flex items-center gap-3 transition-all text-left hover:bg-white/10",
-                statusFilter === 'all' 
-                  ? "border-primary shadow-[0_0_12px_rgba(59,130,246,0.25)]" 
-                  : "border-white/10"
+                "relative bg-white/[0.04] border rounded-xl p-3 flex items-center gap-3 transition-all text-left overflow-hidden",
+                statusFilter === 'all'
+                  ? "border-primary/40 bg-primary/[0.08]"
+                  : "border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.12]"
               )}
+              style={statusFilter === 'all' ? { boxShadow: '0 0 20px rgba(17,82,212,0.22)' } : {}}
             >
+              {statusFilter === 'all' && (
+                <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full bg-primary" />
+              )}
               <div className={cn(
-                "p-2 rounded-lg transition-colors shrink-0",
-                statusFilter === 'all' ? "bg-primary text-white" : "bg-slate-500/10 text-slate-400"
-              )}>
-                <LayoutGrid size={16} />
+                "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all",
+                statusFilter === 'all'
+                  ? "bg-primary"
+                  : "bg-primary/15"
+              )}
+              style={statusFilter === 'all' ? { boxShadow: '0 0 14px rgba(17,82,212,0.55)' } : {}}
+              >
+                <LayoutGrid size={16} className={statusFilter === 'all' ? 'text-white' : 'text-primary'} />
               </div>
               <div className="min-w-0">
                 <p className={cn(
-                  "text-[10px] font-bold uppercase tracking-wider truncate",
-                  statusFilter === 'all' ? "text-primary" : "text-slate-400"
+                  "text-[10px] font-bold uppercase tracking-wider leading-tight",
+                  statusFilter === 'all' ? "text-primary" : "text-slate-500"
                 )}>Todas</p>
-                <p className="text-lg font-black text-white">{filteredOrders.length}</p>
+                <p className="text-xl font-black text-white leading-tight">{filteredOrders.length}</p>
               </div>
             </button>
 
             {statuses.map(status => {
               const count = filteredOrders.filter((o: any) => o.status === status.name).length;
               const isSelected = statusFilter === status.name;
-              
+              const initials = status.name
+                .split(' ')
+                .slice(0, 2)
+                .map((w: string) => w[0])
+                .join('')
+                .toUpperCase();
+
               return (
                 <button
                   key={status.id}
                   onClick={() => setStatusFilter(status.name)}
                   className={cn(
-                    "bg-white/5 border rounded-xl p-3 flex items-center gap-3 transition-all text-left hover:bg-white/10",
-                    "border-white/10"
+                    "relative bg-white/[0.04] border rounded-xl p-3 flex items-center gap-3 transition-all text-left overflow-hidden",
+                    "border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.12]"
                   )}
-                  style={isSelected ? { 
-                    borderColor: status.color, 
-                    boxShadow: `0 0 12px ${status.color}35` 
+                  style={isSelected ? {
+                    borderColor: `${status.color}55`,
+                    backgroundColor: `${status.color}09`,
+                    boxShadow: `0 0 20px ${status.color}28`
                   } : {}}
                 >
-                  <div 
-                    className="p-2 rounded-lg transition-colors shrink-0"
-                    style={{ 
-                      backgroundColor: isSelected ? status.color : `${status.color}12`,
-                      color: isSelected ? '#fff' : status.color
+                  {isSelected && (
+                    <div
+                      className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full"
+                      style={{ backgroundColor: status.color }}
+                    />
+                  )}
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0 transition-all"
+                    style={{
+                      backgroundColor: isSelected ? status.color : `${status.color}18`,
+                      color: isSelected ? '#fff' : status.color,
+                      boxShadow: isSelected ? `0 0 14px ${status.color}55` : 'none'
                     }}
                   >
-                    <Circle size={14} fill="currentColor" />
+                    {initials}
                   </div>
-                  <div className="min-w-0">
-                    <p 
-                      className="text-[10px] font-bold uppercase tracking-wider truncate"
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className="text-[10px] font-bold uppercase tracking-wider line-clamp-2 leading-tight"
                       style={{ color: isSelected ? status.color : '#94a3b8' }}
-                      title={status.name}
                     >
                       {status.name}
                     </p>
-                    <p className="text-lg font-black text-white">{count}</p>
+                    <p className="text-xl font-black text-white leading-tight">{count}</p>
                   </div>
                 </button>
               );
