@@ -50,6 +50,7 @@ model Settings {
   sendPulseClientId        String?
   sendPulseClientSecret    String?
   sendPulseTemplateId      String?
+  osPrintConfig            String?
 }
 
 model Customer {

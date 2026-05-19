@@ -7,7 +7,7 @@ export const useAppSettings = () => {
   const { showToast } = useToast();
   const [settings, setSettings] = useState<AppSettings>({
     appName: 'INOVA PRO',
-    fiscalYear: '2024',
+    fiscalYear: new Date().getFullYear().toString(),
     primaryColor: '#1152d4',
     categories: 'Alimentação,Trabalho,Utilidades,Viagem,Lazer,Outros',
     incomeCategories: 'Salário,Vendas,Serviços,Investimentos,Outros',

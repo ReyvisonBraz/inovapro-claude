@@ -1,8 +1,9 @@
 import React from 'react';
 import {
   Coffee, Briefcase, Zap, Car, ShoppingBag,
-  Edit, Copy, Trash2, MessageCircle, Search
+  Edit, Copy, Trash2, MessageCircle, Search, Download
 } from 'lucide-react';
+import { useExportData } from '../../hooks/useExportData';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn, formatCurrency } from '../../lib/utils';
@@ -42,6 +43,8 @@ export const TransactionList = ({
   onAddNewTransaction,
   onWhatsAppReminder
 }: TransactionListProps) => {
+  const { exportTransactionsToCSV } = useExportData();
+
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'Alimentação': return <Coffee size={16} />;
@@ -55,6 +58,22 @@ export const TransactionList = ({
 
   return (
     <div className="glass-card overflow-hidden">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.05]">
+        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+          {filteredTransactions.length} {filteredTransactions.length === 1 ? 'transação' : 'transações'}
+        </span>
+        {filteredTransactions.length > 0 && (
+          <button
+            onClick={() => exportTransactionsToCSV(filteredTransactions)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-slate-400 hover:text-white hover:bg-white/[0.06] rounded-lg transition-all border border-transparent hover:border-white/[0.08]"
+          >
+            <Download size={13} />
+            Exportar CSV
+          </button>
+        )}
+      </div>
+
       {/* Mobile View */}
       <div className="md:hidden divide-y divide-white/5">
         {filteredTransactions.map((tx) => (

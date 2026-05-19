@@ -207,7 +207,7 @@ export const Header = () => {
           <div className="flex flex-col">
             <h1 className="text-lg font-bold font-display tracking-tight text-white">{config.title}</h1>
             {config.subtitle && (
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{config.subtitle} · Ano Fiscal {settings.fiscalYear}</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{config.subtitle}</span>
             )}
           </div>
         </div>

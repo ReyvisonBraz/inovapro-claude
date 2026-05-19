@@ -1,11 +1,12 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { 
-  Settings as SettingsIcon, User, Shield, 
+import {
+  Settings as SettingsIcon, User, Shield,
   Database, Bell, Palette, Globe,
   Save, Plus, Trash2, Edit2, Key,
-  MessageSquare, Send, RefreshCw, Github, DownloadCloud, Laptop
+  MessageSquare, Send, RefreshCw, Github, DownloadCloud, Laptop, FileText
 } from 'lucide-react';
+import { OSTemplateEditor } from './OSTemplateEditor';
 import { cn } from '../../lib/utils';
 import { AppSettings, Category, User as UserType, Brand, Model, EquipmentType } from '../../types';
 import AuditLogs from '../audit/AuditLogs';
@@ -95,6 +96,7 @@ const Settings: React.FC<SettingsProps> = ({
     { id: 'general', label: 'Geral', icon: SettingsIcon },
     { id: 'categories', label: 'Categorias', icon: Palette },
     { id: 'equipment', label: 'Equipamentos', icon: Laptop },
+    { id: 'os-template', label: 'Template OS', icon: FileText },
     { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
     { id: 'users', label: 'Usuários', icon: User },
     { id: 'security', label: 'Segurança', icon: Shield },
@@ -283,6 +285,10 @@ const Settings: React.FC<SettingsProps> = ({
                 onUpdateEquipmentType={onUpdateEquipmentType!}
                 onDeleteEquipmentType={onDeleteEquipmentType!}
               />
+            )}
+
+            {activeTab === 'os-template' && (
+              <OSTemplateEditor settings={settings} onUpdateSettings={onUpdateSettings} />
             )}
 
             {activeTab === 'whatsapp' && (

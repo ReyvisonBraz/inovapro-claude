@@ -41,6 +41,7 @@ router.post('/', async (req: Request, res: Response) => {
       hiddenColumns: JSON.stringify(hiddenColumns || []), 
       receiptLayout: receiptLayout || 'a4', receiptLogo,
       sendPulseClientId, sendPulseTemplateId,
+      osPrintConfig: req.body.osPrintConfig ?? undefined,
     };
 
     if (settingsPassword) updateData.settingsPassword = settingsPassword;

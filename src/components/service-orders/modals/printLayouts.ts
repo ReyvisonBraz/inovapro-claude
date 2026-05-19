@@ -1,3 +1,6 @@
+import { OSTemplateConfig } from '../../../types';
+import { DEFAULT_OS_SECTIONS, DEFAULT_OS_TEMPLATE_CONFIG } from '../../../lib/osTemplateConfig';
+
 export interface PrintData {
   osNumber: string;
   date: string;
@@ -15,6 +18,17 @@ export interface PrintData {
   techQrImg: string;
   printType: 'simplified' | 'complete';
   formatCurrency: (amount: number) => string;
+  config?: OSTemplateConfig;
+}
+
+interface Colors { primary: string; accent: string; font: string; }
+
+function getColors(config?: OSTemplateConfig): Colors {
+  return {
+    primary: config?.primaryColor || DEFAULT_OS_TEMPLATE_CONFIG.primaryColor,
+    accent:  config?.accentColor  || DEFAULT_OS_TEMPLATE_CONFIG.accentColor,
+    font:    config?.fontFamily   || DEFAULT_OS_TEMPLATE_CONFIG.fontFamily,
+  };
 }
 
 function resolveStatusStyle(status: string): string {
@@ -28,29 +42,25 @@ function resolveStatusStyle(status: string): string {
   return 'background:#fef3c7;color:#92400e;border:1px solid #fbbf24;';
 }
 
-// ─── Shared base CSS for A4 / A5 ─────────────────────────────────────────────
-const sharedCSS = (fs: number) => `
+// ─── Shared base CSS ──────────────────────────────────────────────────────────
+const sharedCSS = (fs: number, c: Colors) => `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #1e293b; font-size: ${fs}px; line-height: 1.35; overflow: hidden; }
+  body { font-family: ${c.font}; background: #fff; color: #1e293b; font-size: ${fs}px; line-height: 1.35; overflow: hidden; }
 
-  /* Column structure */
   .col { display: flex; flex-direction: column; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 4px; }
-  .hd { background: #0f2d52; color: #fff; padding: 5px 9px; display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; border-radius: 3px 3px 0 0; }
+  .hd { background: ${c.primary}; color: #fff; padding: 5px 9px; display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; border-radius: 3px 3px 0 0; }
   .hd-tag { font-size: ${fs * 0.72}px; text-transform: uppercase; letter-spacing: .9px; opacity: .6; margin-bottom: 2px; }
   .hd-num { font-size: ${fs * 2}px; font-weight: 900; letter-spacing: -.5px; }
   .hd-right { text-align: right; }
   .hd-sub { font-size: ${fs * 0.78}px; opacity: .75; margin-top: 1px; }
   .badge { display: inline-block; font-size: ${fs * 0.72}px; font-weight: 800; padding: 2px 7px; border-radius: 10px; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 3px; }
 
-  /* Body scrolls internally if needed, but is clipped by overflow:hidden */
   .bd { flex: 1; overflow: hidden; padding: 5px 9px; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
   .ft { flex-shrink: 0; padding: 4px 9px; border-top: 1px solid #e2e8f0; display: flex; align-items: center; gap: 8px; }
 
-  /* Sections */
   .sec { flex-shrink: 0; }
-  .st { font-size: ${fs * 0.7}px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: #1d4ed8; padding-bottom: 2px; border-bottom: 1px solid #bfdbfe; margin-bottom: 3px; }
+  .st { font-size: ${fs * 0.7}px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: ${c.accent}; padding-bottom: 2px; border-bottom: 1px solid ${c.accent}50; margin-bottom: 3px; }
 
-  /* Field grids */
   .fg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; }
   .fg3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px 6px; margin-top: 2px; }
   .fc { min-width: 0; overflow: hidden; }
@@ -58,15 +68,12 @@ const sharedCSS = (fs: number) => `
   .fv { display: block; font-size: ${fs}px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mono { font-family: 'Courier New', monospace; }
 
-  /* Problem box */
   .pbox { background: #fef2f2; border-left: 3px solid #dc2626; padding: 3px 7px; border-radius: 0 3px 3px 0; }
   .ptext { font-size: ${fs * 0.88}px; font-weight: 600; color: #1e293b; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 
-  /* Generic text block */
   .tblock { background: #f8fafc; padding: 3px 7px; border-radius: 3px; }
   .ttext { font-size: ${fs * 0.84}px; color: #334155; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 
-  /* Parts table */
   .ptbl-wrap { overflow: hidden; max-height: 22mm; }
   .ptbl { width: 100%; border-collapse: collapse; }
   .ptbl th { background: #f1f5f9; padding: 2px 4px; font-size: ${fs * 0.65}px; text-transform: uppercase; color: #64748b; border-bottom: 1px solid #e2e8f0; text-align: left; }
@@ -75,27 +82,22 @@ const sharedCSS = (fs: number) => `
   .ptbl td:nth-child(2), .ptbl th:nth-child(2) { text-align: center; }
   .ptbl td:nth-child(3), .ptbl th:nth-child(3) { text-align: right; }
 
-  /* Total */
-  .total { background: #0f2d52; color: #fff; padding: 4px 9px; border-radius: 3px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  .total { background: ${c.primary}; color: #fff; padding: 4px 9px; border-radius: 3px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
   .total-lbl { font-size: ${fs * 0.7}px; text-transform: uppercase; letter-spacing: .5px; opacity: .8; }
   .total-val { font-size: ${fs * 1.5}px; font-weight: 900; }
 
-  /* Warning */
   .wbox { background: #fff7ed; border-left: 3px solid #f97316; padding: 3px 7px; border-radius: 0 3px 3px 0; flex-shrink: 0; }
   .wtext { font-size: ${fs * 0.7}px; font-weight: 700; color: #7c2d12; line-height: 1.4; }
 
-  /* Phone bar */
-  .pbar { background: #0f2d52; color: #fff; border-radius: 3px; padding: 5px 9px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  .pbar { background: ${c.primary}; color: #fff; border-radius: 3px; padding: 5px 9px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
   .pbar-lbl { font-size: ${fs * 0.6}px; text-transform: uppercase; letter-spacing: .5px; opacity: .7; margin-bottom: 1px; }
   .pbar-val { font-size: ${fs * 1.7}px; font-weight: 900; letter-spacing: .1px; }
   .pbar-name { font-weight: 800; font-size: ${fs * 1.1}px; }
   .pbar-cpf { font-size: ${fs * 0.7}px; opacity: .7; }
 
-  /* Urgency note */
   .urg { background: #fefce8; border: 1px solid #fde047; border-radius: 3px; padding: 3px 7px; flex-shrink: 0; }
   .urg-text { font-size: ${fs * 0.65}px; font-weight: 700; color: #713f12; line-height: 1.35; }
 
-  /* Footer QR + signature */
   .qrw { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
   .qrw img { width: 28px; height: 28px; }
   .qr-lbl { font-size: ${fs * 0.63}px; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: .3px; }
@@ -103,23 +105,15 @@ const sharedCSS = (fs: number) => `
   .sig { flex: 1; border-top: 1px solid #94a3b8; padding-top: 2px; text-align: center; font-size: ${fs * 0.7}px; color: #64748b; margin-left: 4px; }
 `;
 
-function techBody(so: any, osNumber: string, technician: string, date: string, statusStyle: string, techQrImg: string, printType: string, formatCurrency: (n: number) => string): string {
-  const f = (lbl: string, val?: string | null, mono = false) =>
-    `<div class="fc"><span class="fl">${lbl}</span><span class="fv${mono ? ' mono' : ''}">${val || '&mdash;'}</span></div>`;
+// ─── Module-level field helper ────────────────────────────────────────────────
+const f = (lbl: string, val?: string | null, mono = false) =>
+  `<div class="fc"><span class="fl">${lbl}</span><span class="fv${mono ? ' mono' : ''}">${val || '&mdash;'}</span></div>`;
 
-  return `
-  <div class="hd">
-    <div>
-      <div class="hd-tag">Ordem de Servico &mdash; Via Tecnico</div>
-      <div class="hd-num">${osNumber}</div>
-    </div>
-    <div class="hd-right">
-      <div class="badge" style="${statusStyle}">${so.status || 'Pendente'}</div>
-      <div class="hd-sub">Tecnico: ${technician}</div>
-      <div class="hd-sub">Data: ${date}</div>
-    </div>
-  </div>
-  <div class="bd">
+// ─── Section renderers (tech body) ────────────────────────────────────────────
+type SR = (so: any, printType: string, fmt: (n: number) => string) => string;
+
+const SECTION_RENDERERS: Record<string, SR> = {
+  equipment: (so) => `
     <div class="sec">
       <div class="st">Dados do Equipamento</div>
       <div class="fg2">
@@ -136,27 +130,27 @@ function techBody(so: any, osNumber: string, technician: string, date: string, s
         ${so.ramInfo ? f('RAM', so.ramInfo) : ''}
         ${so.ssdInfo ? f('SSD/HD', so.ssdInfo) : ''}
       </div>` : ''}
-    </div>
+    </div>`,
 
-    ${so.reportedProblem ? `
+  problem: (so) => !so.reportedProblem ? '' : `
     <div class="sec">
       <div class="st">Problema Relatado</div>
       <div class="pbox"><div class="ptext">${so.reportedProblem}</div></div>
-    </div>` : ''}
+    </div>`,
 
-    ${printType === 'complete' && so.technicalAnalysis ? `
+  analysis: (so, pt) => pt !== 'complete' || !so.technicalAnalysis ? '' : `
     <div class="sec">
       <div class="st">Analise Tecnica</div>
       <div class="tblock"><div class="ttext">${so.technicalAnalysis}</div></div>
-    </div>` : ''}
+    </div>`,
 
-    ${printType === 'complete' && so.servicesPerformed ? `
+  services: (so, pt) => pt !== 'complete' || !so.servicesPerformed ? '' : `
     <div class="sec">
       <div class="st">Servicos Realizados</div>
       <div class="tblock"><div class="ttext">${so.servicesPerformed}</div></div>
-    </div>` : ''}
+    </div>`,
 
-    ${printType === 'complete' && so.partsUsed?.length ? `
+  parts: (so, pt, fmt) => pt !== 'complete' || !so.partsUsed?.length ? '' : `
     <div class="sec">
       <div class="st">Pecas Utilizadas</div>
       <div class="ptbl-wrap">
@@ -171,26 +165,60 @@ function techBody(so: any, osNumber: string, technician: string, date: string, s
             <tr>
               <td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0">${p.name}</td>
               <td>${p.quantity}</td>
-              <td>${formatCurrency(p.unitPrice)}</td>
-              <td>${formatCurrency(p.subtotal)}</td>
+              <td>${fmt(p.unitPrice)}</td>
+              <td>${fmt(p.subtotal)}</td>
             </tr>`).join('')}
           </tbody>
         </table>
       </div>
-    </div>` : ''}
+    </div>`,
 
-    ${printType === 'complete' && so.totalAmount ? `
+  values: (so, pt, fmt) => pt !== 'complete' || !so.totalAmount ? '' : `
     <div class="total">
       <span class="total-lbl">Valor Total do Servico</span>
-      <span class="total-val">${formatCurrency(so.totalAmount)}</span>
-    </div>` : ''}
+      <span class="total-val">${fmt(so.totalAmount)}</span>
+    </div>`,
 
-    ${so.finalObservations ? `
+  observations: (so) => !so.finalObservations ? '' : `
     <div class="sec">
       <div class="st">Observacoes</div>
       <div class="tblock"><div class="ttext">${so.finalObservations}</div></div>
-    </div>` : ''}
+    </div>`,
+};
+
+// ─── Tech body ────────────────────────────────────────────────────────────────
+function techBody(
+  so: any,
+  osNumber: string,
+  technician: string,
+  date: string,
+  statusStyle: string,
+  techQrImg: string,
+  printType: string,
+  formatCurrency: (n: number) => string,
+  config?: OSTemplateConfig,
+): string {
+  const sections = (config?.sections ?? DEFAULT_OS_SECTIONS)
+    .filter(s => s.visible)
+    .map(s => SECTION_RENDERERS[s.id]?.(so, printType, formatCurrency) ?? '')
+    .join('');
+
+  const showQr = config?.showQrTech !== false;
+
+  return `
+  <div class="hd">
+    <div>
+      <div class="hd-tag">Ordem de Servico &mdash; Via Tecnico</div>
+      <div class="hd-num">${osNumber}</div>
+    </div>
+    <div class="hd-right">
+      <div class="badge" style="${statusStyle}">${so.status || 'Pendente'}</div>
+      <div class="hd-sub">Tecnico: ${technician}</div>
+      <div class="hd-sub">Data: ${date}</div>
+    </div>
   </div>
+  <div class="bd">${sections}</div>
+  ${showQr ? `
   <div class="ft">
     <div class="qrw">
       <img src="${techQrImg}" />
@@ -200,12 +228,22 @@ function techBody(so: any, osNumber: string, technician: string, date: string, s
       </div>
     </div>
     <div class="sig">${technician} &mdash; Assinatura do Tecnico</div>
-  </div>`;
+  </div>` : ''}`;
 }
 
-function clientBody(so: any, osNumber: string, customer: PrintData['customer'], dateFull: string, customerQrImg: string): string {
-  const f = (lbl: string, val?: string | null) =>
-    `<div class="fc"><span class="fl">${lbl}</span><span class="fv">${val || '&mdash;'}</span></div>`;
+// ─── Client body ──────────────────────────────────────────────────────────────
+function clientBody(
+  so: any,
+  osNumber: string,
+  customer: PrintData['customer'],
+  dateFull: string,
+  customerQrImg: string,
+  config?: OSTemplateConfig,
+): string {
+  const showWarning  = config?.showWarning   !== false;
+  const showQrClient = config?.showQrClient  !== false;
+  const showProblem  = config?.sections?.find(s => s.id === 'problem')?.visible !== false;
+  const showObs      = config?.sections?.find(s => s.id === 'observations')?.visible !== false;
 
   return `
   <div class="hd">
@@ -218,9 +256,10 @@ function clientBody(so: any, osNumber: string, customer: PrintData['customer'], 
     </div>
   </div>
   <div class="bd">
+    ${showWarning ? `
     <div class="wbox">
       <div class="wtext"><strong>AVISO DE RETIRADA:</strong> Apos a conclusao do servico, o equipamento deve ser retirado em ate <strong>30 dias corridos</strong>. Apos este prazo serao cobradas taxas de armazenamento diarias. Equipamentos nao retirados apos 90 dias poderao ser encaminhados para deposito externo ou descartados conforme legislacao vigente.</div>
-    </div>
+    </div>` : ''}
 
     <div class="pbar">
       <div>
@@ -244,13 +283,13 @@ function clientBody(so: any, osNumber: string, customer: PrintData['customer'], 
       </div>
     </div>
 
-    ${so.reportedProblem ? `
+    ${showProblem && so.reportedProblem ? `
     <div class="sec">
       <div class="st">Problema Relatado</div>
       <div class="pbox"><div class="ptext">${so.reportedProblem}</div></div>
     </div>` : ''}
 
-    ${so.finalObservations ? `
+    ${showObs && so.finalObservations ? `
     <div class="sec">
       <div class="st">Observacoes</div>
       <div class="tblock"><div class="ttext">${so.finalObservations}</div></div>
@@ -260,6 +299,7 @@ function clientBody(so: any, osNumber: string, customer: PrintData['customer'], 
       <div class="urg-text">Tarifa de urgencia disponivel para analise prioritaria mediante taxa adicional. Consulte o atendimento.</div>
     </div>
   </div>
+  ${showQrClient ? `
   <div class="ft">
     <div class="qrw">
       <img src="${customerQrImg}" />
@@ -269,14 +309,15 @@ function clientBody(so: any, osNumber: string, customer: PrintData['customer'], 
       </div>
     </div>
     <div class="sig">${customer.firstName} ${customer.lastName} &mdash; Assinatura do Cliente</div>
-  </div>`;
+  </div>` : ''}`;
 }
 
 // ─── A4 Landscape — 2 colunas lado a lado ────────────────────────────────────
 export function getA4EnhancedLayout(data: PrintData): string {
-  const { osNumber, date, dateFull, technician, customer, selectedOrder, customerQrImg, techQrImg, printType, formatCurrency } = data;
+  const { osNumber, date, dateFull, technician, customer, selectedOrder, customerQrImg, techQrImg, printType, formatCurrency, config } = data;
   const so = selectedOrder;
   const statusStyle = resolveStatusStyle(so.status || '');
+  const c = getColors(config);
 
   return `<!DOCTYPE html>
 <html>
@@ -285,15 +326,12 @@ export function getA4EnhancedLayout(data: PrintData): string {
 <title>${osNumber}</title>
 <style>
 @page { size: A4 landscape; margin: 5mm 6mm; }
-${sharedCSS(7.5)}
+${sharedCSS(7.5, c)}
 body {
   width: 285mm; height: 200mm;
   display: flex; flex-direction: row; gap: 0;
 }
-/* Two equal columns */
 .col { flex: 1; min-width: 0; }
-
-/* Dashed vertical cut line */
 .divider {
   flex-shrink: 0; width: 14px;
   display: flex; flex-direction: column; align-items: center;
@@ -308,7 +346,7 @@ body {
 </head>
 <body>
 
-<div class="col">${techBody(so, osNumber, technician, date, statusStyle, techQrImg, printType, formatCurrency)}</div>
+<div class="col">${techBody(so, osNumber, technician, date, statusStyle, techQrImg, printType, formatCurrency, config)}</div>
 
 <div class="divider">
   <div class="dline"></div>
@@ -316,7 +354,7 @@ body {
   <div class="dline"></div>
 </div>
 
-<div class="col">${clientBody(so, osNumber, customer, dateFull, customerQrImg)}</div>
+<div class="col">${clientBody(so, osNumber, customer, dateFull, customerQrImg, config)}</div>
 
 <script>window.onload=function(){window.print();setTimeout(function(){window.close();},500);}</script>
 </body>
@@ -325,9 +363,10 @@ body {
 
 // ─── A5 Portrait — 2 metades (cliente cima, técnico baixo) ───────────────────
 export function getA5Layout(data: PrintData): string {
-  const { osNumber, date, dateFull, technician, customer, selectedOrder, customerQrImg, techQrImg, printType, formatCurrency } = data;
+  const { osNumber, date, dateFull, technician, customer, selectedOrder, customerQrImg, techQrImg, printType, formatCurrency, config } = data;
   const so = selectedOrder;
   const statusStyle = resolveStatusStyle(so.status || '');
+  const c = getColors(config);
 
   return `<!DOCTYPE html>
 <html>
@@ -336,22 +375,18 @@ export function getA5Layout(data: PrintData): string {
 <title>${osNumber}</title>
 <style>
 @page { size: A5 portrait; margin: 4mm; }
-${sharedCSS(6.5)}
+${sharedCSS(6.5, c)}
 body {
   width: 140mm; height: 202mm;
   display: flex; flex-direction: column;
 }
 .col { flex: 1; min-height: 0; overflow: hidden; }
-
-/* Horizontal cut line between halves */
 .divider {
   flex-shrink: 0; height: 12px;
   display: flex; align-items: center; gap: 4px;
 }
 .dline { flex: 1; border-top: 1.5px dashed #94a3b8; }
 .dcut { font-size: 7px; color: #94a3b8; white-space: nowrap; letter-spacing: 1px; }
-
-/* A5 compact overrides */
 .hd { padding: 4px 7px; }
 .hd-num { font-size: 13px; }
 .bd { padding: 4px 7px; gap: 3px; }
@@ -362,7 +397,7 @@ body {
 </head>
 <body>
 
-<div class="col">${clientBody(so, osNumber, customer, dateFull, customerQrImg)}</div>
+<div class="col">${clientBody(so, osNumber, customer, dateFull, customerQrImg, config)}</div>
 
 <div class="divider">
   <div class="dline"></div>
@@ -370,7 +405,7 @@ body {
   <div class="dline"></div>
 </div>
 
-<div class="col">${techBody(so, osNumber, technician, date, statusStyle, techQrImg, printType, formatCurrency)}</div>
+<div class="col">${techBody(so, osNumber, technician, date, statusStyle, techQrImg, printType, formatCurrency, config)}</div>
 
 <script>window.onload=function(){window.print();setTimeout(function(){window.close();},500);}</script>
 </body>
@@ -379,10 +414,13 @@ body {
 
 // ─── Térmica 80mm ─────────────────────────────────────────────────────────────
 export function getThermalLayout(data: PrintData): string {
-  const { osNumber, dateFull, customer, selectedOrder, equipmentDisplay, customerQrImg } = data;
+  const { osNumber, dateFull, customer, selectedOrder, equipmentDisplay, customerQrImg, config } = data;
   const so = selectedOrder;
-
   const statusStyle = resolveStatusStyle(so.status || '');
+  const c = getColors(config);
+  const showWarning  = config?.showWarning   !== false;
+  const showQrClient = config?.showQrClient  !== false;
+  const showProblem  = config?.sections?.find(s => s.id === 'problem')?.visible !== false;
 
   return `<!DOCTYPE html>
 <html>
@@ -393,79 +431,43 @@ export function getThermalLayout(data: PrintData): string {
 @page { size: 80mm auto; margin: 3mm 4mm; }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: 'Segoe UI', Arial, sans-serif;
+  font-family: ${c.font};
   width: 72mm;
   color: #1e293b;
   font-size: 9px;
   line-height: 1.4;
 }
-
-/* Header */
 .thd {
   text-align: center;
   padding-bottom: 6px;
   margin-bottom: 8px;
-  border-bottom: 2px solid #0f2d52;
+  border-bottom: 2px solid ${c.primary};
 }
-.thd-brand { font-size: 8px; font-weight: 800; color: #0f2d52; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 2px; }
+.thd-brand { font-size: 8px; font-weight: 800; color: ${c.primary}; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 2px; }
 .thd-title { font-size: 11px; font-weight: 900; color: #1e293b; letter-spacing: -.2px; }
-.thd-os { font-size: 18px; font-weight: 900; color: #0f2d52; line-height: 1; margin: 3px 0; }
+.thd-os { font-size: 18px; font-weight: 900; color: ${c.primary}; line-height: 1; margin: 3px 0; }
 .thd-date { font-size: 8px; color: #64748b; }
-
-/* Status badge */
-.tbadge {
-  display: inline-block;
-  font-size: 8px; font-weight: 800;
-  padding: 3px 10px;
-  border-radius: 12px;
-  text-transform: uppercase; letter-spacing: .4px;
-  margin: 4px 0;
-}
-
-/* Section title */
-.tst {
-  font-size: 7px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px;
-  color: #1d4ed8;
-  border-bottom: 1px solid #bfdbfe;
-  padding-bottom: 2px; margin-bottom: 5px; margin-top: 8px;
-}
-
-/* Client bar */
-.tclient {
-  background: #0f2d52; color: #fff;
-  border-radius: 4px; padding: 6px 8px;
-  margin-bottom: 8px;
-}
+.tbadge { display: inline-block; font-size: 8px; font-weight: 800; padding: 3px 10px; border-radius: 12px; text-transform: uppercase; letter-spacing: .4px; margin: 4px 0; }
+.tst { font-size: 7px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: ${c.accent}; border-bottom: 1px solid ${c.accent}50; padding-bottom: 2px; margin-bottom: 5px; margin-top: 8px; }
+.tclient { background: ${c.primary}; color: #fff; border-radius: 4px; padding: 6px 8px; margin-bottom: 8px; }
 .tclient-lbl { font-size: 7px; text-transform: uppercase; letter-spacing: .5px; opacity: .7; margin-bottom: 1px; }
 .tclient-phone { font-size: 16px; font-weight: 900; letter-spacing: .2px; }
 .tclient-name { font-size: 9px; font-weight: 800; margin-top: 2px; }
 .tclient-cpf { font-size: 7px; opacity: .7; }
-
-/* Problem */
-.tprob {
-  background: #fef2f2; border-left: 3px solid #dc2626;
-  padding: 4px 7px; border-radius: 0 3px 3px 0;
-  margin-bottom: 6px;
-}
+.tprob { background: #fef2f2; border-left: 3px solid #dc2626; padding: 4px 7px; border-radius: 0 3px 3px 0; margin-bottom: 6px; }
 .tprob-lbl { font-size: 7px; font-weight: 800; text-transform: uppercase; color: #dc2626; margin-bottom: 2px; }
 .tprob-text { font-size: 9px; font-weight: 600; color: #1e293b; line-height: 1.4; }
-
-/* Equipment */
 .tequip { margin-bottom: 6px; }
 .tequip-name { font-size: 11px; font-weight: 800; color: #0f172a; }
 .tequip-serial { font-size: 8px; color: #64748b; margin-top: 1px; }
-
-/* QR section */
 .tqr { text-align: center; margin: 10px 0 6px; }
 .tqr img { width: 70px; height: 70px; }
-.tqr-lbl { font-size: 8px; font-weight: 800; text-transform: uppercase; color: #1d4ed8; margin-bottom: 3px; }
+.tqr-lbl { font-size: 8px; font-weight: 800; text-transform: uppercase; color: ${c.accent}; margin-bottom: 3px; }
 .tqr-sub { font-size: 7px; color: #64748b; margin-top: 2px; }
-
-/* Divider */
 .tdiv { border: none; border-top: 1px dashed #cbd5e1; margin: 8px 0; }
-
-/* Footer */
 .tfooter { text-align: center; font-size: 7px; color: #94a3b8; letter-spacing: .5px; padding-top: 4px; }
+.twbox { background: #fff7ed; border-left: 3px solid #f97316; padding: 4px 7px; border-radius: 0 3px 3px 0; margin-bottom: 6px; }
+.twtext { font-size: 7px; font-weight: 700; color: #7c2d12; line-height: 1.4; }
 </style>
 </head>
 <body>
@@ -494,21 +496,26 @@ body {
     ${so.equipmentColor ? `<div class="tequip-serial">Cor: ${so.equipmentColor}</div>` : ''}
   </div>
 
-  ${so.reportedProblem ? `
+  ${showProblem && so.reportedProblem ? `
   <div class="tprob">
     <div class="tprob-lbl">Problema Relatado</div>
     <div class="tprob-text">${so.reportedProblem}</div>
   </div>` : ''}
 
+  ${showWarning ? `
+  <div class="twbox">
+    <div class="twtext"><strong>RETIRADA:</strong> O equipamento deve ser retirado em ate 30 dias apos a conclusao. Taxa de armazenamento apos este prazo.</div>
+  </div>` : ''}
+
   <hr class="tdiv" />
 
+  ${showQrClient ? `
   <div class="tqr">
     <div class="tqr-lbl">Acompanhe pelo celular</div>
     <img src="${customerQrImg}" />
     <div class="tqr-sub">Escaneie o QR Code para ver o status da sua OS</div>
   </div>
-
-  <hr class="tdiv" />
+  <hr class="tdiv" />` : ''}
 
   <div class="tfooter">
     Obrigado pela preferencia!<br>

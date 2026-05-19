@@ -126,6 +126,23 @@ export interface AppSettings {
   sendPulseClientId?: string;
   sendPulseClientSecret?: string;
   sendPulseTemplateId?: string;
+  osPrintConfig?: string;
+}
+
+export interface OSSection {
+  id: 'equipment' | 'problem' | 'analysis' | 'services' | 'parts' | 'values' | 'observations';
+  label: string;
+  visible: boolean;
+}
+
+export interface OSTemplateConfig {
+  sections: OSSection[];
+  primaryColor: string;
+  accentColor: string;
+  fontFamily: string;
+  showQrTech: boolean;
+  showQrClient: boolean;
+  showWarning: boolean;
 }
 
 export interface InventoryItem {
