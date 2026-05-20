@@ -69,7 +69,7 @@ export const GlobalModals: React.FC = () => {
   } = useFormStore();
 
   // Hooks for API calls
-  const { customers, saveCustomerAPI, deleteCustomerAPI, checkCustomerPaymentsAPI } = useCustomers();
+  const { customers, isCustomerSaving, saveCustomerAPI, deleteCustomerAPI, checkCustomerPaymentsAPI } = useCustomers();
   const { saveTransactionAPI, deleteTransactionAPI } = useTransactions(showToast);
   const { clientPayments, deleteClientPaymentAPI } = useClientPayments();
   const { serviceOrders } = useServiceOrders();
@@ -188,6 +188,7 @@ export const GlobalModals: React.FC = () => {
         }}
         editingCustomer={editingCustomer}
         onSave={(data) => handleAddCustomer(data)}
+        isSaving={isCustomerSaving}
       />
 
       <CustomerWarningModal 

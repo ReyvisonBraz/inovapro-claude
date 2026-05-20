@@ -95,11 +95,8 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
         return data;
       }
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
-      if (showToast) {
-        showToast(variables.id ? 'Ordem de serviço atualizada com sucesso!' : 'Ordem de serviço salva com sucesso!', 'success');
-      }
     },
     onError: (error: any) => {
       console.error('Failed to save service order', error);
@@ -270,7 +267,7 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
   };
 
   return {
-    serviceOrders: serviceOrdersData || { data: [], meta: { total: 0, page: 1, totalPages: 1, limit: 20 } },
+    serviceOrders: serviceOrdersData || { data: [], meta: { total: 0, page: 1, totalPages: 1, limit: 20, statusCounts: {} } },
     serviceOrdersPage,
     setServiceOrdersPage,
     serviceOrderStatuses: serviceOrderStatuses || [],

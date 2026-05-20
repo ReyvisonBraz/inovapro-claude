@@ -53,13 +53,15 @@ interface CustomerModalProps {
   onClose: () => void;
   editingCustomer: any;
   onSave: (data: CustomerFormData, force?: boolean) => void;
+  isSaving?: boolean;
 }
 
 export const CustomerModal: React.FC<CustomerModalProps> = ({
   isOpen,
   onClose,
   editingCustomer,
-  onSave
+  onSave,
+  isSaving = false
 }) => {
   const {
     register,
@@ -254,12 +256,12 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                 >
                   Cancelar
                 </button>
-                <button 
+                <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+                  disabled={isSubmitting || isSaving}
+                  className="flex-1 bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  {isSubmitting ? 'Salvando...' : (editingCustomer ? 'Atualizar Cliente' : 'Salvar Cliente')}
+                  {isSaving ? 'Salvando...' : (editingCustomer ? 'Atualizar Cliente' : 'Salvar Cliente')}
                 </button>
               </div>
             </form>

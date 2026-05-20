@@ -179,8 +179,6 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   const handleUpdateStatus = async (id: number, newStatus: string) => {
     const success = await onUpdateOrder(id, { status: newStatus, updatedBy: currentUser?.id || 1 });
     if (success) {
-      showToast('Status atualizado com sucesso!', 'success');
-
       const notifyStatuses = ['Concluído', 'Pronto', 'Aguardando Autorização', 'Aguardando Aprovação'];
       if (notifyStatuses.includes(newStatus)) {
         const order = orders.data.find(o => o.id === id);

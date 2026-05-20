@@ -193,7 +193,7 @@ const sharedCSS = (fs: number, c: Colors) => `
 
   .badge {
     display: inline-block;
-    font-size: ${fs * 0.75}px;
+    font-size: ${fs * 0.77}px;
     font-weight: 800;
     padding: 3px 10px;
     border-radius: 20px;
@@ -223,7 +223,7 @@ const sharedCSS = (fs: number, c: Colors) => `
 
   .sec { flex-shrink: 0; }
   .st {
-    font-size: ${fs * 0.74}px;
+    font-size: ${fs * 0.76}px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -238,7 +238,7 @@ const sharedCSS = (fs: number, c: Colors) => `
   .fc  { min-width: 0; overflow: hidden; }
   .fl  {
     display: block;
-    font-size: ${fs * 0.66}px;
+    font-size: ${fs * 0.68}px;
     font-weight: 700;
     text-transform: uppercase;
     color: #64748b;
@@ -264,12 +264,12 @@ const sharedCSS = (fs: number, c: Colors) => `
     overflow: hidden;
   }
   .ptext {
-    font-size: ${fs * 0.9}px;
+    font-size: ${fs * 0.92}px;
     font-weight: 600;
     color: #1e293b;
     line-height: 1.55;
     overflow: hidden;
-    max-height: ${fs * 0.9 * 1.55 * 6}px;
+    max-height: ${fs * 0.92 * 1.55 * 6}px;
   }
 
   .tblock {
@@ -280,11 +280,11 @@ const sharedCSS = (fs: number, c: Colors) => `
     overflow: hidden;
   }
   .ttext {
-    font-size: ${fs * 0.88}px;
+    font-size: ${fs * 0.9}px;
     color: #334155;
     line-height: 1.55;
     overflow: hidden;
-    max-height: ${fs * 0.88 * 1.55 * 5}px;
+    max-height: ${fs * 0.9 * 1.55 * 5}px;
   }
 
   .ptbl-wrap { overflow: hidden; max-height: 26mm; }
@@ -292,7 +292,7 @@ const sharedCSS = (fs: number, c: Colors) => `
   .ptbl th {
     background: #f1f5f9 !important;
     padding: 5px 7px;
-    font-size: ${fs * 0.67}px;
+    font-size: ${fs * 0.7}px;
     text-transform: uppercase;
     color: #64748b;
     border-bottom: 1.5px solid #e2e8f0;
@@ -303,7 +303,7 @@ const sharedCSS = (fs: number, c: Colors) => `
   .ptbl td {
     padding: 5px 7px;
     border-bottom: 1px solid #f1f5f9;
-    font-size: ${fs * 0.88}px;
+    font-size: ${fs * 0.92}px;
     font-weight: 600;
     color: #1e293b;
   }
@@ -331,7 +331,7 @@ const sharedCSS = (fs: number, c: Colors) => `
     border-radius: 0 4px 4px 0;
     flex-shrink: 0;
   }
-  .wtext { font-size: ${fs * 0.74}px; font-weight: 700; color: #7c2d12; line-height: 1.5; }
+  .wtext { font-size: ${fs * 0.76}px; font-weight: 700; color: #7c2d12; line-height: 1.5; }
 
   .pbar {
     background: ${c.primary} !important;
@@ -355,7 +355,7 @@ const sharedCSS = (fs: number, c: Colors) => `
     padding: 7px 11px;
     flex-shrink: 0;
   }
-  .urg-text { font-size: ${fs * 0.74}px; font-weight: 700; color: #713f12; line-height: 1.5; }
+  .urg-text { font-size: ${fs * 0.76}px; font-weight: 700; color: #713f12; line-height: 1.5; }
 
   .qrw     { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
   .qrw img { width: 40px; height: 40px; }
@@ -510,7 +510,7 @@ export function getA4EnhancedLayout(data: PrintData): string {
 <title>${data.osNumber}</title>
 <style>
 @page { size: A4 landscape; margin: 6mm; }
-${sharedCSS(11.5, c)}
+${sharedCSS(12.5, c)}
 body {
   width: 285mm;
   height: 198mm;

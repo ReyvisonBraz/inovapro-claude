@@ -72,6 +72,7 @@ export const useCustomers = () => {
     isLoading,
     isError,
     fetchCustomers: refetch, 
+    isCustomerSaving: saveMutation.isPending,
     saveCustomerAPI: (customer: Partial<Customer>, id?: number) => saveMutation.mutateAsync({ customer, id }),
     deleteCustomerAPI: (id: number) => deleteMutation.mutateAsync(id),
     checkCustomerPaymentsAPI
