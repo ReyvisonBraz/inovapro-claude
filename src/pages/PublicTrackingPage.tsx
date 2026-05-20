@@ -20,6 +20,8 @@ type TrackingData = {
   arrivalPhotos: (string | { base64: string; timestamp: string })[];
   totalAmount: number | null;
   serviceFee: number | null;
+  shopWhatsapp: string | null;
+  shopName: string;
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -183,17 +185,19 @@ export const PublicTrackingPage: React.FC = () => {
           </div>
         )}
 
-        <div style={styles.row}>
+        <div style={styles.datesRow}>
           {data.entryDate && (
-            <div style={styles.dateBox}>
-              <span style={styles.dateLabel}>Data de Entrada</span>
+            <div style={styles.dateCard}>
+              <span style={styles.dateIcon}>📅</span>
+              <span style={styles.dateLabel}>Entrada</span>
               <span style={styles.dateValue}>{format(parseISO(data.entryDate), 'dd/MM/yyyy')}</span>
             </div>
           )}
           {data.analysisPrediction && (
-            <div style={{ ...styles.dateBox, borderLeft: '1px solid #e2e8f0' }}>
-              <span style={styles.dateLabel}>Previsão</span>
-              <span style={styles.dateValue}>{format(parseISO(data.analysisPrediction), 'dd/MM/yyyy')}</span>
+            <div style={{ ...styles.dateCard, background: '#eff6ff', border: '1px solid #bfdbfe' }}>
+              <span style={styles.dateIcon}>🕐</span>
+              <span style={{ ...styles.dateLabel, color: '#3b82f6' }}>Previsão</span>
+              <span style={{ ...styles.dateValue, color: '#1e40af' }}>{format(parseISO(data.analysisPrediction), 'dd/MM/yyyy')}</span>
             </div>
           )}
         </div>
@@ -211,15 +215,35 @@ export const PublicTrackingPage: React.FC = () => {
         )}
 
         <div style={styles.actions}>
-          <a
-            href={`https://wa.me/?text=${encodeURIComponent(`Olá! Quero informações sobre minha OS #${data.id.toString().padStart(4, '0')}`)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={styles.whatsappBtn}
-          >
-            <span style={{ fontSize: 18 }}>💬</span>
-            Fale Conosco no WhatsApp
-          </a>
+          {(() => {
+            const osNum = `#OS-${data.id.toString().padStart(4, '0')}`;
+            const equip = [data.equipmentType, data.equipmentBrand, data.equipmentModel].filter(Boolean).join(' ') || 'Equipamento';
+            const entryStr = data.entryDate ? format(parseISO(data.entryDate), 'dd/MM/yyyy') : null;
+            const predStr = data.analysisPrediction ? format(parseISO(data.analysisPrediction), 'dd/MM/yyyy') : null;
+            const msg = [
+              `Olá, ${data.shopName}! 👋`,
+              ``,
+              `Gostaria de informações sobre minha Ordem de Serviço:`,
+              `📋 *OS:* ${osNum}`,
+              `📱 *Equipamento:* ${equip}`,
+              entryStr ? `📅 *Data de entrada:* ${entryStr}` : null,
+              predStr ? `🕐 *Previsão de entrega:* ${predStr}` : null,
+              `📌 *Status atual:* ${data.status}`,
+            ].filter(Boolean).join('\n');
+            const phone = data.shopWhatsapp ? data.shopWhatsapp.replace(/\D/g, '') : '';
+            const href = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+            return (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={styles.whatsappBtn}
+              >
+                <span style={{ fontSize: 18 }}>💬</span>
+                Fale Conosco no WhatsApp
+              </a>
+            );
+          })()}
         </div>
 
         <div style={styles.footer}>
@@ -397,28 +421,40 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#1e293b',
     lineHeight: 1.4,
   },
-  row: {
+  datesRow: {
     display: 'flex',
+    gap: 10,
     marginBottom: 16,
   },
-  dateBox: {
+  dateCard: {
     flex: 1,
-    padding: '8px 12px',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    padding: '12px 10px',
+    background: '#f0fdf4',
+    border: '1px solid #bbf7d0',
+    borderRadius: 12,
+    textAlign: 'center' as const,
+  },
+  dateIcon: {
+    fontSize: 20,
+    marginBottom: 4,
   },
   dateLabel: {
     display: 'block',
     fontSize: 9,
     fontWeight: 700,
     textTransform: 'uppercase' as const,
-    color: '#94a3b8',
+    color: '#16a34a',
     letterSpacing: '0.08em',
+    marginBottom: 4,
   },
   dateValue: {
     display: 'block',
-    fontSize: 14,
-    fontWeight: 700,
-    color: '#1e293b',
-    marginTop: 2,
+    fontSize: 15,
+    fontWeight: 800,
+    color: '#14532d',
   },
   photoGrid: {
     display: 'grid',

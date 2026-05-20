@@ -45,6 +45,7 @@ model Settings {
   companyAddress           String?
   pixKey                   String?
   pixQrCode                String?
+  shopWhatsapp             String?
   whatsappBillingTemplate  String?
   whatsappOSTemplate       String?
   sendPulseClientId        String?

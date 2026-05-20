@@ -235,15 +235,12 @@ export const ServiceOrderFilters: React.FC<ServiceOrderFiltersProps> = ({
                 <button
                   key={status.id}
                   onClick={() => setStatusFilter(status.name)}
-                  className={cn(
-                    "relative bg-white/[0.04] border rounded-xl p-3 flex items-center gap-3 transition-all text-left overflow-hidden",
-                    "border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.12]"
-                  )}
-                  style={isSelected ? {
-                    borderColor: `${status.color}55`,
-                    backgroundColor: `${status.color}09`,
-                    boxShadow: `0 0 20px ${status.color}28`
-                  } : {}}
+                  className="relative border rounded-xl p-3 flex items-center gap-3 transition-all text-left overflow-hidden active:scale-[0.97]"
+                  style={{
+                    backgroundColor: isSelected ? `${status.color}22` : `${status.color}0d`,
+                    borderColor:     isSelected ? `${status.color}60` : `${status.color}30`,
+                    boxShadow:       isSelected ? `0 0 20px ${status.color}30` : 'none',
+                  }}
                 >
                   {isSelected && (
                     <div
@@ -252,11 +249,10 @@ export const ServiceOrderFilters: React.FC<ServiceOrderFiltersProps> = ({
                     />
                   )}
                   <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0 transition-all"
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0 transition-all text-white"
                     style={{
-                      backgroundColor: isSelected ? status.color : `${status.color}18`,
-                      color: isSelected ? '#fff' : status.color,
-                      boxShadow: isSelected ? `0 0 14px ${status.color}55` : 'none'
+                      backgroundColor: status.color,
+                      boxShadow: `0 0 ${isSelected ? 14 : 6}px ${status.color}60`,
                     }}
                   >
                     {initials}
@@ -264,7 +260,7 @@ export const ServiceOrderFilters: React.FC<ServiceOrderFiltersProps> = ({
                   <div className="min-w-0 flex-1">
                     <p
                       className="text-[10px] font-bold uppercase tracking-wider line-clamp-2 leading-tight"
-                      style={{ color: isSelected ? status.color : '#94a3b8' }}
+                      style={{ color: status.color }}
                     >
                       {status.name}
                     </p>

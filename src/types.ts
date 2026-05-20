@@ -121,6 +121,7 @@ export interface AppSettings {
   receiptPixKey?: string;
   receiptQrCode?: string;
   receiptTerms?: string;
+  shopWhatsapp?: string;
   whatsappBillingTemplate?: string;
   whatsappOSTemplate?: string;
   sendPulseClientId?: string;

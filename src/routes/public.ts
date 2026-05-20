@@ -22,26 +22,32 @@ router.get('/public/os/:id', async (req: Request, res: Response) => {
       return res.json(cached);
     }
 
-    const order = await prisma.serviceOrder.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        status: true,
-        equipmentType: true,
-        equipmentBrand: true,
-        equipmentModel: true,
-        equipmentColor: true,
-        equipmentSerial: true,
-        reportedProblem: true,
-        entryDate: true,
-        analysisPrediction: true,
-        arrivalPhotoBase64: true,
-        arrivalPhotoUrls: true,
-        partsUsed: true,
-        totalAmount: true,
-        serviceFee: true,
-      },
-    });
+    const [order, settings] = await Promise.all([
+      prisma.serviceOrder.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          status: true,
+          equipmentType: true,
+          equipmentBrand: true,
+          equipmentModel: true,
+          equipmentColor: true,
+          equipmentSerial: true,
+          reportedProblem: true,
+          entryDate: true,
+          analysisPrediction: true,
+          arrivalPhotoBase64: true,
+          arrivalPhotoUrls: true,
+          partsUsed: true,
+          totalAmount: true,
+          serviceFee: true,
+        },
+      }),
+      prisma.settings.findUnique({
+        where: { id: 1 },
+        select: { shopWhatsapp: true, profileName: true },
+      }),
+    ]);
 
     if (!order) {
       return res.status(404).json({ error: 'Ordem de serviço não encontrada' });
@@ -63,6 +69,8 @@ router.get('/public/os/:id', async (req: Request, res: Response) => {
       arrivalPhotos: photos,
       totalAmount: order.totalAmount,
       serviceFee: order.serviceFee,
+      shopWhatsapp: settings?.shopWhatsapp ?? null,
+      shopName: settings?.profileName ?? 'Inova Pro',
     };
 
     publicOsCache.set(cacheKey, payload);

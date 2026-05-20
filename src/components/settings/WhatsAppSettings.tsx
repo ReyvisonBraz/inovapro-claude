@@ -38,6 +38,20 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({ settings, up
         </div>
       </div>
 
+      <div className="space-y-3">
+        <label className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 ml-1">WhatsApp da Loja</label>
+        <input
+          type="tel"
+          value={settings.shopWhatsapp || ''}
+          onChange={(e) => updateSettings({ ...settings, shopWhatsapp: e.target.value })}
+          className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+          placeholder="Ex: 5511999999999 (com DDI e DDD, sem espaços)"
+        />
+        <p className="text-[10px] text-slate-500 italic ml-1">
+          Este número aparece no botão de WhatsApp da página de rastreio do cliente. Formato: 55 + DDD + número (ex: 5511999999999).
+        </p>
+      </div>
+
       <div className="space-y-12">
         {/* Template de Cobrança */}
         <div className="space-y-6">

@@ -353,10 +353,11 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
         onDeleteStatus={onDeleteStatus}
       />
 
-      <ServiceOrderStatusModal 
+      <ServiceOrderStatusModal
         showStatusOnly={showStatusOnly}
         setShowStatusOnly={setShowStatusOnly}
         statuses={statuses}
+        handleUpdateStatus={handleUpdateStatus}
       />
 
       <WhatsAppModal 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Calendar } from 'lucide-react';
+import { X, Calendar, CheckCircle2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ServiceOrder, ServiceOrderStatus } from '../../../types';
 
@@ -8,12 +8,14 @@ interface ServiceOrderStatusModalProps {
   showStatusOnly: ServiceOrder | null;
   setShowStatusOnly: (order: ServiceOrder | null) => void;
   statuses: ServiceOrderStatus[];
+  handleUpdateStatus?: (id: number, status: string) => void;
 }
 
 export const ServiceOrderStatusModal: React.FC<ServiceOrderStatusModalProps> = ({
   showStatusOnly,
   setShowStatusOnly,
-  statuses
+  statuses,
+  handleUpdateStatus,
 }) => {
   return (
     <AnimatePresence>
@@ -41,11 +43,11 @@ export const ServiceOrderStatusModal: React.FC<ServiceOrderStatusModalProps> = (
             </div>
 
             <div className="space-y-8">
-              <div className="p-6 rounded-3xl bg-white/5 border border-white/10 flex flex-col items-center text-center">
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-4">Status Atual</div>
-                <div 
+              <div className="p-5 rounded-3xl bg-white/5 border border-white/10 flex flex-col items-center text-center">
+                <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-3">Status Atual</div>
+                <div
                   className="px-6 py-3 rounded-2xl text-lg font-black shadow-lg"
-                  style={{ 
+                  style={{
                     backgroundColor: `${statuses.find(s => s.name === showStatusOnly.status)?.color || '#3b82f6'}20`,
                     color: statuses.find(s => s.name === showStatusOnly.status)?.color || '#3b82f6',
                     border: `1px solid ${statuses.find(s => s.name === showStatusOnly.status)?.color || '#3b82f6'}40`
@@ -54,6 +56,43 @@ export const ServiceOrderStatusModal: React.FC<ServiceOrderStatusModalProps> = (
                   {showStatusOnly.status}
                 </div>
               </div>
+
+              {handleUpdateStatus && statuses.length > 0 && (
+                <div className="space-y-3">
+                  <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+                    <div className="h-px flex-1 bg-white/10" />
+                    Alterar Status
+                    <div className="h-px flex-1 bg-white/10" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {statuses.map(status => {
+                      const isActive = status.name === showStatusOnly.status;
+                      return (
+                        <button
+                          key={status.id}
+                          onClick={() => {
+                            if (!isActive) {
+                              handleUpdateStatus(showStatusOnly.id, status.name);
+                              setShowStatusOnly({ ...showStatusOnly, status: status.name });
+                            }
+                          }}
+                          disabled={isActive}
+                          className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-100"
+                          style={{
+                            backgroundColor: isActive ? `${status.color}28` : `${status.color}10`,
+                            color: status.color,
+                            border: `1px solid ${isActive ? `${status.color}60` : `${status.color}25`}`,
+                            boxShadow: isActive ? `0 0 14px ${status.color}30` : 'none',
+                          }}
+                        >
+                          {isActive && <CheckCircle2 size={14} className="shrink-0" />}
+                          <span className="truncate">{status.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10">

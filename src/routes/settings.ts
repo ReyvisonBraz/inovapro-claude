@@ -31,15 +31,16 @@ router.post('/', async (req: Request, res: Response) => {
       appName, appVersion, fiscalYear, primaryColor, categories,
       incomeCategories, expenseCategories, profileName, profileAvatar, initialBalance,
       showWarnings, hiddenColumns, settingsPassword, receiptLayout, receiptLogo,
-      sendPulseClientId, sendPulseClientSecret, sendPulseTemplateId,
+      shopWhatsapp, sendPulseClientId, sendPulseClientSecret, sendPulseTemplateId,
     } = req.body;
 
     const updateData: any = {
       appName, appVersion, fiscalYear, primaryColor, categories,
       incomeCategories, expenseCategories, profileName, profileAvatar,
       initialBalance, showWarnings: showWarnings ? 1 : 0,
-      hiddenColumns: JSON.stringify(hiddenColumns || []), 
+      hiddenColumns: JSON.stringify(hiddenColumns || []),
       receiptLayout: receiptLayout || 'a4', receiptLogo,
+      shopWhatsapp: shopWhatsapp ?? undefined,
       sendPulseClientId, sendPulseTemplateId,
       osPrintConfig: req.body.osPrintConfig ?? undefined,
     };
