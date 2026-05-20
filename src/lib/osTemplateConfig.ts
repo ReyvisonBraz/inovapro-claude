@@ -83,13 +83,13 @@ function mkSections(
   overrides: Partial<Record<OSSection['id'], SectionOverride>> = {},
 ): OSSection[] {
   const defaults: OSSection[] = [
-    { id: 'equipment',    label: 'Dados do Equipamento', visible: true,  template: T.equipment },
-    { id: 'problem',      label: 'Problema Relatado',    visible: true,  template: T.problem },
-    { id: 'analysis',     label: 'Análise Técnica',      visible: true,  template: T.analysis },
-    { id: 'services',     label: 'Serviços Realizados',  visible: true,  template: T.services },
+    { id: 'equipment',    label: 'Dados do Equipamento', visible: true,  template: T.equipment,     fontScale: 'normal' },
+    { id: 'problem',      label: 'Problema Relatado',    visible: true,  template: T.problem,       fontScale: 'normal' },
+    { id: 'analysis',     label: 'Análise Técnica',      visible: true,  template: T.analysis,      fontScale: 'normal' },
+    { id: 'services',     label: 'Serviços Realizados',  visible: true,  template: T.services,      fontScale: 'normal' },
     { id: 'parts',        label: 'Peças Utilizadas',     visible: true,  template: '' },
     { id: 'values',       label: 'Valor Total',          visible: true,  template: '' },
-    { id: 'observations', label: 'Observações Finais',   visible: true,  template: T.observations },
+    { id: 'observations', label: 'Observações Finais',   visible: true,  template: T.observations,  fontScale: 'normal' },
   ];
   return defaults.map(s => ({ ...s, ...(overrides[s.id] ?? {}) }));
 }
@@ -151,6 +151,42 @@ export const DEFAULT_OS_PRINT_TEMPLATE_CONFIG: OSPrintTemplateConfig = {
   thermal:      DEFAULT_THERMAL_CONFIG,
 };
 
+// ─── Central layout registry — single source of truth for metadata ────────────
+export const LAYOUT_REGISTRY = {
+  a4Complete:   {
+    label: 'A4 Completo',     tag: 'A4 Paisagem', color: '#3b82f6',
+    fontSize: 12.5, fontSizeMin: 8,  fontSizeMax: 16,
+    previewDims: { nW: 1077, nH: 756,  scale: 0.44 },
+    defaultConfig: DEFAULT_A4_COMPLETE_CONFIG,
+  },
+  a4Simplified: {
+    label: 'A4 Simplificado', tag: 'A4 Paisagem', color: '#8b5cf6',
+    fontSize: 12.5, fontSizeMin: 8,  fontSizeMax: 16,
+    previewDims: { nW: 1077, nH: 756,  scale: 0.44 },
+    defaultConfig: DEFAULT_A4_SIMPLIFIED_CONFIG,
+  },
+  a5:           {
+    label: 'A5 Compacto',     tag: 'A5 Retrato',  color: '#10b981',
+    fontSize: 9,   fontSizeMin: 7,  fontSizeMax: 13,
+    previewDims: { nW: 529,  nH: 763,  scale: 0.60 },
+    defaultConfig: DEFAULT_A5_CONFIG,
+  },
+  thermal:      {
+    label: 'Térmica 80mm',    tag: '80mm',        color: '#f59e0b',
+    fontSize: 9,   fontSizeMin: 7,  fontSizeMax: 12,
+    previewDims: { nW: 272,  nH: 680,  scale: 0.80 },
+    defaultConfig: DEFAULT_THERMAL_CONFIG,
+  },
+  blank:        {
+    label: 'Ficha em Branco', tag: 'A4 Retrato',  color: '#f43f5e',
+    fontSize: 12,  fontSizeMin: 8,  fontSizeMax: 16,
+    previewDims: { nW: 718,  nH: 1062, scale: 0.44 },
+    defaultConfig: null,
+  },
+} as const;
+
+export type LayoutRegistryKey = keyof typeof LAYOUT_REGISTRY;
+
 // ─── Backward-compat exports (used by printLayouts.ts) ───────────────────────
 export const DEFAULT_OS_SECTIONS      = DEFAULT_A4_COMPLETE_CONFIG.sections;
 export const DEFAULT_OS_TEMPLATE_CONFIG = DEFAULT_A4_COMPLETE_CONFIG;
@@ -158,13 +194,11 @@ export const DEFAULT_OS_TEMPLATE_CONFIG = DEFAULT_A4_COMPLETE_CONFIG;
 // ─── Layout config merger ─────────────────────────────────────────────────────
 function mergeLayout(saved: Partial<OSLayoutConfig>, defaults: OSLayoutConfig): OSLayoutConfig {
   const savedSections = saved.sections ?? [];
-  // Merge each saved section into the defaults (preserving custom templates + visibility)
   const merged: OSSection[] = defaults.sections.map(def => {
     const s = savedSections.find(x => x.id === def.id);
     if (!s) return def;
-    return { ...def, visible: s.visible, template: s.template ?? def.template };
+    return { ...def, visible: s.visible, template: s.template ?? def.template, fontScale: s.fontScale ?? def.fontScale };
   });
-  // Respect user's section ordering
   const ordered = savedSections.length
     ? savedSections.map(s => merged.find(x => x.id === s.id)!).filter(Boolean)
     : merged;

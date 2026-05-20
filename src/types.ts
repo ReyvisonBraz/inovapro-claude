@@ -134,7 +134,8 @@ export interface OSSection {
   id: 'equipment' | 'problem' | 'analysis' | 'services' | 'parts' | 'values' | 'observations';
   label: string;
   visible: boolean;
-  template: string; // {{placeholder}} content string for this section
+  template: string;
+  fontScale?: 'small' | 'normal' | 'large';
 }
 
 export interface OSLayoutConfig {
@@ -145,6 +146,8 @@ export interface OSLayoutConfig {
   showQrTech: boolean;
   showQrClient: boolean;
   showWarning: boolean;
+  fontSize?: number;
+  spacing?: 'compact' | 'normal' | 'spacious';
 }
 
 // Backward-compat alias

@@ -81,6 +81,9 @@ function buildSubstValues(data: PrintData): Record<string, string> {
   };
 }
 
+const FONT_SCALE_MAP = { small: 0.82, normal: 1.0, large: 1.22 } as const;
+const SPACING_MAP    = { compact: 0.72, normal: 1.0, spacious: 1.32 } as const;
+
 // ─── Render a single section using its template ───────────────────────────────
 function renderSection(
   section: OSSection,
@@ -88,8 +91,10 @@ function renderSection(
   so: any,
   printType: string,
   fmt: (n: number) => string,
+  fs: number,
 ): string {
   const { id, label, template } = section;
+  const scale = FONT_SCALE_MAP[section.fontScale ?? 'normal'];
 
   // Parts: engine-generated table — template not applicable
   if (id === 'parts') {
@@ -133,15 +138,21 @@ function renderSection(
 
   const containerCls = id === 'problem' ? 'pbox' : 'tblock';
   const textCls      = id === 'problem' ? 'ptext' : 'ttext';
+  const scaledSize   = id === 'problem'
+    ? (fs * 0.92 * scale).toFixed(2)
+    : (fs * 0.90 * scale).toFixed(2);
+  const scaledMaxH   = id === 'problem'
+    ? (fs * 0.92 * scale * 1.55 * 6).toFixed(1)
+    : (fs * 0.90 * scale * 1.55 * 5).toFixed(1);
 
   return `<div class="sec">
     <div class="st">${label}</div>
-    <div class="${containerCls}"><div class="${textCls}" style="white-space:pre-line">${content}</div></div>
+    <div class="${containerCls}"><div class="${textCls}" style="white-space:pre-line;font-size:${scaledSize}px;max-height:${scaledMaxH}px">${content}</div></div>
   </div>`;
 }
 
 // ─── Shared CSS — A4 landscape at fs px base ─────────────────────────────────
-const sharedCSS = (fs: number, c: Colors) => `
+const sharedCSS = (fs: number, c: Colors, sp = 1.0) => `
   *, *::before, *::after {
     box-sizing: border-box; margin: 0; padding: 0;
     -webkit-print-color-adjust: exact !important;
@@ -175,7 +186,7 @@ const sharedCSS = (fs: number, c: Colors) => `
   .hd {
     background: ${c.primary} !important;
     color: #fff !important;
-    padding: 10px 14px;
+    padding: ${(10 * sp).toFixed(1)}px ${(14 * sp).toFixed(1)}px;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -205,16 +216,16 @@ const sharedCSS = (fs: number, c: Colors) => `
   .bd {
     flex: 1;
     overflow: hidden;
-    padding: 10px 14px;
+    padding: ${(10 * sp).toFixed(1)}px ${(14 * sp).toFixed(1)}px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: ${(8 * sp).toFixed(1)}px;
     min-height: 0;
   }
 
   .ft {
     flex-shrink: 0;
-    padding: 7px 14px;
+    padding: ${(7 * sp).toFixed(1)}px ${(14 * sp).toFixed(1)}px;
     border-top: 1.5px solid #e2e8f0;
     display: flex;
     align-items: center;
@@ -259,7 +270,7 @@ const sharedCSS = (fs: number, c: Colors) => `
   .pbox {
     background: #fef2f2 !important;
     border-left: 3.5px solid #dc2626 !important;
-    padding: 7px 11px;
+    padding: ${(7 * sp).toFixed(1)}px ${(11 * sp).toFixed(1)}px;
     border-radius: 0 4px 4px 0;
     overflow: hidden;
   }
@@ -275,7 +286,7 @@ const sharedCSS = (fs: number, c: Colors) => `
   .tblock {
     background: #f8fafc !important;
     border: 1px solid #e8edf3;
-    padding: 7px 11px;
+    padding: ${(7 * sp).toFixed(1)}px ${(11 * sp).toFixed(1)}px;
     border-radius: 4px;
     overflow: hidden;
   }
@@ -374,12 +385,12 @@ const sharedCSS = (fs: number, c: Colors) => `
 `;
 
 // ─── Tech column ──────────────────────────────────────────────────────────────
-function techBody(data: PrintData, config: OSLayoutConfig, substValues: Record<string, string>): string {
+function techBody(data: PrintData, config: OSLayoutConfig, substValues: Record<string, string>, fs: number): string {
   const { osNumber, date, technician, customer, selectedOrder: so, techQrImg, printType, formatCurrency } = data;
   const statusStyle = resolveStatusStyle(so.status || '');
   const sections = config.sections
     .filter(s => s.visible)
-    .map(s => renderSection(s, substValues, so, printType, formatCurrency))
+    .map(s => renderSection(s, substValues, so, printType, formatCurrency, fs))
     .join('');
 
   const clientName = `${customer.firstName} ${customer.lastName}`.trim();
@@ -502,6 +513,8 @@ export function getA4EnhancedLayout(data: PrintData): string {
   const config = data.config ?? (data.printType === 'simplified' ? DEFAULT_A4_SIMPLIFIED_CONFIG : DEFAULT_A4_COMPLETE_CONFIG);
   const c = getColors(config);
   const substValues = buildSubstValues(data);
+  const fs = config.fontSize ?? 12.5;
+  const sp = SPACING_MAP[config.spacing ?? 'normal'];
 
   return `<!DOCTYPE html>
 <html>
@@ -510,7 +523,7 @@ export function getA4EnhancedLayout(data: PrintData): string {
 <title>${data.osNumber}</title>
 <style>
 @page { size: A4 landscape; margin: 6mm; }
-${sharedCSS(12.5, c)}
+${sharedCSS(fs, c, sp)}
 body {
   width: 285mm;
   height: 198mm;
@@ -540,7 +553,7 @@ body {
 </head>
 <body>
 
-<div class="col">${techBody(data, config, substValues)}</div>
+<div class="col">${techBody(data, config, substValues, fs)}</div>
 
 <div class="divider">
   <div class="dline"></div>
@@ -560,6 +573,8 @@ export function getA5Layout(data: PrintData): string {
   const config = data.config ?? DEFAULT_A5_CONFIG;
   const c = getColors(config);
   const substValues = buildSubstValues(data);
+  const fs = config.fontSize ?? 9;
+  const sp = SPACING_MAP[config.spacing ?? 'normal'];
 
   return `<!DOCTYPE html>
 <html>
@@ -568,7 +583,7 @@ export function getA5Layout(data: PrintData): string {
 <title>${data.osNumber}</title>
 <style>
 @page { size: A5 portrait; margin: 4mm; }
-${sharedCSS(9, c)}
+${sharedCSS(fs, c, sp)}
 body {
   width: 140mm;
   height: 202mm;
@@ -605,7 +620,7 @@ body {
   <div class="dline"></div>
 </div>
 
-<div class="col">${techBody(data, config, substValues)}</div>
+<div class="col">${techBody(data, config, substValues, fs)}</div>
 
 <script>window.onload=function(){window.print();setTimeout(function(){window.close();},500);}</script>
 </body>

@@ -17,6 +17,8 @@ import {
   DEFAULT_OS_PRINT_TEMPLATE_CONFIG,
   PLACEHOLDER_GROUPS,
   TEMPLATE_CAPABLE_IDS,
+  LAYOUT_REGISTRY,
+  LayoutRegistryKey,
 } from '../../lib/osTemplateConfig';
 import { getA4EnhancedLayout, getA5Layout, getThermalLayout } from '../service-orders/modals/printLayouts';
 import { getBlankFormLayout, QR_BASE, stripScript } from '../../lib/printUtils';
@@ -60,16 +62,15 @@ const SAMPLE_DATA = {
   formatCurrency,
 };
 
-// ─── Layout tab definitions ───────────────────────────────────────────────────
-const LAYOUT_TABS = [
-  { id: 'a4Complete'   as const, label: 'A4 Completo',     tag: 'A4 Paisagem', color: '#3b82f6' },
-  { id: 'a4Simplified' as const, label: 'A4 Simplificado', tag: 'A4 Paisagem', color: '#8b5cf6' },
-  { id: 'a5'           as const, label: 'A5 Compacto',     tag: 'A5 Retrato',  color: '#10b981' },
-  { id: 'thermal'      as const, label: 'Térmica 80mm',    tag: '80mm',        color: '#f59e0b' },
-  { id: 'blank'        as const, label: 'Ficha em Branco', tag: 'A4 Retrato',  color: '#f43f5e' },
-] as const;
+// ─── Derived layout tabs from registry ────────────────────────────────────────
+const LAYOUT_TABS = (Object.keys(LAYOUT_REGISTRY) as LayoutRegistryKey[]).map(id => ({
+  id,
+  label: LAYOUT_REGISTRY[id].label,
+  tag:   LAYOUT_REGISTRY[id].tag,
+  color: LAYOUT_REGISTRY[id].color,
+}));
 
-type LayoutTab = typeof LAYOUT_TABS[number]['id'];
+type LayoutTab = LayoutRegistryKey;
 type ConfigurableLayout = Exclude<LayoutTab, 'blank'>;
 
 const FONT_OPTIONS = [
@@ -79,6 +80,25 @@ const FONT_OPTIONS = [
   { label: 'Courier New',       value: "'Courier New', monospace" },
   { label: 'Trebuchet MS',      value: "'Trebuchet MS', sans-serif" },
 ];
+
+// ─── Hook: restore cursor position after template state updates ───────────────
+function useTextareaCursor(ref: React.RefObject<HTMLTextAreaElement | null>) {
+  const posRef = useRef<number | null>(null);
+
+  const scheduleRestore = (pos: number) => { posRef.current = pos; };
+
+  React.useEffect(() => {
+    if (posRef.current !== null && ref.current) {
+      const pos = posRef.current;
+      ref.current.selectionStart = pos;
+      ref.current.selectionEnd   = pos;
+      ref.current.focus();
+      posRef.current = null;
+    }
+  });
+
+  return scheduleRestore;
+}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -143,13 +163,14 @@ interface SortableSectionProps {
   onToggleExpand: () => void;
   onToggle: () => void;
   onTemplateChange: (template: string) => void;
+  onFontScaleChange: (scale: 'small' | 'normal' | 'large') => void;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   onInsertPlaceholder: (key: string) => void;
 }
 
 function SortableSection({
   section, isExpanded, onToggleExpand, onToggle,
-  onTemplateChange, textareaRef, onInsertPlaceholder,
+  onTemplateChange, onFontScaleChange, textareaRef, onInsertPlaceholder,
 }: SortableSectionProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id });
   const capable = TEMPLATE_CAPABLE_IDS.has(section.id);
@@ -199,6 +220,26 @@ function SortableSection({
         <div className="bg-slate-950/60 border-t border-white/5 p-3 space-y-3">
           {capable ? (
             <>
+              {/* Font scale buttons */}
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-1.5">Tamanho do Texto</p>
+                <div className="flex gap-1">
+                  {(['small', 'normal', 'large'] as const).map(scale => (
+                    <button
+                      key={scale}
+                      onClick={() => onFontScaleChange(scale)}
+                      className={`flex-1 h-7 rounded-lg text-[10px] font-bold transition-all border ${
+                        (section.fontScale ?? 'normal') === scale
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-white/5 text-slate-400 border-white/10 hover:border-white/20 hover:text-white'
+                      }`}
+                    >
+                      {scale === 'small' ? 'A↓ Pequeno' : scale === 'normal' ? 'A Normal' : 'A↑ Grande'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <textarea
                 ref={textareaRef}
                 value={section.template}
@@ -255,7 +296,7 @@ export const OSTemplateEditor: React.FC<Props> = ({ settings, onUpdateSettings }
   );
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const cursorPosRef = useRef<number | null>(null);
+  const scheduleRestore = useTextareaCursor(textareaRef);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -263,6 +304,7 @@ export const OSTemplateEditor: React.FC<Props> = ({ settings, onUpdateSettings }
   const isBlank = activeTab === 'blank';
   const layoutKey = isBlank ? null : (activeTab as ConfigurableLayout);
   const currentConfig = layoutKey ? config[layoutKey] : null;
+  const registryEntry = LAYOUT_REGISTRY[activeTab];
 
   const updateCurrentLayout = (updates: Partial<OSLayoutConfig>) => {
     if (!layoutKey) return;
@@ -276,6 +318,9 @@ export const OSTemplateEditor: React.FC<Props> = ({ settings, onUpdateSettings }
 
   const updateSectionTemplate = (id: string, template: string) =>
     updateSections(currentConfig!.sections.map(s => s.id === id ? { ...s, template } : s));
+
+  const updateSectionFontScale = (id: string, fontScale: 'small' | 'normal' | 'large') =>
+    updateSections(currentConfig!.sections.map(s => s.id === id ? { ...s, fontScale } : s));
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -298,20 +343,9 @@ export const OSTemplateEditor: React.FC<Props> = ({ settings, onUpdateSettings }
     const section = currentConfig!.sections.find(s => s.id === expandedSection);
     if (!section) return;
     const newTemplate = section.template.slice(0, ss) + token + section.template.slice(se);
-    cursorPosRef.current = ss + token.length;
+    scheduleRestore(ss + token.length);
     updateSectionTemplate(expandedSection, newTemplate);
   };
-
-  // Restore cursor after template state update
-  React.useEffect(() => {
-    if (cursorPosRef.current !== null && textareaRef.current) {
-      const pos = cursorPosRef.current;
-      textareaRef.current.selectionStart = pos;
-      textareaRef.current.selectionEnd   = pos;
-      textareaRef.current.focus();
-      cursorPosRef.current = null;
-    }
-  });
 
   // ── Live preview ──────────────────────────────────────────────────────────
   const deferredConfig = useDeferredValue(currentConfig);
@@ -327,15 +361,6 @@ export const OSTemplateEditor: React.FC<Props> = ({ settings, onUpdateSettings }
     const printType = deferredTab === 'a4Simplified' ? 'simplified' : 'complete';
     return stripScript(getA4EnhancedLayout({ ...SAMPLE_DATA, printType, config: deferredConfig ?? undefined }));
   }, [deferredTab, deferredConfig, settings]);
-
-  // Preview dimensions per layout
-  const previewDims: Record<LayoutTab, { nW: number; nH: number; scale: number }> = {
-    a4Complete:   { nW: 1077, nH: 756, scale: 0.44 },
-    a4Simplified: { nW: 1077, nH: 756, scale: 0.44 },
-    a5:           { nW: 529,  nH: 763, scale: 0.60 },
-    thermal:      { nW: 272,  nH: 680, scale: 0.80 },
-    blank:        { nW: 718,  nH: 1062, scale: 0.44 },
-  };
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const handleSave = () => {
@@ -367,7 +392,7 @@ export const OSTemplateEditor: React.FC<Props> = ({ settings, onUpdateSettings }
     w.document.close();
   };
 
-  const dims = previewDims[activeTab];
+  const dims = registryEntry.previewDims;
   const currentTab = LAYOUT_TABS.find(t => t.id === activeTab)!;
 
   return (
@@ -424,6 +449,7 @@ export const OSTemplateEditor: React.FC<Props> = ({ settings, onUpdateSettings }
                           onToggleExpand={() => toggleExpand(s.id)}
                           onToggle={() => toggleSection(s.id)}
                           onTemplateChange={tmpl => updateSectionTemplate(s.id, tmpl)}
+                          onFontScaleChange={scale => updateSectionFontScale(s.id, scale)}
                           textareaRef={expandedSection === s.id ? textareaRef : { current: null }}
                           onInsertPlaceholder={insertAtCursor}
                         />
@@ -448,7 +474,7 @@ export const OSTemplateEditor: React.FC<Props> = ({ settings, onUpdateSettings }
                 />
               </div>
 
-              {/* Font */}
+              {/* Typography */}
               <div className="border-t border-white/5 pt-5 space-y-3">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Tipografia</p>
                 <select
@@ -458,6 +484,47 @@ export const OSTemplateEditor: React.FC<Props> = ({ settings, onUpdateSettings }
                 >
                   {FONT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
+
+                {/* Font size slider */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Tamanho da Fonte</p>
+                    <span className="text-xs font-black text-primary">{(currentConfig.fontSize ?? registryEntry.fontSize).toFixed(1)}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={registryEntry.fontSizeMin}
+                    max={registryEntry.fontSizeMax}
+                    step={0.5}
+                    value={currentConfig.fontSize ?? registryEntry.fontSize}
+                    onChange={e => updateCurrentLayout({ fontSize: parseFloat(e.target.value) })}
+                    className="w-full accent-primary"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-600 font-bold mt-0.5">
+                    <span>{registryEntry.fontSizeMin}px</span>
+                    <span>{registryEntry.fontSizeMax}px</span>
+                  </div>
+                </div>
+
+                {/* Spacing */}
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Espaçamento</p>
+                  <div className="flex gap-1">
+                    {(['compact', 'normal', 'spacious'] as const).map(sp => (
+                      <button
+                        key={sp}
+                        onClick={() => updateCurrentLayout({ spacing: sp })}
+                        className={`flex-1 h-8 rounded-lg text-[10px] font-bold transition-all border ${
+                          (currentConfig.spacing ?? 'normal') === sp
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-white/5 text-slate-400 border-white/10 hover:border-white/20 hover:text-white'
+                        }`}
+                      >
+                        {sp === 'compact' ? 'Compacto' : sp === 'normal' ? 'Normal' : 'Espaçoso'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Toggles */}
