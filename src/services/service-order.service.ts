@@ -62,7 +62,7 @@ export class ServiceOrderService {
     if (sortBy === 'amount-desc') orderBy = { totalAmount: 'desc' };
     if (sortBy === 'amount-asc') orderBy = { totalAmount: 'asc' };
 
-    const [orders, total] = await Promise.all([
+    const [orders, total, statusGroups] = await Promise.all([
       prisma.serviceOrder.findMany({
         where,
         skip: (page - 1) * limit,
@@ -71,7 +71,13 @@ export class ServiceOrderService {
         include: { customer: { select: { firstName: true, lastName: true, phone: true } } },
       }),
       prisma.serviceOrder.count({ where }),
+      prisma.serviceOrder.groupBy({ by: ['status'], _count: { status: true } }),
     ]);
+
+    const statusCounts: Record<string, number> = {};
+    for (const group of statusGroups) {
+      if (group.status) statusCounts[group.status] = group._count.status;
+    }
 
     const data = orders.map(o => ({
       ...o,
@@ -89,6 +95,7 @@ export class ServiceOrderService {
         page,
         limit,
         totalPages: Math.ceil(total / limit),
+        statusCounts,
       },
     };
   }
