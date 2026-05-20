@@ -68,7 +68,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
             <Briefcase size={20} />
           </div>
 
-          <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 md:gap-2 mb-1.5 md:mb-2">
               {visibleColumns.id && (
                 <span className="text-[10px] md:text-xs font-black text-primary bg-primary/5 px-2 py-0.5 md:px-2.5 md:py-1 rounded border border-primary/10 shrink-0">
@@ -78,7 +78,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
 
               {visibleColumns.status && (
                 <div className="relative">
-                  <button 
+                  <button
                     onClick={() => setQuickStatusOrder(quickStatusOrder?.id === order.id ? null : order)}
                     className="text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider border hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 shadow-sm whitespace-nowrap"
                     style={getStatusColor(order.status)}
@@ -87,37 +87,44 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
                     {order.status}
                     <ChevronDown size={12} className={cn("transition-transform duration-200", quickStatusOrder?.id === order.id && "rotate-180")} />
                   </button>
-                  
+
                   {quickStatusOrder?.id === order.id && (
-                    <div className="absolute left-0 top-full mt-2 w-56 glass-modal p-1.5 z-[100] shadow-2xl border border-white/10 animate-in fade-in slide-in-from-top-2 duration-200 rounded-xl overflow-hidden">
-                      <div className="p-2 mb-1 border-b border-white/5">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Alterar Status</p>
+                    <>
+                      {/* invisible backdrop to close on outside click */}
+                      <div
+                        className="fixed inset-0 z-[90]"
+                        onClick={() => setQuickStatusOrder(null)}
+                      />
+                      <div className="absolute left-0 top-full mt-2 w-56 glass-modal p-1.5 z-[110] shadow-2xl border border-white/10 animate-in fade-in slide-in-from-top-2 duration-200 rounded-xl overflow-hidden" style={{ maxHeight: '70vh' }}>
+                        <div className="p-2 mb-1 border-b border-white/5">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Alterar Status</p>
+                        </div>
+                        <div className="space-y-0.5 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(70vh - 48px)' }}>
+                          {statuses.map(s => (
+                            <button
+                              key={s.id}
+                              onClick={() => {
+                                handleUpdateStatus(order.id, s.name);
+                                setQuickStatusOrder(null);
+                              }}
+                              className={cn(
+                                "w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-3 group/item",
+                                order.status === s.name
+                                  ? "bg-primary/20 text-primary shadow-inner"
+                                  : "text-slate-400 hover:bg-white/5 hover:text-white"
+                              )}
+                            >
+                              <span
+                                className="h-1.5 w-1.5 rounded-full shrink-0 shadow-sm group-hover/item:scale-125 transition-transform"
+                                style={{ backgroundColor: s.color }}
+                              />
+                              <span className="flex-1 truncate">{s.name}</span>
+                              {order.status === s.name && <Check size={10} className="shrink-0" />}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                      <div className="space-y-0.5 max-h-64 overflow-y-auto custom-scrollbar">
-                        {statuses.map(s => (
-                          <button
-                            key={s.id}
-                            onClick={() => {
-                              handleUpdateStatus(order.id, s.name);
-                              setQuickStatusOrder(null);
-                            }}
-                            className={cn(
-                              "w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-3 group/item",
-                              order.status === s.name 
-                                ? "bg-primary/20 text-primary shadow-inner" 
-                                : "text-slate-400 hover:bg-white/5 hover:text-white"
-                            )}
-                          >
-                            <span 
-                              className="h-1.5 w-1.5 rounded-full shrink-0 shadow-sm group-hover/item:scale-125 transition-transform" 
-                              style={{ backgroundColor: s.color }} 
-                            />
-                            <span className="flex-1 truncate">{s.name}</span>
-                            {order.status === s.name && <Check size={10} className="shrink-0" />}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    </>
                   )}
                 </div>
               )}
@@ -228,8 +235,8 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
       )}
 
       <div className={cn(
-        "flex items-center gap-2 mt-5 pt-4 border-t border-white/5",
-        isGrid ? "justify-between" : "justify-end"
+        "mt-5 pt-4 border-t border-white/5",
+        isGrid ? "flex flex-col gap-2" : "flex items-center gap-2 justify-end"
       )}>
         {isGrid && (
           <div className="flex flex-col">
@@ -240,8 +247,11 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
           </div>
         )}
 
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/5">
-          <button 
+        <div className={cn(
+          "flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/5",
+          isGrid ? "flex-wrap w-full justify-evenly" : ""
+        )}>
+          <button
             onClick={() => handleEdit(order)}
             className={cn(
               "flex items-center justify-center gap-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-95",
@@ -252,10 +262,10 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
             <Edit size={16} />
             {!isGrid && <span className="hidden md:inline text-xs font-bold">Editar</span>}
           </button>
-          
-          <div className="h-4 w-px bg-white/10 mx-1" />
-          
-          <button 
+
+          <div className={cn("h-4 w-px bg-white/10 mx-1", isGrid && "hidden")} />
+
+          <button
             onClick={() => {
               setSelectedOrder(order);
               setShowQRCodeModal(true);
@@ -270,7 +280,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
             {!isGrid && <span className="text-xs font-bold">QR Code</span>}
           </button>
 
-          <div className="h-4 w-px bg-white/10 mx-1" />
+          <div className={cn("h-4 w-px bg-white/10 mx-1", isGrid && "hidden")} />
 
           <button 
             onClick={() => {

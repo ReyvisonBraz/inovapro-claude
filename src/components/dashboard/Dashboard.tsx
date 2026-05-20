@@ -75,100 +75,86 @@ export const Dashboard = ({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-br from-[#0c1322] via-[#0f1a2e] to-[#0c1322] p-6 md:p-8"
+        className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-gradient-to-br from-[#0c1322] via-[#0f1a2e] to-[#0c1322] p-4 sm:p-6 md:p-8"
       >
         <div className="absolute top-0 right-0 w-72 h-72 bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none" />
 
         {/* Month nav */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
+        <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3">
+          <div className="min-w-0">
             <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Resumo do Mês</span>
-            <h2 className="text-xl md:text-2xl font-bold font-display text-white">{formatMonthYear(dashboardMonth)}</h2>
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold font-display text-white truncate">{formatMonthYear(dashboardMonth)}</h2>
           </div>
-          <div className="flex items-center gap-1 bg-white/[0.04] rounded-xl border border-white/[0.06] p-1">
-            <button onClick={handlePrevMonth} className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"><ChevronLeft size={18} /></button>
-            <span className="text-xs font-bold uppercase tracking-widest min-w-[100px] text-center text-slate-300">{formatMonthYear(dashboardMonth)}</span>
-            <button onClick={handleNextMonth} className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"><ChevronRight size={18} /></button>
+          <div className="flex items-center gap-0.5 bg-white/[0.04] rounded-xl border border-white/[0.06] p-1 shrink-0">
+            <button onClick={handlePrevMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"><ChevronLeft size={16} /></button>
+            <span className="text-xs font-bold uppercase tracking-widest min-w-[80px] sm:min-w-[100px] text-center text-slate-300 hidden sm:block">{formatMonthYear(dashboardMonth)}</span>
+            <button onClick={handleNextMonth} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"><ChevronRight size={16} /></button>
           </div>
         </div>
 
         {/* Big numbers */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Income */}
-          <div className="glass-card p-5 md:p-6 bg-emerald-500/[0.03] border-emerald-500/[0.08]">
+          <div className="glass-card p-4 sm:p-5 md:p-6 bg-emerald-500/[0.03] border-emerald-500/[0.08]">
             <div className="flex items-center gap-2 mb-3">
-              <div className="p-2 rounded-lg bg-emerald-500/10"><TrendingUp size={18} className="text-emerald-400" /></div>
+              <div className="p-2 rounded-lg bg-emerald-500/10 shrink-0"><TrendingUp size={16} className="text-emerald-400" /></div>
               <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-400">Entradas</span>
             </div>
-            <p className="text-3xl md:text-4xl font-bold font-display text-white tracking-tight">{formatCurrency(monthIncome)}</p>
+            <p className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-white tracking-tight break-all">{formatCurrency(monthIncome)}</p>
             <div className="h-1.5 w-full bg-white/[0.04] rounded-full mt-3 overflow-hidden">
               <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, monthIncome / Math.max(1, monthIncome + monthExpenses) * 100)}%` }} />
             </div>
           </div>
 
           {/* Expenses */}
-          <div className="glass-card p-5 md:p-6 bg-rose-500/[0.03] border-rose-500/[0.08]">
+          <div className="glass-card p-4 sm:p-5 md:p-6 bg-rose-500/[0.03] border-rose-500/[0.08]">
             <div className="flex items-center gap-2 mb-3">
-              <div className="p-2 rounded-lg bg-rose-500/10"><TrendingDown size={18} className="text-rose-400" /></div>
+              <div className="p-2 rounded-lg bg-rose-500/10 shrink-0"><TrendingDown size={16} className="text-rose-400" /></div>
               <span className="text-[11px] font-bold uppercase tracking-widest text-rose-400">Saídas</span>
             </div>
-            <p className="text-3xl md:text-4xl font-bold font-display text-white tracking-tight">{formatCurrency(monthExpenses)}</p>
+            <p className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-white tracking-tight break-all">{formatCurrency(monthExpenses)}</p>
             <div className="h-1.5 w-full bg-white/[0.04] rounded-full mt-3 overflow-hidden">
               <div className="h-full bg-rose-500 rounded-full" style={{ width: `${Math.min(100, monthExpenses / Math.max(1, monthIncome + monthExpenses) * 100)}%` }} />
             </div>
           </div>
 
           {/* Net */}
-          <div className={cn("glass-card p-5 md:p-6", netBg)}>
+          <div className={cn("glass-card p-4 sm:p-5 md:p-6", netBg)}>
             <div className="flex items-center gap-2 mb-3">
-              <div className={cn("p-2 rounded-lg", monthNet >= 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10')}>
-                <Plus size={18} className={netColor} />
+              <div className={cn("p-2 rounded-lg shrink-0", monthNet >= 0 ? 'bg-emerald-500/10' : 'bg-rose-500/10')}>
+                <Plus size={16} className={netColor} />
               </div>
               <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Saldo do Mês</span>
             </div>
-            <p className={cn("text-3xl md:text-4xl font-bold font-display tracking-tight", netColor)}>
+            <p className={cn("text-2xl sm:text-3xl md:text-4xl font-bold font-display tracking-tight break-all", netColor)}>
               {monthNet >= 0 ? '+' : ''}{formatCurrency(monthNet)}
             </p>
-            <div className="flex items-center gap-2 mt-3 text-xs font-medium text-slate-500">
-              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>Receita: {formatCurrency(monthIncome)}</span>
-              <div className="w-2 h-2 rounded-full bg-rose-500 ml-2" />
-              <span>Despesa: {formatCurrency(monthExpenses)}</span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-3 text-xs font-medium text-slate-500">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="truncate">Receita: {formatCurrency(monthIncome)}</span>
+              <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+              <span className="truncate">Despesa: {formatCurrency(monthExpenses)}</span>
             </div>
           </div>
         </div>
 
         {/* Quick metrics row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-            <Wrench size={16} className="text-cyan-400 shrink-0" />
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">OS no Mês</p>
-              <p className="text-lg font-bold text-white">{monthOSCount}</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-4 sm:mt-5">
+          {[
+            { icon: Wrench, color: 'text-cyan-400', label: 'OS no Mês', value: monthOSCount },
+            { icon: Package, color: 'text-amber-400', label: 'Serv./Peças', value: topProducts?.length || 0 },
+            { icon: TrendingUp, color: 'text-emerald-400', label: 'Média Entrada', value: monthOSCount > 0 ? (monthIncome / Math.max(1, monthOSCount)).toFixed(0) : 0 },
+            { icon: TrendingDown, color: 'text-rose-400', label: 'Média Saída', value: monthOSCount > 0 ? (monthExpenses / Math.max(1, monthOSCount)).toFixed(0) : 0 },
+          ].map(({ icon: Icon, color, label, value }) => (
+            <div key={label} className="flex items-center gap-2 px-3 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] min-w-0">
+              <Icon size={15} className={cn(color, 'shrink-0')} />
+              <div className="min-w-0">
+                <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-500 truncate">{label}</p>
+                <p className="text-sm sm:text-base font-bold text-white truncate">{value}</p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-            <Package size={16} className="text-amber-400 shrink-0" />
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Serviços/Peças</p>
-              <p className="text-lg font-bold text-white">{topProducts?.length || 0}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-            <TrendingUp size={16} className="text-emerald-400 shrink-0" />
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Entradas</p>
-              <p className="text-lg font-bold text-white">{monthOSCount > 0 ? (monthIncome / Math.max(1, monthOSCount)).toFixed(0) : 0}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-            <TrendingDown size={16} className="text-rose-400 shrink-0" />
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Saídas</p>
-              <p className="text-lg font-bold text-white">{monthOSCount > 0 ? (monthExpenses / Math.max(1, monthOSCount)).toFixed(0) : 0}</p>
-            </div>
-          </div>
+          ))}
         </div>
       </motion.div>
 

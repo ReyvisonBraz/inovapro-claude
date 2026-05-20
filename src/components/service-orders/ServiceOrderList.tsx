@@ -67,8 +67,9 @@ export const ServiceOrderList: React.FC<ServiceOrderListProps> = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.05 }}
+            style={{ position: 'relative', zIndex: quickStatusOrder?.id === order.id ? 50 : 'auto' }}
           >
-            <ServiceOrderCard 
+            <ServiceOrderCard
               order={order}
               visibleColumns={visibleColumns}
               quickStatusOrder={quickStatusOrder}

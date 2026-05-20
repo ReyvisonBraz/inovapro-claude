@@ -140,9 +140,21 @@ function renderSection(
   </div>`;
 }
 
-// ─── Shared CSS — A4 landscape at 10px base ───────────────────────────────────
+// ─── Shared CSS — A4 landscape at fs px base ─────────────────────────────────
 const sharedCSS = (fs: number, c: Colors) => `
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after {
+    box-sizing: border-box; margin: 0; padding: 0;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  @media print {
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+  }
   body {
     font-family: ${c.font};
     background: #fff;
@@ -161,8 +173,8 @@ const sharedCSS = (fs: number, c: Colors) => `
   }
 
   .hd {
-    background: ${c.primary};
-    color: #fff;
+    background: ${c.primary} !important;
+    color: #fff !important;
     padding: 10px 14px;
     display: flex;
     justify-content: space-between;
@@ -170,10 +182,15 @@ const sharedCSS = (fs: number, c: Colors) => `
     flex-shrink: 0;
     border-radius: 5px 5px 0 0;
   }
-  .hd-via  { font-size: ${fs * 0.72}px; text-transform: uppercase; letter-spacing: 1px; opacity: .62; margin-bottom: 3px; font-weight: 700; }
-  .hd-num  { font-size: ${fs * 2.5}px; font-weight: 900; letter-spacing: -1px; line-height: 1; }
+  .hd-via  { font-size: ${fs * 0.72}px; text-transform: uppercase; letter-spacing: 1px; opacity: .7; margin-bottom: 2px; font-weight: 700; }
+  .hd-num  { font-size: ${fs * 2.6}px; font-weight: 900; letter-spacing: -1px; line-height: 1; }
   .hd-right { text-align: right; }
-  .hd-sub  { font-size: ${fs * 0.85}px; opacity: .82; margin-top: 3px; }
+  .hd-sub  { font-size: ${fs * 0.85}px; opacity: .85; margin-top: 3px; }
+
+  .hd-client-info { margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.25); padding-top: 5px; }
+  .hd-client-name  { font-size: ${fs * 1.65}px; font-weight: 900; line-height: 1.2; opacity: .97; }
+  .hd-client-phone { font-size: ${fs * 1.05}px; font-weight: 700; opacity: .80; margin-top: 2px; letter-spacing: .3px; }
+
   .badge {
     display: inline-block;
     font-size: ${fs * 0.75}px;
@@ -188,16 +205,16 @@ const sharedCSS = (fs: number, c: Colors) => `
   .bd {
     flex: 1;
     overflow: hidden;
-    padding: 11px 14px;
+    padding: 10px 14px;
     display: flex;
     flex-direction: column;
-    gap: 9px;
+    gap: 8px;
     min-height: 0;
   }
 
   .ft {
     flex-shrink: 0;
-    padding: 8px 14px;
+    padding: 7px 14px;
     border-top: 1.5px solid #e2e8f0;
     display: flex;
     align-items: center;
@@ -213,7 +230,7 @@ const sharedCSS = (fs: number, c: Colors) => `
     color: ${c.accent};
     padding-bottom: 3px;
     border-bottom: 1.5px solid ${c.accent}45;
-    margin-bottom: 7px;
+    margin-bottom: 6px;
   }
 
   .fg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
@@ -240,42 +257,40 @@ const sharedCSS = (fs: number, c: Colors) => `
   .mono { font-family: 'Courier New', monospace; letter-spacing: .3px; }
 
   .pbox {
-    background: #fef2f2;
-    border-left: 3.5px solid #dc2626;
+    background: #fef2f2 !important;
+    border-left: 3.5px solid #dc2626 !important;
     padding: 7px 11px;
     border-radius: 0 4px 4px 0;
+    overflow: hidden;
   }
   .ptext {
     font-size: ${fs * 0.9}px;
     font-weight: 600;
     color: #1e293b;
     line-height: 1.55;
-    display: -webkit-box;
-    -webkit-line-clamp: 4;
-    -webkit-box-orient: vertical;
     overflow: hidden;
+    max-height: ${fs * 0.9 * 1.55 * 6}px;
   }
 
   .tblock {
-    background: #f8fafc;
+    background: #f8fafc !important;
     border: 1px solid #e8edf3;
     padding: 7px 11px;
     border-radius: 4px;
+    overflow: hidden;
   }
   .ttext {
     font-size: ${fs * 0.88}px;
     color: #334155;
     line-height: 1.55;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
     overflow: hidden;
+    max-height: ${fs * 0.88 * 1.55 * 5}px;
   }
 
   .ptbl-wrap { overflow: hidden; max-height: 26mm; }
   .ptbl { width: 100%; border-collapse: collapse; }
   .ptbl th {
-    background: #f1f5f9;
+    background: #f1f5f9 !important;
     padding: 5px 7px;
     font-size: ${fs * 0.67}px;
     text-transform: uppercase;
@@ -297,8 +312,8 @@ const sharedCSS = (fs: number, c: Colors) => `
   .ptbl td:nth-child(3),    .ptbl th:nth-child(3)    { text-align: right; }
 
   .total {
-    background: ${c.primary};
-    color: #fff;
+    background: ${c.primary} !important;
+    color: #fff !important;
     padding: 9px 14px;
     border-radius: 5px;
     display: flex;
@@ -310,8 +325,8 @@ const sharedCSS = (fs: number, c: Colors) => `
   .total-val { font-size: ${fs * 1.9}px; font-weight: 900; }
 
   .wbox {
-    background: #fff7ed;
-    border-left: 3.5px solid #f97316;
+    background: #fff7ed !important;
+    border-left: 3.5px solid #f97316 !important;
     padding: 7px 11px;
     border-radius: 0 4px 4px 0;
     flex-shrink: 0;
@@ -319,8 +334,8 @@ const sharedCSS = (fs: number, c: Colors) => `
   .wtext { font-size: ${fs * 0.74}px; font-weight: 700; color: #7c2d12; line-height: 1.5; }
 
   .pbar {
-    background: ${c.primary};
-    color: #fff;
+    background: ${c.primary} !important;
+    color: #fff !important;
     border-radius: 5px;
     padding: 9px 14px;
     display: flex;
@@ -330,11 +345,11 @@ const sharedCSS = (fs: number, c: Colors) => `
   }
   .pbar-lbl  { font-size: ${fs * 0.64}px; text-transform: uppercase; letter-spacing: .6px; opacity: .72; margin-bottom: 3px; font-weight: 700; }
   .pbar-val  { font-size: ${fs * 2.1}px; font-weight: 900; letter-spacing: .1px; line-height: 1; }
-  .pbar-name { font-weight: 800; font-size: ${fs * 1.2}px; margin-top: 4px; }
+  .pbar-name { font-weight: 800; font-size: ${fs * 1.3}px; margin-top: 4px; }
   .pbar-cpf  { font-size: ${fs * 0.74}px; opacity: .72; margin-top: 2px; }
 
   .urg {
-    background: #fefce8;
+    background: #fefce8 !important;
     border: 1px solid #fde047;
     border-radius: 4px;
     padding: 7px 11px;
@@ -360,18 +375,25 @@ const sharedCSS = (fs: number, c: Colors) => `
 
 // ─── Tech column ──────────────────────────────────────────────────────────────
 function techBody(data: PrintData, config: OSLayoutConfig, substValues: Record<string, string>): string {
-  const { osNumber, date, technician, selectedOrder: so, techQrImg, printType, formatCurrency } = data;
+  const { osNumber, date, technician, customer, selectedOrder: so, techQrImg, printType, formatCurrency } = data;
   const statusStyle = resolveStatusStyle(so.status || '');
   const sections = config.sections
     .filter(s => s.visible)
     .map(s => renderSection(s, substValues, so, printType, formatCurrency))
     .join('');
 
+  const clientName = `${customer.firstName} ${customer.lastName}`.trim();
+  const clientPhone = customer.phone || '';
+
   return `
   <div class="hd">
     <div>
       <div class="hd-via">Ordem de Servico &mdash; Via Tecnico</div>
       <div class="hd-num">${osNumber}</div>
+      <div class="hd-client-info">
+        <div class="hd-client-name">${clientName}</div>
+        ${clientPhone ? `<div class="hd-client-phone">&#128222; ${clientPhone}</div>` : ''}
+      </div>
     </div>
     <div class="hd-right">
       <div class="badge" style="${statusStyle}">${so.status || 'Pendente'}</div>
@@ -488,7 +510,7 @@ export function getA4EnhancedLayout(data: PrintData): string {
 <title>${data.osNumber}</title>
 <style>
 @page { size: A4 landscape; margin: 6mm; }
-${sharedCSS(10, c)}
+${sharedCSS(11.5, c)}
 body {
   width: 285mm;
   height: 198mm;
@@ -546,7 +568,7 @@ export function getA5Layout(data: PrintData): string {
 <title>${data.osNumber}</title>
 <style>
 @page { size: A5 portrait; margin: 4mm; }
-${sharedCSS(8, c)}
+${sharedCSS(9, c)}
 body {
   width: 140mm;
   height: 202mm;
@@ -615,30 +637,38 @@ export function getThermalLayout(data: PrintData): string {
 <title>${osNumber}</title>
 <style>
 @page { size: 80mm auto; margin: 3mm 4mm; }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after {
+  box-sizing: border-box; margin: 0; padding: 0;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  color-adjust: exact !important;
+}
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
 body { font-family: ${c.font}; width: 72mm; color: #1e293b; font-size: 9px; line-height: 1.45; }
 .thd { text-align: center; padding-bottom: 7px; margin-bottom: 10px; border-bottom: 2px solid ${c.primary}; }
-.thd-brand { font-size: 8px; font-weight: 800; color: ${c.primary}; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 2px; }
+.thd-brand { font-size: 8px; font-weight: 800; color: ${c.primary} !important; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 2px; }
 .thd-title { font-size: 11px; font-weight: 900; color: #1e293b; }
-.thd-os    { font-size: 20px; font-weight: 900; color: ${c.primary}; line-height: 1; margin: 4px 0; }
+.thd-os    { font-size: 20px; font-weight: 900; color: ${c.primary} !important; line-height: 1; margin: 4px 0; }
 .thd-date  { font-size: 8px; color: #64748b; }
 .tbadge { display: inline-block; font-size: 8px; font-weight: 800; padding: 3px 10px; border-radius: 12px; text-transform: uppercase; letter-spacing: .4px; margin: 5px 0; }
-.tst { font-size: 7px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: ${c.accent}; border-bottom: 1px solid ${c.accent}50; padding-bottom: 2px; margin-bottom: 6px; margin-top: 9px; }
-.tclient { background: ${c.primary}; color: #fff; border-radius: 5px; padding: 8px 10px; margin-bottom: 9px; }
+.tst { font-size: 7px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: ${c.accent} !important; border-bottom: 1px solid ${c.accent}50; padding-bottom: 2px; margin-bottom: 6px; margin-top: 9px; }
+.tclient { background: ${c.primary} !important; color: #fff !important; border-radius: 5px; padding: 8px 10px; margin-bottom: 9px; }
 .tclient-lbl   { font-size: 7px; text-transform: uppercase; letter-spacing: .6px; opacity: .72; margin-bottom: 2px; font-weight: 700; }
 .tclient-phone { font-size: 18px; font-weight: 900; letter-spacing: .2px; line-height: 1; margin-bottom: 3px; }
 .tclient-name  { font-size: 10px; font-weight: 800; }
 .tclient-cpf   { font-size: 7.5px; opacity: .72; margin-top: 2px; }
-.tprob { background: #fef2f2; border-left: 3px solid #dc2626; padding: 5px 8px; border-radius: 0 4px 4px 0; margin-bottom: 8px; }
-.tprob-lbl  { font-size: 7px; font-weight: 800; text-transform: uppercase; color: #dc2626; margin-bottom: 3px; }
+.tprob { background: #fef2f2 !important; border-left: 3px solid #dc2626 !important; padding: 5px 8px; border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+.tprob-lbl  { font-size: 7px; font-weight: 800; text-transform: uppercase; color: #dc2626 !important; margin-bottom: 3px; }
 .tprob-text { font-size: 9px; font-weight: 600; color: #1e293b; line-height: 1.45; white-space: pre-line; }
 .tequip      { margin-bottom: 8px; }
 .tequip-text { font-size: 10px; font-weight: 800; color: #0f172a; white-space: pre-line; line-height: 1.5; }
-.twbox  { background: #fff7ed; border-left: 3px solid #f97316; padding: 5px 8px; border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+.twbox  { background: #fff7ed !important; border-left: 3px solid #f97316 !important; padding: 5px 8px; border-radius: 0 4px 4px 0; margin-bottom: 8px; }
 .twtext { font-size: 7.5px; font-weight: 700; color: #7c2d12; line-height: 1.45; }
 .tqr     { text-align: center; margin: 12px 0 8px; }
 .tqr img { width: 72px; height: 72px; }
-.tqr-lbl { font-size: 8px; font-weight: 800; text-transform: uppercase; color: ${c.accent}; margin-bottom: 4px; }
+.tqr-lbl { font-size: 8px; font-weight: 800; text-transform: uppercase; color: ${c.accent} !important; margin-bottom: 4px; }
 .tqr-sub { font-size: 7.5px; color: #64748b; margin-top: 3px; }
 .tdiv    { border: none; border-top: 1px dashed #cbd5e1; margin: 9px 0; }
 .tfooter { text-align: center; font-size: 7.5px; color: #94a3b8; letter-spacing: .5px; padding-top: 5px; }

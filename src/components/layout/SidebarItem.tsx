@@ -41,7 +41,7 @@ export const SidebarItem = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="font-semibold text-sm tracking-tight whitespace-nowrap overflow-hidden"
+        className="font-semibold text-sm tracking-tight whitespace-nowrap overflow-hidden flex-1 min-w-0"
       >
         {label}
       </motion.span>
