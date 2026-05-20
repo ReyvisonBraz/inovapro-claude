@@ -66,21 +66,19 @@ serve(async (req) => {
         services: o.services ? JSON.parse(o.services) : []
       }))
 
-      // Get counts
-      const { count: awaiting } = await supabase
+      // Get per-status counts (no status filter — always reflects global totals)
+      const { data: allStatusRows } = await supabase
         .from('service_orders')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['Aguardando Análise', 'Aguardando Peças'])
+        .select('status')
 
-      const { count: active } = await supabase
-        .from('service_orders')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['Em Manutenção', 'Em Reparo', 'Aprovado'])
-
-      const { count: ready } = await supabase
-        .from('service_orders')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['Pronto para Retirada', 'Pronto', 'Concluído'])
+      const statusCounts: Record<string, number> = {}
+      if (allStatusRows) {
+        for (const row of allStatusRows) {
+          if (row.status) {
+            statusCounts[row.status] = (statusCounts[row.status] || 0) + 1
+          }
+        }
+      }
 
       return successResponse({
         data: orders,
@@ -89,11 +87,7 @@ serve(async (req) => {
           page,
           limit,
           totalPages: Math.ceil((count || 0) / limit),
-          counts: {
-            awaiting: awaiting || 0,
-            active: active || 0,
-            ready: ready || 0
-          }
+          statusCounts
         }
       })
     }

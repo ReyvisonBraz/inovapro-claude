@@ -25,6 +25,7 @@ interface ServiceOrderFiltersProps {
   showFiltersExpanded: boolean;
   onToggleFilters: () => void;
   filteredOrders: any[];
+  statusCounts: Record<string, number>;
 }
 
 export const ServiceOrderFilters: React.FC<ServiceOrderFiltersProps> = ({
@@ -49,8 +50,10 @@ export const ServiceOrderFilters: React.FC<ServiceOrderFiltersProps> = ({
   onClearFilters,
   showFiltersExpanded,
   onToggleFilters,
-  filteredOrders
+  filteredOrders,
+  statusCounts
 }) => {
+  const totalAllOrders = Object.values(statusCounts).reduce((a, b) => a + b, 0);
   const hasActiveFilters = searchTerm || statusFilter !== 'all' || priorityFilter !== 'all' || dateFilter !== 'all';
 
   return (
@@ -217,12 +220,12 @@ export const ServiceOrderFilters: React.FC<ServiceOrderFiltersProps> = ({
                   "text-[10px] font-bold uppercase tracking-wider leading-tight",
                   statusFilter === 'all' ? "text-primary" : "text-slate-500"
                 )}>Todas</p>
-                <p className="text-xl font-black text-white leading-tight">{filteredOrders.length}</p>
+                <p className="text-xl font-black text-white leading-tight">{totalAllOrders}</p>
               </div>
             </button>
 
             {statuses.map(status => {
-              const count = filteredOrders.filter((o: any) => o.status === status.name).length;
+              const count = statusCounts[status.name] ?? 0;
               const isSelected = statusFilter === status.name;
               const initials = status.name
                 .split(' ')

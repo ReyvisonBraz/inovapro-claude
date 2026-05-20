@@ -290,6 +290,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
         showFiltersExpanded={showFiltersExpanded}
         onToggleFilters={() => setShowFiltersExpanded(!showFiltersExpanded)}
         filteredOrders={orders.data}
+        statusCounts={orders.meta?.statusCounts ?? {}}
       />
 
       <ServiceOrderList 
