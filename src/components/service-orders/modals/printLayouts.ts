@@ -1,5 +1,11 @@
-import { OSTemplateConfig } from '../../../types';
-import { DEFAULT_OS_SECTIONS, DEFAULT_OS_TEMPLATE_CONFIG } from '../../../lib/osTemplateConfig';
+import { OSSection, OSLayoutConfig } from '../../../types';
+import {
+  DEFAULT_A4_COMPLETE_CONFIG,
+  DEFAULT_A4_SIMPLIFIED_CONFIG,
+  DEFAULT_A5_CONFIG,
+  DEFAULT_THERMAL_CONFIG,
+  substituteTemplate,
+} from '../../../lib/osTemplateConfig';
 
 export interface PrintData {
   osNumber: string;
@@ -18,16 +24,16 @@ export interface PrintData {
   techQrImg: string;
   printType: 'simplified' | 'complete';
   formatCurrency: (amount: number) => string;
-  config?: OSTemplateConfig;
+  config?: OSLayoutConfig;
 }
 
 interface Colors { primary: string; accent: string; font: string; }
 
-function getColors(config?: OSTemplateConfig): Colors {
+function getColors(config?: OSLayoutConfig): Colors {
   return {
-    primary: config?.primaryColor || DEFAULT_OS_TEMPLATE_CONFIG.primaryColor,
-    accent:  config?.accentColor  || DEFAULT_OS_TEMPLATE_CONFIG.accentColor,
-    font:    config?.fontFamily   || DEFAULT_OS_TEMPLATE_CONFIG.fontFamily,
+    primary: config?.primaryColor || DEFAULT_A4_COMPLETE_CONFIG.primaryColor,
+    accent:  config?.accentColor  || DEFAULT_A4_COMPLETE_CONFIG.accentColor,
+    font:    config?.fontFamily   || DEFAULT_A4_COMPLETE_CONFIG.fontFamily,
   };
 }
 
@@ -42,124 +48,61 @@ function resolveStatusStyle(status: string): string {
   return 'background:#fef3c7;color:#92400e;border:1px solid #fbbf24;';
 }
 
-// ─── Shared base CSS ──────────────────────────────────────────────────────────
-const sharedCSS = (fs: number, c: Colors) => `
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: ${c.font}; background: #fff; color: #1e293b; font-size: ${fs}px; line-height: 1.35; overflow: hidden; }
+// ─── Build substitution values from PrintData ─────────────────────────────────
+function buildSubstValues(data: PrintData): Record<string, string> {
+  const so = data.selectedOrder;
+  return {
+    numero_os:             data.osNumber,
+    data:                  data.date,
+    data_extenso:          data.dateFull,
+    tecnico:               data.technician,
+    cliente_nome:          `${data.customer.firstName} ${data.customer.lastName}`.trim(),
+    cliente_primeiro_nome: data.customer.firstName,
+    cliente_sobrenome:     data.customer.lastName,
+    cliente_telefone:      data.customer.phone  || '',
+    cliente_cpf:           data.customer.cpf    || '',
+    equipamento:           data.equipmentDisplay,
+    equipamento_tipo:      so.equipmentType     || '',
+    equipamento_marca:     so.equipmentBrand    || '',
+    equipamento_modelo:    so.equipmentModel    || '',
+    equipamento_serial:    so.equipmentSerial   || '',
+    equipamento_cor:       so.equipmentColor    || '',
+    senha:                 so.customerPassword  || '',
+    acessorios:            so.accessories       || '',
+    ram:                   so.ramInfo           || '',
+    ssd:                   so.ssdInfo           || '',
+    problema:              so.reportedProblem   || '',
+    analise:               so.technicalAnalysis  || '',
+    servicos:              so.servicesPerformed  || '',
+    valor_total:           data.formatCurrency(so.totalAmount  ?? 0),
+    taxa_servico:          data.formatCurrency(so.serviceFee   ?? 0),
+    observacoes:           so.finalObservations || '',
+    status:                so.status            || '',
+  };
+}
 
-  .col { display: flex; flex-direction: column; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 4px; }
-  .hd { background: ${c.primary}; color: #fff; padding: 5px 9px; display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; border-radius: 3px 3px 0 0; }
-  .hd-tag { font-size: ${fs * 0.72}px; text-transform: uppercase; letter-spacing: .9px; opacity: .6; margin-bottom: 2px; }
-  .hd-num { font-size: ${fs * 2}px; font-weight: 900; letter-spacing: -.5px; }
-  .hd-right { text-align: right; }
-  .hd-sub { font-size: ${fs * 0.78}px; opacity: .75; margin-top: 1px; }
-  .badge { display: inline-block; font-size: ${fs * 0.72}px; font-weight: 800; padding: 2px 7px; border-radius: 10px; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 3px; }
+// ─── Render a single section using its template ───────────────────────────────
+function renderSection(
+  section: OSSection,
+  substValues: Record<string, string>,
+  so: any,
+  printType: string,
+  fmt: (n: number) => string,
+): string {
+  const { id, label, template } = section;
 
-  .bd { flex: 1; overflow: hidden; padding: 5px 9px; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
-  .ft { flex-shrink: 0; padding: 4px 9px; border-top: 1px solid #e2e8f0; display: flex; align-items: center; gap: 8px; }
-
-  .sec { flex-shrink: 0; }
-  .st { font-size: ${fs * 0.7}px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: ${c.accent}; padding-bottom: 2px; border-bottom: 1px solid ${c.accent}50; margin-bottom: 3px; }
-
-  .fg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; }
-  .fg3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px 6px; margin-top: 2px; }
-  .fc { min-width: 0; overflow: hidden; }
-  .fl { display: block; font-size: ${fs * 0.63}px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: .3px; margin-bottom: .5px; }
-  .fv { display: block; font-size: ${fs}px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .mono { font-family: 'Courier New', monospace; }
-
-  .pbox { background: #fef2f2; border-left: 3px solid #dc2626; padding: 3px 7px; border-radius: 0 3px 3px 0; }
-  .ptext { font-size: ${fs * 0.88}px; font-weight: 600; color: #1e293b; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
-
-  .tblock { background: #f8fafc; padding: 3px 7px; border-radius: 3px; }
-  .ttext { font-size: ${fs * 0.84}px; color: #334155; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
-
-  .ptbl-wrap { overflow: hidden; max-height: 22mm; }
-  .ptbl { width: 100%; border-collapse: collapse; }
-  .ptbl th { background: #f1f5f9; padding: 2px 4px; font-size: ${fs * 0.65}px; text-transform: uppercase; color: #64748b; border-bottom: 1px solid #e2e8f0; text-align: left; }
-  .ptbl td { padding: 2px 4px; border-bottom: 1px solid #f1f5f9; font-size: ${fs * 0.84}px; }
-  .ptbl td:last-child, .ptbl th:last-child { text-align: right; }
-  .ptbl td:nth-child(2), .ptbl th:nth-child(2) { text-align: center; }
-  .ptbl td:nth-child(3), .ptbl th:nth-child(3) { text-align: right; }
-
-  .total { background: ${c.primary}; color: #fff; padding: 4px 9px; border-radius: 3px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-  .total-lbl { font-size: ${fs * 0.7}px; text-transform: uppercase; letter-spacing: .5px; opacity: .8; }
-  .total-val { font-size: ${fs * 1.5}px; font-weight: 900; }
-
-  .wbox { background: #fff7ed; border-left: 3px solid #f97316; padding: 3px 7px; border-radius: 0 3px 3px 0; flex-shrink: 0; }
-  .wtext { font-size: ${fs * 0.7}px; font-weight: 700; color: #7c2d12; line-height: 1.4; }
-
-  .pbar { background: ${c.primary}; color: #fff; border-radius: 3px; padding: 5px 9px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-  .pbar-lbl { font-size: ${fs * 0.6}px; text-transform: uppercase; letter-spacing: .5px; opacity: .7; margin-bottom: 1px; }
-  .pbar-val { font-size: ${fs * 1.7}px; font-weight: 900; letter-spacing: .1px; }
-  .pbar-name { font-weight: 800; font-size: ${fs * 1.1}px; }
-  .pbar-cpf { font-size: ${fs * 0.7}px; opacity: .7; }
-
-  .urg { background: #fefce8; border: 1px solid #fde047; border-radius: 3px; padding: 3px 7px; flex-shrink: 0; }
-  .urg-text { font-size: ${fs * 0.65}px; font-weight: 700; color: #713f12; line-height: 1.35; }
-
-  .qrw { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
-  .qrw img { width: 28px; height: 28px; }
-  .qr-lbl { font-size: ${fs * 0.63}px; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: .3px; }
-  .qr-sub { font-size: ${fs * 0.63}px; color: #94a3b8; margin-top: 1px; }
-  .sig { flex: 1; border-top: 1px solid #94a3b8; padding-top: 2px; text-align: center; font-size: ${fs * 0.7}px; color: #64748b; margin-left: 4px; }
-`;
-
-// ─── Module-level field helper ────────────────────────────────────────────────
-const f = (lbl: string, val?: string | null, mono = false) =>
-  `<div class="fc"><span class="fl">${lbl}</span><span class="fv${mono ? ' mono' : ''}">${val || '&mdash;'}</span></div>`;
-
-// ─── Section renderers (tech body) ────────────────────────────────────────────
-type SR = (so: any, printType: string, fmt: (n: number) => string) => string;
-
-const SECTION_RENDERERS: Record<string, SR> = {
-  equipment: (so) => `
-    <div class="sec">
-      <div class="st">Dados do Equipamento</div>
-      <div class="fg2">
-        ${f('Tipo', so.equipmentType)}
-        ${f('Marca', so.equipmentBrand)}
-        ${f('Modelo', so.equipmentModel)}
-        ${f('No de Serie', so.equipmentSerial)}
-        ${f('Cor', so.equipmentColor)}
-        ${f('Senha', so.customerPassword, true)}
-      </div>
-      ${(so.accessories || so.ramInfo || so.ssdInfo) ? `
-      <div class="fg3">
-        ${so.accessories ? f('Acessorios', so.accessories) : ''}
-        ${so.ramInfo ? f('RAM', so.ramInfo) : ''}
-        ${so.ssdInfo ? f('SSD/HD', so.ssdInfo) : ''}
-      </div>` : ''}
-    </div>`,
-
-  problem: (so) => !so.reportedProblem ? '' : `
-    <div class="sec">
-      <div class="st">Problema Relatado</div>
-      <div class="pbox"><div class="ptext">${so.reportedProblem}</div></div>
-    </div>`,
-
-  analysis: (so, pt) => pt !== 'complete' || !so.technicalAnalysis ? '' : `
-    <div class="sec">
-      <div class="st">Analise Tecnica</div>
-      <div class="tblock"><div class="ttext">${so.technicalAnalysis}</div></div>
-    </div>`,
-
-  services: (so, pt) => pt !== 'complete' || !so.servicesPerformed ? '' : `
-    <div class="sec">
-      <div class="st">Servicos Realizados</div>
-      <div class="tblock"><div class="ttext">${so.servicesPerformed}</div></div>
-    </div>`,
-
-  parts: (so, pt, fmt) => pt !== 'complete' || !so.partsUsed?.length ? '' : `
-    <div class="sec">
-      <div class="st">Pecas Utilizadas</div>
+  // Parts: engine-generated table — template not applicable
+  if (id === 'parts') {
+    if (printType !== 'complete' || !so.partsUsed?.length) return '';
+    return `<div class="sec">
+      <div class="st">${label}</div>
       <div class="ptbl-wrap">
         <table class="ptbl">
           <thead><tr>
-            <th style="width:52%">Descricao</th>
+            <th style="width:50%">Descricao</th>
             <th style="width:10%">Qtd</th>
-            <th style="width:19%">Unit.</th>
-            <th style="width:19%">Subtotal</th>
+            <th style="width:20%">Unit.</th>
+            <th style="width:20%">Subtotal</th>
           </tr></thead>
           <tbody>${so.partsUsed.map((p: any) => `
             <tr>
@@ -171,44 +114,263 @@ const SECTION_RENDERERS: Record<string, SR> = {
           </tbody>
         </table>
       </div>
-    </div>`,
+    </div>`;
+  }
 
-  values: (so, pt, fmt) => pt !== 'complete' || !so.totalAmount ? '' : `
-    <div class="total">
-      <span class="total-lbl">Valor Total do Servico</span>
+  // Values: engine-generated total bar — template not applicable
+  if (id === 'values') {
+    if (printType !== 'complete' || !so.totalAmount) return '';
+    return `<div class="total">
+      <span class="total-lbl">${label}</span>
       <span class="total-val">${fmt(so.totalAmount)}</span>
-    </div>`,
+    </div>`;
+  }
 
-  observations: (so) => !so.finalObservations ? '' : `
-    <div class="sec">
-      <div class="st">Observacoes</div>
-      <div class="tblock"><div class="ttext">${so.finalObservations}</div></div>
-    </div>`,
-};
+  // All other sections: render via template
+  if (!template) return '';
+  const content = substituteTemplate(template, substValues).trim();
+  if (!content) return '';
 
-// ─── Tech body ────────────────────────────────────────────────────────────────
-function techBody(
-  so: any,
-  osNumber: string,
-  technician: string,
-  date: string,
-  statusStyle: string,
-  techQrImg: string,
-  printType: string,
-  formatCurrency: (n: number) => string,
-  config?: OSTemplateConfig,
-): string {
-  const sections = (config?.sections ?? DEFAULT_OS_SECTIONS)
+  const containerCls = id === 'problem' ? 'pbox' : 'tblock';
+  const textCls      = id === 'problem' ? 'ptext' : 'ttext';
+
+  return `<div class="sec">
+    <div class="st">${label}</div>
+    <div class="${containerCls}"><div class="${textCls}" style="white-space:pre-line">${content}</div></div>
+  </div>`;
+}
+
+// ─── Shared CSS — A4 landscape at 10px base ───────────────────────────────────
+const sharedCSS = (fs: number, c: Colors) => `
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: ${c.font};
+    background: #fff;
+    color: #1e293b;
+    font-size: ${fs}px;
+    line-height: 1.5;
+    overflow: hidden;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 6px;
+  }
+
+  .hd {
+    background: ${c.primary};
+    color: #fff;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-shrink: 0;
+    border-radius: 5px 5px 0 0;
+  }
+  .hd-via  { font-size: ${fs * 0.72}px; text-transform: uppercase; letter-spacing: 1px; opacity: .62; margin-bottom: 3px; font-weight: 700; }
+  .hd-num  { font-size: ${fs * 2.5}px; font-weight: 900; letter-spacing: -1px; line-height: 1; }
+  .hd-right { text-align: right; }
+  .hd-sub  { font-size: ${fs * 0.85}px; opacity: .82; margin-top: 3px; }
+  .badge {
+    display: inline-block;
+    font-size: ${fs * 0.75}px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-top: 5px;
+  }
+
+  .bd {
+    flex: 1;
+    overflow: hidden;
+    padding: 11px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    min-height: 0;
+  }
+
+  .ft {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-top: 1.5px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .sec { flex-shrink: 0; }
+  .st {
+    font-size: ${fs * 0.74}px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: ${c.accent};
+    padding-bottom: 3px;
+    border-bottom: 1.5px solid ${c.accent}45;
+    margin-bottom: 7px;
+  }
+
+  .fg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+  .fg3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px 10px; margin-top: 5px; }
+  .fc  { min-width: 0; overflow: hidden; }
+  .fl  {
+    display: block;
+    font-size: ${fs * 0.66}px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: .5px;
+    margin-bottom: 2px;
+  }
+  .fv  {
+    display: block;
+    font-size: ${fs}px;
+    font-weight: 700;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mono { font-family: 'Courier New', monospace; letter-spacing: .3px; }
+
+  .pbox {
+    background: #fef2f2;
+    border-left: 3.5px solid #dc2626;
+    padding: 7px 11px;
+    border-radius: 0 4px 4px 0;
+  }
+  .ptext {
+    font-size: ${fs * 0.9}px;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .tblock {
+    background: #f8fafc;
+    border: 1px solid #e8edf3;
+    padding: 7px 11px;
+    border-radius: 4px;
+  }
+  .ttext {
+    font-size: ${fs * 0.88}px;
+    color: #334155;
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .ptbl-wrap { overflow: hidden; max-height: 26mm; }
+  .ptbl { width: 100%; border-collapse: collapse; }
+  .ptbl th {
+    background: #f1f5f9;
+    padding: 5px 7px;
+    font-size: ${fs * 0.67}px;
+    text-transform: uppercase;
+    color: #64748b;
+    border-bottom: 1.5px solid #e2e8f0;
+    text-align: left;
+    font-weight: 800;
+    letter-spacing: .5px;
+  }
+  .ptbl td {
+    padding: 5px 7px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: ${fs * 0.88}px;
+    font-weight: 600;
+    color: #1e293b;
+  }
+  .ptbl td:last-child,      .ptbl th:last-child      { text-align: right; }
+  .ptbl td:nth-child(2),    .ptbl th:nth-child(2)    { text-align: center; }
+  .ptbl td:nth-child(3),    .ptbl th:nth-child(3)    { text-align: right; }
+
+  .total {
+    background: ${c.primary};
+    color: #fff;
+    padding: 9px 14px;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .total-lbl { font-size: ${fs * 0.74}px; text-transform: uppercase; letter-spacing: .6px; opacity: .8; font-weight: 700; }
+  .total-val { font-size: ${fs * 1.9}px; font-weight: 900; }
+
+  .wbox {
+    background: #fff7ed;
+    border-left: 3.5px solid #f97316;
+    padding: 7px 11px;
+    border-radius: 0 4px 4px 0;
+    flex-shrink: 0;
+  }
+  .wtext { font-size: ${fs * 0.74}px; font-weight: 700; color: #7c2d12; line-height: 1.5; }
+
+  .pbar {
+    background: ${c.primary};
+    color: #fff;
+    border-radius: 5px;
+    padding: 9px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .pbar-lbl  { font-size: ${fs * 0.64}px; text-transform: uppercase; letter-spacing: .6px; opacity: .72; margin-bottom: 3px; font-weight: 700; }
+  .pbar-val  { font-size: ${fs * 2.1}px; font-weight: 900; letter-spacing: .1px; line-height: 1; }
+  .pbar-name { font-weight: 800; font-size: ${fs * 1.2}px; margin-top: 4px; }
+  .pbar-cpf  { font-size: ${fs * 0.74}px; opacity: .72; margin-top: 2px; }
+
+  .urg {
+    background: #fefce8;
+    border: 1px solid #fde047;
+    border-radius: 4px;
+    padding: 7px 11px;
+    flex-shrink: 0;
+  }
+  .urg-text { font-size: ${fs * 0.74}px; font-weight: 700; color: #713f12; line-height: 1.5; }
+
+  .qrw     { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+  .qrw img { width: 40px; height: 40px; }
+  .qr-lbl  { font-size: ${fs * 0.7}px; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: .4px; }
+  .qr-sub  { font-size: ${fs * 0.66}px; color: #94a3b8; margin-top: 2px; }
+  .sig     {
+    flex: 1;
+    border-top: 1.5px solid #94a3b8;
+    padding-top: 4px;
+    text-align: center;
+    font-size: ${fs * 0.8}px;
+    color: #64748b;
+    font-weight: 700;
+    margin-left: 8px;
+  }
+`;
+
+// ─── Tech column ──────────────────────────────────────────────────────────────
+function techBody(data: PrintData, config: OSLayoutConfig, substValues: Record<string, string>): string {
+  const { osNumber, date, technician, selectedOrder: so, techQrImg, printType, formatCurrency } = data;
+  const statusStyle = resolveStatusStyle(so.status || '');
+  const sections = config.sections
     .filter(s => s.visible)
-    .map(s => SECTION_RENDERERS[s.id]?.(so, printType, formatCurrency) ?? '')
+    .map(s => renderSection(s, substValues, so, printType, formatCurrency))
     .join('');
-
-  const showQr = config?.showQrTech !== false;
 
   return `
   <div class="hd">
     <div>
-      <div class="hd-tag">Ordem de Servico &mdash; Via Tecnico</div>
+      <div class="hd-via">Ordem de Servico &mdash; Via Tecnico</div>
       <div class="hd-num">${osNumber}</div>
     </div>
     <div class="hd-right">
@@ -218,7 +380,7 @@ function techBody(
     </div>
   </div>
   <div class="bd">${sections}</div>
-  ${showQr ? `
+  ${config.showQrTech !== false ? `
   <div class="ft">
     <div class="qrw">
       <img src="${techQrImg}" />
@@ -231,24 +393,25 @@ function techBody(
   </div>` : ''}`;
 }
 
-// ─── Client body ──────────────────────────────────────────────────────────────
-function clientBody(
-  so: any,
-  osNumber: string,
-  customer: PrintData['customer'],
-  dateFull: string,
-  customerQrImg: string,
-  config?: OSTemplateConfig,
-): string {
-  const showWarning  = config?.showWarning   !== false;
-  const showQrClient = config?.showQrClient  !== false;
-  const showProblem  = config?.sections?.find(s => s.id === 'problem')?.visible !== false;
-  const showObs      = config?.sections?.find(s => s.id === 'observations')?.visible !== false;
+// ─── Client column ────────────────────────────────────────────────────────────
+function clientBody(data: PrintData, config: OSLayoutConfig, substValues: Record<string, string>): string {
+  const { osNumber, customer, dateFull, selectedOrder: so, customerQrImg } = data;
+
+  const getSection   = (id: OSSection['id']) => config.sections.find(s => s.id === id);
+  const isVisible    = (id: OSSection['id']) => getSection(id)?.visible !== false;
+  const getContent   = (id: OSSection['id']) => {
+    const s = getSection(id);
+    return s?.template ? substituteTemplate(s.template, substValues).trim() : '';
+  };
+
+  const equipContent = getContent('equipment');
+  const probContent  = getContent('problem');
+  const obsContent   = getContent('observations');
 
   return `
   <div class="hd">
     <div>
-      <div class="hd-tag">Comprovante de Entrada &mdash; Via Cliente</div>
+      <div class="hd-via">Comprovante de Entrada &mdash; Via Cliente</div>
       <div class="hd-num">${osNumber}</div>
     </div>
     <div class="hd-right">
@@ -256,50 +419,50 @@ function clientBody(
     </div>
   </div>
   <div class="bd">
-    ${showWarning ? `
+    ${config.showWarning !== false ? `
     <div class="wbox">
-      <div class="wtext"><strong>AVISO DE RETIRADA:</strong> Apos a conclusao do servico, o equipamento deve ser retirado em ate <strong>30 dias corridos</strong>. Apos este prazo serao cobradas taxas de armazenamento diarias. Equipamentos nao retirados apos 90 dias poderao ser encaminhados para deposito externo ou descartados conforme legislacao vigente.</div>
+      <div class="wtext">
+        <strong>AVISO DE RETIRADA:</strong> Apos a conclusao do servico, o equipamento deve ser retirado
+        em ate <strong>30 dias corridos</strong>. Apos este prazo serao cobradas taxas de armazenamento
+        diarias. Equipamentos nao retirados apos 90 dias poderao ser descartados conforme legislacao vigente.
+      </div>
     </div>` : ''}
 
     <div class="pbar">
       <div>
         <div class="pbar-lbl">Telefone / WhatsApp</div>
         <div class="pbar-val">${customer.phone || 'Nao informado'}</div>
-      </div>
-      <div style="text-align:right">
         <div class="pbar-name">${customer.firstName} ${customer.lastName}</div>
         ${customer.cpf ? `<div class="pbar-cpf">CPF: ${customer.cpf}</div>` : ''}
       </div>
     </div>
 
+    ${equipContent ? `
     <div class="sec">
       <div class="st">Dados do Equipamento</div>
-      <div class="fg2">
-        ${f('Tipo', so.equipmentType)}
-        ${f('Marca', so.equipmentBrand)}
-        ${f('Modelo', so.equipmentModel)}
-        ${f('No de Serie', so.equipmentSerial)}
-        ${f('Cor', so.equipmentColor)}
-      </div>
-    </div>
-
-    ${showProblem && so.reportedProblem ? `
-    <div class="sec">
-      <div class="st">Problema Relatado</div>
-      <div class="pbox"><div class="ptext">${so.reportedProblem}</div></div>
+      <div class="tblock"><div class="ttext" style="white-space:pre-line">${equipContent}</div></div>
     </div>` : ''}
 
-    ${showObs && so.finalObservations ? `
+    ${isVisible('problem') && probContent ? `
+    <div class="sec">
+      <div class="st">Problema Relatado</div>
+      <div class="pbox"><div class="ptext" style="white-space:pre-line">${probContent}</div></div>
+    </div>` : ''}
+
+    ${isVisible('observations') && obsContent ? `
     <div class="sec">
       <div class="st">Observacoes</div>
-      <div class="tblock"><div class="ttext">${so.finalObservations}</div></div>
+      <div class="tblock"><div class="ttext" style="white-space:pre-line">${obsContent}</div></div>
     </div>` : ''}
 
     <div class="urg">
-      <div class="urg-text">Tarifa de urgencia disponivel para analise prioritaria mediante taxa adicional. Consulte o atendimento.</div>
+      <div class="urg-text">
+        <strong>Analise prioritaria</strong> disponivel mediante taxa adicional. Consulte o atendimento.
+        Este comprovante e necessario para a retirada do equipamento.
+      </div>
     </div>
   </div>
-  ${showQrClient ? `
+  ${config.showQrClient !== false ? `
   <div class="ft">
     <div class="qrw">
       <img src="${customerQrImg}" />
@@ -314,39 +477,48 @@ function clientBody(
 
 // ─── A4 Landscape — 2 colunas lado a lado ────────────────────────────────────
 export function getA4EnhancedLayout(data: PrintData): string {
-  const { osNumber, date, dateFull, technician, customer, selectedOrder, customerQrImg, techQrImg, printType, formatCurrency, config } = data;
-  const so = selectedOrder;
-  const statusStyle = resolveStatusStyle(so.status || '');
+  const config = data.config ?? (data.printType === 'simplified' ? DEFAULT_A4_SIMPLIFIED_CONFIG : DEFAULT_A4_COMPLETE_CONFIG);
   const c = getColors(config);
+  const substValues = buildSubstValues(data);
 
   return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<title>${osNumber}</title>
+<title>${data.osNumber}</title>
 <style>
-@page { size: A4 landscape; margin: 5mm 6mm; }
-${sharedCSS(7.5, c)}
+@page { size: A4 landscape; margin: 6mm; }
+${sharedCSS(10, c)}
 body {
-  width: 285mm; height: 200mm;
-  display: flex; flex-direction: row; gap: 0;
+  width: 285mm;
+  height: 198mm;
+  display: flex;
+  flex-direction: row;
+  gap: 0;
 }
 .col { flex: 1; min-width: 0; }
 .divider {
-  flex-shrink: 0; width: 14px;
-  display: flex; flex-direction: column; align-items: center;
+  flex-shrink: 0;
+  width: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
-.dline { flex: 1; border-left: 1.5px dashed #94a3b8; }
+.dline { flex: 1; border-left: 1.5px dashed #cbd5e1; }
 .dcut {
-  flex-shrink: 0; font-size: 9px; color: #94a3b8;
-  writing-mode: vertical-rl; letter-spacing: 2px;
-  padding: 4px 0; white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 8px;
+  color: #94a3b8;
+  writing-mode: vertical-rl;
+  letter-spacing: 2px;
+  padding: 6px 0;
+  white-space: nowrap;
 }
 </style>
 </head>
 <body>
 
-<div class="col">${techBody(so, osNumber, technician, date, statusStyle, techQrImg, printType, formatCurrency, config)}</div>
+<div class="col">${techBody(data, config, substValues)}</div>
 
 <div class="divider">
   <div class="dline"></div>
@@ -354,50 +526,56 @@ body {
   <div class="dline"></div>
 </div>
 
-<div class="col">${clientBody(so, osNumber, customer, dateFull, customerQrImg, config)}</div>
+<div class="col">${clientBody(data, config, substValues)}</div>
 
 <script>window.onload=function(){window.print();setTimeout(function(){window.close();},500);}</script>
 </body>
 </html>`;
 }
 
-// ─── A5 Portrait — 2 metades (cliente cima, técnico baixo) ───────────────────
+// ─── A5 Portrait — 2 metades empilhadas ──────────────────────────────────────
 export function getA5Layout(data: PrintData): string {
-  const { osNumber, date, dateFull, technician, customer, selectedOrder, customerQrImg, techQrImg, printType, formatCurrency, config } = data;
-  const so = selectedOrder;
-  const statusStyle = resolveStatusStyle(so.status || '');
+  const config = data.config ?? DEFAULT_A5_CONFIG;
   const c = getColors(config);
+  const substValues = buildSubstValues(data);
 
   return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<title>${osNumber}</title>
+<title>${data.osNumber}</title>
 <style>
 @page { size: A5 portrait; margin: 4mm; }
-${sharedCSS(6.5, c)}
+${sharedCSS(8, c)}
 body {
-  width: 140mm; height: 202mm;
-  display: flex; flex-direction: column;
+  width: 140mm;
+  height: 202mm;
+  display: flex;
+  flex-direction: column;
 }
 .col { flex: 1; min-height: 0; overflow: hidden; }
 .divider {
-  flex-shrink: 0; height: 12px;
-  display: flex; align-items: center; gap: 4px;
+  flex-shrink: 0;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 .dline { flex: 1; border-top: 1.5px dashed #94a3b8; }
-.dcut { font-size: 7px; color: #94a3b8; white-space: nowrap; letter-spacing: 1px; }
-.hd { padding: 4px 7px; }
-.hd-num { font-size: 13px; }
-.bd { padding: 4px 7px; gap: 3px; }
-.ft { padding: 3px 7px; }
-.qrw img { width: 24px; height: 24px; }
-.pbar-val { font-size: 11px; }
+.dcut  { font-size: 7px; color: #94a3b8; white-space: nowrap; letter-spacing: 1px; }
+/* A5 compact overrides */
+.hd      { padding: 7px 10px; }
+.hd-num  { font-size: 18px; }
+.bd      { padding: 7px 10px; gap: 6px; }
+.ft      { padding: 6px 10px; }
+.qrw img { width: 30px; height: 30px; }
+.pbar-val { font-size: 16px; }
+.fg2     { gap: 4px 12px; }
 </style>
 </head>
 <body>
 
-<div class="col">${clientBody(so, osNumber, customer, dateFull, customerQrImg, config)}</div>
+<div class="col">${clientBody(data, config, substValues)}</div>
 
 <div class="divider">
   <div class="dline"></div>
@@ -405,7 +583,7 @@ body {
   <div class="dline"></div>
 </div>
 
-<div class="col">${techBody(so, osNumber, technician, date, statusStyle, techQrImg, printType, formatCurrency, config)}</div>
+<div class="col">${techBody(data, config, substValues)}</div>
 
 <script>window.onload=function(){window.print();setTimeout(function(){window.close();},500);}</script>
 </body>
@@ -414,13 +592,21 @@ body {
 
 // ─── Térmica 80mm ─────────────────────────────────────────────────────────────
 export function getThermalLayout(data: PrintData): string {
-  const { osNumber, dateFull, customer, selectedOrder, equipmentDisplay, customerQrImg, config } = data;
-  const so = selectedOrder;
-  const statusStyle = resolveStatusStyle(so.status || '');
+  const config = data.config ?? DEFAULT_THERMAL_CONFIG;
   const c = getColors(config);
-  const showWarning  = config?.showWarning   !== false;
-  const showQrClient = config?.showQrClient  !== false;
-  const showProblem  = config?.sections?.find(s => s.id === 'problem')?.visible !== false;
+  const substValues = buildSubstValues(data);
+  const { osNumber, dateFull, customer, selectedOrder: so, customerQrImg } = data;
+  const statusStyle = resolveStatusStyle(so.status || '');
+
+  const getSection  = (id: OSSection['id']) => config.sections.find(s => s.id === id);
+  const isVisible   = (id: OSSection['id']) => getSection(id)?.visible !== false;
+  const getContent  = (id: OSSection['id']) => {
+    const s = getSection(id);
+    return s?.template ? substituteTemplate(s.template, substValues).trim() : '';
+  };
+
+  const equipContent = getContent('equipment');
+  const probContent  = isVisible('problem') ? getContent('problem') : '';
 
   return `<!DOCTYPE html>
 <html>
@@ -430,44 +616,32 @@ export function getThermalLayout(data: PrintData): string {
 <style>
 @page { size: 80mm auto; margin: 3mm 4mm; }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: ${c.font};
-  width: 72mm;
-  color: #1e293b;
-  font-size: 9px;
-  line-height: 1.4;
-}
-.thd {
-  text-align: center;
-  padding-bottom: 6px;
-  margin-bottom: 8px;
-  border-bottom: 2px solid ${c.primary};
-}
+body { font-family: ${c.font}; width: 72mm; color: #1e293b; font-size: 9px; line-height: 1.45; }
+.thd { text-align: center; padding-bottom: 7px; margin-bottom: 10px; border-bottom: 2px solid ${c.primary}; }
 .thd-brand { font-size: 8px; font-weight: 800; color: ${c.primary}; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 2px; }
-.thd-title { font-size: 11px; font-weight: 900; color: #1e293b; letter-spacing: -.2px; }
-.thd-os { font-size: 18px; font-weight: 900; color: ${c.primary}; line-height: 1; margin: 3px 0; }
-.thd-date { font-size: 8px; color: #64748b; }
-.tbadge { display: inline-block; font-size: 8px; font-weight: 800; padding: 3px 10px; border-radius: 12px; text-transform: uppercase; letter-spacing: .4px; margin: 4px 0; }
-.tst { font-size: 7px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: ${c.accent}; border-bottom: 1px solid ${c.accent}50; padding-bottom: 2px; margin-bottom: 5px; margin-top: 8px; }
-.tclient { background: ${c.primary}; color: #fff; border-radius: 4px; padding: 6px 8px; margin-bottom: 8px; }
-.tclient-lbl { font-size: 7px; text-transform: uppercase; letter-spacing: .5px; opacity: .7; margin-bottom: 1px; }
-.tclient-phone { font-size: 16px; font-weight: 900; letter-spacing: .2px; }
-.tclient-name { font-size: 9px; font-weight: 800; margin-top: 2px; }
-.tclient-cpf { font-size: 7px; opacity: .7; }
-.tprob { background: #fef2f2; border-left: 3px solid #dc2626; padding: 4px 7px; border-radius: 0 3px 3px 0; margin-bottom: 6px; }
-.tprob-lbl { font-size: 7px; font-weight: 800; text-transform: uppercase; color: #dc2626; margin-bottom: 2px; }
-.tprob-text { font-size: 9px; font-weight: 600; color: #1e293b; line-height: 1.4; }
-.tequip { margin-bottom: 6px; }
-.tequip-name { font-size: 11px; font-weight: 800; color: #0f172a; }
-.tequip-serial { font-size: 8px; color: #64748b; margin-top: 1px; }
-.tqr { text-align: center; margin: 10px 0 6px; }
-.tqr img { width: 70px; height: 70px; }
-.tqr-lbl { font-size: 8px; font-weight: 800; text-transform: uppercase; color: ${c.accent}; margin-bottom: 3px; }
-.tqr-sub { font-size: 7px; color: #64748b; margin-top: 2px; }
-.tdiv { border: none; border-top: 1px dashed #cbd5e1; margin: 8px 0; }
-.tfooter { text-align: center; font-size: 7px; color: #94a3b8; letter-spacing: .5px; padding-top: 4px; }
-.twbox { background: #fff7ed; border-left: 3px solid #f97316; padding: 4px 7px; border-radius: 0 3px 3px 0; margin-bottom: 6px; }
-.twtext { font-size: 7px; font-weight: 700; color: #7c2d12; line-height: 1.4; }
+.thd-title { font-size: 11px; font-weight: 900; color: #1e293b; }
+.thd-os    { font-size: 20px; font-weight: 900; color: ${c.primary}; line-height: 1; margin: 4px 0; }
+.thd-date  { font-size: 8px; color: #64748b; }
+.tbadge { display: inline-block; font-size: 8px; font-weight: 800; padding: 3px 10px; border-radius: 12px; text-transform: uppercase; letter-spacing: .4px; margin: 5px 0; }
+.tst { font-size: 7px; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; color: ${c.accent}; border-bottom: 1px solid ${c.accent}50; padding-bottom: 2px; margin-bottom: 6px; margin-top: 9px; }
+.tclient { background: ${c.primary}; color: #fff; border-radius: 5px; padding: 8px 10px; margin-bottom: 9px; }
+.tclient-lbl   { font-size: 7px; text-transform: uppercase; letter-spacing: .6px; opacity: .72; margin-bottom: 2px; font-weight: 700; }
+.tclient-phone { font-size: 18px; font-weight: 900; letter-spacing: .2px; line-height: 1; margin-bottom: 3px; }
+.tclient-name  { font-size: 10px; font-weight: 800; }
+.tclient-cpf   { font-size: 7.5px; opacity: .72; margin-top: 2px; }
+.tprob { background: #fef2f2; border-left: 3px solid #dc2626; padding: 5px 8px; border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+.tprob-lbl  { font-size: 7px; font-weight: 800; text-transform: uppercase; color: #dc2626; margin-bottom: 3px; }
+.tprob-text { font-size: 9px; font-weight: 600; color: #1e293b; line-height: 1.45; white-space: pre-line; }
+.tequip      { margin-bottom: 8px; }
+.tequip-text { font-size: 10px; font-weight: 800; color: #0f172a; white-space: pre-line; line-height: 1.5; }
+.twbox  { background: #fff7ed; border-left: 3px solid #f97316; padding: 5px 8px; border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+.twtext { font-size: 7.5px; font-weight: 700; color: #7c2d12; line-height: 1.45; }
+.tqr     { text-align: center; margin: 12px 0 8px; }
+.tqr img { width: 72px; height: 72px; }
+.tqr-lbl { font-size: 8px; font-weight: 800; text-transform: uppercase; color: ${c.accent}; margin-bottom: 4px; }
+.tqr-sub { font-size: 7.5px; color: #64748b; margin-top: 3px; }
+.tdiv    { border: none; border-top: 1px dashed #cbd5e1; margin: 9px 0; }
+.tfooter { text-align: center; font-size: 7.5px; color: #94a3b8; letter-spacing: .5px; padding-top: 5px; }
 </style>
 </head>
 <body>
@@ -477,9 +651,7 @@ body {
     <div class="thd-title">Comprovante de Entrada</div>
     <div class="thd-os">${osNumber}</div>
     <div class="thd-date">${dateFull}</div>
-    <div style="margin-top:4px;">
-      <span class="tbadge" style="${statusStyle}">${so.status || 'Pendente'}</span>
-    </div>
+    <div><span class="tbadge" style="${statusStyle}">${so.status || 'Pendente'}</span></div>
   </div>
 
   <div class="tclient">
@@ -489,37 +661,36 @@ body {
     ${customer.cpf ? `<div class="tclient-cpf">CPF: ${customer.cpf}</div>` : ''}
   </div>
 
+  ${equipContent ? `
   <div class="tequip">
     <div class="tst">Equipamento</div>
-    <div class="tequip-name">${equipmentDisplay || 'Nao informado'}</div>
-    ${so.equipmentSerial ? `<div class="tequip-serial">N/S: ${so.equipmentSerial}</div>` : ''}
-    ${so.equipmentColor ? `<div class="tequip-serial">Cor: ${so.equipmentColor}</div>` : ''}
-  </div>
-
-  ${showProblem && so.reportedProblem ? `
-  <div class="tprob">
-    <div class="tprob-lbl">Problema Relatado</div>
-    <div class="tprob-text">${so.reportedProblem}</div>
+    <div class="tequip-text">${equipContent}</div>
   </div>` : ''}
 
-  ${showWarning ? `
+  ${probContent ? `
+  <div class="tprob">
+    <div class="tprob-lbl">Problema Relatado</div>
+    <div class="tprob-text">${probContent}</div>
+  </div>` : ''}
+
+  ${config.showWarning !== false ? `
   <div class="twbox">
-    <div class="twtext"><strong>RETIRADA:</strong> O equipamento deve ser retirado em ate 30 dias apos a conclusao. Taxa de armazenamento apos este prazo.</div>
+    <div class="twtext"><strong>RETIRADA:</strong> Retire o equipamento em ate 30 dias apos a conclusao. Taxa de armazenamento diaria apos este prazo.</div>
   </div>` : ''}
 
   <hr class="tdiv" />
 
-  ${showQrClient ? `
+  ${config.showQrClient !== false ? `
   <div class="tqr">
     <div class="tqr-lbl">Acompanhe pelo celular</div>
     <img src="${customerQrImg}" />
-    <div class="tqr-sub">Escaneie o QR Code para ver o status da sua OS</div>
+    <div class="tqr-sub">Escaneie para ver o status da sua OS</div>
   </div>
   <hr class="tdiv" />` : ''}
 
   <div class="tfooter">
     Obrigado pela preferencia!<br>
-    Guarde este comprovante para retirada.
+    Guarde este comprovante para a retirada.
   </div>
 
   <script>window.onload=function(){window.print();setTimeout(function(){window.close();},500);}</script>

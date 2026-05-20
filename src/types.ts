@@ -133,9 +133,10 @@ export interface OSSection {
   id: 'equipment' | 'problem' | 'analysis' | 'services' | 'parts' | 'values' | 'observations';
   label: string;
   visible: boolean;
+  template: string; // {{placeholder}} content string for this section
 }
 
-export interface OSTemplateConfig {
+export interface OSLayoutConfig {
   sections: OSSection[];
   primaryColor: string;
   accentColor: string;
@@ -143,6 +144,16 @@ export interface OSTemplateConfig {
   showQrTech: boolean;
   showQrClient: boolean;
   showWarning: boolean;
+}
+
+// Backward-compat alias
+export type OSTemplateConfig = OSLayoutConfig;
+
+export interface OSPrintTemplateConfig {
+  a4Complete: OSLayoutConfig;
+  a4Simplified: OSLayoutConfig;
+  a5: OSLayoutConfig;
+  thermal: OSLayoutConfig;
 }
 
 export interface InventoryItem {

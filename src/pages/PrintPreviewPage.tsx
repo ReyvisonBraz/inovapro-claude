@@ -2,12 +2,8 @@ import React, { useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Printer, ExternalLink } from 'lucide-react';
 import { getA4EnhancedLayout, getA5Layout, getThermalLayout, PrintData } from '../components/service-orders/modals/printLayouts';
-import { getBlankFormLayout } from '../lib/printUtils';
-
-const fmt = (v: number) =>
-  `R$ ${v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
-
-const QR_BASE = 'https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=';
+import { getBlankFormLayout, QR_BASE, stripScript } from '../lib/printUtils';
+import { formatCurrency } from '../lib/utils';
 
 const SAMPLE: PrintData = {
   osNumber: '#OS-0042',
@@ -48,14 +44,10 @@ const SAMPLE: PrintData = {
   customerQrImg: `${QR_BASE}${encodeURIComponent('https://inovapro.app/rastreio?osId=42')}`,
   techQrImg: `${QR_BASE}${encodeURIComponent('https://inovapro.app/os/42')}`,
   printType: 'complete',
-  formatCurrency: fmt,
+  formatCurrency,
 };
 
 const MOCK_SETTINGS: any = { appName: 'INOVA PRO', receiptLogo: null };
-
-function stripScript(html: string): string {
-  return html.replace(/<script[\s\S]*?<\/script>/gi, '');
-}
 
 interface PreviewFrameProps {
   html: string;

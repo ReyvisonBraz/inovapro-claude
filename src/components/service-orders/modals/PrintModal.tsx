@@ -5,6 +5,7 @@ import { cn, formatCurrency } from '../../../lib/utils';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getA4EnhancedLayout, getA5Layout, getThermalLayout } from './printLayouts';
+import { parseOSPrintTemplateConfig } from '../../../lib/osTemplateConfig';
 
 interface PrintModalProps {
   show: boolean;
@@ -12,6 +13,7 @@ interface PrintModalProps {
   selectedOrder: any;
   customers: any[];
   currentUser: any;
+  osPrintConfig?: string;
 }
 
 export const PrintModal: React.FC<PrintModalProps> = ({
@@ -19,9 +21,11 @@ export const PrintModal: React.FC<PrintModalProps> = ({
   onClose,
   selectedOrder,
   customers,
-  currentUser
+  currentUser,
+  osPrintConfig,
 }) => {
   const [printConfig, setPrintConfig] = React.useState({ type: 'simplified', format: 'a4-enhanced' });
+  const layoutConfigs = React.useMemo(() => parseOSPrintTemplateConfig(osPrintConfig), [osPrintConfig]);
 
   const handlePrint = () => {
     if (!selectedOrder) return;
@@ -47,6 +51,13 @@ export const PrintModal: React.FC<PrintModalProps> = ({
       ? `${selectedOrder.equipmentType || ''} ${selectedOrder.equipmentBrand || ''} ${selectedOrder.equipmentModel || ''}`.trim()
       : 'Não informado';
 
+    const isComplete = printConfig.type === 'complete';
+    const layoutConfig =
+      printConfig.format === 'thermal'    ? layoutConfigs.thermal :
+      printConfig.format === 'a5'         ? layoutConfigs.a5 :
+      isComplete                          ? layoutConfigs.a4Complete :
+                                            layoutConfigs.a4Simplified;
+
     const printData = {
       osNumber, date, dateFull, technician,
       customer: { firstName: customer.firstName, lastName: customer.lastName, phone: customer.phone, cpf: customer.cpf },
@@ -56,6 +67,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({
       techQrImg,
       printType: printConfig.type as 'simplified' | 'complete',
       formatCurrency,
+      config: layoutConfig,
     };
 
     let content = '';

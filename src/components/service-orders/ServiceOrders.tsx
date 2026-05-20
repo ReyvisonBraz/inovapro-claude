@@ -374,12 +374,13 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
         selectedOrder={selectedOrder}
       />
 
-      <PrintModal 
+      <PrintModal
         show={showPrintModal}
         onClose={() => setShowPrintModal(false)}
         selectedOrder={selectedOrder}
         customers={customers.data}
         currentUser={currentUser}
+        osPrintConfig={settings?.osPrintConfig}
       />
 
       <DirectOsSearchModal 
