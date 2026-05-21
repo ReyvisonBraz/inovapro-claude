@@ -85,8 +85,8 @@ export class ServiceOrderService {
       firstName: o.customer.firstName,
       lastName: o.customer.lastName,
       phone: o.customer.phone,
-      partsUsed: safeParseJSON(o.partsUsed as string, []),
-      services: safeParseJSON(o.services as string, []),
+      partsUsed: (o.partsUsed as unknown[]) ?? [],
+      services: (o.services as unknown[]) ?? [],
     }));
 
     return {
@@ -114,8 +114,8 @@ export class ServiceOrderService {
       firstName: order.customer.firstName,
       lastName: order.customer.lastName,
       phone: order.customer.phone,
-      partsUsed: safeParseJSON(order.partsUsed as string, []),
-      services: safeParseJSON(order.services as string, []),
+      partsUsed: (order.partsUsed as unknown[]) ?? [],
+      services: (order.services as unknown[]) ?? [],
     };
   }
 
@@ -154,8 +154,8 @@ export class ServiceOrderService {
         createdBy: createdBy || 1,
         technicalAnalysis,
         servicesPerformed,
-        services: JSON.stringify(services || []),
-        partsUsed: JSON.stringify(partsUsed || []),
+        services: services || [],
+        partsUsed: partsUsed || [],
         serviceFee: serviceFee || 0,
         totalAmount: totalAmount || 0,
         finalObservations,
@@ -196,7 +196,7 @@ export class ServiceOrderService {
       const value = (data as any)[field];
       if (value !== undefined) {
         if (field === 'services' || field === 'partsUsed') {
-          updateData[field] = JSON.stringify(value ?? []);
+          updateData[field] = value ?? [];
         } else if (
           typeof value === 'string' && 
           value === '' && 
@@ -233,8 +233,8 @@ export class ServiceOrderService {
 
     return {
       ...updated,
-      services: safeParseJSON(updated.services as string, []),
-      partsUsed: safeParseJSON(updated.partsUsed as string, []),
+      services: (updated.services as unknown[]) ?? [],
+      partsUsed: (updated.partsUsed as unknown[]) ?? [],
     };
   }
 

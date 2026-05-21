@@ -24,7 +24,8 @@
       "Bash(xargs grep -l \"useServiceOrderForm\")",
       "Bash(Remove-Item \"c:\\\\Users\\\\Reyvison\\\\Desktop\\\\REYVISON PROJECTS\\\\inovapro-claude\\\\src\\\\hooks\\\\useServiceOrderForm.ts\")",
       "Bash(Write-Host \"deleted\")",
-      "Bash(not exist *)"
+      "Bash(not exist *)",
+      "PowerShell(Get-Command pg_dump -ErrorAction SilentlyContinue)"
     ]
   }
 }
