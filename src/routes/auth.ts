@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { prisma } from '../lib/prisma.js';
 import { generateToken } from '../middleware/auth.js';
 import { error, info } from '../lib/server-logger.js';
+import { OWNER_PERMISSIONS } from '../constants/permissions.js';
 
 const router = Router();
 
@@ -30,7 +31,7 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
       permissions = [];
     }
     if (user.role === 'owner') {
-      permissions = ['view_dashboard', 'manage_transactions', 'view_reports', 'manage_customers', 'manage_payments', 'manage_settings', 'manage_users'];
+      permissions = [...OWNER_PERMISSIONS];
     }
     const token = generateToken({ userId: user.id, username: user.username, role: user.role });
     const { password: _, ...userWithoutPassword } = user;

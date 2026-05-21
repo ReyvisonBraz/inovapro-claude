@@ -21,7 +21,9 @@
       "Bash(ls -la Dockerfile*)",
       "PowerShell(gcloud config list --format=\"value\\(core.project\\)\" 2>&1)",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
-      "Bash(xargs grep -l \"useServiceOrderForm\")"
+      "Bash(xargs grep -l \"useServiceOrderForm\")",
+      "Bash(Remove-Item \"c:\\\\Users\\\\Reyvison\\\\Desktop\\\\REYVISON PROJECTS\\\\inovapro-claude\\\\src\\\\hooks\\\\useServiceOrderForm.ts\")",
+      "Bash(Write-Host \"deleted\")"
     ]
   }
 }

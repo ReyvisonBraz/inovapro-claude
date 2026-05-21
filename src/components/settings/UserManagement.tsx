@@ -3,6 +3,7 @@ import { User, AuditLog, Transaction, Customer, ClientPayment } from '../../type
 import { cn } from '../../lib/utils';
 import { UserPlus, Trash2, Shield, Clock, Activity, Check, X, Edit2, AlertCircle, Info, FileText, User as UserIcon, CreditCard, Users } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { AVAILABLE_PERMISSIONS } from '../../constants/permissions';
 
 interface UserManagementProps {
   users: User[];
@@ -14,16 +15,6 @@ interface UserManagementProps {
   customers: Customer[];
   clientPayments: ClientPayment[];
 }
-
-const AVAILABLE_PERMISSIONS = [
-  { id: 'view_dashboard', label: 'Ver Painel' },
-  { id: 'manage_transactions', label: 'Gerenciar Transações' },
-  { id: 'view_reports', label: 'Ver Relatórios' },
-  { id: 'manage_customers', label: 'Gerenciar Clientes' },
-  { id: 'manage_payments', label: 'Gerenciar Pagamentos' },
-  { id: 'manage_settings', label: 'Gerenciar Configurações' },
-  { id: 'manage_users', label: 'Gerenciar Usuários' },
-];
 
 export const UserManagement: React.FC<UserManagementProps> = ({ 
   users, 

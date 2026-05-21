@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('[auth] JWT_SECRET não configurado. Defina a variável de ambiente antes de iniciar o servidor.');
+}
 const JWT_EXPIRES_IN = '7d';
 
 export interface AuthRequest extends Request {

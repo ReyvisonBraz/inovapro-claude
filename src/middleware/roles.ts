@@ -7,126 +7,30 @@
 
 import { Response, NextFunction } from 'express'
 import { AuthRequest } from './auth'
+import { OWNER_PERMISSIONS } from '../constants/permissions.js'
 
 // Tipos de roles disponíveis no sistema
 export type Role = 'owner' | 'manager' | 'employee'
 
-// Mapeamento de permissões por role
+// Mapeamento de permissões por role — formato unificado com o frontend
 export const ROLE_PERMISSIONS: Record<Role, string[]> = {
-  owner: [
-    // Transactions
-    'transaction:create',
-    'transaction:read',
-    'transaction:update',
-    'transaction:delete',
-    // Customers
-    'customer:create',
-    'customer:read',
-    'customer:update',
-    'customer:delete',
-    // Payments
-    'payment:create',
-    'payment:read',
-    'payment:update',
-    'payment:delete',
-    // Service Orders
-    'service_order:create',
-    'service_order:read',
-    'service_order:update',
-    'service_order:delete',
-    // Inventory
-    'inventory:create',
-    'inventory:read',
-    'inventory:update',
-    'inventory:delete',
-    // Users
-    'user:create',
-    'user:read',
-    'user:update',
-    'user:delete',
-    // Audit
-    'audit:read',
-    // Settings
-    'settings:read',
-    'settings:update',
-    // Catalog
-    'catalog:create',
-    'catalog:read',
-    'catalog:update',
-    'catalog:delete',
-  ],
+  owner: [...OWNER_PERMISSIONS],
   manager: [
-    // Transactions
-    'transaction:create',
-    'transaction:read',
-    'transaction:update',
-    'transaction:delete',
-    // Customers
-    'customer:create',
-    'customer:read',
-    'customer:update',
-    'customer:delete',
-    // Payments
-    'payment:create',
-    'payment:read',
-    'payment:update',
-    'payment:delete',
-    // Service Orders
-    'service_order:create',
-    'service_order:read',
-    'service_order:update',
-    'service_order:delete',
-    // Inventory
-    'inventory:create',
-    'inventory:read',
-    'inventory:update',
-    // Não pode deletar inventory
-    // Users
-    'user:read',
-    // Não pode criar/atualizar/deletar usuários
-    // Audit
-    'audit:read',
-    // Settings
-    'settings:read',
-    // Catalog
-    'catalog:create',
-    'catalog:read',
-    'catalog:update',
-    'catalog:delete',
+    'view_dashboard',
+    'manage_transactions',
+    'manage_payments',
+    'manage_service_orders',
+    'manage_customers',
+    'manage_inventory',
+    'view_reports',
   ],
   employee: [
-    // Transactions
-    'transaction:create',
-    'transaction:read',
-    'transaction:update',
-    // Não pode deletar transactions
-    // Customers
-    'customer:create',
-    'customer:read',
-    'customer:update',
-    'customer:delete',
-    // Payments
-    'payment:create',
-    'payment:read',
-    'payment:update',
-    'payment:delete',
-    // Service Orders
-    'service_order:create',
-    'service_order:read',
-    'service_order:update',
-    'service_order:delete',
-    // Inventory
-    'inventory:read',
-    // Não pode criar/atualizar/deletar inventory
-    // Users
-    'user:read',
-    // Audit
-    // Não pode ver audit logs
-    // Settings
-    'settings:read',
-    // Catalog
-    'catalog:read',
-    // Não pode gerenciar catalog
+    'view_dashboard',
+    'manage_transactions',
+    'manage_payments',
+    'manage_service_orders',
+    'manage_customers',
+    'manage_inventory',
   ],
 }
 

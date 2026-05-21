@@ -79,6 +79,13 @@ export default function App() {
   const { isAuthenticated, currentUser, login, logout, hasPermission } = useAuth();
 
   useEffect(() => {
+    document.documentElement.style.setProperty(
+      '--color-primary',
+      settings?.primaryColor ?? '#1152d4'
+    );
+  }, [settings?.primaryColor]);
+
+  useEffect(() => {
     const path = location.pathname;
     const screenMap: Record<string, Screen> = {
       '/dashboard': 'dashboard',
@@ -224,11 +231,6 @@ export default function App() {
       {/* Mobile bottom nav */}
       <MobileNav />
 
-      <style>{`
-        :root {
-          --color-primary: ${settings?.primaryColor || '#1152d4'};
-        }
-      `}</style>
     </div>
     </SplashScreen>
   );

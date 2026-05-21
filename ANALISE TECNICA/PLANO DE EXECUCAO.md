@@ -962,10 +962,10 @@ Mas isso só funciona se os dados forem JSON válido. Verificar se existem valor
 
 | Fase | Status | Etapas Concluídas |
 |------|--------|-------------------|
-| 0 — Segurança JWT | ⏳ | 0/1 |
-| 1 — Código Morto | ⏳ | 0/3 |
-| 2 — Permissões | ⏳ | 0/4 |
-| 3 — CSS-in-JS | ⏳ | 0/1 |
+| 0 — Segurança JWT | ✅ | 1/1 |
+| 1 — Código Morto | ✅ | 3/3 |
+| 2 — Permissões | ✅ | 4/4 |
+| 3 — CSS-in-JS | ✅ | 1/1 |
 | 4 — Middleware Validate | ⏳ | 0/5 |
 | 5 — CRUD Boilerplate | ⏳ | 0/5 |
 | 6 — Performance | ⏳ | 0/3 |
