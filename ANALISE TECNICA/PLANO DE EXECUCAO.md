@@ -966,7 +966,7 @@ Mas isso só funciona se os dados forem JSON válido. Verificar se existem valor
 | 1 — Código Morto | ✅ | 3/3 |
 | 2 — Permissões | ✅ | 4/4 |
 | 3 — CSS-in-JS | ✅ | 1/1 |
-| 4 — Middleware Validate | ⏳ | 0/5 |
+| 4 — Middleware Validate | ✅ | 5/5 |
 | 5 — CRUD Boilerplate | ⏳ | 0/5 |
 | 6 — Performance | ⏳ | 0/3 |
 | 7 — ServiceOrderForm | ⏳ | 0/4 |

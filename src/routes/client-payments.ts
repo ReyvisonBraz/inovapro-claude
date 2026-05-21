@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { ClientPaymentSchema } from './schemas.js';
 import { error, info } from '../lib/server-logger.js';
-import { z } from 'zod';
 import { clientPaymentService } from '../services/client-payment.service.js';
+import { validate } from '../middleware/validate.js';
 
 const router = Router();
 
@@ -20,17 +20,13 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', validate(ClientPaymentSchema), async (req: Request, res: Response) => {
   try {
-    const validatedData = ClientPaymentSchema.parse(req.body);
-    const payment = await clientPaymentService.create(validatedData as any);
-    
+    const payment = await clientPaymentService.create(req.body);
+
     info('Pagamento criado', { details: { id: payment.id, customerId: payment.customerId, totalAmount: payment.totalAmount } });
     res.json({ id: payment.id });
   } catch (err) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Falha na validação', details: err.issues });
-    }
     error('[CLIENT_PAYMENTS POST] Erro ao criar pagamento', err);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }

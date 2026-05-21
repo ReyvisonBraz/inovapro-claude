@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { customerSchema as CustomerSchema } from '../schemas/customerSchema.js';
 import { error, info } from '../lib/server-logger.js';
-import { z } from 'zod';
 import { customerService } from '../services/customer.service.js';
+import { validate } from '../middleware/validate.js';
 
 const router = Router();
 
@@ -20,35 +20,26 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', validate(CustomerSchema), async (req: Request, res: Response) => {
   try {
-    const validatedData = CustomerSchema.parse(req.body);
-    const customer = await customerService.create(validatedData);
-    
+    const customer = await customerService.create(req.body);
+
     info('Cliente criado', { details: { id: customer.id, name: `${customer.firstName} ${customer.lastName}` } });
     res.json({ id: customer.id });
   } catch (err) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Falha na validação', details: err.issues });
-    }
     error('[CUSTOMERS POST] Erro ao criar cliente', err);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', validate(CustomerSchema), async (req: Request, res: Response) => {
   try {
     const customerId = parseInt(req.params.id);
-    const validatedData = CustomerSchema.parse(req.body);
-    
-    await customerService.update(customerId, validatedData);
-    
-    info('Cliente atualizado', { details: { id: customerId, name: `${validatedData.firstName} ${validatedData.lastName}` } });
+    await customerService.update(customerId, req.body);
+
+    info('Cliente atualizado', { details: { id: customerId, name: `${req.body.firstName} ${req.body.lastName}` } });
     res.json({ success: true, cascadeUpdated: true });
   } catch (err) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Falha na validação', details: err.issues });
-    }
     error('[CUSTOMERS PUT] Erro ao atualizar cliente', err, { details: { id: req.params.id } });
     res.status(500).json({ error: 'Erro interno do servidor' });
   }

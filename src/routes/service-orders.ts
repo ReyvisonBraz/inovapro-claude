@@ -4,6 +4,7 @@ import { error, info } from '../lib/server-logger.js';
 import { z } from 'zod';
 import { serviceOrderService } from '../services/service-order.service.js';
 import { publicOsCache, PUBLIC_OS_KEY } from '../lib/cache.js';
+import { validate } from '../middleware/validate.js';
 
 const router = Router();
 
@@ -43,17 +44,13 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', validate(ServiceOrderSchema), async (req: Request, res: Response) => {
   try {
-    const validatedData = ServiceOrderSchema.parse(req.body);
-    const order = await serviceOrderService.create(validatedData);
-    
-    info('Ordem de serviço criada', { details: { id: order.id, customerId: validatedData.customerId } });
+    const order = await serviceOrderService.create(req.body);
+
+    info('Ordem de serviço criada', { details: { id: order.id, customerId: req.body.customerId } });
     res.json({ id: order.id });
   } catch (err) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Falha na validação', details: err.issues });
-    }
     error('[SERVICE_ORDERS POST] Erro ao criar OS', err);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
