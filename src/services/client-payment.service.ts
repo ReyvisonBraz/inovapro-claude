@@ -132,16 +132,17 @@ export class ClientPaymentService {
   }
 
   async registerPayment(id: number, data: { amount: number, date?: string, updatedBy?: number }) {
-    const { amount, date, updatedBy } = data;
-    
+    const { date, updatedBy } = data;
+    const amount = parseFloat(String(data.amount));
+
     return prisma.$transaction(async (tx) => {
       const payment = await tx.clientPayment.findUnique({ where: { id } });
-      
+
       if (!payment) {
         throw new Error('Pagamento não encontrado');
       }
-      
-      const newPaidAmount = payment.paidAmount + amount;
+
+      const newPaidAmount = (payment.paidAmount ?? 0) + amount;
       const newStatus = newPaidAmount >= payment.totalAmount ? 'paid' : 'partial';
       
       let history: Array<{ amount: number; date: string }> = [];

@@ -29,11 +29,11 @@ export type ClientPaymentFormData = {
 };
 
 export const recordPaymentSchema = z.object({
-  amount: z.union([z.number(), z.string()]).optional(),
+  amount: z.coerce.number().min(0.01, 'O valor deve ser maior que zero'),
   date: z.string().min(1, 'A data do pagamento é obrigatória'),
 });
 
 export type RecordPaymentFormData = {
-  amount?: string | number;
+  amount: number;
   date: string;
 };
