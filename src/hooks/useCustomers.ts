@@ -1,12 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
 import { Customer } from '../types';
 import { useToast } from '../components/ui/Toast';
 import { useCustomerStore } from '../store/useCustomerStore';
 import { useFilterStore } from '../store/useFilterStore';
+import { useCrudApi } from './useCrudApi';
 
 export const useCustomers = () => {
-  const queryClient = useQueryClient();
   const { customersPage, setCustomersPage } = useCustomerStore();
   const { customerSearchTerm, setCustomerSearchTerm } = useFilterStore();
   const { showToast } = useToast();
@@ -21,40 +21,12 @@ export const useCustomers = () => {
     },
   });
 
-  // Mutação para salvar/editar cliente
-  const saveMutation = useMutation({
-    mutationFn: async ({ customer, id }: { customer: Partial<Customer>; id?: number }) => {
-      if (id) {
-        const { data } = await api.put(`/customers/${id}`, customer);
-        return data;
-      } else {
-        const { data } = await api.post('/customers', customer);
-        return data;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-      showToast('Cliente salvo com sucesso!', 'success');
-    },
-    onError: (error: any) => {
-      console.error('Failed to save customer', error);
-      showToast(error.response?.data?.error || 'Erro ao salvar cliente.', 'error');
-    },
-  });
-
-  // Mutação para excluir cliente
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await api.delete(`/customers/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-      showToast('Cliente excluído com sucesso!', 'success');
-    },
-    onError: (error: any) => {
-      console.error('Failed to delete customer', error);
-      showToast(error.response?.data?.error || 'Erro ao excluir cliente.', 'error');
-    },
+  const { saveMutation, deleteMutation } = useCrudApi({
+    baseKey: 'customers',
+    endpoint: '/customers',
+    saveSuccessMessage: 'Cliente salvo com sucesso!',
+    deleteSuccessMessage: 'Cliente excluído com sucesso!',
+    showToast,
   });
 
   // Função para verificar pagamentos (pode ser uma query também, mas mantendo como função por enquanto)
@@ -73,7 +45,7 @@ export const useCustomers = () => {
     isError,
     fetchCustomers: refetch, 
     isCustomerSaving: saveMutation.isPending,
-    saveCustomerAPI: (customer: Partial<Customer>, id?: number) => saveMutation.mutateAsync({ customer, id }),
+    saveCustomerAPI: (customer: Partial<Customer>, id?: number) => saveMutation.mutateAsync({ item: customer, id }),
     deleteCustomerAPI: (id: number) => deleteMutation.mutateAsync(id),
     checkCustomerPaymentsAPI
   };

@@ -4,6 +4,7 @@ import api from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { useClientPaymentStore } from '../store/useClientPaymentStore';
 import { useFilterStore } from '../store/useFilterStore';
+import { useCrudApi } from './useCrudApi';
 
 export function useClientPayments() {
   const { showToast } = useToast();
@@ -37,41 +38,12 @@ export function useClientPayments() {
     },
   });
 
-  const savePaymentMutation = useMutation({
-    mutationFn: async ({ payment, id }: { payment: Partial<ClientPayment>; id?: number }) => {
-      const url = id ? `/client-payments/${id}` : '/client-payments';
-      const method = id ? 'PUT' : 'POST';
-
-      if (method === 'PUT') {
-        const res = await api.put(url, payment);
-        return res.data;
-      } else {
-        const res = await api.post(url, payment);
-        return res.data;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clientPayments'] });
-      showToast('Pagamento salvo com sucesso!', 'success');
-    },
-    onError: (error: any) => {
-      console.error('Failed to save payment', error);
-      showToast(error.response?.data?.error || error.message || 'Erro ao salvar pagamento.', 'error');
-    },
-  });
-
-  const deletePaymentMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await api.delete(`/client-payments/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clientPayments'] });
-      showToast('Pagamento excluído com sucesso!', 'success');
-    },
-    onError: (error: any) => {
-      console.error('Failed to delete payment', error);
-      showToast(error.response?.data?.error || 'Erro ao excluir pagamento.', 'error');
-    },
+  const { saveMutation: savePaymentMutation, deleteMutation: deletePaymentMutation } = useCrudApi({
+    baseKey: 'clientPayments',
+    endpoint: '/client-payments',
+    saveSuccessMessage: 'Pagamento salvo com sucesso!',
+    deleteSuccessMessage: 'Pagamento excluído com sucesso!',
+    showToast,
   });
 
   const recordPaymentMutation = useMutation({
@@ -98,7 +70,7 @@ export function useClientPayments() {
     savePaymentMutation,
     deletePaymentMutation,
     recordPaymentMutation,
-    saveClientPaymentAPI: (payment: any, id?: number) => savePaymentMutation.mutateAsync({ payment, id }),
+    saveClientPaymentAPI: (payment: any, id?: number) => savePaymentMutation.mutateAsync({ item: payment, id }),
     deleteClientPaymentAPI: (id: number) => deletePaymentMutation.mutateAsync(id),
   };
 }
