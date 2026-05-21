@@ -66,7 +66,11 @@ export const Dashboard = ({
   ], [totalIncome, totalExpenses, netBalance, pendingPayments]);
 
   const [cards, setCards] = useState(initialCards);
-  React.useEffect(() => { setCards(initialCards); }, [initialCards]);
+  React.useEffect(() => {
+    setCards(prev =>
+      prev.map(card => initialCards.find(c => c.id === card.id) ?? card)
+    );
+  }, [initialCards]);
 
   return (
     <div className="space-y-5">

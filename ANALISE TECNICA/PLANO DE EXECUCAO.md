@@ -968,12 +968,12 @@ Mas isso só funciona se os dados forem JSON válido. Verificar se existem valor
 | 3 — CSS-in-JS | ✅ | 1/1 |
 | 4 — Middleware Validate | ✅ | 5/5 |
 | 5 — CRUD Boilerplate | ✅ | 5/5 |
-| 6 — Performance | ⏳ | 0/3 |
+| 6 — Performance | ✅ | 3/3 |
 | 7 — ServiceOrderForm | ⏳ | 0/4 |
 | 8 — Tipagem | ⏳ | 0/3 |
 | 9 — DB Migration | ⏳ | 0/3 |
 
-**Total: 19/32 etapas concluídas**
+**Total: 22/32 etapas concluídas**
 
 ---
 

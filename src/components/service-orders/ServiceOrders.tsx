@@ -21,7 +21,9 @@ import { ServiceOrderForm } from './ServiceOrderForm';
 
 // Modals
 import { WhatsAppModal } from './modals/WhatsAppModal';
-import { QRCodeModal } from './modals/QRCodeModal';
+const QRCodeModal = React.lazy(() =>
+  import('./modals/QRCodeModal').then(m => ({ default: m.QRCodeModal }))
+);
 import { PrintModal } from './modals/PrintModal';
 import { DirectOsSearchModal } from './modals/DirectOsSearchModal';
 import { StatusManagerModal } from './modals/StatusManagerModal';
@@ -368,11 +370,13 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
         showToast={showToast}
       />
 
-      <QRCodeModal 
-        show={showQRCodeModal}
-        onClose={() => setShowQRCodeModal(false)}
-        selectedOrder={selectedOrder}
-      />
+      <React.Suspense fallback={null}>
+        <QRCodeModal
+          show={showQRCodeModal}
+          onClose={() => setShowQRCodeModal(false)}
+          selectedOrder={selectedOrder}
+        />
+      </React.Suspense>
 
       <PrintModal
         show={showPrintModal}

@@ -32,8 +32,7 @@ export function useTransactions(showToast: (message: string, type: 'success' | '
       filterMinAmount, 
       filterMaxAmount
     ],
-    staleTime: 0,
-    refetchOnMount: true,
+    staleTime: 30_000,
     enabled: isAuthenticated,
     queryFn: async () => {
       const params = new URLSearchParams({
