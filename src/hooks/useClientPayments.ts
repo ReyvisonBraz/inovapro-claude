@@ -70,7 +70,7 @@ export function useClientPayments() {
     savePaymentMutation,
     deletePaymentMutation,
     recordPaymentMutation,
-    saveClientPaymentAPI: (payment: any, id?: number) => savePaymentMutation.mutateAsync({ item: payment, id }),
+    saveClientPaymentAPI: (payment: Partial<ClientPayment>, id?: number) => savePaymentMutation.mutateAsync({ item: payment, id }),
     deleteClientPaymentAPI: (id: number) => deletePaymentMutation.mutateAsync(id),
   };
 }

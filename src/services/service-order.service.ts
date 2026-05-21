@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma.js';
+import { Prisma } from '@prisma/client';
 import { ServiceOrderFormData } from '../schemas/serviceOrderSchema.js';
 import { uploadPhotoToStorage, isStorageConfigured } from '../lib/storage.js';
 
@@ -39,7 +40,7 @@ export class ServiceOrderService {
     const limit = options.limit || 20;
     const { search, status, priority, sortBy } = options;
     
-    const where: Record<string, unknown> = {};
+    const where: Prisma.ServiceOrderWhereInput = {};
     
     if (search) {
       where.OR = [
@@ -56,7 +57,7 @@ export class ServiceOrderService {
     if (status && status !== 'all') where.status = status;
     if (priority && priority !== 'all') where.priority = priority;
     
-    let orderBy: Record<string, string> | Array<Record<string, string>> = { createdAt: 'desc' };
+    let orderBy: Prisma.ServiceOrderOrderByWithRelationInput | Prisma.ServiceOrderOrderByWithRelationInput[] = { createdAt: 'desc' };
     if (sortBy === 'oldest') orderBy = { createdAt: 'asc' };
     if (sortBy === 'priority') orderBy = [{ priority: 'asc' }, { createdAt: 'desc' }];
     if (sortBy === 'amount-desc') orderBy = { totalAmount: 'desc' };
@@ -227,7 +228,7 @@ export class ServiceOrderService {
 
     const updated = await prisma.serviceOrder.update({
       where: { id },
-      data: updateData as any,
+      data: updateData as Prisma.ServiceOrderUncheckedUpdateInput,
     });
 
     return {

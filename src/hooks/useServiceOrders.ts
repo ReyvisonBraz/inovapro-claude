@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { ServiceOrder } from '../types';
+import { ServiceOrderFormData } from '../schemas/serviceOrderSchema';
 import { useServiceOrderStore } from '../store/useServiceOrderStore';
 import { useFilterStore } from '../store/useFilterStore';
 
@@ -85,7 +86,7 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
 
   // Mutações
   const saveMutation = useMutation({
-    mutationFn: async ({ order, id, updatedAt }: { order: any; id?: number; updatedAt?: string }) => {
+    mutationFn: async ({ order, id, updatedAt }: { order: ServiceOrderFormData; id?: number; updatedAt?: string }) => {
       if (id) {
         const payload = updatedAt ? { ...order, _clientUpdatedAt: updatedAt } : order;
         const { data } = await api.put(`/service-orders/${id}`, payload);
@@ -128,7 +129,7 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
 
   // Mutações para configurações
   const addStatusMutation = useMutation({
-    mutationFn: (status: any) => api.post('/service-order-statuses', status),
+    mutationFn: (status: { name: string; color?: string }) => api.post('/service-order-statuses', status),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['service-order-statuses'] }),
     onError: (error: any) => {
       console.error('Failed to add status', error);
@@ -146,7 +147,7 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
   });
 
   const addEquipmentTypeMutation = useMutation({
-    mutationFn: (type: any) => api.post('/equipment-types', type),
+    mutationFn: (type: { name: string; icon?: string }) => api.post('/equipment-types', type),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment-types'] }),
     onError: (error: any) => {
       console.error('Failed to add equipment type', error);
@@ -164,7 +165,7 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
   });
 
   const addBrandMutation = useMutation({
-    mutationFn: (brand: any) => api.post('/brands', brand),
+    mutationFn: (brand: { name: string; equipmentType: string }) => api.post('/brands', brand),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['brands'] }),
     onError: (error: any) => {
       console.error('Failed to add brand', error);
@@ -182,7 +183,7 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
   });
 
   const addModelMutation = useMutation({
-    mutationFn: (model: any) => api.post('/models', model),
+    mutationFn: (model: { brandId: number; name: string }) => api.post('/models', model),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['models'] }),
     onError: (error: any) => {
       console.error('Failed to add model', error);
@@ -191,7 +192,7 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
   });
 
   const updateModelMutation = useMutation({
-    mutationFn: ({ id, model }: { id: number; model: any }) => api.put(`/models/${id}`, model),
+    mutationFn: ({ id, model }: { id: number; model: { brandId: number; name: string } }) => api.put(`/models/${id}`, model),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['models'] });
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
@@ -212,7 +213,7 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
   });
 
   const updateEquipmentTypeMutation = useMutation({
-    mutationFn: ({ id, type }: { id: number; type: any }) => api.put(`/equipment-types/${id}`, type),
+    mutationFn: ({ id, type }: { id: number; type: { name: string; icon?: string } }) => api.put(`/equipment-types/${id}`, type),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment-types'] });
       queryClient.invalidateQueries({ queryKey: ['brands'] });
@@ -225,7 +226,7 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
   });
 
   const updateBrandMutation = useMutation({
-    mutationFn: ({ id, brand }: { id: number; brand: any }) => api.put(`/brands/${id}`, brand),
+    mutationFn: ({ id, brand }: { id: number; brand: { name: string; equipmentType: string } }) => api.put(`/brands/${id}`, brand),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['brands'] });
       queryClient.invalidateQueries({ queryKey: ['models'] });
@@ -275,9 +276,9 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
     brands: brands || [],
     models: models || [],
     fetchServiceOrders: refetch,
-    saveServiceOrderAPI: (order: any, id?: number, updatedAt?: string) => saveMutation.mutateAsync({ order, id, updatedAt }),
+    saveServiceOrderAPI: (order: ServiceOrderFormData, id?: number, updatedAt?: string) => saveMutation.mutateAsync({ order, id, updatedAt }),
     deleteServiceOrderAPI: (id: number) => deleteMutation.mutateAsync(id),
-    addServiceOrderStatusAPI: (status: any) => addStatusMutation.mutateAsync(status),
+    addServiceOrderStatusAPI: (status: { name: string; color?: string }) => addStatusMutation.mutateAsync(status),
     deleteServiceOrderStatusAPI: (id: number) => deleteStatusMutation.mutateAsync(id),
     addBrandAPI,
     updateBrandAPI,
