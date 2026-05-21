@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FormProvider, useForm, useFieldArray } from 'react-hook-form';
+import { FormProvider, useForm, useFieldArray, type FieldArrayPath } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -8,7 +8,8 @@ import {
   ClipboardList, Wrench, ChevronDown, ChevronUp, Check, QrCode
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { ServiceOrder, Customer, InventoryItem, ServiceOrderStatus, Brand, Model, User, ServiceOrderPart, ServiceOrderItem } from '../../types';
+import { ServiceOrderPart, ServiceOrderItem } from '../../types';
+import { useServiceOrderFormContext } from '../../contexts/ServiceOrderFormContext';
 import { cn, formatCurrency } from '../../lib/utils';
 import { CustomerSearchSelect } from '../customers/CustomerSearchSelect';
 import { SearchableSelect } from '../ui/SearchableSelect';
@@ -21,57 +22,32 @@ import { serviceOrderSchema, ServiceOrderFormData } from '../../schemas/serviceO
 import { format, parseISO } from 'date-fns';
 import { sendWhatsAppStatusUpdate } from '../../lib/whatsappUtils';
 
-interface ServiceOrderFormProps {
-  isAdding: boolean;
-  setIsAdding: (isAdding: boolean) => void;
-  editingOrder: ServiceOrder | null;
-  setEditingOrder: (order: ServiceOrder | null) => void;
-  customers: Customer[];
-  inventoryItems: InventoryItem[];
-  statuses: ServiceOrderStatus[];
-  equipmentTypes: {id: number, name: string}[];
-  brands: Brand[];
-  models: Model[];
-  currentUser: User | null;
-  onAddOrder: (order: any) => Promise<number | null>;
-  onUpdateOrder: (id: number, order: any, updatedAt?: string) => Promise<boolean>;
-  onAddEquipmentType: (name: string) => Promise<void>;
-  onAddBrand: (name: string, equipmentType: string) => Promise<void>;
-  onAddModel: (brandId: number, name: string) => Promise<void>;
-  onTriggerAddCustomer: () => void;
-  showToast: (message: string, type: 'success' | 'error') => void;
-  onOpenConfirm: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
-  setSelectedOrder: (order: ServiceOrder | null) => void;
-  setShowWhatsAppModal: (show: boolean) => void;
-  setShowQRCodeModal: (show: boolean) => void;
-  onGeneratePayment?: (order: any) => void;
-}
-
-export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
-  isAdding,
-  setIsAdding,
-  editingOrder,
-  setEditingOrder,
-  customers,
-  inventoryItems,
-  statuses,
-  equipmentTypes,
-  brands,
-  models,
-  currentUser,
-  onAddOrder,
-  onUpdateOrder,
-  onAddEquipmentType,
-  onAddBrand,
-  onAddModel,
-  onTriggerAddCustomer,
-  showToast,
-  onOpenConfirm,
-  setSelectedOrder,
-  setShowWhatsAppModal,
-  setShowQRCodeModal,
-  onGeneratePayment
-}) => {
+export const ServiceOrderForm: React.FC = () => {
+  const {
+    isAdding,
+    setIsAdding,
+    editingOrder,
+    setEditingOrder,
+    customers,
+    inventoryItems,
+    statuses,
+    equipmentTypes,
+    brands,
+    models,
+    currentUser,
+    onAddOrder,
+    onUpdateOrder,
+    onAddEquipmentType,
+    onAddBrand,
+    onAddModel,
+    onTriggerAddCustomer,
+    showToast,
+    onOpenConfirm,
+    setSelectedOrder,
+    setShowWhatsAppModal,
+    setShowQRCodeModal,
+    onGeneratePayment,
+  } = useServiceOrderFormContext();
   const methods = useForm<ServiceOrderFormData>({
     resolver: zodResolver(serviceOrderSchema) as any,
     defaultValues: {
@@ -112,16 +88,14 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
     formState: { errors }
   } = methods;
 
-  // @ts-ignore - React Hook Form tem problemas com inferência complexa de Zod
   const { fields: serviceFields, append: appendService, remove: removeService } = useFieldArray({
     control,
-    name: 'services'
+    name: 'services' as FieldArrayPath<ServiceOrderFormData>,
   });
 
-  // @ts-ignore - React Hook Form tem problemas com inferência complexa de Zod
   const { fields: partFields, append: appendPart, remove: removePart, update: updatePart } = useFieldArray({
     control,
-    name: 'partsUsed'
+    name: 'partsUsed' as FieldArrayPath<ServiceOrderFormData>,
   });
 
   const watchedServices = watch('services');

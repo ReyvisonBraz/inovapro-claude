@@ -23,7 +23,8 @@
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
       "Bash(xargs grep -l \"useServiceOrderForm\")",
       "Bash(Remove-Item \"c:\\\\Users\\\\Reyvison\\\\Desktop\\\\REYVISON PROJECTS\\\\inovapro-claude\\\\src\\\\hooks\\\\useServiceOrderForm.ts\")",
-      "Bash(Write-Host \"deleted\")"
+      "Bash(Write-Host \"deleted\")",
+      "Bash(not exist *)"
     ]
   }
 }

@@ -18,6 +18,7 @@ import { sendWhatsAppStatusUpdate } from '../../lib/whatsappUtils';
 import { ServiceOrderFilters } from './ServiceOrderFilters';
 import { ServiceOrderList } from './ServiceOrderList';
 import { ServiceOrderForm } from './ServiceOrderForm';
+import { ServiceOrderFormContext } from '../../contexts/ServiceOrderFormContext';
 
 // Modals
 import { WhatsAppModal } from './modals/WhatsAppModal';
@@ -316,35 +317,35 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
         onGeneratePayment={onGeneratePayment}
       />
 
-      <AnimatePresence>
-        {isAdding && (
-          <ServiceOrderForm 
-            isAdding={isAdding}
-            setIsAdding={setIsAdding}
-            editingOrder={editingOrder}
-            setEditingOrder={setEditingOrder}
-            customers={customers.data}
-            inventoryItems={inventoryItems}
-            statuses={statuses}
-            equipmentTypes={equipmentTypes}
-            brands={brands}
-            models={models}
-            currentUser={currentUser}
-            onAddOrder={onAddOrder}
-            onUpdateOrder={onUpdateOrder}
-            onAddEquipmentType={(name) => onAddEquipmentType(name, 'Smartphone')}
-            onAddBrand={onAddBrand}
-            onAddModel={onAddModel}
-            onTriggerAddCustomer={onTriggerAddCustomer}
-            showToast={showToast}
-            onOpenConfirm={onOpenConfirm}
-            setSelectedOrder={setSelectedOrder}
-            setShowWhatsAppModal={setShowWhatsAppModal}
-            setShowQRCodeModal={setShowQRCodeModal}
-            onGeneratePayment={onGeneratePayment}
-          />
-        )}
-      </AnimatePresence>
+      <ServiceOrderFormContext.Provider value={{
+        isAdding,
+        setIsAdding,
+        editingOrder,
+        setEditingOrder,
+        customers: customers.data,
+        inventoryItems,
+        statuses,
+        equipmentTypes,
+        brands,
+        models,
+        currentUser,
+        onAddOrder,
+        onUpdateOrder,
+        onAddEquipmentType: (name) => onAddEquipmentType(name, 'Smartphone'),
+        onAddBrand,
+        onAddModel,
+        onTriggerAddCustomer,
+        showToast,
+        onOpenConfirm,
+        setSelectedOrder,
+        setShowWhatsAppModal,
+        setShowQRCodeModal,
+        onGeneratePayment,
+      }}>
+        <AnimatePresence>
+          {isAdding && <ServiceOrderForm />}
+        </AnimatePresence>
+      </ServiceOrderFormContext.Provider>
 
       <StatusManagerModal 
         isOpen={showStatusManager}
