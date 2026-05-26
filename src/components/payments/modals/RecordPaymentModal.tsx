@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { recordPaymentSchema, RecordPaymentFormData } from '../../../schemas/paymentSchema';
+import { recordPaymentSchema, RecordPaymentFormData, RecordPaymentFormInput } from '../../../schemas/paymentSchema';
 
 interface RecordPaymentModalProps {
   payment: any;
@@ -22,7 +22,7 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
     handleSubmit,
     reset,
     formState: { errors }
-  } = useForm<RecordPaymentFormData>({
+  } = useForm<RecordPaymentFormInput, unknown, RecordPaymentFormData>({
     resolver: zodResolver(recordPaymentSchema),
     defaultValues: {
       amount: 0,

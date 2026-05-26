@@ -1,8 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useTransactions } from '../hooks/useTransactions';
+import { useAuthStore } from '../store/useAuthStore';
+import type { User } from '../types';
 import { server } from './mocks/server';
 import { http, HttpResponse } from 'msw';
 
@@ -16,7 +18,35 @@ function makeWrapper() {
 
 const showToast = vi.fn();
 
+const authenticatedUser: User = {
+  id: 1,
+  username: 'admin',
+  name: 'Administrador',
+  role: 'owner',
+  permissions: ['manage_settings'],
+  createdAt: '2024-01-01',
+};
+
 describe('useTransactions', () => {
+  beforeEach(() => {
+    showToast.mockClear();
+    useAuthStore.setState({
+      isAuthenticated: true,
+      currentUser: authenticatedUser,
+      users: [],
+      auditLogs: [],
+    });
+  });
+
+  afterEach(() => {
+    useAuthStore.setState({
+      isAuthenticated: false,
+      currentUser: null,
+      users: [],
+      auditLogs: [],
+    });
+  });
+
   it('busca transações com sucesso', async () => {
     const { result } = renderHook(() => useTransactions(showToast), {
       wrapper: makeWrapper(),
@@ -66,7 +96,7 @@ describe('useTransactions', () => {
 
   it('isError fica true quando API falha', async () => {
     server.use(
-      http.get('/api/transactions', () => HttpResponse.json({ error: 'server error' }, { status: 500 }))
+      http.get('*/api/transactions', () => HttpResponse.json({ error: 'server error' }, { status: 500 }))
     );
 
     const { result } = renderHook(() => useTransactions(showToast), {

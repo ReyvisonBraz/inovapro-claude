@@ -68,7 +68,7 @@ describe('useClientPayments', () => {
   it('deleteClientPaymentAPI chama endpoint correto', async () => {
     let deletedId: string | undefined;
     server.use(
-      http.delete('/api/client-payments/:id', ({ params }) => {
+      http.delete('*/api/client-payments/:id', ({ params }) => {
         deletedId = params.id as string;
         return HttpResponse.json({ success: true });
       })
@@ -86,7 +86,7 @@ describe('useClientPayments', () => {
   it('saveClientPaymentAPI usa POST para novo pagamento', async () => {
     let method: string | undefined;
     server.use(
-      http.post('/api/client-payments', ({ request }) => {
+      http.post('*/api/client-payments', ({ request }) => {
         method = request.method;
         return HttpResponse.json({ id: 99 });
       })

@@ -1,42 +1,44 @@
 # Status do Projeto: INOVA PRO
-**Data da última atualização:** 26 de Abril de 2026
 
-## 🚀 O que já foi feito (Resumo Técnico)
+**Data da ultima atualizacao:** 26 de maio de 2026
 
-### 1. Estabilização do Backend (Railway)
-- **Correção de Validação (Zod):** Todos os esquemas de dados (Transações, Clientes, Ordens de Serviço) foram atualizados para usar `z.coerce.number()`. Isso impede que o servidor rejeite números enviados como texto do frontend.
-- **Banco de Dados (SQLite):**
-  - Implementada a migração da tabela `brands` para incluir a coluna `equipmentType`, que estava impedindo o cadastro de novas marcas.
-  - Correção das rotas de CRUD para Marcas, Modelos e Tipos de Equipamento.
-- **Infraestrutura:** Transição para imagem Docker `slim` no Railway para garantir compatibilidade com módulos nativos e passar nos testes de integridade (Health Checks).
+## Ponto Atual
 
-### 2. Estabilização do Frontend (Vercel)
-- **Acesso Mobile:**
-  - Adicionado script de desinstalação de Service Workers antigos no `index.html` para parar loops de recarregamento (F5 infinito).
-  - Implementada trava no `api.ts` para evitar loops de redirecionamento de autenticação.
-  - Relaxamento das políticas de segurança do `helmet` (CSP) para evitar bloqueio de scripts em navegadores móveis.
-- **Conectividade:** Configuração de CORS expandida para aceitar múltiplos domínios Vercel e origens móveis.
+O projeto esta em fase de saneamento tecnico e estabilizacao. Nesta rodada, o foco foi fechar uma base confiavel para continuar os ajustes de documentacao, seguranca, UX e validacao dos fluxos principais.
 
-### 3. Funcionalidades de Ordem de Serviço
-- **Fluxo de Cadastro:** Otimização do "Quick Add" para marcas e modelos diretamente no modal de OS.
-- **Sincronização de Estado:** Garantia de que novos cadastros de equipamentos apareçam instantaneamente na lista de seleção.
+## Validacao Local
 
----
+Executado em 26 de maio de 2026:
 
-## 📍 Etapa Atual: Estabilidade e Refinamento de UX
-Estamos na fase de **Validação em Produção**. O núcleo do sistema (Financeiro + OS) está funcional e acessível tanto via Desktop quanto Mobile.
+- `npm.cmd run lint`: passou.
+- `npm.cmd test -- --run`: passou com 4 arquivos e 36 testes.
+- `npm.cmd run build`: passou, incluindo `prisma generate` e `vite build`.
 
-**Focos atuais:**
-- Monitorar a persistência de dados no Railway.
-- Validar se o loop de recarregamento no mobile foi 100% sanado após a limpeza de cache do usuário.
-- Garantir que todas as permissões de usuário estejam refletidas corretamente na interface.
+Observacao: o build ainda emite o aviso conhecido do Vite sobre chunks maiores que 500 kB. Isso nao bloqueia a geracao, mas fica como ponto futuro de otimizacao.
 
----
+## Ajustes Concluidos Nesta Rodada
 
-## 📅 Próximos Passos
-1. **Visibilidade de Dados:** Estudar a implementação de um painel administrativo simplificado para visualização direta das tabelas do banco de dados (estilo "mini Supabase").
-2. **Refinamento de Mobile:** Ajustar paddings e tamanhos de fonte específicos para telas pequenas onde houver quebra de layout.
-3. **Documentação de Operação:** Criar um guia rápido de como gerenciar as categorias e tipos de equipamentos nas configurações.
+- Corrigido o tipo do formulario de registro de pagamento para alinhar `z.coerce.number()` com `react-hook-form` e `zodResolver`.
+- Ajustados mocks do MSW para interceptar URLs absolutas e relativas da API.
+- Ajustados testes de transacoes para refletirem a regra real do hook: a busca so roda quando o usuario esta autenticado.
 
----
-© 2026 INOVA PRO - Notas de Desenvolvimento
+## Estado Tecnico Observado
+
+- Frontend: React, Vite, TypeScript, Tailwind e Zustand.
+- Backend: Express, TypeScript e Prisma.
+- Banco atual no Prisma: PostgreSQL.
+- Testes: Vitest, Testing Library e MSW.
+- Build: Vite com PWA.
+
+## Pendencias Principais
+
+- Corrigir textos com acentuacao quebrada em codigo, schema e documentacao.
+- Atualizar README e documentacao principal para refletir o estado real do projeto.
+- Revisar CORS, CSP e endpoints de diagnostico para producao.
+- Validar manualmente os fluxos principais em desktop e mobile.
+- Revisar cache/PWA em mobile.
+- Decidir e documentar com clareza a estrategia final de deploy.
+
+## Proximo Passo Recomendado
+
+Continuar pelo saneamento de documentacao e encoding, priorizando os textos que aparecem para o usuario e os defaults do Prisma antes de revisar os arquivos puramente documentais.

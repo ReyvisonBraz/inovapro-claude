@@ -1,32 +1,34 @@
-# Documentação do Projeto - FINANCEIRO INOVA
+# Documentacao do Projeto - INOVA PRO
 
-Bem-vindo à documentação oficial do **FINANCEIRO INOVA**. Este diretório contém todas as informações necessárias para entender, operar e evoluir o sistema.
+Este diretorio concentra a documentacao tecnica, produto, operacao e planejamento do INOVA PRO.
 
-## 📂 Estrutura da Documentação
+## Estrutura
 
-A documentação foi organizada profissionalmente para facilitar o acesso rápido às informações:
+1. [PRD.md](./PRD.md): requisitos de produto e escopo funcional. Ainda precisa de revisao para refletir PostgreSQL como banco atual.
+2. [ARCHITECTURE.md](./ARCHITECTURE.md): arquitetura tecnica vigente do frontend, backend e banco.
+3. [ROADMAP.md](./ROADMAP.md): plano de evolucao. Ainda contem referencias antigas a migracao Supabase/Render.
+4. [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md): guia de desenvolvimento. Ainda precisa ser revisado para remover instrucoes antigas de SQLite.
+5. [PLANO-SANEAMENTO-INOVA-PRO.md](./PLANO-SANEAMENTO-INOVA-PRO.md): plano de saneamento tecnico e documental em andamento.
 
-1.  **[PRD.md](./PRD.md)**: Documento de Requisitos do Produto. Visão geral, funcionalidades e objetivos do negócio.
-2.  **[ARCHITECTURE.md](./ARCHITECTURE.md)**: Detalhamento técnico da arquitetura Frontend, Backend e Banco de Dados.
-3.  **[ROADMAP.md](./ROADMAP.md)**: Plano de evolução do projeto, incluindo a migração para Supabase e novas funcionalidades.
-4.  **[DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md)**: Guia prático para desenvolvedores configurarem o ambiente e seguirem os padrões de código.
+## Stack Atual
 
----
+- Frontend: React 19, TypeScript, Vite, Tailwind CSS e Zustand.
+- Backend: Express, TypeScript e Prisma.
+- Banco: PostgreSQL.
+- Testes: Vitest, Testing Library e MSW.
+- Build/PWA: Vite + vite-plugin-pwa.
 
-## 🛠️ Tecnologias Principais
-*   **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, Zustand.
-*   **Backend:** Express, SQLite (better-sqlite3).
-*   **Estilização:** Tailwind CSS 4.
-*   **Animações:** Motion.
+## Estado da Documentacao
 
----
+A documentacao esta em saneamento. Os arquivos `README.md`, `STATUS.md`, `docs/README.md` e `docs/ARCHITECTURE.md` foram atualizados primeiro por serem os pontos de entrada mais importantes.
 
-## 🤝 Como Contribuir
-Para manter a documentação atualizada:
-- Sempre que uma nova funcionalidade for adicionada, atualize o **PRD.md**.
-- Mudanças estruturais no código ou banco de dados devem ser refletidas no **ARCHITECTURE.md**.
-- Novos passos ou mudanças de prioridade devem ser registrados no **ROADMAP.md**.
+Ainda existem documentos historicos que mencionam SQLite, Supabase ou Render como plano antigo. Esses arquivos devem ser revisados antes de serem usados como referencia operacional.
 
----
-**Versão Atual:** 1.0.0
-**Última Atualização:** Abril de 2026
+## Regras de Manutencao
+
+- Mudancas estruturais no codigo ou banco devem ser refletidas em `ARCHITECTURE.md`.
+- Mudancas de escopo e prioridade devem ser refletidas em `ROADMAP.md`.
+- Bugs e riscos ativos devem aparecer em `STATUS.md` ou no plano de saneamento.
+- Novas instrucoes operacionais devem evitar contradizer `package.json`, `server.ts` e `prisma/schema.prisma`.
+
+**Ultima atualizacao:** 26 de maio de 2026

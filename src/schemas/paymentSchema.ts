@@ -33,7 +33,5 @@ export const recordPaymentSchema = z.object({
   date: z.string().min(1, 'A data do pagamento é obrigatória'),
 });
 
-export type RecordPaymentFormData = {
-  amount: number;
-  date: string;
-};
+export type RecordPaymentFormInput = z.input<typeof recordPaymentSchema>;
+export type RecordPaymentFormData = z.output<typeof recordPaymentSchema>;

@@ -1,66 +1,88 @@
-# Arquitetura Técnica - FINANCEIRO INOVA
+# Arquitetura Tecnica - INOVA PRO
 
-## 1. Visão Geral da Arquitetura
-O sistema segue uma arquitetura **Monolítica Modular** no frontend (React) com um backend **BFF (Backend for Frontend)** leve usando Express e SQLite.
+## 1. Visao Geral
 
----
+O INOVA PRO usa frontend React/Vite com backend Express e persistencia via Prisma em PostgreSQL. A aplicacao concentra os fluxos operacionais de uma assistencia tecnica/loja: financeiro, clientes, contas a receber, ordens de servico, estoque, recibos e rastreio publico.
 
-## 2. Estrutura do Projeto
+## 2. Camadas Principais
 
-### 2.1 Frontend (`/src`)
-A organização segue o princípio de **Separação de Responsabilidades (SoC)**:
+### Frontend
 
-- **`/pages/`**: Telas principais da aplicação (Dashboard, Vendas, Clientes, etc.).
-- **`/components/`**: Camada de Apresentação (UI).
-    - `/layout/`: Componentes de estrutura (Sidebar, Header, MobileNav, **GlobalModals**).
-    - `/modals/`: Janelas sobrepostas (formulários de criação, confirmações de exclusão, avisos).
-    - `/settings/`: Componentes específicos da tela de configurações.
-    - `/ui/`: Componentes base reutilizáveis (Botões, Inputs, Cards, Toasts, Paginação).
-    - `/service-orders/`: Sub-componentes para a gestão de Ordens de Serviço (Filtros, Listas, Modais específicos).
-- **`/hooks/`**: Camada de Lógica de Negócios. Custom hooks que encapsulam chamadas de API, transformações de dados e lógicas complexas (ex: `useCustomers`, `useTransactions`, `useExportData`).
-- **`/store/`**: Camada de Estado Global. Utiliza **Zustand** para gerenciar estados compartilhados (ex: `useAppStore` para UI, `useFormStore` para dados temporários de formulários, `useModalStore` para controle de modais).
-- **`/lib/`**: Camada de Utilitários. Funções puras, helpers e configurações (ex: `utils.ts` para formatação, `printUtils.ts` para impressão).
-- **`/services/`**: Camada para integrações externas (ex: Gemini API).
-- **`types.ts`**: Contratos de dados. Definições de interfaces TypeScript globais.
+Local: `src/`
 
-### 2.2 Backend (Raiz)
-- **`server.ts`**: Ponto de entrada do servidor Express. Gerencia rotas da API, conexão com SQLite (`better-sqlite3`) e serve o frontend em produção.
-- **`prisma/`**: Esquema e migrações do banco de dados (se aplicável).
+- `pages/`: telas principais da aplicacao.
+- `components/`: componentes de UI, layout, modais e partes especificas dos modulos.
+- `hooks/`: regras de interacao com API, React Query e transformacoes usadas pela UI.
+- `store/`: estado global com Zustand.
+- `lib/`: utilitarios, cliente HTTP, helpers de impressao e integracoes base.
+- `schemas/`: validacoes compartilhadas com Zod.
+- `types.ts`: contratos TypeScript usados pela aplicacao.
 
----
+### Backend
 
-## 3. Fluxo de Dados (Data Flow)
-O projeto segue um fluxo unidirecional e previsível:
+Entrada principal: `server.ts`
 
-1.  **Ação do Usuário:** Interação na UI (ex: clica em "Salvar").
-2.  **Chamada ao Hook/Store:** O componente dispara uma função de lógica (ex: `addCustomer` do hook `useCustomers`).
-3.  **Requisição API:** O hook faz uma chamada HTTP para o backend (`/api/...`).
-4.  **Processamento no Servidor:** O `server.ts` valida os dados via **Zod** e executa a operação no SQLite.
-5.  **Resposta e Atualização:** O servidor retorna o resultado; o hook atualiza o estado local ou global (Zustand).
-6.  **Re-renderização:** O React atualiza apenas os componentes afetados pela mudança de estado.
+- Express exposto como API HTTP.
+- Rotas publicas em `src/routes/public.ts`.
+- Rotas protegidas em `src/routes/index.ts`.
+- Autenticacao JWT em `src/middleware/auth.ts`.
+- Prisma Client configurado em `src/lib/prisma.ts`.
+- Logs e tratamento de erro em `src/lib/server-logger.ts`.
 
----
+### Banco de Dados
 
-## 4. Banco de Dados e Persistência
-Atualmente, o projeto utiliza **SQLite** (`better-sqlite3`) para persistência local. O esquema foi desenhado para ser compatível com SQL padrão, facilitando a migração futura para PostgreSQL (Supabase).
+Schema principal: `prisma/schema.prisma`
 
-### Principais Tabelas:
-- `transactions`: Movimentações financeiras.
-- `customers`: Cadastro de clientes.
-- `client_payments`: Contas a receber/pagar de clientes.
-- `service_orders`: Gestão de Ordens de Serviço.
-- `inventory_items`: Controle de estoque.
-- `users`: Controle de usuários e permissões.
-- `audit_logs`: Registro de atividades do sistema.
-- `settings`: Configurações globais da aplicação.
+- Provider atual: `postgresql`.
+- Cliente Prisma gerado no build por `npm run build`.
+- Conexao configurada por `DATABASE_URL` ou variaveis `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` e `DB_NAME`.
 
----
+## 3. Fluxo de Dados
 
-## 5. Segurança e Auditoria
-- **Autenticação:** Sistema de login baseado em usuários locais com níveis de permissão (Dono, Gerente, Funcionário).
-- **Auditoria:** Todas as ações críticas (criar, editar, excluir) geram um registro em `audit_logs` para rastreabilidade.
-- **Validação:** Todas as entradas de dados na API são validadas via **Zod** no servidor.
+1. O usuario executa uma acao na interface.
+2. Um componente chama um hook ou uma store.
+3. O hook dispara uma requisicao HTTP para `/api/...`.
+4. O backend valida permissao, processa a regra e acessa o banco via Prisma.
+5. A API retorna os dados.
+6. React Query/Zustand atualizam a UI.
 
----
-**Versão:** 1.0.0
-**Data:** Abril de 2026
+## 4. Modulos Funcionais
+
+- `transactions`: movimentacoes financeiras.
+- `customers`: cadastro de clientes.
+- `client_payments`: contas a receber/pagar.
+- `service_orders`: ordens de servico.
+- `inventory_items`: estoque, pecas e servicos.
+- `users`: usuarios e permissoes.
+- `audit_logs`: auditoria.
+- `settings`: configuracoes globais.
+
+## 5. Seguranca
+
+- Login baseado em usuarios locais e JWT.
+- Rotas protegidas passam por `requireAuth`.
+- Permissoes sao avaliadas pela store de autenticacao no frontend e pelas rotas protegidas no backend.
+- Auditoria registra acoes relevantes.
+
+Pontos ainda pendentes no plano de saneamento:
+
+- Revisar CORS para producao.
+- Definir CSP compativel com o frontend.
+- Avaliar endpoints de diagnostico em ambiente produtivo.
+- Confirmar se logs nao expõem dados sensiveis.
+
+## 6. Ambientes
+
+- Desenvolvimento local: Vite no frontend e Express no backend.
+- Producao/preview: ainda precisa de decisao final documentada entre Vercel, Railway, Render ou outra composicao.
+- Banco: PostgreSQL.
+
+## 7. Validacao Atual
+
+Executado em 26 de maio de 2026:
+
+- `npm.cmd run lint`: passou.
+- `npm.cmd test -- --run`: passou.
+- `npm.cmd run build`: passou.
+
+**Ultima atualizacao:** 26 de maio de 2026

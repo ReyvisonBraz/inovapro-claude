@@ -1,20 +1,95 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# INOVA PRO
 
-# Run and deploy your AI Studio app
+Sistema web de gestao para assistencia tecnica e loja, cobrindo financeiro, clientes, contas a receber, ordens de servico, estoque, recibos, impressao e rastreio publico de OS.
 
-This contains everything you need to run your app locally.
+## Stack Atual
 
-View your app in AI Studio: https://ai.studio/apps/cfd000ee-6c9e-474b-83a8-307f5696f0dc
+- Frontend: React, Vite, TypeScript, Tailwind e Zustand.
+- Backend: Express, TypeScript e Prisma.
+- Banco: PostgreSQL.
+- Testes: Vitest, Testing Library e MSW.
+- Build/PWA: Vite + vite-plugin-pwa.
 
-## Run Locally
+## Requisitos
 
-**Prerequisites:**  Node.js
+- Node.js instalado.
+- Um banco PostgreSQL acessivel.
+- Variaveis de ambiente configuradas em `.env`.
 
+## Configuracao Local
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+1. Instale as dependencias:
+
+```bash
+npm install
+```
+
+2. Crie o arquivo `.env` a partir de `.env.example` e preencha os valores principais:
+
+```bash
+cp .env.example .env
+```
+
+Variaveis essenciais:
+
+- `DATABASE_URL`: URL completa do PostgreSQL usada pelo Prisma.
+- `JWT_SECRET`: segredo para assinatura de tokens.
+- `VITE_API_URL`: URL base da API usada pelo frontend.
+
+Tambem e possivel configurar a conexao PostgreSQL por partes com `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` e `DB_NAME`, conforme `.env.example`.
+
+## Comandos
+
+```bash
+npm run dev
+```
+
+Sobe API e frontend em modo desenvolvimento.
+
+```bash
+npm run dev:api
+```
+
+Sobe apenas o backend Express.
+
+```bash
+npm run dev:frontend
+```
+
+Sobe apenas o frontend Vite.
+
+```bash
+npm run lint
+```
+
+Executa typecheck com `tsc --noEmit`.
+
+```bash
+npm test -- --run
+```
+
+Executa a suite automatizada em modo nao interativo.
+
+```bash
+npm run build
+```
+
+Gera Prisma Client e cria o build de producao do frontend.
+
+## Estado Atual
+
+Validado localmente em 26 de maio de 2026:
+
+- `npm.cmd run lint`: passou.
+- `npm.cmd test -- --run`: passou com 4 arquivos e 36 testes.
+- `npm.cmd run build`: passou.
+
+O build ainda mostra um aviso de chunks grandes do Vite. Esse aviso nao bloqueia a geracao, mas deve ser tratado em uma etapa futura de otimizacao.
+
+## Documentacao
+
+- [Status do projeto](./STATUS.md)
+- [Plano de saneamento](./docs/PLANO-SANEAMENTO-INOVA-PRO.md)
+- [Documentacao tecnica](./docs/README.md)
+
+Alguns documentos antigos ainda podem mencionar SQLite ou Supabase como plano de migracao. A referencia atual do projeto e Express + Prisma + PostgreSQL.
