@@ -1,94 +1,109 @@
-# Product Requirements Document (PRD) - FINANCEIRO INOVA
+# Product Requirements Document - INOVA PRO
 
-## 1. Visão Geral do Produto
-O **FINANCEIRO INOVA** é um sistema de gestão financeira e operacional robusto, desenvolvido para pequenas e médias empresas (PMEs), com foco especial em assistências técnicas e comércios que necessitam de controle rigoroso de fluxo de caixa, ordens de serviço e relacionamento com clientes.
+## 1. Visao Geral
 
-### 1.1 Objetivo
-Centralizar a gestão financeira, operacional e de clientes em uma única plataforma moderna, rápida e segura, eliminando a dependência de planilhas e processos manuais.
+O INOVA PRO e um sistema web de gestao financeira e operacional para assistencias tecnicas, lojas e pequenas empresas que precisam controlar clientes, contas, ordens de servico, estoque e comprovantes em um unico lugar.
 
----
+## 2. Objetivo
 
-## 2. Público-Alvo
-- Proprietários de pequenas empresas.
-- Gerentes financeiros.
-- Técnicos e prestadores de serviços.
+Centralizar operacoes do dia a dia em uma plataforma rapida, segura e simples de operar, reduzindo dependencia de planilhas, controles manuais e historicos dispersos em conversas.
 
----
+## 3. Publico-Alvo
 
-## 3. Funcionalidades Principais
+- Proprietarios de assistencias tecnicas e lojas.
+- Gerentes financeiros ou operacionais.
+- Tecnicos que acompanham ordens de servico.
+- Equipes pequenas que precisam de controle sem ERP complexo.
 
-### 3.1 Gestão Financeira (Transactions)
-- Registro de entradas e saídas.
-- Categorização detalhada de movimentações.
-- Filtros avançados por data, tipo, categoria e valor.
-- Paginação para alta performance com grandes volumes de dados.
+## 4. Funcionalidades Principais
 
-### 3.2 Gestão de Clientes (CRM)
-- Cadastro completo com CPF/CNPJ, telefone e observações.
-- Definição de limite de crédito por cliente.
-- Histórico de pagamentos e serviços vinculados.
-- Verificação de similaridade para evitar cadastros duplicados.
+### 4.1 Financeiro
 
-### 3.3 Vendas e Contas a Receber (Client Payments)
-- Registro de vendas parceladas com geração automática de parcelas.
-- Controle de status (Pendente, Parcial, Pago).
-- Histórico de recebimentos por lançamento.
-- Envio de lembretes e comprovantes via WhatsApp.
+- Registro de entradas e saidas.
+- Categorias por tipo de movimentacao.
+- Filtros por data, tipo, categoria e valor.
+- Paginacao para volumes maiores de dados.
 
-### 3.4 Ordens de Serviço (OS)
-- Fluxo completo: Entrada -> Análise -> Manutenção -> Entrega.
-- Registro de fotos de entrada (Base64).
-- Detalhamento técnico: Problema relatado, análise técnica, serviços e peças.
-- Status customizáveis com cores e prioridades.
-- Impressão de recibos em A4 ou Térmico.
+### 4.2 Clientes
 
-### 3.5 Gestão de Estoque (Inventory)
-- Controle de produtos e serviços.
-- Alertas de estoque baixo.
-- Vinculação de peças às Ordens de Serviço.
+- Cadastro com nome, telefone, CPF/CNPJ, apelido, observacao e limite de credito.
+- Historico relacionado a vendas, pagamentos e ordens de servico.
+- Verificacao de similaridade para reduzir cadastros duplicados.
 
-### 3.6 Dashboard e Relatórios
-- Gráficos comparativos de Receita vs. Despesa.
-- Ranking de categorias mais lucrativas/custosas.
-- Indicadores de saúde financeira (Saldo Líquido, OS Ativas, Pagamentos Pendentes).
-- Exportação de dados para relatórios externos.
+### 4.3 Vendas e Contas a Receber
 
----
+- Registro de compras/vendas vinculadas a clientes.
+- Controle de status pendente, parcial e pago.
+- Registro de pagamentos parciais ou totais.
+- Historico de recebimentos.
+- Mensagens de cobranca e comprovantes via WhatsApp.
 
-## 4. Arquitetura e Organização do Código
+### 4.4 Ordens de Servico
 
-### 4.1 Frontend (React + TypeScript)
-Organizado de forma modular para facilitar a manutenção:
-- **Pages:** Telas principais (Dashboard, Vendas, Clientes, etc.).
-- **Components:** UI reutilizável (shadcn-like), Layout (Sidebar, Header) e Modais Globais.
-- **Hooks:** Lógica de negócio e chamadas de API encapsuladas.
-- **Store (Zustand):** Gerenciamento de estado global segmentado (Auth, App, Modais, Filtros).
-- **Lib:** Utilitários de formatação, impressão e templates de recibos.
+- Cadastro de equipamento, problema relatado, analise tecnica, servicos, pecas e valores.
+- Status customizaveis.
+- Fotos de entrada quando configurado.
+- Impressao/preview de OS.
+- Rastreio publico para o cliente acompanhar a OS sem login.
 
-### 4.2 Backend (Node.js + Express)
-- **BFF (Backend for Frontend):** Servidor leve que expõe APIs REST.
-- **Validação:** Uso de **Zod** para garantir a integridade dos dados recebidos.
-- **Banco de Dados:** SQLite (`better-sqlite3`) para persistência local rápida.
-- **Segurança:** Sistema de autenticação JWT-like e Logs de Auditoria para todas as ações críticas.
+### 4.5 Estoque
 
----
+- Cadastro de produtos e servicos.
+- Controle de quantidade, custo, preco e estoque minimo.
+- Uso de pecas em ordens de servico.
+- Alertas de baixo estoque.
 
-## 5. Comunicação e Fluxo de Dados
-1. **UI -> Hook:** O componente interage com um custom hook.
-2. **Hook -> API:** O hook dispara uma requisição `fetch` para o backend.
-3. **API -> DB:** O Express valida via Zod e executa a query no SQLite.
-4. **DB -> API -> Hook:** A resposta retorna e o hook atualiza o estado global (Zustand).
-5. **Hook -> UI:** O React re-renderiza apenas os componentes necessários.
+### 4.6 Relatorios e Dashboard
 
----
+- Indicadores financeiros.
+- Comparativos de receitas e despesas.
+- Pagamentos pendentes.
+- Exportacao de dados quando disponivel.
 
-## 6. Roadmap e Evolução
-1. **Migração para Cloud:** Transição do SQLite para **Supabase (PostgreSQL)**.
-2. **Autenticação Avançada:** Implementação de Supabase Auth e RLS (Row Level Security).
-3. **Armazenamento de Mídia:** Uso de Supabase Storage para fotos de OS.
-4. **Integrações:** Automação de notificações via WhatsApp API e e-mail.
-5. **Mobile:** Desenvolvimento de App nativo ou PWA aprimorado.
+### 4.7 Usuarios, Permissoes e Auditoria
 
----
-**Versão:** 1.0.0
-**Data:** Abril de 2026
+- Login com usuarios locais.
+- Papeis e permissoes.
+- Registro de acoes relevantes em auditoria.
+
+## 5. Arquitetura Atual
+
+- Frontend: React, Vite, TypeScript, Tailwind e Zustand.
+- Backend: Express, TypeScript e Prisma.
+- Banco: PostgreSQL.
+- Testes: Vitest, Testing Library e MSW.
+- Build/PWA: Vite + vite-plugin-pwa.
+
+## 6. Fluxo de Dados
+
+1. A interface chama hooks ou stores.
+2. Hooks usam o cliente HTTP para acessar `/api/...`.
+3. O backend Express valida autenticacao e regras.
+4. Prisma executa operacoes no PostgreSQL.
+5. A resposta volta para React Query/Zustand e atualiza a tela.
+
+## 7. Requisitos Nao Funcionais
+
+- Interface funcional em desktop e mobile.
+- Mensagens de erro compreensiveis.
+- Rotas protegidas por autenticacao.
+- Dados sensiveis fora do versionamento.
+- Build e testes locais sempre verdes antes de mudancas maiores.
+
+## 8. Estado Atual
+
+Validado localmente em 26 de maio de 2026:
+
+- `npm.cmd run lint`: passou.
+- `npm.cmd test -- --run`: passou com 4 arquivos e 36 testes.
+- `npm.cmd run build`: passou.
+
+## 9. Proximas Prioridades
+
+- Revisar seguranca de producao: CORS, CSP e endpoints de diagnostico.
+- Validar fluxos principais em navegador real.
+- Revisar PWA/cache em mobile.
+- Consolidar estrategia final de deploy.
+- Melhorar cobertura de testes nos fluxos mais criticos.
+
+**Ultima atualizacao:** 26 de maio de 2026

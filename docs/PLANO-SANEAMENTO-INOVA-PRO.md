@@ -60,8 +60,8 @@ Checklist:
 - [x] Remover ou adaptar referencias antigas do AI Studio.
 - [x] Atualizar arquitetura para Express + Prisma + PostgreSQL.
 - [x] Marcar claramente diferencas entre local, preview e producao.
-- [ ] Atualizar roadmap com o que ja foi feito e o que ainda esta pendente.
-- [ ] Revisar docs que ainda falam em SQLite como arquitetura atual.
+- [x] Atualizar roadmap com o que ja foi feito e o que ainda esta pendente.
+- [x] Revisar docs que ainda falam em SQLite como arquitetura atual.
 - [x] Criar uma secao de "estado atual" com data da revisao.
 - [x] Criar uma secao de "decisoes tecnicas atuais" para evitar duvida futura.
 
@@ -80,8 +80,9 @@ Validacao:
 
 Problema observado:
 
-- Ha textos com caracteres quebrados, como `VocÃª`, `ConcluÃ­do`, `ConfiguraÃ§Ãµes`.
-- Isso aparece em documentacao, comentarios e alguns defaults do schema.
+- A saida do PowerShell pode exibir acentos como se estivessem quebrados.
+- Antes de corrigir arquivos, e necessario separar mojibake real de problema de renderizacao do terminal.
+- Mojibake real costuma aparecer como sequencias do tipo `Ã` + caractere de controle/latin-1, `Â`, `â` ou caractere de substituicao.
 
 Meta:
 
@@ -102,12 +103,12 @@ Arquivos provaveis:
 
 Checklist:
 
-- [ ] Mapear arquivos com caracteres quebrados.
-- [ ] Separar textos exibidos ao usuario de comentarios/documentacao.
-- [ ] Corrigir primeiro textos de UI e defaults que podem afetar dados.
-- [ ] Corrigir comentarios e documentacao depois.
-- [ ] Confirmar que os arquivos permanecem em UTF-8.
-- [ ] Revisar valores default no schema antes de aplicar qualquer migracao.
+- [x] Mapear arquivos com caracteres quebrados.
+- [x] Separar textos exibidos ao usuario de comentarios/documentacao.
+- [x] Corrigir primeiro textos de UI e defaults que podem afetar dados.
+- [x] Corrigir comentarios e documentacao depois.
+- [x] Confirmar que os arquivos permanecem em UTF-8.
+- [x] Revisar valores default no schema antes de aplicar qualquer migracao.
 
 Criterio de pronto:
 
@@ -117,9 +118,14 @@ Criterio de pronto:
 
 Validacao:
 
-- Buscar padroes comuns de mojibake:
-  - `rg "Ã|Â|ð|�" .`
+- Buscar padroes comuns de mojibake real com scanner UTF-8, evitando confundir a letra `Ã` legitima com texto quebrado.
 - Abrir telas principais apos build/dev e verificar textos.
+
+Registro de execucao - 2026-05-26:
+
+- Scanner UTF-8 encontrou mojibake real apenas neste plano, nos exemplos de texto quebrado.
+- `prisma/schema.prisma` contem acentos UTF-8 validos em defaults como `Concluido`, `Versao`, `Alimentacao`, `Salario`, `Servicos` quando lidos corretamente pelo Node.
+- `server.ts`, `src` e `.env.example` aparentam quebrados no PowerShell em alguns comandos, mas a leitura UTF-8 confirmou que os acentos principais estao validos.
 
 ### 3. Revisar Seguranca de Producao
 

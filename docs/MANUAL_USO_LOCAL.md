@@ -1,67 +1,95 @@
-# Manual de Uso Local — INOVA PRO
+# Manual de Uso Local - INOVA PRO
 
-## Primeira vez em uma máquina nova
+## Primeira Configuracao
 
 ```bash
 git clone https://github.com/ReyvisonBraz/inovapro-claude.git
 cd inovapro-claude
 npm install
+```
+
+Crie o arquivo `.env` a partir de `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Preencha pelo menos:
+
+- `DATABASE_URL` ou as variaveis `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` e `DB_NAME`.
+- `JWT_SECRET`.
+- `VITE_API_URL`.
+
+## Rodar Localmente
+
+```bash
 npm run dev
 ```
 
-Só isso. O banco de dados (`finance.db`) vem junto com o clone — todos os dados incluídos.
+Esse comando sobe backend Express e frontend Vite juntos.
 
----
+Comandos separados:
 
-## Fluxo do dia a dia
+```bash
+npm run dev:api
+npm run dev:frontend
+```
 
-**Antes de começar a trabalhar — puxar o que tem de novo:**
+## Validar Antes de Entregar Mudancas
+
+```bash
+npm run lint
+npm test -- --run
+npm run build
+```
+
+Estado validado em 26 de maio de 2026:
+
+- Lint passou.
+- Testes passaram com 4 arquivos e 36 testes.
+- Build passou com `prisma generate` e Vite.
+
+## Banco de Dados
+
+O projeto usa PostgreSQL via Prisma.
+
+O schema fica em:
+
+```bash
+prisma/schema.prisma
+```
+
+A conexao e lida por:
+
+```bash
+src/lib/prisma.ts
+```
+
+Nao versionar senhas, dumps reais ou arquivos `.env` com credenciais.
+
+## Fluxo Diario
+
+Antes de trabalhar:
+
 ```bash
 git pull origin main
 ```
 
-**Depois de trabalhar — salvar código + banco:**
+Depois de trabalhar:
+
 ```bash
+git status --short
 git add .
 git commit -m "descricao do que foi feito"
 git push origin main
 ```
 
----
+## Credenciais
 
-## ⚠️ Regra importante sobre o banco de dados
+Credenciais de desenvolvimento dependem dos dados existentes no PostgreSQL usado localmente. Se nao houver usuario, crie ou restaure dados de teste antes de validar login.
 
-O `finance.db` é um arquivo binário (SQLite). Se você trabalhar em **duas máquinas ao mesmo tempo** sem sincronizar, vai gerar conflito de merge — e o git não consegue resolver conflito em arquivo binário automaticamente.
+## Observacoes
 
-**Regra simples para nunca ter problema:**
-> Sempre `git pull` antes de começar e `git push` ao terminar.
-
----
-
-## O que NÃO precisa instalar
-
-- Nenhum banco de dados separado — SQLite já está embutido no projeto
-- Nenhum serviço externo — tudo roda localmente
-- O `npm install` já cuida de todas as dependências (bcryptjs, better-sqlite3, etc.)
-
----
-
-## Credenciais padrão
-
-| Campo | Valor |
-|---|---|
-| Usuário | `admin` |
-| Senha | `admin` |
-
----
-
-## Observações para migração futura (produção)
-
-Quando for colocar online, os pontos que precisam de atenção são:
-
-- **Banco de dados** — migrar SQLite para PostgreSQL ou MySQL
-- **Autenticação** — implementar JWT para proteger as rotas da API
-- **Variáveis de ambiente** — criar `.env` real no servidor com `PORT` e `ADMIN_PASSWORD`
-- **Build** — rodar `npm run build` e servir a pasta `dist/` via Express
-- **HTTPS** — configurar Nginx ou Caddy como proxy reverso
-- **`finance.db`** — remover do `.gitignore` antes de subir (não expor dados reais)
+- O terminal PowerShell pode exibir acentos quebrados em alguns comandos mesmo quando os arquivos estao em UTF-8 correto.
+- Para investigar encoding, prefira leitura UTF-8 via Node ou editor configurado para UTF-8.
+- O aviso de chunk grande do Vite no build nao bloqueia a geracao, mas esta registrado como otimizacao futura.

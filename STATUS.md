@@ -21,6 +21,8 @@ Observacao: o build ainda emite o aviso conhecido do Vite sobre chunks maiores q
 - Corrigido o tipo do formulario de registro de pagamento para alinhar `z.coerce.number()` com `react-hook-form` e `zodResolver`.
 - Ajustados mocks do MSW para interceptar URLs absolutas e relativas da API.
 - Ajustados testes de transacoes para refletirem a regra real do hook: a busca so roda quando o usuario esta autenticado.
+- Feito scanner UTF-8 de mojibake real em codigo, schema e documentacao; resultado atual: 0 arquivos com sequencias corrompidas detectadas.
+- Atualizados PRD, Roadmap, Guia do Desenvolvedor e Manual de Uso Local para refletirem PostgreSQL/Prisma como base atual.
 
 ## Estado Tecnico Observado
 
@@ -32,8 +34,8 @@ Observacao: o build ainda emite o aviso conhecido do Vite sobre chunks maiores q
 
 ## Pendencias Principais
 
-- Corrigir textos com acentuacao quebrada em codigo, schema e documentacao.
-- Atualizar README e documentacao principal para refletir o estado real do projeto.
+- Revisar textos visiveis no navegador para confirmar que acentos aparecem corretamente fora do terminal.
+- Marcar ou arquivar documentos historicos que ainda descrevem decisoes antigas.
 - Revisar CORS, CSP e endpoints de diagnostico para producao.
 - Validar manualmente os fluxos principais em desktop e mobile.
 - Revisar cache/PWA em mobile.

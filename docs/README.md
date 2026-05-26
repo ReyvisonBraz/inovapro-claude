@@ -4,10 +4,10 @@ Este diretorio concentra a documentacao tecnica, produto, operacao e planejament
 
 ## Estrutura
 
-1. [PRD.md](./PRD.md): requisitos de produto e escopo funcional. Ainda precisa de revisao para refletir PostgreSQL como banco atual.
+1. [PRD.md](./PRD.md): requisitos de produto e escopo funcional.
 2. [ARCHITECTURE.md](./ARCHITECTURE.md): arquitetura tecnica vigente do frontend, backend e banco.
-3. [ROADMAP.md](./ROADMAP.md): plano de evolucao. Ainda contem referencias antigas a migracao Supabase/Render.
-4. [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md): guia de desenvolvimento. Ainda precisa ser revisado para remover instrucoes antigas de SQLite.
+3. [ROADMAP.md](./ROADMAP.md): plano de evolucao e prioridades.
+4. [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md): guia de desenvolvimento.
 5. [PLANO-SANEAMENTO-INOVA-PRO.md](./PLANO-SANEAMENTO-INOVA-PRO.md): plano de saneamento tecnico e documental em andamento.
 
 ## Stack Atual
@@ -20,7 +20,7 @@ Este diretorio concentra a documentacao tecnica, produto, operacao e planejament
 
 ## Estado da Documentacao
 
-A documentacao esta em saneamento. Os arquivos `README.md`, `STATUS.md`, `docs/README.md` e `docs/ARCHITECTURE.md` foram atualizados primeiro por serem os pontos de entrada mais importantes.
+A documentacao esta em saneamento. Os arquivos `README.md`, `STATUS.md`, `docs/README.md`, `docs/ARCHITECTURE.md`, `docs/PRD.md`, `docs/ROADMAP.md`, `docs/DEVELOPER_GUIDE.md` e `docs/MANUAL_USO_LOCAL.md` foram atualizados primeiro por serem os pontos de entrada mais importantes.
 
 Ainda existem documentos historicos que mencionam SQLite, Supabase ou Render como plano antigo. Esses arquivos devem ser revisados antes de serem usados como referencia operacional.
 

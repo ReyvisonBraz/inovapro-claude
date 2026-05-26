@@ -1,43 +1,70 @@
-# Roadmap e Próximos Passos - FINANCEIRO INOVA
+# Roadmap - INOVA PRO
 
-## 1. Status Atual: **90% (Fase de Transição Cloud & Refinamento de UI)**
-O sistema está em fase final de **Transição para Arquitetura Cloud**. Atualmente operando com SQLite local para desenvolvimento ágil, mas com toda a estrutura de tipos, esquemas e serviços preparada para migração imediata para **Supabase (Banco de Dados)** e **Render (Hospedagem de Backend)**.
+## 1. Status Atual
 
----
+O projeto esta em fase de saneamento tecnico, documentacao e validacao operacional. A base atual usa React/Vite no frontend, Express no backend, Prisma e PostgreSQL.
 
-## 2. Próximos Passos (Roadmap de Migração)
+Validacao local concluida em 26 de maio de 2026:
 
-### 2.1 Migração para Supabase (PostgreSQL)
-- [x] Definição do Esquema Relacional (Prisma/SQL).
-- [ ] Provisionar projeto no Supabase (Região: `sa-east-1`).
-- [ ] Executar script de criação de tabelas (DDL) no SQL Editor do Supabase.
-- [ ] Migrar dados existentes do SQLite para o PostgreSQL via script de importação.
+- `npm.cmd run lint`: passou.
+- `npm.cmd test -- --run`: passou com 4 arquivos e 36 testes.
+- `npm.cmd run build`: passou.
 
-### 2.2 Hospedagem no Render.com (Backend)
-- [ ] Criar Web Service no Render conectado ao repositório GitHub.
-- [ ] Configurar variáveis de ambiente (`DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`).
-- [ ] Configurar o `start` script para rodar o servidor Express em produção.
-- [ ] Habilitar HTTPS automático e monitoramento de saúde (Health Check).
+## 2. Prioridade Imediata
 
-### 2.3 Autenticação e Segurança
-- [ ] Implementar **Supabase Auth** para substituir a autenticação local.
-- [ ] Configurar **Row Level Security (RLS)** no Supabase para proteção direta no banco.
-- [ ] Configurar políticas de acesso baseadas em `auth.uid()`.
+### 2.1 Documentacao e Estado Real
 
-### 2.4 Integrações Avançadas
-- [ ] Configurar **Supabase Storage** para fotos de entrada de equipamentos (substituindo Base64).
-- [ ] Implementar Webhooks para notificações em tempo real via Edge Functions.
-- [ ] Integração com APIs de Terceiros (WhatsApp/SendPulse) via Server-side.
+- [x] Substituir README raiz antigo.
+- [x] Atualizar `STATUS.md`.
+- [x] Atualizar `docs/README.md`.
+- [x] Atualizar `docs/ARCHITECTURE.md`.
+- [x] Atualizar `docs/PRD.md`.
+- [x] Atualizar `docs/ROADMAP.md`.
+- [ ] Revisar documentos historicos e marcar claramente o que nao e mais referencia atual.
 
----
+### 2.2 Seguranca de Producao
 
-## 3. Melhorias de Produto (Novas Funcionalidades)
-- **Módulo de Vendas Diretas:** Interface rápida para PDV (Ponto de Venda).
-- **Gestão de Comissões:** Cálculo automático de comissões para técnicos e vendedores.
-- **Integração com Bancos:** Conciliação bancária automática via Open Banking.
-- **Relatórios Avançados:** Gráficos de lucratividade por técnico e por tipo de serviço.
-- **App Mobile:** Versão nativa ou PWA otimizado para técnicos em campo.
+- [ ] Confirmar `.env` ignorado pelo Git.
+- [ ] Revisar variaveis expostas em `.env.example`.
+- [ ] Ajustar CORS para aceitar apenas origens conhecidas em producao.
+- [ ] Definir uma politica CSP compativel com o frontend.
+- [ ] Avaliar endpoints como `/api/ping` e `/api/db-test` em producao.
+- [ ] Confirmar que logs nao exibem dados sensiveis.
 
----
-**Versão:** 1.0.0
-**Data:** Abril de 2026
+### 2.3 Validacao dos Fluxos Principais
+
+- [ ] Login valido e invalido.
+- [ ] Cadastro e edicao de cliente.
+- [ ] Criacao de venda/conta a receber.
+- [ ] Registro de pagamento parcial e total.
+- [ ] Criacao e edicao de ordem de servico.
+- [ ] Impressao/preview.
+- [ ] Rastreio publico de OS.
+- [ ] Estoque e uso de pecas/servicos.
+- [ ] Permissoes por perfil.
+
+### 2.4 Mobile e PWA
+
+- [ ] Testar app em viewport mobile.
+- [ ] Revisar navegacao inferior e menus.
+- [ ] Validar modais longos em telas pequenas.
+- [ ] Confirmar que Service Worker/cache nao prende versoes antigas.
+- [ ] Testar instalacao PWA limpa quando possivel.
+
+## 3. Melhorias Futuras
+
+- Painel administrativo para visualizacao operacional de dados.
+- PDV/vendas diretas mais rapido.
+- Relatorios avancados por tecnico, servico e periodo.
+- Integracao WhatsApp mais completa.
+- Melhor separacao de chunks no build Vite.
+- Mais testes de regressao para fluxos de OS, pagamentos e permissoes.
+
+## 4. Decisoes Pendentes
+
+- Estrategia final de deploy: Vercel + backend separado, Railway, Render ou outra composicao.
+- Politica final de armazenamento de fotos/anexos.
+- Nivel de uso futuro de Supabase ou outro servico externo.
+- Estrategia de backup e restauracao do PostgreSQL.
+
+**Ultima atualizacao:** 26 de maio de 2026

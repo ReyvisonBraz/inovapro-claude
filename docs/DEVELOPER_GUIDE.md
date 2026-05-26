@@ -1,62 +1,104 @@
-# Guia do Desenvolvedor - FINANCEIRO INOVA
+# Guia do Desenvolvedor - INOVA PRO
 
-## 1. Configuração do Ambiente
-O projeto utiliza **Vite** para o frontend e **Express** para o backend.
+## 1. Requisitos
 
-### 1.1 Pré-requisitos
-- Node.js 18+
-- npm ou yarn
+- Node.js instalado.
+- npm.
+- PostgreSQL acessivel localmente ou em servico externo.
+- Arquivo `.env` criado a partir de `.env.example`.
 
-### 1.2 Instalação
+## 2. Instalacao
+
 ```bash
 npm install
 ```
 
-### 1.3 Execução em Desenvolvimento
+## 3. Variaveis Principais
+
+- `DATABASE_URL`: URL completa do PostgreSQL usada pelo Prisma.
+- `JWT_SECRET`: segredo para tokens JWT.
+- `VITE_API_URL`: URL base da API para o frontend.
+- `PORT`: porta do backend Express.
+
+Tambem e possivel configurar o banco por partes com `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` e `DB_NAME`.
+
+## 4. Desenvolvimento
+
 ```bash
 npm run dev
 ```
 
----
+Sobe frontend e backend juntos.
 
-## 2. Padrões de Código
+```bash
+npm run dev:api
+```
 
-### 2.1 TypeScript
-- Use interfaces globais em `src/types.ts`.
-- Evite o uso de `any`.
-- Tipagem forte em todos os hooks e componentes.
+Sobe apenas o backend Express.
 
-### 2.2 Componentização
-- Componentes de UI devem ser puros e reutilizáveis (em `src/components/ui`).
-- Lógica complexa deve ser movida para hooks customizados.
-- Use `lucide-react` para ícones.
+```bash
+npm run dev:frontend
+```
 
-### 2.3 Estado Global (Zustand)
-- Segmentar o estado em diferentes stores para evitar re-renderizações desnecessárias.
-- Exemplo: `useModalStore` apenas para controle de modais.
+Sobe apenas o frontend Vite.
 
----
+## 5. Validacao
 
-## 3. Banco de Dados (SQLite)
-O banco de dados é o arquivo `finance.db` na raiz do projeto.
-Para visualizar os dados localmente, você pode usar ferramentas como **DB Browser for SQLite** ou extensões do VS Code.
+```bash
+npm run lint
+```
 
-### 3.1 Esquema e Migrações
-O esquema é definido e inicializado no `server.ts`. Migrações simples são feitas via `ALTER TABLE` no início do servidor.
+Executa typecheck com `tsc --noEmit`.
 
----
+```bash
+npm test -- --run
+```
 
-## 4. API REST
-As rotas da API estão centralizadas no `server.ts` sob o prefixo `/api`.
-Todas as rotas de escrita (POST, PUT, DELETE) devem gerar logs de auditoria.
+Executa os testes automatizados em modo nao interativo.
 
----
+```bash
+npm run build
+```
 
-## 5. Débitos Técnicos e Manutenção
-- **Arquivos Grandes:** Evite que componentes ou hooks cresçam demais. Se um arquivo passar de 500 linhas, considere refatorar.
-- **Performance:** Use `lazy` loading para páginas e `memo` para componentes pesados se necessário.
-- **Acessibilidade:** Garanta que o sistema seja utilizável via teclado e que o redimensionamento de fontes funcione corretamente.
+Executa `prisma generate` e gera o build de producao do frontend.
 
----
-**Versão:** 1.0.0
-**Data:** Abril de 2026
+## 6. Banco de Dados
+
+O schema fica em `prisma/schema.prisma` e usa provider `postgresql`.
+
+O Prisma Client e configurado em `src/lib/prisma.ts` com `@prisma/adapter-pg`. A conexao pode vir de `DATABASE_URL` ou das variaveis `DB_*`.
+
+Antes de mudancas estruturais no banco:
+
+- Revise o impacto em rotas, hooks e tipos.
+- Confira defaults do schema.
+- Registre a decisao na documentacao.
+- Valide `npm run build`, pois ele executa `prisma generate`.
+
+## 7. Padroes de Codigo
+
+- Preferir TypeScript forte e evitar `any` em codigo novo.
+- Manter regras de negocio em hooks, services ou rotas, nao espalhadas em componentes grandes.
+- Usar stores Zustand apenas para estado realmente compartilhado.
+- Usar Zod para validacao de entrada.
+- Usar React Query para dados remotos.
+- Usar componentes existentes antes de criar novos padroes visuais.
+
+## 8. Testes
+
+Os testes usam Vitest, Testing Library e MSW.
+
+Ao adicionar ou corrigir comportamento de API no frontend:
+
+- Atualize handlers em `src/test/mocks/handlers.ts`.
+- Use URLs que funcionem para chamadas absolutas e relativas quando necessario.
+- Simule estado autenticado quando o hook depender de login.
+
+## 9. Manutencao
+
+- Atualize `README.md` quando comandos ou requisitos mudarem.
+- Atualize `docs/ARCHITECTURE.md` quando a estrutura tecnica mudar.
+- Atualize `docs/ROADMAP.md` quando prioridades mudarem.
+- Evite misturar refatoracao ampla com correcao pontual.
+
+**Ultima atualizacao:** 26 de maio de 2026
