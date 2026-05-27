@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ServiceOrders } from '../components/service-orders/ServiceOrders';
 import { useServiceOrders } from '../hooks/useServiceOrders';
 import { useCustomers } from '../hooks/useCustomers';
@@ -41,7 +41,7 @@ export const ServiceOrdersPage: React.FC = () => {
     isAddingServiceOrder, setIsAddingServiceOrder,
     isAddingClientPayment, setIsAddingClientPayment,
     directOsId, setDirectOsId,
-    directMode,
+    directMode, setDirectMode,
     setIsAddingCustomer,
     setCustomerRegistrationSource
   } = useAppStore();
@@ -67,6 +67,15 @@ export const ServiceOrdersPage: React.FC = () => {
   const [isSavingPayment, setIsSavingPayment] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const state = location.state as { directOsId?: number } | null;
+    if (state?.directOsId) {
+      setDirectOsId(state.directOsId);
+      setDirectMode(null);
+    }
+  }, []);
 
   const handleGeneratePayment = (order: any) => {
     let servicesDesc = '';

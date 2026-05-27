@@ -146,7 +146,8 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   useEffect(() => {
     const fetchDirectOs = async () => {
       if (directOsId) {
-        let order = orders.data.find(o => o.id === directOsId);
+        const orderFromCache = orders.data.find(o => o.id === directOsId);
+        let order = orderFromCache;
         
         if (!order) {
           try {
@@ -172,7 +173,8 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
     };
     
     fetchDirectOs();
-  }, [directOsId, orders.data, directMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [directOsId, directMode]);
 
   const handleEdit = (order: ServiceOrder) => {
     setEditingOrder(order);

@@ -10,6 +10,7 @@ import {
 import api from '../lib/api';
 import { useAppStore } from '../store/useAppStore';
 import { cn } from '../lib/utils';
+import { useToast } from '../components/ui/Toast';
 
 type OSData = {
   id: number;
@@ -213,7 +214,8 @@ function QuickSaveField({
 export const TechOrderPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { setDirectOsId, setDirectMode } = useAppStore();
+  const { setDirectOsId } = useAppStore();
+  const { showToast } = useToast();
 
   const [order, setOrder] = React.useState<OSData | null>(null);
   const [statuses, setStatuses] = React.useState<StatusOption[]>([]);
@@ -249,9 +251,11 @@ export const TechOrderPage: React.FC = () => {
       await api.put(`/service-orders/${order.id}`, { status: newStatus });
       setOrder(prev => prev ? { ...prev, status: newStatus } : prev);
       setSuccessMsg(`Status: "${newStatus}"`);
+      showToast(`Status atualizado para "${newStatus}"`, 'success');
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch {
       setSuccessMsg('Erro ao atualizar status.');
+      showToast('Erro ao atualizar status', 'error');
       setTimeout(() => setSuccessMsg(null), 3000);
     } finally {
       setUpdatingStatus(false);
@@ -260,15 +264,19 @@ export const TechOrderPage: React.FC = () => {
 
   const handleSaveField = async (field: string, value: string) => {
     if (!order) return;
-    await api.put(`/service-orders/${order.id}`, { [field]: value });
-    setOrder(prev => prev ? { ...prev, [field]: value } : prev);
+    try {
+      await api.put(`/service-orders/${order.id}`, { [field]: value });
+      setOrder(prev => prev ? { ...prev, [field]: value } : prev);
+      showToast('Salvo com sucesso!', 'success');
+    } catch {
+      showToast('Erro ao salvar', 'error');
+    }
   };
 
   const handleOpenEdit = () => {
     if (!order) return;
-    setDirectMode(null);
     setDirectOsId(order.id);
-    navigate('/ordens');
+    navigate('/ordens', { state: { directOsId: order.id } });
   };
 
   if (loading) {
