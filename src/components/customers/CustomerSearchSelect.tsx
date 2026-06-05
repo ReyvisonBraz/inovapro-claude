@@ -22,6 +22,7 @@ export function CustomerSearchSelect({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const selectedCustomer = (customers || []).find(c => c.id === selectedId);
 
@@ -44,6 +45,12 @@ export function CustomerSearchSelect({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => inputRef.current?.focus(), 30);
+    }
+  }, [isOpen]);
 
   return (
     <div className={cn("relative", className)} ref={containerRef}>
@@ -97,7 +104,8 @@ export function CustomerSearchSelect({
             <div className="p-3 border-b border-white/5">
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input 
+                <input
+                  ref={inputRef}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Pesquisar por nome, apelido ou empresa..."

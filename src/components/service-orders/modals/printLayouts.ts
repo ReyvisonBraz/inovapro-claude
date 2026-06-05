@@ -200,7 +200,7 @@ const sharedCSS = (fs: number, c: Colors, sp = 1.0) => `
 
   .hd-client-info { margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.25); padding-top: 5px; }
   .hd-client-name  { font-size: ${fs * 1.65}px; font-weight: 900; line-height: 1.2; opacity: .97; }
-  .hd-client-phone { font-size: ${fs * 1.05}px; font-weight: 700; opacity: .80; margin-top: 2px; letter-spacing: .3px; }
+  .hd-client-phone { font-size: ${fs * 1.55}px; font-weight: 900; opacity: .92; margin-top: 3px; letter-spacing: .5px; }
 
   .badge {
     display: inline-block;
@@ -369,7 +369,7 @@ const sharedCSS = (fs: number, c: Colors, sp = 1.0) => `
   .urg-text { font-size: ${fs * 0.76}px; font-weight: 700; color: #713f12; line-height: 1.5; }
 
   .qrw     { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
-  .qrw img { width: 40px; height: 40px; }
+  .qrw img { width: 58px; height: 58px; }
   .qr-lbl  { font-size: ${fs * 0.7}px; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: .4px; }
   .qr-sub  { font-size: ${fs * 0.66}px; color: #94a3b8; margin-top: 2px; }
   .sig     {
@@ -381,6 +381,24 @@ const sharedCSS = (fs: number, c: Colors, sp = 1.0) => `
     color: #64748b;
     font-weight: 700;
     margin-left: 8px;
+  }
+  .sig-analyst-wrap {
+    flex-shrink: 0;
+    padding: 3px ${(14).toFixed(0)}px 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .sig-analyst {
+    border-top: 1px dashed #cbd5e1;
+    padding-top: 3px;
+    font-size: ${fs * 0.65}px;
+    color: #b0bec5;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    min-width: 130px;
+    text-align: center;
   }
 `;
 
@@ -413,6 +431,9 @@ function techBody(data: PrintData, config: OSLayoutConfig, substValues: Record<s
     </div>
   </div>
   <div class="bd">${sections}</div>
+  <div class="sig-analyst-wrap">
+    <div class="sig-analyst">Anal. por: ___________________________</div>
+  </div>
   ${config.showQrTech !== false ? `
   <div class="ft">
     <div class="qrw">
@@ -422,8 +443,11 @@ function techBody(data: PrintData, config: OSLayoutConfig, substValues: Record<s
         <div class="qr-sub">Acesso rapido a OS</div>
       </div>
     </div>
-    <div class="sig">${technician} &mdash; Assinatura do Tecnico</div>
-  </div>` : ''}`;
+    <div class="sig">${clientName} &mdash; Assinatura do Cliente</div>
+  </div>` : `
+  <div class="sig-analyst-wrap" style="padding-bottom:6px">
+    <div class="sig" style="margin-left:0">${clientName} &mdash; Assinatura do Cliente</div>
+  </div>`}`;
 }
 
 // ─── Client column ────────────────────────────────────────────────────────────
@@ -504,7 +528,7 @@ function clientBody(data: PrintData, config: OSLayoutConfig, substValues: Record
         <div class="qr-sub">Escaneie para ver o status</div>
       </div>
     </div>
-    <div class="sig">${customer.firstName} ${customer.lastName} &mdash; Assinatura do Cliente</div>
+    <div class="sig">${data.technician} &mdash; Assinatura do Tecnico</div>
   </div>` : ''}`;
 }
 
@@ -605,7 +629,7 @@ body {
 .hd-num  { font-size: 18px; }
 .bd      { padding: 7px 10px; gap: 6px; }
 .ft      { padding: 6px 10px; }
-.qrw img { width: 30px; height: 30px; }
+.qrw img { width: 44px; height: 44px; }
 .pbar-val { font-size: 16px; }
 .fg2     { gap: 4px 12px; }
 </style>
