@@ -30,7 +30,7 @@ export const AnalysisSection: React.FC<AnalysisSectionProps> = ({
             className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-primary outline-none transition-all resize-none"
             placeholder="Descreva o defeito informado pelo cliente..."
           />
-          {errors.reportedProblem && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.reportedProblem.message}</p>}
+          {errors.reportedProblem && <p className="form-field-error text-rose-500 text-xs mt-1 font-bold">{errors.reportedProblem.message}</p>}
         </div>
         <div className="space-y-2">
           <label className="text-xs font-bold uppercase tracking-widest text-amber-500 ml-1 flex items-center gap-2 bg-amber-500/5 px-2 py-1 rounded-md w-fit mb-1">
