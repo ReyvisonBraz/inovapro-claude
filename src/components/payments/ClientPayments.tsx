@@ -115,15 +115,15 @@ export const ClientPayments = ({
   }, [filteredClientPayments]);
 
   return (
-    <div className="p-4 md:p-6 lg:p-10 space-y-6 md:space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
+    <div className="p-4 lg:p-10 space-y-4 lg:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-6">
         <div>
-          <h3 className="text-xl md:text-2xl font-bold tracking-tight">Pagamentos e Parcelamentos</h3>
-          <p className="text-xs md:text-sm text-slate-500 font-medium mt-1">Registre vendas, parcelamentos e envie lembretes de cobrança</p>
+          <h3 className="text-xl lg:text-2xl font-bold tracking-tight">Pagamentos e Parcelamentos</h3>
+          <p className="text-xs lg:text-sm text-slate-500 font-medium mt-1">Registre vendas, parcelamentos e envie lembretes de cobrança</p>
         </div>
-        <button 
+        <button
           onClick={() => setIsAddingClientPayment(true)}
-          className="w-full md:w-auto bg-primary hover:bg-primary/90 text-white px-4 md:px-6 py-2.5 md:py-4 rounded-xl md:rounded-2xl text-sm md:text-base font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95"
+          className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white px-4 lg:px-6 py-3 lg:py-4 rounded-xl lg:rounded-2xl text-sm lg:text-base font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95"
         >
           <Plus size={18} />
           Novo Registro
@@ -131,22 +131,22 @@ export const ClientPayments = ({
       </div>
 
       <div className="glass-card overflow-hidden">
-        <div className="p-3 md:p-4 border-b border-white/5 flex flex-col md:flex-row gap-3 md:gap-4">
+        <div className="p-3 lg:p-4 border-b border-white/5 flex flex-col lg:flex-row gap-3 lg:gap-4">
           <div className="relative flex-1 w-full">
-            <Search className="absolute left-3.5 md:left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-            <input 
+            <Search className="absolute left-3.5 lg:left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <input
               type="text"
               placeholder="Buscar por cliente ou descrição..."
               value={paymentSearchTerm}
               onChange={(e) => setPaymentSearchTerm(e.target.value)}
-              className="w-full h-10 md:h-12 bg-white/5 border border-white/10 rounded-xl pl-10 md:pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
+              className="w-full h-10 lg:h-12 bg-white/5 border border-white/10 rounded-xl pl-10 lg:pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
             />
           </div>
-          <div className="grid grid-cols-2 sm:flex gap-2 w-full md:w-auto">
+          <div className="grid grid-cols-2 gap-2 w-full lg:flex lg:w-auto">
             <select
               value={paymentFilterStatus}
               onChange={(e) => setPaymentFilterStatus(e.target.value)}
-              className="h-10 md:h-12 bg-white/5 border border-white/10 rounded-xl px-3 md:px-4 text-xs md:text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
+              className="h-10 lg:h-12 bg-white/5 border border-white/10 rounded-xl px-3 lg:px-4 text-xs lg:text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
             >
               <option value="all">Status</option>
               <option value="paid">Pagos</option>
@@ -157,7 +157,7 @@ export const ClientPayments = ({
             <select
               value={paymentSortMode}
               onChange={(e) => setPaymentSortMode(e.target.value as any)}
-              className="h-10 md:h-12 bg-white/5 border border-white/10 rounded-xl px-3 md:px-4 text-xs md:text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
+              className="h-10 lg:h-12 bg-white/5 border border-white/10 rounded-xl px-3 lg:px-4 text-xs lg:text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
             >
               <option value="date">Recentes</option>
               <option value="amount">Valor</option>
@@ -165,8 +165,8 @@ export const ClientPayments = ({
             </select>
           </div>
         </div>
-        {/* Mobile View */}
-        <div className="md:hidden divide-y divide-white/5">
+        {/* Mobile View — shown on all screens below lg (1024px) */}
+        <div className="lg:hidden divide-y divide-white/5">
           {groupedPayments.map((item, index) => {
             if ('isGroup' in item) {
               const totalGroupAmount = item.payments.reduce((acc, p) => acc + p.totalAmount, 0);
@@ -356,8 +356,8 @@ export const ClientPayments = ({
           )}
         </div>
 
-        {/* Desktop View */}
-        <div className="hidden md:block overflow-x-auto">
+        {/* Desktop View — shown at lg (1024px) and above */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-white/5 border-b border-white/5">
