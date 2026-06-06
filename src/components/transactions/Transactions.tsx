@@ -47,7 +47,7 @@ interface TransactionsProps {
 
 export const Transactions = (props: TransactionsProps) => {
   return (
-    <div className="space-y-6 md:space-y-8 p-4 md:p-6 lg:p-10">
+    <div className="space-y-4 lg:space-y-8 p-4 lg:p-10">
       <TransactionFilters 
         categories={props.categories}
         settings={props.settings}

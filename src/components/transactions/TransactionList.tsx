@@ -74,8 +74,8 @@ export const TransactionList = ({
         )}
       </div>
 
-      {/* Mobile View */}
-      <div className="md:hidden divide-y divide-white/5">
+      {/* Mobile View — shown on screens below lg (1024px) */}
+      <div className="lg:hidden divide-y divide-white/5">
         {filteredTransactions.map((tx) => (
           <div key={tx.id} className="p-4 space-y-4">
             <div className="flex justify-between items-start">
@@ -161,8 +161,8 @@ export const TransactionList = ({
         )}
       </div>
 
-      {/* Desktop View */}
-      <div className="hidden md:block overflow-x-auto">
+      {/* Desktop View — shown at lg (1024px) and above */}
+      <div className="hidden lg:block overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-white/5 border-b border-white/5">
