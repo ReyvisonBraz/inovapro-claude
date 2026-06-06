@@ -78,8 +78,8 @@ export const TransactionFilters = ({
   };
 
   return (
-    <div className="flex flex-col gap-6 md:gap-8">
-      <div className="flex flex-col lg:flex-row gap-4 md:gap-6 items-start lg:items-center justify-between bg-white/[0.02] border border-white/5 p-4 md:p-6 rounded-2xl md:rounded-[2rem] backdrop-blur-xl">
+    <div className="flex flex-col gap-4 lg:gap-8">
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-start lg:items-center justify-between bg-white/[0.02] border border-white/5 p-4 lg:p-6 rounded-2xl lg:rounded-[2rem] backdrop-blur-xl">
         <div className="relative w-full lg:max-w-md">
           <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary" />
           <input 
@@ -98,21 +98,21 @@ export const TransactionFilters = ({
           )}
         </div>
         
-        <div className="flex flex-wrap items-center gap-2 md:gap-4 w-full lg:w-auto">
-          <div className="flex flex-wrap md:flex-nowrap p-1.5 bg-black/20 rounded-2xl border border-white/5 shadow-inner w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-2 lg:gap-4 w-full lg:w-auto">
+          <div className="flex p-1.5 bg-black/20 rounded-2xl border border-white/5 shadow-inner w-full lg:w-auto">
             {[
               { id: 'day', label: 'Dia' },
               { id: 'month', label: 'Mês' },
               { id: 'range', label: 'Período' },
               { id: 'all', label: 'Tudo' }
             ].map(mode => (
-              <button 
+              <button
                 key={mode.id}
                 onClick={() => onDateFilterModeChange(mode.id as any)}
                 className={cn(
-                  "flex-1 md:flex-none px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-xs font-black uppercase tracking-[0.15em] transition-all duration-300",
-                  dateFilterMode === mode.id 
-                    ? "bg-primary text-white shadow-[0_10px_20px_-5px_rgba(17,82,212,0.4)] md:scale-105" 
+                  "flex-1 lg:flex-none px-3 lg:px-5 py-2 lg:py-2.5 rounded-xl text-xs font-black uppercase tracking-[0.15em] transition-all duration-300",
+                  dateFilterMode === mode.id
+                    ? "bg-primary text-white shadow-[0_10px_20px_-5px_rgba(17,82,212,0.4)]"
                     : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
                 )}
               >
@@ -123,10 +123,10 @@ export const TransactionFilters = ({
 
           <div className="h-10 w-px bg-white/5 hidden lg:block" />
 
-          <button 
+          <button
             onClick={() => onShowFiltersChange(!showFilters)}
             className={cn(
-              "flex-1 md:flex-none flex items-center justify-center gap-3 px-6 h-12 md:h-14 rounded-2xl border text-xs font-black uppercase tracking-[0.2em] transition-all duration-300",
+              "flex-1 lg:flex-none flex items-center justify-center gap-3 px-6 h-12 lg:h-14 rounded-2xl border text-xs font-black uppercase tracking-[0.2em] transition-all duration-300",
               showFilters 
                 ? "bg-primary/20 border-primary text-primary shadow-[0_0_30px_rgba(17,82,212,0.1)]" 
                 : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20"
@@ -227,14 +227,14 @@ export const TransactionFilters = ({
               )}
 
               {dateFilterMode === 'range' && (
-                <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 px-6 py-4">
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 px-6 py-4">
                   <div className="flex items-center gap-4">
                     <div className="p-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
                       <Calendar size={20} />
                     </div>
                     <div className="flex flex-col">
                       <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Início</span>
-                      <input 
+                      <input
                         type="date"
                         value={startDate}
                         onChange={(e) => onStartDateChange(e.target.value)}
@@ -242,9 +242,9 @@ export const TransactionFilters = ({
                       />
                     </div>
                   </div>
-                  
-                  <div className="hidden md:block h-10 w-px bg-primary/20" />
-                  <div className="md:hidden w-full h-px bg-primary/20" />
+
+                  <div className="hidden sm:block h-10 w-px bg-primary/20" />
+                  <div className="sm:hidden w-full h-px bg-primary/20" />
 
                   <div className="flex items-center gap-4">
                     <div className="flex flex-col">
@@ -275,7 +275,7 @@ export const TransactionFilters = ({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="glass-card p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="glass-card p-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Tipo</label>
                 <select 
