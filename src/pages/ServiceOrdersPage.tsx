@@ -61,7 +61,7 @@ export const ServiceOrdersPage: React.FC = () => {
     addBrandAPI,
     addModelAPI
   } = useServiceOrders(showToast);
-  const { customers } = useCustomers();
+  const { customers, allCustomers } = useCustomers();
   const { inventoryItems } = useInventory(showToast);
   const { clientPayments, saveClientPaymentAPI } = useClientPayments();
   const [isSavingPayment, setIsSavingPayment] = useState(false);
@@ -189,9 +189,10 @@ export const ServiceOrdersPage: React.FC = () => {
 
   return (
     <>
-    <ServiceOrders 
+    <ServiceOrders
       orders={serviceOrders}
       customers={customers}
+      allCustomers={allCustomers}
       inventoryItems={inventoryItems}
       statuses={serviceOrderStatuses}
       equipmentTypes={equipmentTypes}
