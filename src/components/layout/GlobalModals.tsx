@@ -34,7 +34,7 @@ export const GlobalModals: React.FC = () => {
   const { settings, categories, saveSettingsAPI: updateSettings } = useSettingsStore();
   const { showToast } = useToast();
   const { currentUser } = useAuth();
-  
+
   const {
     isAdding, setIsAdding,
     isAddingCustomer, setIsAddingCustomer,
@@ -84,7 +84,7 @@ export const GlobalModals: React.FC = () => {
 
       if (hasSimilarCpf || hasSimilarPhone) {
         setNewCustomer(formData);
-        setDuplicatePhoneExistingName(''); // client-side: no specific name
+        setDuplicatePhoneExistingName('');
         setCustomerWarningType(hasSimilarCpf && hasSimilarPhone ? 'both' : hasSimilarCpf ? 'cpf' : 'phone');
         setShowCustomerWarningModal(true);
         return;
@@ -106,7 +106,6 @@ export const GlobalModals: React.FC = () => {
       setEditingCustomer(null);
       setLastAddedCustomerId(data.id);
       setShowCustomerSuccessModal(true);
-      setDuplicatePhoneExistingName('');
       fetchAuditLogs();
     } catch (err: any) {
       if (err.response?.status === 409 && err.response?.data?.error === 'duplicate_phone') {
@@ -194,7 +193,7 @@ export const GlobalModals: React.FC = () => {
   return (
     <>
       {/* Global Customer Modals */}
-      <CustomerModal 
+      <CustomerModal
         isOpen={isAddingCustomer}
         onClose={() => {
           setIsAddingCustomer(false);
@@ -207,7 +206,10 @@ export const GlobalModals: React.FC = () => {
 
       <CustomerWarningModal
         isOpen={showCustomerWarningModal}
-        onClose={() => { setShowCustomerWarningModal(false); setDuplicatePhoneExistingName(''); }}
+        onClose={() => {
+          setShowCustomerWarningModal(false);
+          setDuplicatePhoneExistingName('');
+        }}
         type={customerWarningType}
         onConfirm={() => handleAddCustomer(newCustomer as CustomerFormData, true)}
         existingName={duplicatePhoneExistingName || undefined}
@@ -220,7 +222,7 @@ export const GlobalModals: React.FC = () => {
         source={customerRegistrationSource}
       />
 
-      <CustomerDeleteWarningModal 
+      <CustomerDeleteWarningModal
         customer={customerToDelete}
         paymentsWarning={customerPaymentsWarning}
         onClose={() => setCustomerToDelete(null)}
@@ -232,15 +234,15 @@ export const GlobalModals: React.FC = () => {
         formatCurrency={formatCurrency}
       />
 
-      <PasswordModal 
-        isOpen={showPasswordModal} 
-        onClose={() => setShowPasswordModal(false)} 
+      <PasswordModal
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
         onUnlock={handleUnlockSettings}
         passwordInput={passwordInput}
         setPasswordInput={setPasswordInput}
       />
 
-      <WarningModal 
+      <WarningModal
         isOpen={showWarningModal}
         onClose={() => setShowWarningModal(false)}
         type={warningType}
@@ -260,7 +262,7 @@ export const GlobalModals: React.FC = () => {
         onSubmit={(data, keepOpen) => handleAddTransaction(data, keepOpen)}
       />
 
-      <DeleteConfirmationModal 
+      <DeleteConfirmationModal
         isOpen={transactionToDelete !== null}
         onClose={() => setTransactionToDelete(null)}
         onConfirm={() => {
@@ -271,7 +273,7 @@ export const GlobalModals: React.FC = () => {
         }}
       />
 
-      <DeleteConfirmationModal 
+      <DeleteConfirmationModal
         isOpen={clientPaymentToDelete !== null}
         onClose={() => setClientPaymentToDelete(null)}
         onConfirm={confirmDeleteClientPayment}
@@ -279,7 +281,7 @@ export const GlobalModals: React.FC = () => {
         message="Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita e afetará o saldo do cliente."
       />
 
-      <CustomerHistoryModal 
+      <CustomerHistoryModal
         isOpen={showHistoryModal}
         onClose={() => setShowHistoryModal(false)}
         customer={historyCustomer}
@@ -296,7 +298,7 @@ export const GlobalModals: React.FC = () => {
         type={confirmModal.type}
       />
 
-      <DirectOsSearchModal 
+      <DirectOsSearchModal
         show={isSearchingOS}
         onClose={() => setIsSearchingOS(false)}
         orders={serviceOrders.data}
