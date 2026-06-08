@@ -170,7 +170,6 @@ export const CustomerList: React.FC<CustomerListProps> = ({
                 </div>
 
                 <div className="flex items-center gap-3 w-full lg:w-auto">
-                  {/* Debt/Limit — visible on all screen sizes */}
                   <div className="flex items-center gap-3 bg-black/20 px-3 py-2 rounded-xl border border-white/5 flex-1 lg:flex-none">
                     <div>
                       <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Dívida</p>

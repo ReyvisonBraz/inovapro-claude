@@ -366,7 +366,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
         handleUpdateStatus={handleUpdateStatus}
       />
 
-      <WhatsAppModal 
+      <WhatsAppModal
         show={showWhatsAppModal}
         onClose={() => setShowWhatsAppModal(false)}
         selectedOrder={selectedOrder}

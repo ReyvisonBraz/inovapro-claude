@@ -40,10 +40,7 @@ export class CustomerService {
 
   async findByPhone(phone: string, excludeId?: number) {
     return prisma.customer.findFirst({
-      where: {
-        phone,
-        ...(excludeId ? { id: { not: excludeId } } : {}),
-      },
+      where: { phone, ...(excludeId ? { id: { not: excludeId } } : {}) },
     });
   }
 

@@ -21,7 +21,7 @@ export const useCustomers = () => {
     },
   });
 
-  const { data: allCustomersData, refetch: refetchAll } = useQuery({
+  const { data: allCustomersData } = useQuery({
     queryKey: ['customers', 'all'],
     staleTime: 60_000,
     queryFn: async () => {

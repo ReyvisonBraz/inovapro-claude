@@ -7,7 +7,7 @@ interface CustomerWarningModalProps {
   onClose: () => void;
   type: 'both' | 'cpf' | 'phone' | null;
   onConfirm: () => void;
-  existingName?: string; // Name of the conflicting customer (from server 409)
+  existingName?: string;
 }
 
 export const CustomerWarningModal: React.FC<CustomerWarningModalProps> = ({
@@ -68,7 +68,7 @@ export const CustomerWarningModal: React.FC<CustomerWarningModalProps> = ({
                 onClick={onClose}
                 className="flex-1 py-4 rounded-2xl font-bold text-slate-500 hover:bg-white/5 transition-all"
               >
-                Cancelar
+                {isDuplicate ? 'Voltar e Corrigir' : 'Cancelar'}
               </button>
               <button
                 onClick={onConfirm}

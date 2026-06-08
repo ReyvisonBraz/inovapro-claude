@@ -260,7 +260,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
             title="Editar"
           >
             <Edit size={16} />
-            {!isGrid && <span className="hidden md:inline text-xs font-bold">Editar</span>}
+            {!isGrid && <span className="hidden lg:inline text-xs font-bold">Editar</span>}
           </button>
 
           <div className={cn("h-4 w-px bg-white/10 mx-1", isGrid && "hidden")} />
