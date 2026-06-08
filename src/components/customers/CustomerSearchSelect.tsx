@@ -32,7 +32,8 @@ export function CustomerSearchSelect({
       c.firstName.toLowerCase().includes(search) ||
       c.lastName.toLowerCase().includes(search) ||
       (c.nickname && c.nickname.toLowerCase().includes(search)) ||
-      (c.companyName && c.companyName.toLowerCase().includes(search))
+      (c.companyName && c.companyName.toLowerCase().includes(search)) ||
+      (c.phone && c.phone.includes(searchTerm))
     );
   }).sort((a, b) => a.firstName.localeCompare(b.firstName));
 
@@ -108,7 +109,7 @@ export function CustomerSearchSelect({
                   ref={inputRef}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Pesquisar por nome, apelido ou empresa..."
+                  placeholder="Pesquisar por nome, apelido, empresa ou telefone..."
                   className="w-full h-10 bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 text-xs font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200"
                 />
               </div>
