@@ -91,7 +91,7 @@ interface FilterState {
 export const useFilterStore = create<FilterState>((set) => ({
   searchTerm: '',
   setSearchTerm: (term) => set({ searchTerm: term }),
-  dateFilterMode: 'day',
+  dateFilterMode: 'month',
   setDateFilterMode: (mode) => set({ dateFilterMode: mode }),
   selectedDate: format(new Date(), 'yyyy-MM-dd'),
   setSelectedDate: (date) => set({ selectedDate: date }),
@@ -175,7 +175,7 @@ export const useFilterStore = create<FilterState>((set) => ({
   }),
   resetFilters: () => set({
     searchTerm: '',
-    dateFilterMode: 'day',
+    dateFilterMode: 'month',
     selectedDate: format(new Date(), 'yyyy-MM-dd'),
     selectedMonth: format(new Date(), 'yyyy-MM'),
     startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
