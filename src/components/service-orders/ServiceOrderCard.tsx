@@ -165,7 +165,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
           isGrid ? "mt-2" : "md:items-end justify-between"
         )}>
           {!isGrid && (
-            <div className="text-right hidden md:block">
+            <div className="text-right hidden lg:block">
               <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Entrada</p>
               <p className="text-xs font-bold text-slate-300">
                 {format(parseISO(order.createdAt), "dd MMM yyyy", { locale: ptBR })}
