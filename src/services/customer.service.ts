@@ -38,6 +38,15 @@ export class CustomerService {
     };
   }
 
+  async findByPhone(phone: string, excludeId?: number) {
+    return prisma.customer.findFirst({
+      where: {
+        phone,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+    });
+  }
+
   async create(data: CustomerFormData) {
     const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, createdBy, updatedBy } = data;
     

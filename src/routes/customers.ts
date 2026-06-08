@@ -22,8 +22,22 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.post('/', validate(CustomerSchema), async (req: Request, res: Response) => {
   try {
-    const customer = await customerService.create(req.body);
+    const { forceCreate, ...customerData } = req.body;
 
+    if (!forceCreate) {
+      const existingByPhone = await customerService.findByPhone(customerData.phone);
+      if (existingByPhone) {
+        return res.status(409).json({
+          error: 'duplicate_phone',
+          existing: {
+            id: existingByPhone.id,
+            name: `${existingByPhone.firstName} ${existingByPhone.lastName}`.trim(),
+          },
+        });
+      }
+    }
+
+    const customer = await customerService.create(customerData);
     info('Cliente criado', { details: { id: customer.id, name: `${customer.firstName} ${customer.lastName}` } });
     res.json({ id: customer.id });
   } catch (err) {

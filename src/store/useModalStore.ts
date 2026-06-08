@@ -31,6 +31,8 @@ interface ModalState {
   setShowCustomerWarningModal: (show: boolean) => void;
   customerWarningType: 'cpf' | 'phone' | 'both';
   setCustomerWarningType: (type: 'cpf' | 'phone' | 'both') => void;
+  duplicatePhoneExistingName: string;
+  setDuplicatePhoneExistingName: (name: string) => void;
 
   showCustomerSuccessModal: boolean;
   setShowCustomerSuccessModal: (show: boolean) => void;
@@ -97,6 +99,8 @@ export const useModalStore = create<ModalState>((set) => ({
   setShowCustomerWarningModal: (show) => set({ showCustomerWarningModal: show }),
   customerWarningType: 'both',
   setCustomerWarningType: (type) => set({ customerWarningType: type }),
+  duplicatePhoneExistingName: '',
+  setDuplicatePhoneExistingName: (name) => set({ duplicatePhoneExistingName: name }),
 
   showCustomerSuccessModal: false,
   setShowCustomerSuccessModal: (show) => set({ showCustomerSuccessModal: show }),
