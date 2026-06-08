@@ -102,6 +102,7 @@ export const GlobalModals: React.FC = () => {
 
       setIsAddingCustomer(false);
       setShowCustomerWarningModal(false);
+      setDuplicatePhoneExistingName('');
       setEditingCustomer(null);
       setLastAddedCustomerId(data.id);
       setShowCustomerSuccessModal(true);
@@ -109,7 +110,6 @@ export const GlobalModals: React.FC = () => {
       fetchAuditLogs();
     } catch (err: any) {
       if (err.response?.status === 409 && err.response?.data?.error === 'duplicate_phone') {
-        // Server found duplicate phone not in the loaded page
         const existingName = err.response.data.existing?.name || 'outro cliente';
         setNewCustomer(formData);
         setDuplicatePhoneExistingName(existingName);
@@ -210,7 +210,7 @@ export const GlobalModals: React.FC = () => {
         onClose={() => { setShowCustomerWarningModal(false); setDuplicatePhoneExistingName(''); }}
         type={customerWarningType}
         onConfirm={() => handleAddCustomer(newCustomer as CustomerFormData, true)}
-        existingName={duplicatePhoneExistingName}
+        existingName={duplicatePhoneExistingName || undefined}
       />
 
       <CustomerSuccessModal
