@@ -1,12 +1,15 @@
 import React from 'react';
 import { Dashboard } from '../components/dashboard/Dashboard';
 import { DrillDownModal } from '../components/ui/DrillDownModal';
+import { PageLoader } from '../components/ui/PageLoader';
 import { useStats } from '../hooks/useStats';
 import { useFilterStore } from '../store/useFilterStore';
 
 export const DashboardPage: React.FC = () => {
   const { dashboardMonth } = useFilterStore();
-  const { stats, handleChartClick, drillDownModal } = useStats(dashboardMonth);
+  const { stats, isLoading, handleChartClick, drillDownModal } = useStats(dashboardMonth);
+
+  if (isLoading) return <PageLoader />;
 
   return (
     <>

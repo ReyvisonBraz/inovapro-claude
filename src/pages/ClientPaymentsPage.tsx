@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ClientPayments } from '../components/payments/ClientPayments';
+import { PageLoader } from '../components/ui/PageLoader';
 import { useClientPayments } from '../hooks/useClientPayments';
 import { useCustomers } from '../hooks/useCustomers';
 import { useToast } from '../components/ui/Toast';
@@ -206,8 +207,10 @@ export const ClientPaymentsPage: React.FC = () => {
     );
   };
 
+  if (clientPaymentsQuery.isLoading) return <PageLoader />;
+
   return (
-    <ClientPayments 
+    <ClientPayments
       filteredClientPayments={filteredClientPayments}
       generateReceipt={generateReceipt}
       sendWhatsAppReminder={handleWhatsAppReminder}
