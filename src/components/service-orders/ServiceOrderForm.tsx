@@ -10,6 +10,7 @@ import {
 import { QRCodeSVG } from 'qrcode.react';
 import { ServiceOrderPart, ServiceOrderItem } from '../../types';
 import { useServiceOrderFormContext } from '../../contexts/ServiceOrderFormContext';
+import { useFormStore } from '../../store/useFormStore';
 import { cn, formatCurrency } from '../../lib/utils';
 import { CustomerSearchSelect } from '../customers/CustomerSearchSelect';
 import { SearchableSelect } from '../ui/SearchableSelect';
@@ -119,6 +120,17 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
     return [];
   }
 })();
+
+  const { newServiceOrder, setNewServiceOrder } = useFormStore();
+
+  // Pré-preenche o cliente quando o form abre vindo do cadastro de cliente
+  useEffect(() => {
+    if (!editingOrder && (newServiceOrder as any)?.customerId) {
+      setValue('customerId', (newServiceOrder as any).customerId);
+      setNewServiceOrder(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [isSimplified, setIsSimplified] = useState(false);
   const [skipEquipmentValidation, setSkipEquipmentValidation] = useState(false);
@@ -324,7 +336,6 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
 
     if (hasError) {
       showToast('Preencha os campos obrigatórios ou ative "Pular equipamento"', 'error');
-      setIsSaving(false);
       return;
     }
 
@@ -446,7 +457,7 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
           </div>
 
           {/* Modal Body */}
-          <div className="p-4 sm:p-6 md:p-8 space-y-6 md:space-y-8 overflow-y-auto flex-1 custom-scrollbar">
+          <div id="os-form-body" className="p-4 sm:p-6 md:p-8 space-y-6 md:space-y-8 overflow-y-auto flex-1 custom-scrollbar">
             
             {/* Cliente e Data Componentizado */}
             <CustomerSection 

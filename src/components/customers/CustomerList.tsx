@@ -153,33 +153,32 @@ export const CustomerList: React.FC<CustomerListProps> = ({
               <div className="flex flex-col lg:flex-row gap-3 lg:gap-6 items-start lg:items-center justify-between">
                 <div className="flex-1 min-w-0 w-full">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <h3 className="text-sm md:text-lg font-bold text-white truncate">
+                    <h3 className="text-sm lg:text-lg font-bold text-white truncate">
                       {customer.firstName} {customer.lastName}
                     </h3>
                     {customer.nickname && (
-                      <span className="hidden md:inline px-2 py-0.5 rounded-md bg-white/10 text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">
+                      <span className="px-2 py-0.5 rounded-md bg-white/10 text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">
                         {customer.nickname}
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs md:text-sm text-slate-500">
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500">
                     <span className="flex items-center gap-1"><Phone size={12} />{customer.phone}</span>
-                    {customer.companyName && <span className="flex items-center gap-1 hidden md:flex"><CreditCard size={12} />{customer.companyName}</span>}
+                    {customer.companyName && <span className="flex items-center gap-1"><CreditCard size={12} />{customer.companyName}</span>}
                     {lastPurchase && <span className="flex items-center gap-1">Última: {format(parseISO(lastPurchase), 'dd/MM/yy')}</span>}
-                    <span className="md:hidden font-bold">{formatCurrency(debt)}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3 w-full lg:w-auto">
-                  <div className="hidden md:flex items-center gap-4 bg-black/20 p-2 rounded-xl border border-white/5">
+                  <div className="flex items-center gap-3 bg-black/20 px-3 py-2 rounded-xl border border-white/5 flex-1 lg:flex-none">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Dívida</p>
-                      <p className={cn("text-base font-black", debt > 0 ? "text-rose-500" : "text-emerald-500")}>{formatCurrency(debt)}</p>
+                      <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Dívida</p>
+                      <p className={cn("text-sm font-black", debt > 0 ? "text-rose-500" : "text-emerald-500")}>{formatCurrency(debt)}</p>
                     </div>
                     <div className="h-6 w-px bg-white/10" />
                     <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Limite</p>
-                      <p className="text-base font-bold text-slate-300">{formatCurrency(customer.creditLimit || 0)}</p>
+                      <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Limite</p>
+                      <p className="text-sm font-bold text-slate-300">{formatCurrency(customer.creditLimit || 0)}</p>
                     </div>
                   </div>
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ClientPayments } from '../components/payments/ClientPayments';
+import { PageLoader } from '../components/ui/PageLoader';
 import { useClientPayments } from '../hooks/useClientPayments';
 import { useCustomers } from '../hooks/useCustomers';
 import { useToast } from '../components/ui/Toast';
@@ -27,7 +28,7 @@ export const ClientPaymentsPage: React.FC = () => {
     recordPaymentMutation
   } = useClientPayments();
   
-  const { customers } = useCustomers();
+  const { customers, allCustomers } = useCustomers();
   const { settings } = useSettingsStore();
   const { currentUser } = useAuthStore();
   const { 
@@ -43,7 +44,7 @@ export const ClientPaymentsPage: React.FC = () => {
     setPaymentSearchTerm(debouncedSearchTerm);
   }, [debouncedSearchTerm, setPaymentSearchTerm]);
 
-  const { generateReceipt } = useReceipt(settings, customers.data);
+  const { generateReceipt } = useReceipt(settings, allCustomers);
 
   const {
     setClientPaymentToDelete,
@@ -183,7 +184,7 @@ export const ClientPaymentsPage: React.FC = () => {
   };
 
   const handleWhatsAppReminder = (payment: ClientPayment) => {
-    const customer = customers.data.find(c => c.id === payment.customerId);
+    const customer = allCustomers.find(c => c.id === payment.customerId);
     if (!customer) return;
     sendWhatsAppPaymentReminder(payment, customer, settings.appName);
   };
@@ -206,8 +207,10 @@ export const ClientPaymentsPage: React.FC = () => {
     );
   };
 
+  if (clientPaymentsQuery.isLoading) return <PageLoader />;
+
   return (
-    <ClientPayments 
+    <ClientPayments
       filteredClientPayments={filteredClientPayments}
       generateReceipt={generateReceipt}
       sendWhatsAppReminder={handleWhatsAppReminder}
@@ -228,7 +231,7 @@ export const ClientPaymentsPage: React.FC = () => {
       }}
       handleDeleteClientPaymentGroup={handleDeleteClientPaymentGroup}
       handleRecordPayment={handleRecordPayment}
-      customers={customers.data}
+      customers={allCustomers}
       handleAddClientPayment={handleAddClientPayment}
       isSaving={addPaymentMutation.isPending || recordPaymentMutation.isPending}
       pagination={{

@@ -165,7 +165,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
           isGrid ? "mt-2" : "md:items-end justify-between"
         )}>
           {!isGrid && (
-            <div className="text-right hidden md:block">
+            <div className="text-right hidden lg:block">
               <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Entrada</p>
               <p className="text-xs font-bold text-slate-300">
                 {format(parseISO(order.createdAt), "dd MMM yyyy", { locale: ptBR })}
@@ -260,7 +260,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
             title="Editar"
           >
             <Edit size={16} />
-            {!isGrid && <span className="hidden md:inline text-xs font-bold">Editar</span>}
+            {!isGrid && <span className="hidden lg:inline text-xs font-bold">Editar</span>}
           </button>
 
           <div className={cn("h-4 w-px bg-white/10 mx-1", isGrid && "hidden")} />

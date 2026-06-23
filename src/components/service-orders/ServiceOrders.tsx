@@ -33,6 +33,7 @@ import { ServiceOrderStatusModal } from './modals/ServiceOrderStatusModal';
 interface ServiceOrdersProps {
   orders: { data: ServiceOrder[], meta: any };
   customers: { data: Customer[], meta: any };
+  allCustomers?: Customer[];
   inventoryItems: InventoryItem[];
   statuses: ServiceOrderStatus[];
   equipmentTypes: EquipmentType[];
@@ -80,6 +81,7 @@ interface ServiceOrdersProps {
 export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   orders,
   customers,
+  allCustomers,
   inventoryItems,
   statuses,
   equipmentTypes,
@@ -187,7 +189,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
       const notifyStatuses = ['Concluído', 'Pronto', 'Aguardando Autorização', 'Aguardando Aprovação'];
       if (notifyStatuses.includes(newStatus)) {
         const order = orders.data.find(o => o.id === id);
-        const customer = customers.data.find(c => c.id === order?.customerId);
+        const customer = (allCustomers ?? customers.data).find(c => c.id === order?.customerId);
         if (order && customer?.phone) {
           setTimeout(() => {
             sendWhatsAppStatusUpdate(order, customer, 'INOVA PRO', window.location.origin);
@@ -324,7 +326,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
         setIsAdding,
         editingOrder,
         setEditingOrder,
-        customers: customers.data,
+        customers: allCustomers ?? customers.data,
         inventoryItems,
         statuses,
         equipmentTypes,
@@ -364,11 +366,11 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
         handleUpdateStatus={handleUpdateStatus}
       />
 
-      <WhatsAppModal 
+      <WhatsAppModal
         show={showWhatsAppModal}
         onClose={() => setShowWhatsAppModal(false)}
         selectedOrder={selectedOrder}
-        customers={customers.data}
+        customers={allCustomers ?? customers.data}
         settings={settings}
         showToast={showToast}
       />
@@ -385,7 +387,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
         show={showPrintModal}
         onClose={() => setShowPrintModal(false)}
         selectedOrder={selectedOrder}
-        customers={customers.data}
+        customers={allCustomers ?? customers.data}
         currentUser={currentUser}
         osPrintConfig={settings?.osPrintConfig}
       />

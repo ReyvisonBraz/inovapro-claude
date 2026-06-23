@@ -21,6 +21,15 @@ export const useCustomers = () => {
     },
   });
 
+  const { data: allCustomersData } = useQuery({
+    queryKey: ['customers', 'all'],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data } = await api.get('/customers?page=1&limit=9999');
+      return data;
+    },
+  });
+
   const { saveMutation, deleteMutation } = useCrudApi({
     baseKey: 'customers',
     endpoint: '/customers',
@@ -35,15 +44,16 @@ export const useCustomers = () => {
     return data;
   };
 
-  return { 
-    customers: customersData || { data: [], meta: { total: 0, page: 1, totalPages: 1, limit: 20 } }, 
+  return {
+    customers: customersData || { data: [], meta: { total: 0, page: 1, totalPages: 1, limit: 20 } },
+    allCustomers: (allCustomersData?.data || []) as Customer[],
     customersPage,
     setCustomersPage,
     customerSearchTerm,
     setCustomerSearchTerm,
     isLoading,
     isError,
-    fetchCustomers: refetch, 
+    fetchCustomers: refetch,
     isCustomerSaving: saveMutation.isPending,
     saveCustomerAPI: (customer: Partial<Customer>, id?: number) => saveMutation.mutateAsync({ item: customer, id }),
     deleteCustomerAPI: (id: number) => deleteMutation.mutateAsync(id),

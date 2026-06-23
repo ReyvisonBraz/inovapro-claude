@@ -36,6 +36,7 @@ export function useCrudApi({
       onSaveSuccess?.();
     },
     onError: (error: any) => {
+      if (error.response?.status === 409) return;
       showToast(error.response?.data?.error ?? 'Erro ao salvar.', 'error');
     },
   });

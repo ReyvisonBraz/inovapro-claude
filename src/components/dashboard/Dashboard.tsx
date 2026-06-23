@@ -144,7 +144,7 @@ export const Dashboard = ({
         </div>
 
         {/* Quick metrics row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-4 sm:mt-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mt-4 sm:mt-5">
           {[
             { icon: Wrench, color: 'text-cyan-400', label: 'OS no Mês', value: monthOSCount },
             { icon: Package, color: 'text-amber-400', label: 'Serv./Peças', value: topProducts?.length || 0 },

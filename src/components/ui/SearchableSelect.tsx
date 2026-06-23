@@ -49,6 +49,12 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => inputRef.current?.focus(), 30);
+    }
+  }, [isOpen]);
+
   const handleSelect = (opt: Option) => {
     onChange(opt.value);
     setIsOpen(false);

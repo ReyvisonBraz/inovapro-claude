@@ -82,7 +82,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
                 <Plus size={18} />
               </button>
             </div>
-            {errors.equipmentType && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.equipmentType.message}</p>}
+            {errors.equipmentType && <p className="form-field-error text-rose-500 text-xs mt-1 font-bold">{errors.equipmentType.message}</p>}
           </div>
 
           <div className="space-y-2">
@@ -122,7 +122,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
                 <Plus size={18} />
               </button>
             </div>
-            {errors.equipmentBrand && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.equipmentBrand.message}</p>}
+            {errors.equipmentBrand && <p className="form-field-error text-rose-500 text-xs mt-1 font-bold">{errors.equipmentBrand.message}</p>}
           </div>
 
           <div className="space-y-2">
@@ -169,7 +169,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
                 <Plus size={18} />
               </button>
             </div>
-            {errors.equipmentModel && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.equipmentModel.message}</p>}
+            {errors.equipmentModel && <p className="form-field-error text-rose-500 text-xs mt-1 font-bold">{errors.equipmentModel.message}</p>}
           </div>
 
           <div className="space-y-2">

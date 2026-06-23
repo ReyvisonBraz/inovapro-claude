@@ -37,7 +37,41 @@ const AuditLogs: React.FC<AuditLogsProps> = ({ auditLogs }) => {
       </div>
 
       <div className="glass-card overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile View */}
+        <div className="lg:hidden divide-y divide-white/5">
+          {filteredLogs.map((log) => (
+            <div key={log.id} className="p-4 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <span className={cn(
+                  "px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border shrink-0",
+                  log.action.includes('Excluir') ? "bg-rose-500/10 border-rose-500/20 text-rose-500" :
+                  log.action.includes('Editar') ? "bg-amber-500/10 border-amber-500/20 text-amber-500" :
+                  "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                )}>
+                  {log.action}
+                </span>
+                <p className="text-[10px] font-bold text-slate-500 text-right">
+                  {format(parseISO(log.timestamp), 'dd/MM/yy HH:mm')}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                  <User size={10} />
+                </div>
+                <p className="text-xs font-bold text-slate-300">{log.userName}</p>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed">{log.details}</p>
+            </div>
+          ))}
+          {filteredLogs.length === 0 && (
+            <div className="px-4 py-16 text-center text-slate-500 italic text-sm">
+              Nenhum log de auditoria encontrado.
+            </div>
+          )}
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-white/5 border-b border-white/5">
