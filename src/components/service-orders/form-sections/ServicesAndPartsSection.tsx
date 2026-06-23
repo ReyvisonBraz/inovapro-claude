@@ -312,6 +312,7 @@ export const ServicesAndPartsSection: React.FC<ServicesAndPartsSectionProps> = (
                 setIsAddingService(false);
               }
               setShowProductModal(false);
+              showToast(`${savedItem.category === 'product' ? 'Produto' : 'Serviço'} adicionado à OS com sucesso!`, 'success');
             }
           }).catch((err) => {
             console.error('Failed to save inventory item', err);

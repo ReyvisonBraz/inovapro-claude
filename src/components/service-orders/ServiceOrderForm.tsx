@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { FormProvider, useForm, useFieldArray, type FieldArrayPath } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'motion/react';
@@ -100,6 +100,11 @@ export const ServiceOrderForm: React.FC = () => {
 
   const watchedServices = watch('services');
   const watchedParts = watch('partsUsed');
+  const computedTotal = useMemo(() => {
+    const servicesTotal = (watchedServices || []).reduce((acc, s) => acc + (Number(s.price) || 0), 0);
+    const partsTotal = (watchedParts || []).reduce((acc, p) => acc + (Number(p.subtotal) || 0), 0);
+    return servicesTotal + partsTotal;
+  }, [watchedServices, watchedParts]);
   const watchedServiceFee = watch('serviceFee');
   const watchedCustomerId = watch('customerId');
   const watchedEquipmentType = watch('equipmentType');
@@ -116,8 +121,9 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
 })();
 
   const [isSimplified, setIsSimplified] = useState(false);
-  // Estado para pular validação de equipamento
   const [skipEquipmentValidation, setSkipEquipmentValidation] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const manuallyEditedFee = useRef(false);
 
   // Reset skipEquipmentValidation when switching from simplified
   useEffect(() => {
@@ -177,10 +183,11 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
     setValue('arrivalPhotoBase64', JSON.stringify(updated));
   };
 
-  // Atualizar totais quando serviços ou peças mudarem
+  // Atualizar totais quando serviços ou peças mudarem (apenas se usuário não editou manualmente)
   useEffect(() => {
-    const servicesTotal = watchedServices.reduce((acc, s) => acc + s.price, 0);
-    const partsTotal = watchedParts.reduce((acc, p) => acc + p.subtotal, 0);
+    if (manuallyEditedFee.current) return;
+    const servicesTotal = watchedServices.reduce((acc, s) => acc + (Number(s.price) || 0), 0);
+    const partsTotal = watchedParts.reduce((acc, p) => acc + (Number(p.subtotal) || 0), 0);
     const total = servicesTotal + partsTotal;
     
     setValue('serviceFee', servicesTotal);
@@ -190,6 +197,7 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
   // Sincronizar com edição
   useEffect(() => {
     if (editingOrder) {
+      manuallyEditedFee.current = false;
       reset({
         customerId: editingOrder.customerId,
         entryDate: editingOrder.entryDate || format(parseISO(editingOrder.createdAt), 'yyyy-MM-dd'),
@@ -301,6 +309,9 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
   };
 
   const onFormSubmit = async (data: ServiceOrderFormData) => {
+    if (isSaving) return;
+    setIsSaving(true);
+
     let hasError = false;
     const shouldValidateEquipment = !isSimplified && !skipEquipmentValidation;
 
@@ -313,10 +324,10 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
 
     if (hasError) {
       showToast('Preencha os campos obrigatórios ou ative "Pular equipamento"', 'error');
+      setIsSaving(false);
       return;
     }
 
-    // Se skipEquipmentValidation, limpa os campos de equipamento para não salvar dados inválidos
     const orderData = {
       ...data,
       ...(editingOrder ? { updatedBy: currentUser?.id } : { createdBy: currentUser?.id }),
@@ -329,70 +340,82 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
       })
     };
 
-    if (editingOrder) {
-      const success = await onUpdateOrder(editingOrder.id, orderData, editingOrder.updatedAt);
-      if (!success) return;
-      
-      setIsAdding(false);
-      setEditingOrder(null);
-
-      const notifyStatuses = ['Concluído', 'Pronto', 'Aguardando Autorização', 'Aguardando Aprovação'];
-      if (notifyStatuses.includes(orderData.status)) {
-        const appUrl = window.location.origin;
-        const orderWithCustomer = { ...editingOrder, ...orderData };
-        const customer = customers.find(c => c.id === editingOrder.customerId);
-        if (customer?.phone) {
-          setTimeout(() => {
-            sendWhatsAppStatusUpdate(orderWithCustomer, customer, 'INOVA PRO', appUrl);
-          }, 300);
+    try {
+      if (editingOrder) {
+        const success = await onUpdateOrder(editingOrder.id, orderData, editingOrder.updatedAt);
+        if (!success) {
+          setIsSaving(false);
+          return;
         }
-      }
 
-      if (orderData.status === 'Concluído' && onGeneratePayment) {
-        onOpenConfirm(
-          'Gerar Pagamento',
-          'Deseja gerar a cobrança/pagamento para esta OS agora?',
-          () => {
-            onGeneratePayment({ ...orderData, id: editingOrder.id });
-          },
-          'info'
-        );
-      }
-    } else {
-      const newId = await onAddOrder(orderData);
-      if (!newId) return;
-      
-      setIsAdding(false);
-      setEditingOrder(null);
+        setIsAdding(false);
+        setEditingOrder(null);
 
-      if (orderData.status === 'Concluído' && onGeneratePayment) {
-        onOpenConfirm(
-          'Gerar Pagamento',
-          'Deseja gerar a cobrança/pagamento para esta OS agora?',
-          () => {
-            onGeneratePayment({ ...orderData, id: newId });
-          },
-          'info'
-        );
+        const notifyStatuses = ['Concluído', 'Pronto', 'Aguardando Autorização', 'Aguardando Aprovação'];
+        if (notifyStatuses.includes(orderData.status)) {
+          const appUrl = window.location.origin;
+          const orderWithCustomer = { ...editingOrder, ...orderData };
+          const customer = customers.find(c => c.id === editingOrder.customerId);
+          if (customer?.phone) {
+            setTimeout(() => {
+              sendWhatsAppStatusUpdate(orderWithCustomer, customer, 'INOVA PRO', appUrl);
+            }, 300);
+          }
+        }
+
+        if (orderData.status === 'Concluído' && onGeneratePayment) {
+          onOpenConfirm(
+            'Gerar Pagamento',
+            'Deseja gerar a cobrança/pagamento para esta OS agora?',
+            () => {
+              onGeneratePayment({ ...orderData, id: editingOrder.id });
+            },
+            'info'
+          );
+        }
+
+        reset();
       } else {
-        onOpenConfirm(
-          'Enviar via WhatsApp',
-          'Deseja enviar a Ordem de Serviço via WhatsApp agora?',
-          () => {
-            const tempOrder = {
-              ...orderData,
-              id: newId,
-              createdAt: new Date().toISOString()
-            };
-            setSelectedOrder(tempOrder as any);
-            setShowWhatsAppModal(true);
-          },
-          'info'
-        );
+        const newId = await onAddOrder(orderData);
+        if (!newId) {
+          setIsSaving(false);
+          return;
+        }
+
+        setIsAdding(false);
+        setEditingOrder(null);
+
+        if (orderData.status === 'Concluído' && onGeneratePayment) {
+          onOpenConfirm(
+            'Gerar Pagamento',
+            'Deseja gerar a cobrança/pagamento para esta OS agora?',
+            () => {
+              onGeneratePayment({ ...orderData, id: newId });
+            },
+            'info'
+          );
+        } else {
+          onOpenConfirm(
+            'Enviar via WhatsApp',
+            'Deseja enviar a Ordem de Serviço via WhatsApp agora?',
+            () => {
+              const tempOrder = {
+                ...orderData,
+                id: newId,
+                createdAt: new Date().toISOString()
+              };
+              setSelectedOrder(tempOrder as any);
+              setShowWhatsAppModal(true);
+            },
+            'info'
+          );
+        }
+
+        reset();
       }
+    } finally {
+      setIsSaving(false);
     }
-    
-    reset();
   };
 
   return (
@@ -471,50 +494,72 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
               updatePart={updatePart}
             />
 
-            {/* Seção de Fechamento (Apenas Edição) */}
-            {editingOrder && (
-              <div className="space-y-6 pt-6 border-t border-white/5">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="h-1 w-8 bg-emerald-500 rounded-full" />
-                  <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Fechamento e Valores</h4>
-                </div>
+            {/* Seção de Fechamento */}
+            <div className="space-y-6 pt-6 border-t border-white/5">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="h-1 w-8 bg-emerald-500 rounded-full" />
+                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                  Fechamento e Valores
+                  {!editingOrder && <span className="text-emerald-500"> — preenchimento opcional</span>}
+                </h4>
+              </div>
 
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-emerald-500 ml-1">Serviços Realizados</label>
+                <textarea 
+                  {...register('servicesPerformed')}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none min-h-[100px] text-white placeholder:text-slate-500 resize-none transition-all"
+                  placeholder="Descreva o que foi feito no equipamento..."
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-emerald-500 ml-1">Serviços Realizados</label>
-                  <textarea 
-                    {...register('servicesPerformed')}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none min-h-[100px] text-white placeholder:text-slate-500 resize-none transition-all"
-                    placeholder="Descreva o que foi feito no equipamento..."
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">Mão de Obra (R$)</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">R$</span>
-                      <input 
-                        type="number"
-                        step="0.01"
-                        {...register('serviceFee', { valueAsNumber: true })}
-                        className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-sm font-black focus:ring-2 focus:ring-primary outline-none transition-all"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-primary ml-1">Valor Total (R$)</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-bold">R$</span>
-                      <input 
-                        type="number"
-                        step="0.01"
-                        {...register('totalAmount', { valueAsNumber: true })}
-                        className="w-full h-14 bg-primary/10 border border-primary/20 rounded-2xl pl-12 pr-4 text-sm font-black text-primary focus:ring-2 focus:ring-primary outline-none transition-all"
-                      />
-                    </div>
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">Mão de Obra (R$)</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">R$</span>
+                    {(() => {
+                      const { onChange, ...rest } = register('serviceFee', { valueAsNumber: true });
+                      return (
+                        <input
+                          type="number"
+                          step="0.01"
+                          {...rest}
+                          onChange={(e) => { manuallyEditedFee.current = true; onChange(e); }}
+                          className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-sm font-black focus:ring-2 focus:ring-primary outline-none transition-all"
+                        />
+                      );
+                    })()}
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-primary ml-1">
+                    Valor Total (R$)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-bold">R$</span>
+                    {(() => {
+                      const { onChange, ...rest } = register('totalAmount', { valueAsNumber: true });
+                      return (
+                        <input
+                          type="number"
+                          step="0.01"
+                          {...rest}
+                          onChange={(e) => { manuallyEditedFee.current = true; onChange(e); }}
+                          className="w-full h-14 bg-primary/10 border border-primary/20 rounded-2xl pl-12 pr-4 text-sm font-black text-primary focus:ring-2 focus:ring-primary outline-none transition-all"
+                        />
+                      );
+                    })()}
+                  </div>
+                  {computedTotal > 0 && (
+                    <p className="text-[10px] text-slate-500 ml-1">
+                      Calculado pelos serviços/peças: <span className="font-bold text-primary">{formatCurrency(computedTotal)}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
 
+              {editingOrder && (
                 <div className="flex flex-col md:flex-row gap-6 items-center bg-primary/5 p-6 rounded-3xl border border-primary/20 shadow-inner">
                   <div className="bg-white p-4 rounded-2xl shadow-2xl transform hover:scale-105 transition-transform cursor-pointer" onClick={() => setShowQRCodeModal(true)}>
                     <QRCodeSVG 
@@ -532,17 +577,17 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
                     <p className="text-xs text-slate-400 leading-relaxed">Este código permite que o cliente ou técnico acesse esta OS rapidamente via celular. Clique no QR Code para ampliar.</p>
                   </div>
                 </div>
+              )}
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">Observações Finais</label>
-                  <textarea 
-                    {...register('finalObservations')}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none min-h-[80px] resize-none transition-all"
-                    placeholder="Garantia, recomendações, etc..."
-                  />
-                </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">Observações Finais</label>
+                <textarea 
+                  {...register('finalObservations')}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-primary outline-none min-h-[80px] resize-none transition-all"
+                  placeholder="Garantia, recomendações, etc..."
+                />
               </div>
-            )}
+            </div>
           </div>
 
           {/* Modal Footer */}
@@ -557,10 +602,20 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
             <button 
               type="button"
               onClick={handleSubmit(onFormSubmit as any)}
-              className="flex-[2] h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-primary text-white font-black shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 order-1 sm:order-2"
+              disabled={isSaving}
+              className="flex-[2] h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-primary text-white font-black shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 order-1 sm:order-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <Check size={20} />
-              {editingOrder ? 'Salvar Alterações' : 'Gerar Ordem de Serviço'}
+              {isSaving ? (
+                <span className="animate-pulse flex items-center gap-2">
+                  <span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  Salvando...
+                </span>
+              ) : (
+                <>
+                  <Check size={20} />
+                  {editingOrder ? 'Salvar Alterações' : 'Gerar Ordem de Serviço'}
+                </>
+              )}
             </button>
           </div>
         </motion.div>
