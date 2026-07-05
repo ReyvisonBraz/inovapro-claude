@@ -25,7 +25,19 @@
       "Bash(Remove-Item \"c:\\\\Users\\\\Reyvison\\\\Desktop\\\\REYVISON PROJECTS\\\\inovapro-claude\\\\src\\\\hooks\\\\useServiceOrderForm.ts\")",
       "Bash(Write-Host \"deleted\")",
       "Bash(not exist *)",
-      "PowerShell(Get-Command pg_dump -ErrorAction SilentlyContinue)"
+      "PowerShell(Get-Command pg_dump -ErrorAction SilentlyContinue)",
+      "Bash(grep -n 'paidAmount\\\\|paymentHistory\\\\|$transaction' src/services/client-payment.service.ts)",
+      "Bash(npm ci *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(npm install *)",
+      "Bash(npx vitest *)",
+      "Bash(python3 -)",
+      "Bash(npx supabase *)",
+      "Bash(rm -f ~/.supabase/access-token)",
+      "Read(//home/reyvison/.supabase/**)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git config *)"
     ]
   }
 }
