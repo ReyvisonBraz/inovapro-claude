@@ -353,7 +353,7 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
 
     try {
       if (editingOrder) {
-        const success = await onUpdateOrder(editingOrder.id, orderData, editingOrder.updatedAt);
+        const success = await onUpdateOrder(editingOrder.id, orderData, editingOrder.version);
         if (!success) {
           setIsSaving(false);
           return;

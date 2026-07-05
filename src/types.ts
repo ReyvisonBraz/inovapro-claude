@@ -231,6 +231,7 @@ export interface ServiceOrder {
   createdBy?: number;
   updatedBy?: number;
   arrivalPhotoUrls?: string;
+  version?: number;
 }
 
 export interface EquipmentType {

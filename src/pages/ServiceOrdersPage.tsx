@@ -215,9 +215,9 @@ export const ServiceOrdersPage: React.FC = () => {
           return null;
         }
       }}
-      onUpdateOrder={async (id, order, updatedAt) => {
+      onUpdateOrder={async (id, order, version) => {
         try {
-          await saveServiceOrderAPI(order, id, updatedAt);
+          await saveServiceOrderAPI(order, id, version);
           showToast("Ordem de Serviço atualizada com sucesso!", "success");
           return true;
         } catch (err: any) {

@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma.js';
 import { z } from 'zod';
+import { ConflictError, NotFoundError } from '../lib/errors.js';
 
 // Tipagem parcial compatível com o TransactionSchema das rotas
 type TransactionData = {
@@ -98,11 +99,11 @@ export class TransactionService {
     });
   }
 
-  async update(id: number, data: TransactionData) {
+  async update(id: number, data: TransactionData, expectedVersion?: number) {
     const { description, category, type, amount, date, updatedBy } = data;
-    
-    return prisma.transaction.update({
-      where: { id },
+
+    const result = await prisma.transaction.updateMany({
+      where: expectedVersion !== undefined ? { id, version: expectedVersion } : { id },
       data: {
         description: description || 'Sem descrição',
         category,
@@ -110,29 +111,58 @@ export class TransactionService {
         amount,
         date,
         updatedBy: updatedBy || 1,
+        version: { increment: 1 },
       },
     });
+
+    if (result.count === 0) {
+      const exists = await prisma.transaction.findUnique({ where: { id }, select: { id: true } });
+      if (!exists) throw new NotFoundError('Transação não encontrada');
+      throw new ConflictError();
+    }
+
+    return prisma.transaction.findUniqueOrThrow({ where: { id } });
   }
 
   async delete(id: number) {
     return prisma.$transaction(async (tx) => {
-      const transaction = await tx.transaction.findUnique({ where: { id } });
-      if (!transaction) throw new Error('Transação não encontrada.');
+      // Exclui primeiro: se duas exclusões simultâneas correrem, apenas uma
+      // consegue deletar a linha; a outra falha aqui e a transação inteira
+      // (incluindo o estorno abaixo) é revertida — sem estorno duplicado.
+      let transaction;
+      try {
+        transaction = await tx.transaction.delete({ where: { id } });
+      } catch (err: any) {
+        if (err?.code === 'P2025') throw new NotFoundError('Transação não encontrada.');
+        throw err;
+      }
 
       if (transaction.paymentId) {
-        const payment = await tx.clientPayment.findUnique({ where: { id: transaction.paymentId } });
-        if (payment) {
-          const newPaidAmount = Math.max(0, payment.paidAmount - transaction.amount);
-          const newStatus = newPaidAmount >= payment.totalAmount ? 'paid' : 'pending';
+        // Decremento atômico: trava a linha do pagamento até o commit,
+        // evitando corrida com registerPayment simultâneo.
+        let payment = null;
+        try {
+          payment = await tx.clientPayment.update({
+            where: { id: transaction.paymentId },
+            data: {
+              paidAmount: { decrement: transaction.amount },
+              version: { increment: 1 },
+            },
+          });
+        } catch (err: any) {
+          if (err?.code !== 'P2025') throw err; // pagamento já não existe: segue a exclusão
+        }
 
+        if (payment) {
+          const clamped = Math.max(0, payment.paidAmount ?? 0);
+          const newStatus = clamped >= payment.totalAmount ? 'paid' : 'pending';
           await tx.clientPayment.update({
             where: { id: transaction.paymentId },
-            data: { paidAmount: newPaidAmount, status: newStatus },
+            data: { paidAmount: clamped, status: newStatus },
           });
         }
       }
 
-      await tx.transaction.delete({ where: { id } });
       return transaction;
     });
   }

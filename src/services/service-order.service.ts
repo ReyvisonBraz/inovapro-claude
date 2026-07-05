@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma.js';
 import { Prisma } from '@prisma/client';
 import { ServiceOrderFormData } from '../schemas/serviceOrderSchema.js';
 import { uploadPhotoToStorage, isStorageConfigured } from '../lib/storage.js';
+import { ConflictError, NotFoundError } from '../lib/errors.js';
 
 const safeParseJSON = (str: string | null | undefined, fallback: unknown = []) => {
   try { return str ? JSON.parse(str) : fallback; }
@@ -175,13 +176,7 @@ export class ServiceOrderService {
     return created;
   }
 
-  async update(id: number, data: Partial<ServiceOrderFormData>, clientUpdatedAt?: string) {
-    if (clientUpdatedAt) {
-      const current = await prisma.serviceOrder.findUnique({ where: { id }, select: { updatedAt: true } });
-      if (current && new Date(clientUpdatedAt).getTime() !== current.updatedAt.getTime()) {
-        throw new Error('CONFLICT');
-      }
-    }
+  async update(id: number, data: Partial<ServiceOrderFormData>, expectedVersion?: number) {
     const fields = [
       'status', 'technicalAnalysis', 'servicesPerformed', 'services', 'partsUsed',
       'serviceFee', 'totalAmount', 'finalObservations', 'entryDate', 'analysisPrediction',
@@ -226,10 +221,23 @@ export class ServiceOrderService {
       }
     }
 
-    const updated = await prisma.serviceOrder.update({
-      where: { id },
+    // Update condicional atômico: o WHERE inclui a versão que o cliente
+    // conhecia. Se outro usuário salvou nesse meio-tempo, count === 0 e
+    // nada é sobrescrito (lock otimista sem janela de corrida).
+    updateData.version = { increment: 1 };
+
+    const result = await prisma.serviceOrder.updateMany({
+      where: expectedVersion !== undefined ? { id, version: expectedVersion } : { id },
       data: updateData as Prisma.ServiceOrderUncheckedUpdateInput,
     });
+
+    if (result.count === 0) {
+      const exists = await prisma.serviceOrder.findUnique({ where: { id }, select: { id: true } });
+      if (!exists) throw new NotFoundError('Ordem de serviço não encontrada');
+      throw new ConflictError();
+    }
+
+    const updated = await prisma.serviceOrder.findUniqueOrThrow({ where: { id } });
 
     return {
       ...updated,

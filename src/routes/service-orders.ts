@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { serviceOrderService } from '../services/service-order.service.js';
 import { publicOsCache, PUBLIC_OS_KEY } from '../lib/cache.js';
 import { validate } from '../middleware/validate.js';
+import { AppError } from '../lib/errors.js';
 
 const router = Router();
 
@@ -59,10 +60,11 @@ router.post('/', validate(ServiceOrderSchema), async (req: Request, res: Respons
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const { _clientUpdatedAt, ...bodyRest } = req.body;
+    const { _clientUpdatedAt, version, ...bodyRest } = req.body;
     const validatedData = ServiceOrderSchema.partial().parse(bodyRest);
+    const expectedVersion = typeof version === 'number' ? version : undefined;
 
-    const updatedOrder = await serviceOrderService.update(id, validatedData, _clientUpdatedAt);
+    const updatedOrder = await serviceOrderService.update(id, validatedData, expectedVersion);
 
     publicOsCache.del(PUBLIC_OS_KEY(id));
     info('Ordem de serviço atualizada', { details: { id: updatedOrder.id } });
@@ -74,8 +76,8 @@ router.put('/:id', async (req: Request, res: Response) => {
     if (err.message === 'Nenhum campo para atualizar') {
       return res.status(400).json({ error: err.message });
     }
-    if (err.message === 'CONFLICT') {
-      return res.status(409).json({ error: 'Este registro foi modificado por outro usuário. Recarregue a página para continuar.' });
+    if (err instanceof AppError) {
+      return res.status(err.statusCode).json({ error: err.message });
     }
     error('[SERVICE_ORDERS PUT] Erro ao atualizar OS', err, { details: { id: req.params.id } });
     res.status(500).json({ error: 'Erro interno do servidor' });

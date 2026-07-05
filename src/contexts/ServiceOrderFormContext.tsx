@@ -17,7 +17,7 @@ interface ServiceOrderFormContextValue {
   models: Model[];
   currentUser: User | null;
   onAddOrder: (order: any) => Promise<number | null>;
-  onUpdateOrder: (id: number, order: any, updatedAt?: string) => Promise<boolean>;
+  onUpdateOrder: (id: number, order: any, version?: number) => Promise<boolean>;
   onAddEquipmentType: (name: string) => Promise<void>;
   onAddBrand: (name: string, equipmentType: string) => Promise<void>;
   onAddModel: (brandId: number, name: string) => Promise<void>;

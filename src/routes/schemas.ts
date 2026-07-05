@@ -10,7 +10,9 @@ export const TransactionSchema = z.object({
   updatedBy: z.coerce.number().optional(),
   customerId: z.coerce.number().optional().nullable(),
   customerName: z.string().optional().nullable(),
-  customerPhone: z.string().optional().nullable()
+  customerPhone: z.string().optional().nullable(),
+  // Versão para lock otimista: o cliente devolve a versão que conhecia
+  version: z.number().int().nonnegative().optional()
 });
 
 

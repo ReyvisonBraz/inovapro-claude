@@ -30,9 +30,10 @@ ENV PORT=8080
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-# Prisma client gerado + schema
+# Prisma client gerado + schema + migrations
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/prisma ./prisma
+COPY prisma.config.ts ./
 
 # Frontend compilado
 COPY --from=builder /app/dist ./dist
@@ -49,4 +50,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD node -e "fetch('http://localhost:8080/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"
 
-CMD ["npm", "start"]
+# Aplica migrations pendentes antes de subir o servidor
+CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]

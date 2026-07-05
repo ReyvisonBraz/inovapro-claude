@@ -3,6 +3,7 @@ import { ClientPaymentSchema } from './schemas.js';
 import { error, info } from '../lib/server-logger.js';
 import { clientPaymentService } from '../services/client-payment.service.js';
 import { validate } from '../middleware/validate.js';
+import { AppError } from '../lib/errors.js';
 
 const router = Router();
 
@@ -34,13 +35,17 @@ router.post('/', validate(ClientPaymentSchema), async (req: Request, res: Respon
 
 router.patch('/:id', async (req: Request, res: Response) => {
   try {
-    const { paidAmount, status, paymentHistory, updatedBy } = req.body;
+    const { paidAmount, status, paymentHistory, updatedBy, version } = req.body;
+    const expectedVersion = typeof version === 'number' ? version : undefined;
     await clientPaymentService.update(parseInt(req.params.id), {
       paidAmount, status, paymentHistory, updatedBy
-    });
-    
+    }, expectedVersion);
+
     res.json({ success: true });
   } catch (err) {
+    if (err instanceof AppError) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
     error('[CLIENT_PAYMENTS PATCH] Erro ao atualizar pagamento', err, { details: { id: req.params.id } });
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
@@ -56,8 +61,8 @@ router.post('/:id/pay', async (req: Request, res: Response) => {
     info('Pagamento registrado', { details: { id: paymentId, amount, newStatus: result.newStatus } });
     res.json({ success: true, ...result });
   } catch (err: any) {
-    if (err.message === 'Pagamento não encontrado') {
-      return res.status(404).json({ error: err.message });
+    if (err instanceof AppError) {
+      return res.status(err.statusCode).json({ error: err.message });
     }
     error('[CLIENT_PAYMENTS PAY] Erro ao registrar pagamento', err, { details: { id: req.params.id } });
     res.status(500).json({ error: 'Erro interno do servidor' });

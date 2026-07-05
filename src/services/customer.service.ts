@@ -71,7 +71,7 @@ export class CustomerService {
       // 1. Atualiza o cliente
       const customer = await tx.customer.update({
         where: { id },
-        data: { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, updatedBy },
+        data: { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, updatedBy, version: { increment: 1 } },
       });
 
       // 2. Cascata em ordens de serviço e transações (desnormalização)

@@ -48,6 +48,8 @@ router.post('/', async (req: Request, res: Response) => {
     if (settingsPassword) updateData.settingsPassword = settingsPassword;
     if (sendPulseClientSecret) updateData.sendPulseClientSecret = sendPulseClientSecret;
 
+    updateData.version = { increment: 1 };
+
     await prisma.settings.update({
       where: { id: 1 },
       data: updateData,

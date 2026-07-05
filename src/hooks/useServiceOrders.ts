@@ -86,9 +86,9 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
 
   // Mutações
   const saveMutation = useMutation({
-    mutationFn: async ({ order, id, updatedAt }: { order: ServiceOrderFormData; id?: number; updatedAt?: string }) => {
+    mutationFn: async ({ order, id, version }: { order: ServiceOrderFormData; id?: number; version?: number }) => {
       if (id) {
-        const payload = updatedAt ? { ...order, _clientUpdatedAt: updatedAt } : order;
+        const payload = version !== undefined ? { ...order, version } : order;
         const { data } = await api.put(`/service-orders/${id}`, payload);
         return data;
       } else {
@@ -276,7 +276,7 @@ export const useServiceOrders = (showToast?: (message: string, type: 'success' |
     brands: brands || [],
     models: models || [],
     fetchServiceOrders: refetch,
-    saveServiceOrderAPI: (order: ServiceOrderFormData, id?: number, updatedAt?: string) => saveMutation.mutateAsync({ order, id, updatedAt }),
+    saveServiceOrderAPI: (order: ServiceOrderFormData, id?: number, version?: number) => saveMutation.mutateAsync({ order, id, version }),
     deleteServiceOrderAPI: (id: number) => deleteMutation.mutateAsync(id),
     addServiceOrderStatusAPI: (status: { name: string; color?: string }) => addStatusMutation.mutateAsync(status),
     deleteServiceOrderStatusAPI: (id: number) => deleteStatusMutation.mutateAsync(id),

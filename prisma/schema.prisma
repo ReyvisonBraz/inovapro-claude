@@ -21,6 +21,7 @@ model Transaction {
   customerId  Int?
   customerName String?
   customerPhone String?
+  version     Int      @default(0)
   customer    Customer? @relation(fields: [customerId], references: [id])
 }
 
@@ -52,6 +53,7 @@ model Settings {
   sendPulseClientSecret    String?
   sendPulseTemplateId      String?
   osPrintConfig            String?
+  version                  Int     @default(0)
 }
 
 model Customer {
@@ -67,6 +69,7 @@ model Customer {
   createdAt      DateTime @default(now())
   createdBy      Int?
   updatedBy      Int?
+  version        Int      @default(0)
   ClientPayments ClientPayment[]
   ServiceOrders  ServiceOrder[]
   Transactions   Transaction[]
@@ -88,6 +91,7 @@ model ClientPayment {
   paymentHistory    String?  @default("[]")
   createdBy         Int?
   updatedBy         Int?
+  version           Int      @default(0)
   customer          Customer @relation(fields: [customerId], references: [id])
   Receipts          Receipt[]
 }
@@ -142,6 +146,7 @@ model InventoryItem {
   createdAt   DateTime @default(now())
   createdBy   Int?
   updatedBy   Int?
+  version     Int      @default(0)
 }
 
 model ServiceOrder {
@@ -178,6 +183,7 @@ model ServiceOrder {
   updatedAt          DateTime @default(now()) @updatedAt
   createdBy          Int?
   updatedBy          Int?
+  version            Int      @default(0)
   customer           Customer @relation(fields: [customerId], references: [id])
 }
 

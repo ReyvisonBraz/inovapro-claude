@@ -3,6 +3,7 @@ import { TransactionSchema } from './schemas.js';
 import { error, info } from '../lib/server-logger.js';
 import { transactionService } from '../services/transaction.service.js';
 import { validate } from '../middleware/validate.js';
+import { AppError } from '../lib/errors.js';
 
 const router = Router();
 
@@ -44,10 +45,14 @@ router.post('/', validate(TransactionSchema), async (req: Request, res: Response
 router.put('/:id', validate(TransactionSchema), async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    await transactionService.update(id, req.body);
+    const expectedVersion = typeof req.body.version === 'number' ? req.body.version : undefined;
+    await transactionService.update(id, req.body, expectedVersion);
 
     res.json({ success: true });
   } catch (err) {
+    if (err instanceof AppError) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
     error('[TRANSACTIONS PUT] Erro ao atualizar transação', err, { details: { id: req.params.id } });
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
@@ -70,6 +75,9 @@ router.delete('/:id', async (req: Request, res: Response) => {
       res.json({ success: true });
     }
   } catch (err: any) {
+    if (err instanceof AppError) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
     error('[TRANSACTIONS DELETE] Erro ao excluir transação', err, { details: { id: req.params.id } });
     const msg = err?.message || 'Erro interno do servidor';
     res.status(500).json({ error: msg });
