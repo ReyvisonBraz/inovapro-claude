@@ -12,6 +12,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "verify": "tsc --noEmit && vitest run",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage"
