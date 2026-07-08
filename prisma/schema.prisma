@@ -23,6 +23,11 @@ model Transaction {
   customerPhone String?
   version     Int      @default(0)
   customer    Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([customerId])
+  @@index([paymentId])
+  @@index([type, date])
+  @@index([category])
 }
 
 model Settings {
@@ -94,6 +99,10 @@ model ClientPayment {
   version           Int      @default(0)
   customer          Customer @relation(fields: [customerId], references: [id])
   Receipts          Receipt[]
+
+  @@index([customerId])
+  @@index([dueDate])
+  @@index([status])
 }
 
 model Category {
@@ -108,6 +117,8 @@ model Receipt {
   content   String
   createdAt DateTime      @default(now())
   payment   ClientPayment @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
 }
 
 model User {
@@ -130,6 +141,9 @@ model AuditLog {
   details   String?
   timestamp DateTime @default(now())
   user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([timestamp])
 }
 
 model InventoryItem {
@@ -147,6 +161,8 @@ model InventoryItem {
   createdBy   Int?
   updatedBy   Int?
   version     Int      @default(0)
+
+  @@index([category])
 }
 
 model ServiceOrder {
@@ -186,6 +202,10 @@ model ServiceOrder {
   version            Int      @default(0)
   publicToken        String?  @unique @default(uuid())
   customer           Customer @relation(fields: [customerId], references: [id])
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model ServiceOrderStatus {
