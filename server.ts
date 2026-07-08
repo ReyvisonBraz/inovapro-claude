@@ -11,10 +11,11 @@ import { fileURLToPath } from 'url';
 import cors from 'cors';
 import helmet from 'helmet';
 import { requireAuth } from './src/middleware/auth.js';
-import { prisma, testConnection, disconnect } from './src/lib/prisma.js';
+import { testConnection } from './src/lib/prisma.js';
 import authRoutes from './src/routes/auth.js';
 import publicRoutes from './src/routes/public.js';
 import protectedRoutes from './src/routes/index.js';
+import healthRoutes from './src/routes/health.js';
 import { requestLogger, errorHandler, error, info } from './src/lib/server-logger.js';
 import { isOriginAllowed } from './src/lib/cors.js';
 
@@ -86,39 +87,12 @@ app.use(express.urlencoded({ limit: '5mb', extended: true }));
 app.use(requestLogger);
 
 /*
- * ─── Health Check e Diagnóstico ───
+ * ─── Health Check (sem vazar ambiente) ───
+ * /health e /ping minimalistas. Os antigos /api/ping (vazava DB_HOST/env) e
+ * /api/db-test (vazava version() e stack) foram removidos.
  */
-app.get('/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0-prisma',
-    uptime: process.uptime(),
-  });
-});
-
-app.get('/api/ping', (_req, res) => {
-  res.json({
-    ok: true,
-    env: {
-      DATABASE_URL: process.env.DATABASE_URL ? 'definido' : 'ausente',
-      DB_HOST: process.env.DB_HOST || 'ausente',
-      NODE_ENV: process.env.NODE_ENV || 'ausente',
-    },
-  });
-});
-
-app.get('/api/db-test', async (_req, res) => {
-  try {
-    await prisma.$connect();
-    const r = await prisma.$queryRawUnsafe('SELECT 1 AS ok, version() AS v');
-    await prisma.$disconnect();
-    res.json({ ok: true, result: r });
-  } catch (err: any) {
-    await prisma.$disconnect().catch(() => {});
-    res.status(500).json({ ok: false, erro: err?.message || String(err), code: err?.code, stack: err?.stack });
-  }
-});
+app.use(healthRoutes);        // /health, /ping
+app.use('/api', healthRoutes); // /api/ping (compatibilidade), sem env
 
 /*
  * ─── Rotas ───
