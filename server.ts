@@ -16,6 +16,7 @@ import authRoutes from './src/routes/auth.js';
 import publicRoutes from './src/routes/public.js';
 import protectedRoutes from './src/routes/index.js';
 import { requestLogger, errorHandler, error, info } from './src/lib/server-logger.js';
+import { isOriginAllowed } from './src/lib/cors.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,56 +40,44 @@ const app = express();
  * ─── Middleware Global ───
  */
 
-// Helmet: segurança HTTP ajustada para cross-origin
+// Helmet com CSP explícita (antes estava desligada).
+// Origem da API quando o front está em domínio separado (opcional).
+const apiOrigin = process.env.PUBLIC_API_ORIGIN;
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],       // estilos injetados (motion/inline)
+      imgSrc: ["'self'", 'data:', 'https:'],           // avatares/QR/base64/storage
+      connectSrc: ["'self'", ...(apiOrigin ? [apiOrigin] : [])],
+      fontSrc: ["'self'", 'data:'],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'self'"],
+    },
+  },
   crossOriginResourcePolicy: { policy: 'cross-origin' },
-  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
 }));
 
-// Configuração robusta de CORS
-const allowedOrigins = [
-  'https://inovapro-theta.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:5173',
-  'http://127.0.0.1:5173'
-];
-
+// CORS: decisão isolada e testável em src/lib/cors.ts.
+// Origem desconhecida é REJEITADA (antes o código liberava tudo em produção).
 app.use(cors({
   origin: (origin, callback) => {
-    // Permitir requisições sem origin (como ferramentas de teste)
-    if (!origin) return callback(null, true);
-    
-    const isAllowed = allowedOrigins.includes(origin) || origin.endsWith('.vercel.app');
-    
-    if (isAllowed || process.env.NODE_ENV !== 'production') {
+    if (isOriginAllowed(origin, process.env.NODE_ENV)) {
       callback(null, true);
     } else {
-      // Em produção, vamos ser liberais por enquanto para debugar, mas logar
-      console.warn(`[CORS] Origem não listada tentando acessar: ${origin}`);
-      callback(null, true);
+      console.warn(`[CORS] Origem bloqueada: ${origin}`);
+      callback(new Error('Origem não permitida pelo CORS'));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range']
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
 }));
-
-// Handler explícito para preflight OPTIONS (crítico para alguns navegadores/proxies)
-app.options('*', (req, res) => {
-  const origin = req.headers.origin;
-  if (origin) {
-    res.header('Access-Control-Allow-Origin', origin);
-  } else {
-    res.header('Access-Control-Allow-Origin', '*');
-  }
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(204);
-});
+// O middleware cors() acima já responde ao preflight OPTIONS respeitando a
+// allowlist — não há handler manual que ecoe qualquer Origin.
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ limit: '5mb', extended: true }));
