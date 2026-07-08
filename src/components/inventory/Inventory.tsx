@@ -1,13 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { InventoryItem } from '../../types';
-import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { 
-  Search, Plus, Filter, MoreVertical, Edit, Trash2, 
-  Package, ShoppingBag, AlertTriangle, X, Tag
+  Search, Edit, Trash2, 
+  Package, ShoppingBag, AlertTriangle, Tag
 } from 'lucide-react';
 import { cn, formatCurrency } from '../../lib/utils';
-import { motion, AnimatePresence } from 'motion/react';
 
 import { ProductModal } from './modals/ProductModal';
 

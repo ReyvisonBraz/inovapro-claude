@@ -1,7 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import {
   ArrowLeft, Edit, Smartphone, Calendar, Clock, User,
   CheckCircle2, AlertTriangle, Image, X, ChevronLeft,

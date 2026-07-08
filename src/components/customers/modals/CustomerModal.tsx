@@ -35,7 +35,7 @@ const parsePhone = (fullPhone: string) => {
 };
 
 const formatNumber = (country: string, number: string) => {
-  let cleaned = number.replace(/\D/g, '');
+  const cleaned = number.replace(/\D/g, '');
   
   if (country === '+55') {
     if (cleaned.length === 0) return '';

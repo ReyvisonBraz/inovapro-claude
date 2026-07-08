@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, AuditLog, Transaction, Customer, ClientPayment } from '../../types';
 import { cn } from '../../lib/utils';
-import { UserPlus, Trash2, Shield, Clock, Activity, Check, X, Edit2, AlertCircle, Info, FileText, User as UserIcon, CreditCard, Users } from 'lucide-react';
+import { UserPlus, Trash2, Shield, Clock, Activity, Check, X, Edit2, Info, FileText, User as UserIcon, CreditCard, Users } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { AVAILABLE_PERMISSIONS } from '../../constants/permissions';
 

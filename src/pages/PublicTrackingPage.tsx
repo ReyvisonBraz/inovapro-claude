@@ -1,6 +1,5 @@
 import React from 'react';
 import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api`

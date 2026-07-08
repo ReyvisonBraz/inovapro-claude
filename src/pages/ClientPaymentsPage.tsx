@@ -8,7 +8,6 @@ import { useFilterStore } from '../store/useFilterStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useModalStore } from '../store/useModalStore';
-import { useFormStore } from '../store/useFormStore';
 import { useAppStore } from '../store/useAppStore';
 import { useDebounce } from '../hooks/useDebounce';
 import { useReceipt } from '../hooks/useReceipt';
@@ -122,7 +121,7 @@ export const ClientPaymentsPage: React.FC = () => {
         const installmentAmount = remainingAmount / installmentsCount;
 
         for (let i = 0; i < installmentsCount; i++) {
-          let dueDate = new Date(data.dueDate + 'T12:00:00');
+          const dueDate = new Date(data.dueDate + 'T12:00:00');
           if (interval === 'monthly') {
             dueDate.setMonth(dueDate.getMonth() + i);
           } else if (interval === 'biweekly' || interval === '15days') {

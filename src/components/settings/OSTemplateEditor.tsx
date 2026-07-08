@@ -377,7 +377,7 @@ export const OSTemplateEditor: React.FC<Props> = ({ settings, onUpdateSettings }
   const handlePrintSample = () => {
     const w = window.open('', '_blank');
     if (!w) return;
-    let html = '';
+    let html: string;
     if (activeTab === 'blank')
       html = getBlankFormLayout(settings);
     else if (activeTab === 'thermal')

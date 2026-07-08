@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '../../lib/utils';
 import { Transaction } from '../../types';
-import { useFilterStore } from '../../store/useFilterStore';
 
 export interface DrillDownLevel {
   title: string;
@@ -50,13 +49,11 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
     setHistory([{ level: drillDownData?.currentLevel || 0 }]);
   }, [drillDownData?.currentLevel]);
 
-  if (!isOpen || !drillDownData || !drillDownData.levels || drillDownData.levels.length === 0) return null;
-
+  // Sem early-return antes dos hooks (regra dos hooks: chamada incondicional).
+  // currentEntry/currentLevel são calculados de forma null-safe; o guard de
+  // render fica após todos os hooks (ver "if (!isOpen || !currentLevel)").
   const currentEntry = history[history.length - 1];
-  if (!currentEntry || currentEntry.level < 0 || currentEntry.level >= drillDownData.levels.length) return null;
-
-  const currentLevel = drillDownData.levels[currentEntry.level];
-  if (!currentLevel) return null;
+  const currentLevel = drillDownData?.levels?.[currentEntry?.level ?? -1];
 
   const drillDownDataFiltered = useMemo(() => {
     if (!currentLevel) return [];

@@ -11,7 +11,7 @@ interface NewTxForm {
 
 import { CustomerFormData } from '../schemas/customerSchema';
 
-interface NewCustomerForm extends CustomerFormData {}
+type NewCustomerForm = CustomerFormData;
 
 interface NewClientPaymentForm {
   customerId: number;

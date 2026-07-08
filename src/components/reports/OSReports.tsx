@@ -4,7 +4,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, PieChart, Pie, Cell, Legend, LineChart, Line
 } from 'recharts';
-import { format, parseISO, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { format, parseISO, subMonths, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Wrench, Package, TrendingUp, Calendar, Award, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { cn, formatCurrency } from '../../lib/utils';

@@ -3,22 +3,16 @@ import { FormProvider, useForm, useFieldArray, type FieldArrayPath } from 'react
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  X, User as UserIcon, Calendar, Plus, Search, 
-  Cpu, HardDrive, Lock, Camera, Trash2, AlertCircle, 
-  ClipboardList, Wrench, ChevronDown, ChevronUp, Check, QrCode
+  X, Check, QrCode
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { ServiceOrderPart, ServiceOrderItem } from '../../types';
 import { useServiceOrderFormContext } from '../../contexts/ServiceOrderFormContext';
 import { useFormStore } from '../../store/useFormStore';
-import { cn, formatCurrency } from '../../lib/utils';
-import { CustomerSearchSelect } from '../customers/CustomerSearchSelect';
-import { SearchableSelect } from '../ui/SearchableSelect';
+import { formatCurrency } from '../../lib/utils';
 import { ServicesAndPartsSection } from './form-sections/ServicesAndPartsSection';
 import { EquipmentSection } from './form-sections/EquipmentSection';
 import { CustomerSection } from './form-sections/CustomerSection';
 import { AnalysisSection } from './form-sections/AnalysisSection';
-import { ClosingSection } from './form-sections/ClosingSection';
 import { serviceOrderSchema, ServiceOrderFormData } from '../../schemas/serviceOrderSchema';
 import { format, parseISO } from 'date-fns';
 import { sendWhatsAppStatusUpdate } from '../../lib/whatsappUtils';

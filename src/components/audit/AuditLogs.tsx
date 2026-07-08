@@ -1,8 +1,6 @@
 import React from 'react';
-import { motion } from 'motion/react';
-import { 
-  History, Search, Filter, Calendar, 
-  User, Activity, ChevronRight 
+import { Search, 
+  User 
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { AuditLog } from '../../types';

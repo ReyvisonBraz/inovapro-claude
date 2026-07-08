@@ -134,7 +134,7 @@ export const ServiceOrdersPage: React.FC = () => {
         const installmentAmount = remainingAmount / installmentsCount;
 
         for (let i = 0; i < installmentsCount; i++) {
-          let dueDate = new Date(newClientPayment.dueDate + 'T12:00:00');
+          const dueDate = new Date(newClientPayment.dueDate + 'T12:00:00');
           if (interval === 'monthly') {
             dueDate.setMonth(dueDate.getMonth() + i);
           } else if (interval === 'biweekly') {

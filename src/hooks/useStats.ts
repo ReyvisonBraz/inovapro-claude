@@ -1,10 +1,10 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
 import { useFilterStore } from '../store/useFilterStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { DrillDownModal, DrillDownData } from '../components/ui/DrillDownModal';
+import { DrillDownData } from '../components/ui/DrillDownModal';
 import { Transaction } from '../types';
 
 export const useStats = (month?: string) => {

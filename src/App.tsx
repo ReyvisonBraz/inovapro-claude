@@ -15,7 +15,6 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { MobileNav } from './components/layout/MobileNav';
 import { GlobalModals } from './components/layout/GlobalModals';
-import { printBlankForm } from './lib/printUtils';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { PageLoader } from './components/ui/PageLoader';
 import { useIsMobile } from './hooks/useMediaQuery';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronDown, ChevronUp, Trash2, MessageCircle, Zap, Printer, CheckCircle2, Clock, Plus } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, Trash2, MessageCircle, Zap, Printer, CheckCircle2, Plus } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
 import { ClientPayment, Customer } from '../../types';

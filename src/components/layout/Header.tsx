@@ -12,7 +12,6 @@ import {
   X
 } from 'lucide-react';
 import { NotificationCenter } from './NotificationCenter';
-import { Screen } from '../../types';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useAppStore } from '../../store/useAppStore';
 import { useFilterStore } from '../../store/useFilterStore';
@@ -25,7 +24,6 @@ import { useCustomers } from '../../hooks/useCustomers';
 import { useInventory } from '../../hooks/useInventory';
 import { useFormStore } from '../../store/useFormStore';
 import { useModalStore } from '../../store/useModalStore';
-import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 
 export const Header = () => {

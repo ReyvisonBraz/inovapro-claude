@@ -1,5 +1,3 @@
-import { useCallback } from 'react';
-import { User, AuditLog } from '../types';
 import { useAuthStore } from '../store/useAuthStore';
 
 export function useAuth() {

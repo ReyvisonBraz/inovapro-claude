@@ -15,21 +15,18 @@
  */
 
 import React, { useMemo, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line,
-  AreaChart, Area, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
+  AreaChart, Area
 } from 'recharts';
-import { format as formatDate, parseISO, subDays, subMonths, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { format as formatDate, parseISO, subDays, subMonths, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  BarChart3, PieChart as PieChartIcon, TrendingUp, TrendingDown,
-  Calendar, Filter, Download, Eye, EyeOff, Plus, Minus, Settings,
-  ChevronDown, ChevronUp, RefreshCw, Save, Trash2, Edit3, Check,
-  X, AlertTriangle, DollarSign, Users, ShoppingCart, Wrench,
-  ArrowUpRight, ArrowDownRight, Minus as MinusIcon, FileText,
-  Printer, Share2, Maximize2, Minimize2, LayoutDashboard
+  BarChart3, PieChart as PieChartIcon, TrendingUp, TrendingDown, Download,
+  ChevronDown, ChevronUp, DollarSign,
+  ArrowUpRight, ArrowDownRight, Minus as MinusIcon, FileText, Maximize2, Minimize2
 } from 'lucide-react';
 import { cn, formatCurrency } from '../../lib/utils';
 import { Transaction, Category } from '../../types';
