@@ -36,8 +36,8 @@ export default tseslint.config(
       'react-hooks/exhaustive-deps': 'warn',
       // catch {} vazio é padrão legítimo no código (ignorar erro esperado).
       'no-empty': ['error', { allowEmptyCatch: true }],
-      // Ruído crônico começa como warning; promovido a error na tarefa F3-02.
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      // console.log/info/debug proibido fora dos loggers (warn/error liberados).
+      'no-console': ['error', { allow: ['warn', 'error'] }],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/ban-ts-comment': 'warn',
       // unused-imports cuida de imports/vars não usados (auto-fix).
@@ -45,5 +45,10 @@ export default tseslint.config(
       'unused-imports/no-unused-imports': 'error',
       'unused-imports/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
+  },
+  {
+    // Os loggers SÃO a implementação de log: console livre aqui.
+    files: ['src/lib/logger.ts', 'src/lib/server-logger.ts'],
+    rules: { 'no-console': 'off' },
   },
 );

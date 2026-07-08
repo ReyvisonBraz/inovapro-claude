@@ -130,6 +130,5 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
   app.listen(PORT, '0.0.0.0', () => {
     info(`Servidor rodando em http://localhost:${PORT}`, { details: { port: PORT, env: process.env.NODE_ENV || 'development' } });
-    console.log(`[SERVER] Rodando em http://localhost:${PORT}`);
   });
 }
