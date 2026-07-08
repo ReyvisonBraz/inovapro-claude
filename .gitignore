@@ -8,6 +8,8 @@ coverage/
 !.env.example
 data/
 *.db
+# Dumps do banco com PII/hashes/segredos — nunca versionar (ver Fase 1 · tarefa 03)
+backups/
 .vercel
 .env*.local
 .claude/worktrees/
