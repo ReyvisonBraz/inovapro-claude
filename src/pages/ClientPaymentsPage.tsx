@@ -65,8 +65,8 @@ export const ClientPaymentsPage: React.FC = () => {
 
   const clientPayments = clientPaymentsQuery.data || { data: [], meta: { page: 1, totalPages: 1, total: 0, limit: 10 } };
 
-  const filteredClientPayments = clientPayments.data.filter(payment => {
-    const matchesSearch = payment.customerName.toLowerCase().includes(paymentSearchTerm.toLowerCase()) || 
+  const filteredClientPayments = clientPayments.data.filter((payment: ClientPayment) => {
+    const matchesSearch = (payment.customerName ?? '').toLowerCase().includes(paymentSearchTerm.toLowerCase()) ||
                           payment.description.toLowerCase().includes(paymentSearchTerm.toLowerCase());
     
     if (!matchesSearch) return false;
@@ -80,11 +80,11 @@ export const ClientPaymentsPage: React.FC = () => {
       case 'overdue': return isOverdue;
       default: return true;
     }
-  }).sort((a, b) => {
+  }).sort((a: ClientPayment, b: ClientPayment) => {
     if (paymentSortMode === 'amount') {
       return b.totalAmount - a.totalAmount;
     } else if (paymentSortMode === 'alphabetical') {
-      return a.customerName.localeCompare(b.customerName);
+      return (a.customerName ?? '').localeCompare(b.customerName ?? '');
     } else {
       return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
     }
@@ -249,7 +249,7 @@ export const ClientPaymentsPage: React.FC = () => {
       paymentFilterStatus={paymentFilterStatus}
       setPaymentFilterStatus={setPaymentFilterStatus}
       paymentSortMode={paymentSortMode}
-      setPaymentSortMode={setPaymentSortMode}
+      setPaymentSortMode={(v) => setPaymentSortMode(v as 'amount' | 'date' | 'alphabetical')}
       isRecordingPayment={isRecordingPayment}
       setIsRecordingPayment={setIsRecordingPayment}
       onTriggerAddCustomer={() => {
