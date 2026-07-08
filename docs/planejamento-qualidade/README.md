@@ -92,4 +92,6 @@ Fase 0  ──►  Fase 1  ──►  Fase 2  ──►  Fase 4
 
 ---
 
-**Status de escrita deste planejamento:** Fases 0 a 6 detalhadas (TDD, passo a passo), todas com arquivos de tarefa próprios. Pronto para execução — comece pela Fase 0.
+**Status de escrita deste planejamento:** Fases 0 a 6 detalhadas (TDD, passo a passo), todas com arquivos de tarefa próprios.
+
+**➡️ Estado da EXECUÇÃO:** ver [`PROGRESSO.md`](./PROGRESSO.md) (rastreador vivo). Resumo: Fases 0–2 ✅, Fase 3 parcial (ESLint+console ✅; strict medido/adiado; JWT adiado), Fases 4–6 pendentes. Pendências do dono e pontos de retomada listados lá.
