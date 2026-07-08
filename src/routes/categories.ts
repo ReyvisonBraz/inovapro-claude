@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { error } from '../lib/server-logger.js';
+import { requireRole } from '../middleware/roles.js';
 
 const router = Router();
 
@@ -14,7 +15,7 @@ router.get('/', async (_req: Request, res: Response) => {
   }
 });
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', requireRole('owner', 'manager'), async (req: Request, res: Response) => {
   try {
     const { name, type } = req.body;
     const category = await prisma.category.create({ data: { name, type } });
@@ -25,7 +26,7 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', requireRole('owner', 'manager'), async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const category = await prisma.category.findUnique({ where: { id } });

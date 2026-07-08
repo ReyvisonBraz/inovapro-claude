@@ -1,8 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { error, info } from '../lib/server-logger.js';
+import { requirePermission } from '../middleware/roles.js';
 
 const router = Router();
+
+// Todo o catálogo é configuração de OS: exige manage_service_orders
+// (leituras de marcas/modelos/tipos/status inclusas — employee tem a permissão).
+router.use(requirePermission('manage_service_orders'));
 
 /* ───── Service Order Statuses ───── */
 

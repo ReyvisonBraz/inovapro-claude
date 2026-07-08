@@ -14,6 +14,7 @@ import aiRoutes from './ai.js';
 import exportRoutes from './export.js';
 import auditLogRoutes from './audit-logs.js';
 import debugRoutes from './debug.js';
+import { requireRole, requirePermission } from '../middleware/roles.js';
 
 const router = Router();
 
@@ -24,20 +25,25 @@ const router = Router();
  * Nomenclatura: cada grupo se alinha ao endpoint /api/<prefixo>/...
  *   Ex: /api/transactions, /api/customers/:id, /api/debug/logs
  */
-router.use('/categories', categoriesRoutes);
-router.use('/settings', settingsRoutes);
-router.use('/users', usersRoutes);
-router.use('/customers', customersRoutes);
-router.use('/transactions', transactionsRoutes);
-router.use('/client-payments', clientPaymentsRoutes);
-router.use('/service-orders', serviceOrdersRoutes);
-router.use('/inventory', inventoryRoutes);
-router.use('/stats', statsRoutes);
-router.use('/', catalogRoutes);
-router.use('/receipts', receiptsRoutes);
-router.use('/ai', aiRoutes);
-router.use('/audit-logs', auditLogRoutes);
-router.use('/export-all', exportRoutes);
-router.use('/debug', debugRoutes);
+// Administrativo — somente owner
+router.use('/users', requireRole('owner'), usersRoutes);
+router.use('/settings', requireRole('owner'), settingsRoutes);
+router.use('/audit-logs', requireRole('owner'), auditLogRoutes);
+router.use('/debug', requireRole('owner'), debugRoutes);
+
+// Features — por permissão de role
+router.use('/transactions', requirePermission('manage_transactions'), transactionsRoutes);
+router.use('/client-payments', requirePermission('manage_payments'), clientPaymentsRoutes);
+router.use('/service-orders', requirePermission('manage_service_orders'), serviceOrdersRoutes);
+router.use('/customers', requirePermission('manage_customers'), customersRoutes);
+router.use('/inventory', requirePermission('manage_inventory'), inventoryRoutes);
+router.use('/stats', requirePermission('view_dashboard'), statsRoutes);
+router.use('/export-all', requirePermission('view_reports'), exportRoutes);
+router.use('/receipts', requirePermission('manage_payments'), receiptsRoutes);
+
+// Referência / IA
+router.use('/categories', categoriesRoutes);   // guarda de escrita dentro do arquivo
+router.use('/', catalogRoutes);                 // guarda dentro do arquivo (requirePermission)
+router.use('/ai', aiRoutes);                    // qualquer autenticado (rate-limit vem na Fase 2)
 
 export default router;
