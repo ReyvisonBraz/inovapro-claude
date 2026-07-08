@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { hashPassword } from '../lib/password.js';
 import { error, info } from '../lib/server-logger.js';
+import { validate } from '../middleware/validate.js';
+import { UserCreateSchema, UserUpdateSchema } from './schemas.js';
 
 const router = Router();
 
@@ -22,7 +24,7 @@ router.get('/', async (_req: Request, res: Response) => {
   }
 });
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', validate(UserCreateSchema), async (req: Request, res: Response) => {
   try {
     const { username, password, role, name, permissions } = req.body;
     const hashedPassword = await hashPassword(password);
@@ -37,7 +39,7 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', validate(UserUpdateSchema), async (req: Request, res: Response) => {
   try {
     const { name, role, password, permissions } = req.body;
     const userId = parseInt(req.params.id);

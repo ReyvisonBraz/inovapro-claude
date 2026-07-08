@@ -4,6 +4,8 @@ import { error, info } from '../lib/server-logger.js';
 import { inventoryService } from '../services/inventory.service.js';
 import { AppError } from '../lib/errors.js';
 import { AuthRequest } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { InventoryItemSchema } from './schemas.js';
 
 const router = Router();
 
@@ -17,7 +19,7 @@ router.get('/', async (_req: Request, res: Response) => {
   }
 });
 
-router.post('/', async (req: AuthRequest, res: Response) => {
+router.post('/', validate(InventoryItemSchema), async (req: AuthRequest, res: Response) => {
   try {
     const { name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel } = req.body;
     const pCostPrice = isNaN(parseFloat(costPrice)) ? 0 : parseFloat(costPrice);
@@ -47,7 +49,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.put('/:id', async (req: AuthRequest, res: Response) => {
+router.put('/:id', validate(InventoryItemSchema), async (req: AuthRequest, res: Response) => {
   try {
     const { name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel } = req.body;
     const pCostPrice = isNaN(parseFloat(costPrice)) ? 0 : parseFloat(costPrice);
