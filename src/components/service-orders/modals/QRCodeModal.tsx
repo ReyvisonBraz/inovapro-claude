@@ -17,7 +17,8 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
   const appUrl = window.location.origin;
   const osNumber = selectedOrder ? `#OS-${selectedOrder.id.toString().padStart(4, '0')}` : '';
 
-  const customerUrl = `${appUrl}/rastreio?osId=${selectedOrder?.id}`;
+  // Rastreio público por token não-adivinhável (fecha IDOR); id sequencial não expõe mais a OS.
+  const customerUrl = `${appUrl}/rastreio?t=${selectedOrder?.publicToken ?? ''}`;
   const techUrl = `${appUrl}/os/${selectedOrder?.id}`;
 
   const [copied, setCopied] = React.useState<'customer' | 'tech' | null>(null);

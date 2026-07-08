@@ -45,9 +45,10 @@ export const PublicTrackingPage: React.FC = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [manualId, setManualId] = React.useState('');
 
-  const osId = React.useMemo(() => {
+  // Rastreio por token não-adivinhável (?t=<token>); ids sequenciais não expõem mais OS.
+  const token = React.useMemo(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('osId');
+    return params.get('t');
   }, []);
 
   const fetchOS = React.useCallback(async (id: string) => {
@@ -71,13 +72,13 @@ export const PublicTrackingPage: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    if (osId) fetchOS(osId);
+    if (token) fetchOS(token);
     else { setLoading(false); setError('Nenhuma ordem informada'); }
-  }, [osId, fetchOS]);
+  }, [token, fetchOS]);
 
   const statusColor = data ? STATUS_COLORS[data.status] || '#3b82f6' : '#3b82f6';
 
-  if (!osId) {
+  if (!token) {
     return (
       <SearchForm
         manualId={manualId}
