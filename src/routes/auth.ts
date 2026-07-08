@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import { prisma } from '../lib/prisma.js';
 import { generateToken } from '../middleware/auth.js';
+import { verifyPassword } from '../lib/password.js';
 import { error, info } from '../lib/server-logger.js';
 import { OWNER_PERMISSIONS } from '../constants/permissions.js';
 
@@ -20,7 +20,7 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
     const user = await prisma.user.findUnique({ where: { username } });
-    if (!user || !bcrypt.compareSync(password, user.password)) {
+    if (!user || !(await verifyPassword(password, user.password))) {
       info('Tentativa de login inválida', { details: { username } });
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
