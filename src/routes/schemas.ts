@@ -6,8 +6,7 @@ export const TransactionSchema = z.object({
   type: z.enum(['income', 'expense']),
   amount: z.coerce.number().positive(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}/),
-  createdBy: z.coerce.number().optional(),
-  updatedBy: z.coerce.number().optional(),
+  // createdBy/updatedBy NÃO vêm do cliente — são derivados do JWT na rota.
   customerId: z.coerce.number().optional().nullable(),
   customerName: z.string().optional().nullable(),
   customerPhone: z.string().optional().nullable(),
@@ -30,8 +29,7 @@ export const ClientPaymentSchema = z.object({
   type: z.enum(['income', 'expense']).optional(),
   saleId: z.string().optional().nullable(),
   paymentHistory: z.string().optional(),
-  createdBy: z.coerce.number().optional(),
-  updatedBy: z.coerce.number().optional()
+  // createdBy/updatedBy NÃO vêm do cliente — são derivados do JWT na rota.
 });
 
 

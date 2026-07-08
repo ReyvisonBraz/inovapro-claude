@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import { error, info } from '../lib/server-logger.js';
 import { inventoryService } from '../services/inventory.service.js';
 import { AppError } from '../lib/errors.js';
+import { AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -16,9 +17,9 @@ router.get('/', async (_req: Request, res: Response) => {
   }
 });
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, createdBy } = req.body;
+    const { name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel } = req.body;
     const pCostPrice = isNaN(parseFloat(costPrice)) ? 0 : parseFloat(costPrice);
     const pUnitPrice = unitPrice !== undefined && unitPrice !== '' ? parseFloat(unitPrice) : (isNaN(parseFloat(salePrice)) ? 0 : parseFloat(salePrice));
     const pStockLevel = stockLevel !== undefined && stockLevel !== '' ? parseInt(stockLevel) : (isNaN(parseInt(quantity)) ? 0 : parseInt(quantity));
@@ -34,8 +35,8 @@ router.post('/', async (req: Request, res: Response) => {
         quantity: pStockLevel, 
         minQuantity: pMinQuantity, 
         unitPrice: pUnitPrice,
-        stockLevel: pStockLevel, 
-        createdBy: parseInt(createdBy) || 1,
+        stockLevel: pStockLevel,
+        createdBy: req.user!.userId,
       },
     });
     info('Item de inventário criado', { details: { id: item.id, name } });
@@ -46,9 +47,9 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel, updatedBy } = req.body;
+    const { name, category, sku, costPrice, salePrice, quantity, minQuantity, unitPrice, stockLevel } = req.body;
     const pCostPrice = isNaN(parseFloat(costPrice)) ? 0 : parseFloat(costPrice);
     const pUnitPrice = unitPrice !== undefined && unitPrice !== '' ? parseFloat(unitPrice) : (isNaN(parseFloat(salePrice)) ? 0 : parseFloat(salePrice));
     const pStockLevel = stockLevel !== undefined && stockLevel !== '' ? parseInt(stockLevel) : (isNaN(parseInt(quantity)) ? 0 : parseInt(quantity));
@@ -66,7 +67,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       minQuantity: pMinQuantity,
       unitPrice: pUnitPrice,
       stockLevel: pStockLevel,
-      updatedBy: parseInt(updatedBy) || 1,
+      updatedBy: req.user!.userId,
     }, expectedVersion);
     res.json({ success: true });
   } catch (err: any) {
@@ -80,12 +81,11 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 // Ajuste atômico de estoque: { delta: -2 } baixa 2 unidades, { delta: 5 } repõe 5.
 // Baixa concorrente além do disponível é rejeitada pelo banco (sem estoque negativo).
-router.patch('/:id/stock', async (req: Request, res: Response) => {
+router.patch('/:id/stock', async (req: AuthRequest, res: Response) => {
   try {
     const delta = parseInt(req.body.delta);
-    const updatedBy = parseInt(req.body.updatedBy) || undefined;
 
-    const item = await inventoryService.adjustStock(parseInt(req.params.id), delta, updatedBy);
+    const item = await inventoryService.adjustStock(parseInt(req.params.id), delta, req.user!.userId);
 
     info('Estoque ajustado', { details: { id: item.id, delta, quantity: item.quantity } });
     res.json({ success: true, quantity: item.quantity, version: item.version });

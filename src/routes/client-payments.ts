@@ -4,6 +4,7 @@ import { error, info } from '../lib/server-logger.js';
 import { clientPaymentService } from '../services/client-payment.service.js';
 import { validate } from '../middleware/validate.js';
 import { AppError } from '../lib/errors.js';
+import { AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -21,9 +22,9 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/', validate(ClientPaymentSchema), async (req: Request, res: Response) => {
+router.post('/', validate(ClientPaymentSchema), async (req: AuthRequest, res: Response) => {
   try {
-    const payment = await clientPaymentService.create(req.body);
+    const payment = await clientPaymentService.create({ ...req.body, createdBy: req.user!.userId });
 
     info('Pagamento criado', { details: { id: payment.id, customerId: payment.customerId, totalAmount: payment.totalAmount } });
     res.json({ id: payment.id });
@@ -33,12 +34,12 @@ router.post('/', validate(ClientPaymentSchema), async (req: Request, res: Respon
   }
 });
 
-router.patch('/:id', async (req: Request, res: Response) => {
+router.patch('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const { paidAmount, status, paymentHistory, updatedBy, version } = req.body;
+    const { paidAmount, status, paymentHistory, version } = req.body;
     const expectedVersion = typeof version === 'number' ? version : undefined;
     await clientPaymentService.update(parseInt(req.params.id), {
-      paidAmount, status, paymentHistory, updatedBy
+      paidAmount, status, paymentHistory, updatedBy: req.user!.userId
     }, expectedVersion);
 
     res.json({ success: true });
@@ -51,12 +52,12 @@ router.patch('/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/:id/pay', async (req: Request, res: Response) => {
+router.post('/:id/pay', async (req: AuthRequest, res: Response) => {
   try {
-    const { amount, date, updatedBy } = req.body;
+    const { amount, date } = req.body;
     const paymentId = parseInt(req.params.id);
-    
-    const result = await clientPaymentService.registerPayment(paymentId, { amount, date, updatedBy });
+
+    const result = await clientPaymentService.registerPayment(paymentId, { amount, date, updatedBy: req.user!.userId });
     
     info('Pagamento registrado', { details: { id: paymentId, amount, newStatus: result.newStatus } });
     res.json({ success: true, ...result });
