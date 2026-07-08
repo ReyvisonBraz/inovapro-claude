@@ -19,7 +19,7 @@ interface InventoryProps {
   onCategoryFilterChange: (value: string) => void;
   isAdding: boolean;
   setIsAdding: (value: boolean) => void;
-  onOpenConfirm: (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning' | 'info' | 'success') => void;
+  onOpenConfirm: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
   editingItem: InventoryItem | null;
   setEditingItem: (item: InventoryItem | null) => void;
   showToast: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;

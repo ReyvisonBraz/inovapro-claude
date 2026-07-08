@@ -19,7 +19,7 @@ interface ServiceOrderListProps {
   setShowWhatsAppModal: (show: boolean) => void;
   setShowPrintModal: (show: boolean) => void;
   handleEdit: (order: any) => void;
-  onOpenConfirm: (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning') => void;
+  onOpenConfirm: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
   onDeleteOrder: (id: number) => void;
   clientPayments: any;
   viewMode: 'grid' | 'list';

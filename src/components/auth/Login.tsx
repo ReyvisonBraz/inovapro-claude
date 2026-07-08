@@ -1,19 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { User, Lock, AlertCircle, Eye, EyeOff, Wrench } from 'lucide-react';
+import type { User as AppUser } from '../../types';
 import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 
 interface LoginProps {
-  onLogin: (token: string, user: User) => void;
-}
-
-interface User {
-  id: number;
-  username: string;
-  name: string;
-  role: string;
-  permissions: string[];
+  onLogin: (token: string, user: AppUser) => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin }) => {

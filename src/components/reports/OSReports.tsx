@@ -271,7 +271,7 @@ export const OSReports: React.FC<OSReportsProps> = ({ serviceOrders, inventoryIt
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} />
                     <YAxis hide />
                     <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: 12 }}
-                      formatter={(v: number) => formatCurrency(v)} />
+                      formatter={(v) => formatCurrency(Number(v))} />
                     <Line type="monotone" dataKey="revenue" name="Receita" stroke="#10b981" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
@@ -304,7 +304,7 @@ export const OSReports: React.FC<OSReportsProps> = ({ serviceOrders, inventoryIt
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} />
                     <YAxis hide />
                     <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: 12 }}
-                      formatter={(v: number) => formatCurrency(v)} />
+                      formatter={(v) => formatCurrency(Number(v))} />
                     <Bar dataKey="revenue" name="Receita Total" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -353,7 +353,7 @@ export const OSReports: React.FC<OSReportsProps> = ({ serviceOrders, inventoryIt
                     <XAxis type="number" hide />
                     <YAxis type="category" dataKey="name" width={120} tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
                     <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: 12 }}
-                      formatter={(v: number) => formatCurrency(v)} />
+                      formatter={(v) => formatCurrency(Number(v))} />
                     <Bar dataKey="revenue" name="Receita" fill="#10b981" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -462,7 +462,7 @@ export const OSReports: React.FC<OSReportsProps> = ({ serviceOrders, inventoryIt
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} />
                     <YAxis hide />
                     <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: 12 }}
-                      formatter={(v: number) => formatCurrency(v)} />
+                      formatter={(v) => formatCurrency(Number(v))} />
                     <Bar dataKey="revenue" name="Receita" radius={[4, 4, 0, 0]}>
                       {topEquipment.map((e, i) => <Cell key={i} fill={e.color} />)}
                     </Bar>

@@ -28,7 +28,7 @@ export function useSettings(showToast: (message: string, type: 'success' | 'erro
   });
 
   const saveSettingsMutation = useMutation({
-    mutationFn: async (newSettings: AppSettings) => {
+    mutationFn: async (newSettings: Partial<AppSettings>) => {
       const { data } = await api.post('/settings', newSettings);
       return data;
     },
@@ -69,7 +69,7 @@ export function useSettings(showToast: (message: string, type: 'success' | 'erro
     settings,
     isLoadingSettings,
     categories,
-    saveSettingsAPI: (newSettings: AppSettings) => saveSettingsMutation.mutateAsync(newSettings),
+    saveSettingsAPI: (newSettings: Partial<AppSettings>) => saveSettingsMutation.mutateAsync(newSettings),
     addCategory: (category: any) => addCategoryMutation.mutateAsync(category),
     deleteCategory: (id: number) => deleteCategoryMutation.mutateAsync(id),
     fetchSettings: () => queryClient.invalidateQueries({ queryKey: ['settings'] }),

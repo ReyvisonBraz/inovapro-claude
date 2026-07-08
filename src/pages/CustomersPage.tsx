@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Customer } from '../types';
 import { Customers } from '../components/customers/Customers';
 import { useCustomers } from '../hooks/useCustomers';
 import { useClientPayments } from '../hooks/useClientPayments';
@@ -59,7 +60,7 @@ export const CustomersPage: React.FC = () => {
       clientPayments={clientPayments}
       isLoading={isLoading}
       onDelete={(id) => {
-        const customer = customers.data.find(c => c.id === id);
+        const customer = customers.data.find((c: Customer) => c.id === id);
         if (customer) setCustomerToDelete(customer);
       }}
       onAddPayment={(customer) => {

@@ -56,7 +56,7 @@ interface ServiceOrdersProps {
     limit: number;
   };
   onPageChange: (page: number) => void;
-  onOpenConfirm: (title: string, message: string, onConfirm: () => void, type: 'danger' | 'warning' | 'info') => void;
+  onOpenConfirm: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
   onGeneratePayment?: (order: any) => void;
   onPrintBlankForm: () => void;
   settings: any;

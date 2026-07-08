@@ -257,8 +257,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                       <input
                         type="text"
                         inputMode="numeric"
-                        ref={amountInputRef}
                         {...register('amount')}
+                        ref={(el) => { register('amount').ref(el); amountInputRef.current = el; }}
                         onChange={handleAmountChange}
                         className={cn(
                           'w-full h-12 bg-white/[0.03] border rounded-xl pl-9 pr-3 text-base font-bold focus:ring-2 focus:ring-primary/10 focus:border-primary/40 outline-none transition-all placeholder:text-slate-700',
@@ -274,8 +274,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                       <span className="text-xs text-slate-600 font-normal normal-case tracking-normal">↵</span>
                     </label>
                     <select
-                      ref={categoryRef}
                       {...register('category')}
+                      ref={(el) => { register('category').ref(el); categoryRef.current = el; }}
                       className={cn(
                         'w-full h-12 bg-white/[0.03] border rounded-xl px-3 text-sm font-semibold focus:ring-2 focus:ring-primary/10 focus:border-primary/40 outline-none transition-all text-slate-200 appearance-none cursor-pointer [&>option]:bg-slate-900',
                         errors.category ? 'border-red-500/50' : 'border-white/10'
@@ -365,8 +365,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    ref={descriptionRef}
                     {...register('description')}
+                    ref={(el) => { register('description').ref(el); descriptionRef.current = el; }}
                     className="w-full h-11 bg-white/[0.03] border border-white/10 rounded-xl px-3 text-sm font-semibold focus:ring-2 focus:ring-primary/10 focus:border-primary/40 outline-none transition-all placeholder:text-slate-700"
                     placeholder="Ex: Compra de suprimentos, venda de produto..."
                   />

@@ -458,7 +458,7 @@ const Settings: React.FC<SettingsProps> = ({
                                 name: user.name,
                                 role: user.role,
                                 permissions: user.permissions || [],
-                                createdAt: user.createdAt
+                                createdAt: user.createdAt ?? ''
                               });
                               setIsAddingUser(true);
                             }}

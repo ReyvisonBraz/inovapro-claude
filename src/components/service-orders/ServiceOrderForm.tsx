@@ -192,8 +192,8 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
   // Atualizar totais quando serviços ou peças mudarem (apenas se usuário não editou manualmente)
   useEffect(() => {
     if (manuallyEditedFee.current) return;
-    const servicesTotal = watchedServices.reduce((acc, s) => acc + (Number(s.price) || 0), 0);
-    const partsTotal = watchedParts.reduce((acc, p) => acc + (Number(p.subtotal) || 0), 0);
+    const servicesTotal = (watchedServices ?? []).reduce((acc, s) => acc + (Number(s.price) || 0), 0);
+    const partsTotal = (watchedParts ?? []).reduce((acc, p) => acc + (Number(p.subtotal) || 0), 0);
     const total = servicesTotal + partsTotal;
     
     setValue('serviceFee', servicesTotal);
@@ -298,7 +298,7 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
         setValue('equipmentBrand', '');
         setValue('equipmentModel', '');
       } else if (quickAddModal.type === 'brand') {
-        await onAddBrand(quickAddModal.value.trim(), watchedEquipmentType);
+        await onAddBrand(quickAddModal.value.trim(), watchedEquipmentType ?? '');
         setValue('equipmentBrand', quickAddModal.value.trim());
         setValue('equipmentModel', '');
       } else if (quickAddModal.type === 'model') {
@@ -357,7 +357,7 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
         setEditingOrder(null);
 
         const notifyStatuses = ['Concluído', 'Pronto', 'Aguardando Autorização', 'Aguardando Aprovação'];
-        if (notifyStatuses.includes(orderData.status)) {
+        if (notifyStatuses.includes(orderData.status ?? '')) {
           const appUrl = window.location.origin;
           const orderWithCustomer = { ...editingOrder, ...orderData };
           const customer = customers.find(c => c.id === editingOrder.customerId);
@@ -473,7 +473,7 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
               onAddBrand={onAddBrand}
               onAddModel={onAddModel}
               setQuickAddModal={setQuickAddModal}
-              showToast={showToast}
+              showToast={showToast as (msg: string, type: string) => void}
               watchedArrivalPhotos={watchedArrivalPhotos}
               addPhoto={addPhoto}
               removePhoto={removePhoto}
@@ -489,11 +489,11 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
             <ServicesAndPartsSection 
               inventoryItems={inventoryItems}
               serviceFields={serviceFields}
-              watchedServices={watchedServices}
+              watchedServices={watchedServices ?? []}
               appendService={appendService}
               removeService={removeService}
               partFields={partFields}
-              watchedParts={watchedParts}
+              watchedParts={watchedParts ?? []}
               appendPart={appendPart}
               removePart={removePart}
               updatePart={updatePart}

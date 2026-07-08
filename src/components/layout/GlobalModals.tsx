@@ -98,7 +98,8 @@ export const GlobalModals: React.FC = () => {
         updatedBy: currentUser?.id,
         ...(force ? { forceCreate: true } : {}),
       };
-      const data = await saveCustomerAPI(payload, editingCustomer?.id);
+      // payload vem do form (campos anuláveis); o backend aceita null. Cast contido.
+      const data = await saveCustomerAPI(payload as Parameters<typeof saveCustomerAPI>[0], editingCustomer?.id);
 
       setIsAddingCustomer(false);
       setShowCustomerWarningModal(false);

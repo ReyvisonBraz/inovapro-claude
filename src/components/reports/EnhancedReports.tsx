@@ -575,7 +575,7 @@ export const EnhancedReports: React.FC<EnhancedReportsProps> = ({
                 </Pie>
                 <Tooltip
                   contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: 12 }}
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={(value) => formatCurrency(Number(value))}
                 />
                 <Legend />
               </PieChart>

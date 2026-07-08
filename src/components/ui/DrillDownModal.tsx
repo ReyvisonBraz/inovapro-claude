@@ -75,7 +75,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
       }
       if (filters.reportTagsFilter.length > 0) {
         filtered = filtered.filter(tx =>
-          tx.tags ? filters.reportTagsFilter.some(tag => tx.tags.includes(tag)) : false
+          tx.tags ? filters.reportTagsFilter.some(tag => tx.tags!.includes(tag)) : false
         );
       }
       if (filters.reportStartDate && filters.reportEndDate) {

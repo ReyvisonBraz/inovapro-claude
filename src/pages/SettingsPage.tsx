@@ -28,8 +28,12 @@ export const SettingsPage: React.FC = () => {
   const usersQuery = useUsersQuery();
   const auditLogsQuery = useAuditLogsQuery();
 
+  if (!settings) {
+    return <div className="p-10 text-center text-slate-400 font-medium">Carregando configurações…</div>;
+  }
+
   return (
-    <Settings 
+    <Settings
       settings={settings}
       onUpdateSettings={saveSettingsAPI}
       categories={categories}

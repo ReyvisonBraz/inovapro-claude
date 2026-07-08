@@ -15,8 +15,8 @@ const AuditLogs: React.FC<AuditLogsProps> = ({ auditLogs }) => {
 
   const filteredLogs = auditLogs.filter(log => 
     log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.userName.toLowerCase().includes(searchTerm.toLowerCase())
+    (log.details ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (log.userName ?? '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
