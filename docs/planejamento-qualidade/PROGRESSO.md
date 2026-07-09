@@ -4,7 +4,7 @@
 > Branch de trabalho: `qualidade/fase-0-preparacao` (~25 commits à frente de `main`).
 > Estado do build a cada commit: **ESLint 0 erros · `tsc` 0 erros (strict on) · 105 testes verdes** (baseline eram 50) + **E2E Playwright**. **Fases 0–5 completas; Fase 6 quase (só itens opcionais/arriscados).**
 >
-> **Deploy decidido: Vercel** (ver `docs/DEPLOY.md`). Restam só itens opcionais: prop drilling e datas String→DateTime (Fase 6·02/03), + ações de infra do dono (setar `REDIS_URL`, purga do histórico git de `backups/`, senha do banco).
+> **Deploy decidido: Vercel** (ver `docs/DEPLOY.md`). **Purga do histórico git de `backups/` FEITA em 2026-07-09** (ver Fase 1·03). Restam só itens opcionais: prop drilling e datas String→DateTime (Fase 6·02/03), + ações de infra do dono (setar `REDIS_URL`, **trocar senha do banco**).
 
 ## Legenda
 ✅ concluído · 🟡 parcial/adiado · ⬜ não iniciado
@@ -20,7 +20,7 @@
 ## Fase 1 — BLOCKERS 🟡 (código ✅; ops com o dono)
 - ✅ **01 RBAC** — `requireRole`/`requirePermission` aplicados; escalada de privilégio fechada. Testes supertest.
 - ✅ **02 CORS/CSP** — origem desconhecida negada; CSP reativada. Smoke de boot ok.
-- 🟡 **03 Purga de segredos** — parte segura feita (untrack `backups/` + `.gitignore`). **PENDENTE (dono):** reescrever histórico do git (`git filter-repo --path backups --invert-paths` + `push --force`). Rotação de segredos: **feita pelo dono** (secrets não usadas/trocadas; senha do banco será trocada depois).
+- ✅ **03 Purga de segredos** — untrack `backups/` + `.gitignore` **e histórico reescrito em 2026-07-09**: `git filter-repo --path backups --invert-paths`, force-push de `main` (`c7c9b05`→`8a1ff29`) e `qualidade` (`8eaf30c`→`fb5135b`); branches antigas `claude/os-print-layout-adjustments-ncYT9` e `railway/fix-deploy-ee9af3` **deletadas do origin** (também carregavam os blobs de `backups/`). Verificado: **0 objetos `backups` em qualquer ref**. Bundle de backup pré-purga salvo no scratchpad da sessão. Rotação de segredos: secrets já trocadas pelo dono; **senha do banco ainda a trocar** (belt-and-suspenders — o GitHub pode reter objetos órfãos acessíveis só por SHA direto até o GC interno).
 - ✅ **04 Audit trail** — `createdBy`/`updatedBy` derivam do JWT (`req.user`), não do body. Testes.
 
 ## Fase 2 — Hardening Backend ✅
@@ -53,8 +53,8 @@
 ---
 
 ## Pendências que dependem do DONO
-1. **Purga do histórico do git** de `backups/` (Fase 1 · 03 parte B) — `git filter-repo` + `push --force`; avisar quem tem clone.
-2. **Trocar a senha do banco** (`DATABASE_URL`/`DB_PASSWORD`) — mencionado que faria depois.
+1. ✅ ~~**Purga do histórico do git** de `backups/`~~ — **FEITA em 2026-07-09** (`git filter-repo` + force-push; branches antigas deletadas). Quem tiver clone antigo precisa **re-clonar** (o histórico mudou).
+2. **Trocar a senha do banco** (`DATABASE_URL`/`DB_PASSWORD`) — mencionado que faria depois. **Importante agora**: reforça a purga (o GitHub pode reter objetos órfãos até o GC).
 3. ~~Fornecer credencial de teste~~ — **fornecida** (`admin`/`admin2021`), F3-04 validado. E2E da Fase 4 desbloqueado. *(Idealmente criar um usuário de teste dedicado em vez de usar o admin.)*
 
 ## Retomada rápida (próxima sessão)
