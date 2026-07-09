@@ -46,7 +46,7 @@
 
 ## Fase 6 — Docs e Limpeza 🟡
 - ✅ **01 deps mortas** — `better-sqlite3`, `ts-morph` removidos; `vite` deduplicado (só devDeps).
-- ⬜ **02 prop drilling** — não feito. Refactor de UI (ex.: `ClientPayments` ~28 props) — arriscado sem testes de componente; fazer com validação no app.
+- ✅ **02 prop drilling** — `ClientPayments` refatorado: **24 → 14 props**, consumindo estado de UI direto dos stores Zustand (`useAppStore`/`useFilterStore`/`useModalStore`) em vez de repasse manual do pai. Teste de caracterização no nível da página (`src/test/ClientPaymentsPage.behavior.test.tsx`, RTL+MSW) verde antes/depois; `useEffect` de deps incompletas corrigido (lê o form store via `getState()`); um `as any` trocado pelo union de `sortMode`. **Follow-up:** replicar o padrão em `Transactions`/`ServiceOrders`; **validar visualmente no app antes do merge** (o teste cobre lista+abertura de modal, não o layout).
 - ⬜ **03 datas String→DateTime** — não feito. Migração no banco de **produção** com conversão de dados; risco médio, **opcional**. Ver `fase-6-docs-e-limpeza/03-datas-string-para-datetime.md`.
 - ✅ **04 docs/links** — links quebrados do README corrigidos (STATUS.md/PLANO-SANEAMENTO removidos → aponta para `docs/planejamento-qualidade/`); typo do PWA (`inovaproo` → `*.vercel.app`); `.env.example` com novas envs (PUBLIC_API_ORIGIN, E2E).
 
