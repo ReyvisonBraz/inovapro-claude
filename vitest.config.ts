@@ -24,10 +24,10 @@ export default defineConfig({
       // Catraca de qualidade: piso real medido (2026-07-09). Só sobe — nunca desce.
       // Aumentar a cada suíte de integração adicionada (F4-02).
       thresholds: {
-        statements: 18,
-        branches: 13,
-        functions: 10,
-        lines: 18,
+        statements: 23,
+        branches: 16,
+        functions: 13,
+        lines: 24,
       },
     },
   },
