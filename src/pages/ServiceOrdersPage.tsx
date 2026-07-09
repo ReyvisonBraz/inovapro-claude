@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { isAxiosError } from 'axios';
 import { ServiceOrders } from '../components/service-orders/ServiceOrders';
 import { useServiceOrders } from '../hooks/useServiceOrders';
 import { useCustomers } from '../hooks/useCustomers';
@@ -210,8 +211,9 @@ export const ServiceOrdersPage: React.FC = () => {
           setServiceOrdersPage(1);
           showToast("Ordem de Serviço salva com sucesso!", "success");
           return saved.id;
-        } catch (err: any) {
-          showToast(err.message || "Erro ao salvar Ordem de Serviço", "error");
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : undefined;
+          showToast(message || "Erro ao salvar Ordem de Serviço", "error");
           return null;
         }
       }}
@@ -220,12 +222,13 @@ export const ServiceOrdersPage: React.FC = () => {
           await saveServiceOrderAPI(order, id, version);
           showToast("Ordem de Serviço atualizada com sucesso!", "success");
           return true;
-        } catch (err: any) {
-          const isConflict = err.response?.status === 409;
+        } catch (err: unknown) {
+          const isConflict = isAxiosError(err) && err.response?.status === 409;
+          const message = err instanceof Error ? err.message : undefined;
           showToast(
             isConflict
               ? 'Este registro foi modificado por outro usuário. Recarregue a página para continuar.'
-              : err.message || "Erro ao atualizar Ordem de Serviço",
+              : message || "Erro ao atualizar Ordem de Serviço",
             "error"
           );
           return false;

@@ -15,6 +15,7 @@ import { useServiceOrders } from '../../hooks/useServiceOrders';
 import { useAuditLogs } from '../../hooks/useAuditLogs';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../lib/api';
+import { isAxiosError } from 'axios';
 
 // Modals
 import { CustomerModal } from '../customers/modals/CustomerModal';
@@ -109,8 +110,8 @@ export const GlobalModals: React.FC = () => {
       setLastAddedCustomerId(data.id);
       setShowCustomerSuccessModal(true);
       fetchAuditLogs();
-    } catch (err: any) {
-      if (err.response?.status === 409 && err.response?.data?.error === 'duplicate_phone') {
+    } catch (err: unknown) {
+      if (isAxiosError(err) && err.response?.status === 409 && err.response?.data?.error === 'duplicate_phone') {
         const existingName = err.response.data.existing?.name || 'outro cliente';
         setNewCustomer(formData);
         setDuplicatePhoneExistingName(existingName);

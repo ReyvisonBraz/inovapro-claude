@@ -63,8 +63,12 @@ export const PublicTrackingPage: React.FC = () => {
       }
       const json = await res.json();
       setData(json);
-    } catch (err: any) {
-      setError(err.message || 'Erro ao carregar');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Erro ao carregar');
+      }
     } finally {
       setLoading(false);
     }

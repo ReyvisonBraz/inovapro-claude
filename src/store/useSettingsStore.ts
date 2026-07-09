@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { isAxiosError } from 'axios';
 import { AppSettings, Category } from '../types';
 import api from '../lib/api';
 
@@ -61,9 +62,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     try {
       const { data } = await api.get('/settings');
       set({ settings: data, isLoading: false });
-    } catch (err: any) {
-      const message = err?.response?.data?.error || 'Erro ao carregar configurações';
-      set({ isLoading: false, isError: true, errorMessage: message });
+    } catch (err: unknown) {
+      const message = isAxiosError(err) ? err.response?.data?.error : undefined;
+      set({ isLoading: false, isError: true, errorMessage: message || 'Erro ao carregar configurações' });
       console.error('[useSettingsStore] fetchSettings failed:', message);
     }
   },
@@ -72,9 +73,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     try {
       const { data } = await api.get('/categories');
       set({ categories: data, isLoading: false });
-    } catch (err: any) {
-      const message = err?.response?.data?.error || 'Erro ao carregar categorias';
-      set({ isLoading: false, isError: true, errorMessage: message });
+    } catch (err: unknown) {
+      const message = isAxiosError(err) ? err.response?.data?.error : undefined;
+      set({ isLoading: false, isError: true, errorMessage: message || 'Erro ao carregar categorias' });
       console.error('[useSettingsStore] fetchCategories failed:', message);
     }
   },
@@ -85,9 +86,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     try {
       await api.post('/settings', updatedSettings);
       set({ settings: updatedSettings, isLoading: false });
-    } catch (err: any) {
-      const message = err?.response?.data?.error || 'Erro ao salvar configurações';
-      set({ isLoading: false, isError: true, errorMessage: message });
+    } catch (err: unknown) {
+      const message = isAxiosError(err) ? err.response?.data?.error : undefined;
+      set({ isLoading: false, isError: true, errorMessage: message || 'Erro ao salvar configurações' });
       console.error('[useSettingsStore] saveSettingsAPI failed:', message);
       throw err;
     }
