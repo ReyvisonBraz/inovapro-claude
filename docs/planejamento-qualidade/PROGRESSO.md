@@ -2,7 +2,9 @@
 
 > Rastreador vivo. Atualizar ao concluir cada tarefa. Última atualização: **2026-07-09**.
 > Branch de trabalho: `qualidade/fase-0-preparacao` (~25 commits à frente de `main`).
-> Estado do build a cada commit: **ESLint 0 erros · `tsc` 0 erros (strict on) · 104 testes verdes** (baseline eram 50) + **E2E Playwright**. **Fases 0–4 completas.**
+> Estado do build a cada commit: **ESLint 0 erros · `tsc` 0 erros (strict on) · 104 testes verdes** (baseline eram 50) + **E2E Playwright**. **Fases 0–4 completas; 5–6 no que é seguro/desbloqueado.**
+>
+> **Restam só itens que dependem de você:** escolher a estratégia de deploy (Fase 5·01), e, se quiser, o refactor de prop drilling e a migração de datas (Fase 6·02/03, opcionais/arriscados).
 
 ## Legenda
 ✅ concluído · 🟡 parcial/adiado · ⬜ não iniciado
@@ -37,11 +39,16 @@
 - **Nota herdada:** testes de backend com supertest precisam de `// @vitest-environment node` + `server.close()` (o MSW global intercepta as requisições GET, mascarando o handler real). Padrão usado em todas as suítes de rota.
 - **Follow-up:** subir a cobertura ao longo do tempo (services têm muita lógica ainda não coberta); considerar job de E2E no CI (com secret `E2E_PASS` + browser).
 
-## Fase 5 — Deploy/Infra ⬜
-- ⬜ escolher 1 deploy (recomendado: Render) · ⬜ remover resíduo SQLite · ⬜ rate-limit/cache externos (só se multi-instância).
+## Fase 5 — Deploy/Infra 🟡
+- ⬜ **01 escolher 1 deploy** — **DECISÃO DO DONO.** Existem 4 configs (Vercel/Render/Cloud Run/Cloud Build). Recomendado: **Render** (serviço único). Não removi as configs concorrentes porque não sei qual está em produção — apagar a errada derruba o app. Ver `fase-5-deploy-infra/01-escolher-deploy-unico.md`.
+- 🟡 **02 resíduo SQLite** — parcial: `better-sqlite3` removido (Fase 6·01) e Dockerfile limpo (dir SQLite removido). Falta o `DB_PATH`/env SQLite no `render.yaml` (fazer junto da decisão de deploy). **Bônus:** corrigi o Dockerfile para o `postinstall prisma generate` funcionar (copia `prisma/` antes do `npm ci`) — **não testado com build docker real**.
+- ⬜ **03 rate-limit/cache externos** — só necessário se o deploy for multi-instância. Se instância única (Render free), o in-memory atual serve. Condicional à decisão 01.
 
-## Fase 6 — Docs e Limpeza ⬜
-- ⬜ deps mortas · ⬜ prop drilling · ⬜ datas String→DateTime · ⬜ docs/links.
+## Fase 6 — Docs e Limpeza 🟡
+- ✅ **01 deps mortas** — `better-sqlite3`, `ts-morph` removidos; `vite` deduplicado (só devDeps).
+- ⬜ **02 prop drilling** — não feito. Refactor de UI (ex.: `ClientPayments` ~28 props) — arriscado sem testes de componente; fazer com validação no app.
+- ⬜ **03 datas String→DateTime** — não feito. Migração no banco de **produção** com conversão de dados; risco médio, **opcional**. Ver `fase-6-docs-e-limpeza/03-datas-string-para-datetime.md`.
+- ✅ **04 docs/links** — links quebrados do README corrigidos (STATUS.md/PLANO-SANEAMENTO removidos → aponta para `docs/planejamento-qualidade/`); typo do PWA (`inovaproo` → `*.vercel.app`); `.env.example` com novas envs (PUBLIC_API_ORIGIN, E2E).
 
 ---
 
