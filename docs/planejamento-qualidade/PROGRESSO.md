@@ -58,7 +58,19 @@
 3. ~~Fornecer credencial de teste~~ — **fornecida** (`admin`/`admin2021`), F3-04 validado. E2E da Fase 4 desbloqueado. *(Idealmente criar um usuário de teste dedicado em vez de usar o admin.)*
 
 ## Retomada rápida (próxima sessão)
-- Concluir **F3-03** (strict) seguindo `_strict-baseline.md` — ~31 fixes mecânicos/bounded, validar telas OS/pagamentos/relatórios/transações.
-- Concluir **F3-04** (JWT httpOnly) seguindo o arquivo da tarefa — com login de teste.
-- Seguir para **Fase 4**.
-- Considerar abrir PR `qualidade/fase-0-preparacao` → `main` com Fases 0–2 + F3-01/02 (tudo verde) para colher o ganho de segurança já.
+
+> ✅ Branch `qualidade/fase-0-preparacao` merged em `main` (2026-07-09). Branch remoto e branches locais stale (`claude/os-print-layout-adjustments-ncYT9`, `railway/fix-deploy-ee9af3`) deletadas.
+
+### Pendências do DONO (ações de infra)
+- [ ] **Trocar a senha do banco** (`DATABASE_URL`/`DB_PASSWORD`) — reforça a purga do git.
+- [ ] **Setar `REDIS_URL`** (ex.: Upstash) na Vercel — rate-limit de login funcional em serverless.
+- [ ] Criar usuário de teste dedicado (em vez de `admin`/`admin2021`).
+
+### Próximas melhorias (ver plano geral `docs/plans/2026-07-04-plano-melhorias-geral.md`)
+- **Fase 2 (Segurança)** — itens 2.3-2.4 não cobertos pelo saneamento: JWT refresh/revalidação, rate-limit geral, hash `settingsPassword`, `sendPulseClientSecret` para env.
+- **Fase 3 (Multi-user UX)** — ConflictModal para 409, realtime/polling, idempotency keys, draft autosave.
+- **Fase 4 (Schema)** — Float→Decimal, String→DateTime, `paymentHistory`→tabela `PaymentEntry`, FK de status.
+- **Fase 5 (Frontend)** — server state out of Zustand, consolidar modais, split componentes gigantes, Header lazy hooks, estados unificados.
+- **Fase 6 (Qualidade)** — `asyncHandler` + error handler central, POST→201/DELETE→204, customer optimistic locking.
+- **Fase 6-02 (prop drilling)** — replicar o padrão do ClientPayments em Transactions e ServiceOrders.
+- **Fase 6-03 (datas String→DateTime)** — opcional, risco médio.
