@@ -31,7 +31,7 @@ export default defineConfig(() => {
           globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
           runtimeCaching: [
             {
-              urlPattern: /^https:\/\/inovaproo\.vercel\.app\/api\/.*/i,
+              urlPattern: /^https:\/\/[a-z0-9-]+\.vercel\.app\/api\/.*/i,
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'api-cache',
