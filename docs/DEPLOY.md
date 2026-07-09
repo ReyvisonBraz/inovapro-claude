@@ -20,7 +20,7 @@ Recomendadas/opcionais:
 - `GEMINI_API_KEY` — rota de IA.
 - `PUBLIC_API_ORIGIN` — só se o front e a API ficarem em domínios diferentes (aqui é o mesmo, então dispensável) — usada na CSP.
 - `SENDPULSE_CLIENT_ID` / `SENDPULSE_CLIENT_SECRET` / `SENDPULSE_TEMPLATE_ID` — WhatsApp.
-- `REDIS_URL` — **recomendado** (ver "Serverless" abaixo).
+- `REDIS_URL` — **recomendado** (ver "Serverless" abaixo). Passo a passo: [`REDIS-SETUP.md`](./REDIS-SETUP.md).
 
 `VITE_API_URL` deve ficar **vazio** (front e API no mesmo domínio → `api.ts` usa `/api`).
 
@@ -36,7 +36,7 @@ O login seta um cookie `httpOnly` + `Secure` + `SameSite=None` em produção. Co
 
 Cada invocação serverless é um processo isolado e efêmero. Por isso, o que é **em memória** não é confiável entre instâncias:
 
-- **Rate-limit do login** (`express-rate-limit` in-memory) — **fica fraco**: o contador não é compartilhado entre instâncias, então a proteção contra brute-force de login é parcial. **Solução:** provisionar Redis (ex.: Upstash, free tier) e definir `REDIS_URL`. O código usa Redis quando `REDIS_URL` existe e cai para memória quando não (ver `src/lib/rate-limit.ts`).
+- **Rate-limit do login** (`express-rate-limit` in-memory) — **fica fraco**: o contador não é compartilhado entre instâncias, então a proteção contra brute-force de login é parcial. **Solução:** provisionar Redis (ex.: Upstash, free tier) e definir `REDIS_URL` — **passo a passo em [`REDIS-SETUP.md`](./REDIS-SETUP.md)**. O código usa Redis quando `REDIS_URL` existe e cai para memória quando não (ver `src/lib/rate-limit.ts`).
 - **Cache do rastreio público** (`node-cache`) — por-instância; funciona, apenas com menos acerto de cache entre instâncias. TTL de 2 min, então o impacto é pequeno; mantido em memória de propósito.
 - **Logs em memória** (`/api/debug/logs`) — refletem só a instância atual. Para logs completos, use o painel de logs da Vercel (stdout já vai pra lá).
 
