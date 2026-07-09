@@ -1,8 +1,15 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { error, info } from '../lib/server-logger.js';
+import { requirePermission } from '../middleware/roles.js';
+import { validate } from '../middleware/validate.js';
+import { BrandSchema, ModelSchema, EquipmentTypeSchema, ServiceOrderStatusSchema } from './schemas.js';
 
 const router = Router();
+
+// Todo o catálogo é configuração de OS: exige manage_service_orders
+// (leituras de marcas/modelos/tipos/status inclusas — employee tem a permissão).
+router.use(requirePermission('manage_service_orders'));
 
 /* ───── Service Order Statuses ───── */
 
@@ -16,7 +23,7 @@ router.get('/service-order-statuses', async (_req: Request, res: Response) => {
   }
 });
 
-router.post('/service-order-statuses', async (req: Request, res: Response) => {
+router.post('/service-order-statuses', validate(ServiceOrderStatusSchema), async (req: Request, res: Response) => {
   try {
     const { name, color, priority, isDefault } = req.body;
     const status = await prisma.serviceOrderStatus.create({ data: { name, color, priority, isDefault } });
@@ -28,7 +35,7 @@ router.post('/service-order-statuses', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/service-order-statuses/:id', async (req: Request, res: Response) => {
+router.put('/service-order-statuses/:id', validate(ServiceOrderStatusSchema), async (req: Request, res: Response) => {
   try {
     const { name, color, priority, isDefault } = req.body;
     await prisma.serviceOrderStatus.update({
@@ -64,7 +71,7 @@ router.get('/brands', async (_req: Request, res: Response) => {
   }
 });
 
-router.post('/brands', async (req: Request, res: Response) => {
+router.post('/brands', validate(BrandSchema), async (req: Request, res: Response) => {
   try {
     const { name, equipmentType } = req.body;
     const brand = await prisma.brand.create({ data: { name, equipmentType } });
@@ -75,7 +82,7 @@ router.post('/brands', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/brands/:id', async (req: Request, res: Response) => {
+router.put('/brands/:id', validate(BrandSchema), async (req: Request, res: Response) => {
   try {
     const { name, equipmentType } = req.body;
     await prisma.brand.update({ where: { id: parseInt(req.params.id) }, data: { name, equipmentType } });
@@ -120,7 +127,7 @@ router.get('/models', async (_req: Request, res: Response) => {
   }
 });
 
-router.post('/models', async (req: Request, res: Response) => {
+router.post('/models', validate(ModelSchema), async (req: Request, res: Response) => {
   try {
     const { brandId, name } = req.body;
     const model = await prisma.model.create({ data: { brandId, name } });
@@ -131,7 +138,7 @@ router.post('/models', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/models/:id', async (req: Request, res: Response) => {
+router.put('/models/:id', validate(ModelSchema), async (req: Request, res: Response) => {
   try {
     const { brandId, name } = req.body;
     await prisma.model.update({ where: { id: parseInt(req.params.id) }, data: { brandId, name } });
@@ -176,7 +183,7 @@ router.get('/equipment-types', async (_req: Request, res: Response) => {
   }
 });
 
-router.post('/equipment-types', async (req: Request, res: Response) => {
+router.post('/equipment-types', validate(EquipmentTypeSchema), async (req: Request, res: Response) => {
   try {
     const { name, icon } = req.body;
     const type = await prisma.equipmentType.create({ data: { name, icon } });
@@ -187,7 +194,7 @@ router.post('/equipment-types', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/equipment-types/:id', async (req: Request, res: Response) => {
+router.put('/equipment-types/:id', validate(EquipmentTypeSchema), async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const { name, icon } = req.body;

@@ -2,9 +2,8 @@ import React from 'react';
 import { motion } from 'motion/react';
 import {
   Settings as SettingsIcon, User, Shield,
-  Database, Bell, Palette, Globe,
-  Save, Plus, Trash2, Edit2, Key,
-  MessageSquare, Send, RefreshCw, Github, DownloadCloud, Laptop, FileText
+  Database, Palette, Plus, Trash2, Edit2, Key,
+  MessageSquare, Send, RefreshCw, Github, Laptop, FileText
 } from 'lucide-react';
 import { OSTemplateEditor } from './OSTemplateEditor';
 import { cn } from '../../lib/utils';
@@ -13,8 +12,6 @@ import AuditLogs from '../audit/AuditLogs';
 import { EquipmentSettings } from './EquipmentSettings';
 import { useToast } from '../ui/Toast';
 
-import { useSettingsStore } from '../../store/useSettingsStore';
-import { useAuthStore } from '../../store/useAuthStore';
 import { AVAILABLE_PERMISSIONS } from '../../constants/permissions';
 
 interface SettingsProps {
@@ -461,7 +458,7 @@ const Settings: React.FC<SettingsProps> = ({
                                 name: user.name,
                                 role: user.role,
                                 permissions: user.permissions || [],
-                                createdAt: user.createdAt
+                                createdAt: user.createdAt ?? ''
                               });
                               setIsAddingUser(true);
                             }}

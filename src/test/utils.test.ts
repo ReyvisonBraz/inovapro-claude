@@ -48,7 +48,8 @@ describe('cn', () => {
   });
 
   it('remove classes condicionais falsas', () => {
-    expect(cn('foo', false && 'bar')).toBe('foo');
+    const show = false;
+    expect(cn('foo', show && 'bar')).toBe('foo');
   });
 
   it('resolve conflito tailwind (última vence)', () => {

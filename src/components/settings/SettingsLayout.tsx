@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AppSettings, Category, User, AuditLog, Transaction, Customer, ClientPayment, EquipmentType } from '../../types';
+import { Category, Transaction, Customer, ClientPayment, EquipmentType } from '../../types';
 import { cn } from '../../lib/utils';
 import { PrintLayout } from './PrintLayout';
 import { InterfaceSettings } from './InterfaceSettings';

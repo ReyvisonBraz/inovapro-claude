@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronDown, ChevronUp, Trash2, MessageCircle, Zap, Printer, CheckCircle2, Clock, Plus } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, Trash2, MessageCircle, Zap, Printer, CheckCircle2, Plus } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
 import { ClientPayment, Customer } from '../../types';
@@ -7,6 +7,9 @@ import { cn, formatCurrency } from '../../lib/utils';
 import { AddClientPaymentModal } from './modals/AddClientPaymentModal';
 import { RecordPaymentModal } from './modals/RecordPaymentModal';
 import { useFormStore } from '../../store/useFormStore';
+import { useAppStore } from '../../store/useAppStore';
+import { useFilterStore } from '../../store/useFilterStore';
+import { useModalStore } from '../../store/useModalStore';
 import { Pagination } from '../ui/Pagination';
 
 interface ClientPaymentsProps {
@@ -26,18 +29,8 @@ interface ClientPaymentsProps {
     limit: number;
   };
   onPageChange: (page: number) => void;
-  isAddingClientPayment: boolean;
-  setIsAddingClientPayment: (value: boolean) => void;
-  expandedPayments: (number | string)[];
-  togglePaymentExpansion: (id: number | string) => void;
   paymentSearchTerm: string;
   setPaymentSearchTerm: (value: string) => void;
-  paymentFilterStatus: string;
-  setPaymentFilterStatus: (value: string) => void;
-  paymentSortMode: string;
-  setPaymentSortMode: (value: string) => void;
-  isRecordingPayment: ClientPayment | null;
-  setIsRecordingPayment: (payment: ClientPayment | null) => void;
   onTriggerAddCustomer?: () => void;
 }
 
@@ -53,33 +46,32 @@ export const ClientPayments = ({
   isSaving,
   pagination,
   onPageChange,
-  isAddingClientPayment,
-  setIsAddingClientPayment,
-  expandedPayments,
-  togglePaymentExpansion,
   paymentSearchTerm,
   setPaymentSearchTerm,
-  paymentFilterStatus,
-  setPaymentFilterStatus,
-  paymentSortMode,
-  setPaymentSortMode,
-  isRecordingPayment,
-  setIsRecordingPayment,
   onTriggerAddCustomer
 }: ClientPaymentsProps) => {
 
-  const { newClientPayment, setNewClientPayment } = useFormStore();
+  // Estado de UI consumido direto dos stores (antes vinha por props do pai).
+  const { isAddingClientPayment, setIsAddingClientPayment, expandedPayments, togglePaymentExpansion } = useAppStore();
+  const { paymentFilterStatus, setPaymentFilterStatus, paymentSortMode, setPaymentSortMode } = useFilterStore();
+  const { isRecordingPayment, setIsRecordingPayment } = useModalStore();
+
+  const setNewClientPayment = useFormStore((s) => s.setNewClientPayment);
   const [paymentInitialData, setPaymentInitialData] = useState<{ customerId: number } | null>(null);
 
+  // Ao abrir o modal de novo pagamento com um cliente pré-selecionado (fluxo
+  // "adicionar cliente"), captura o customerId e limpa o form store.
   useEffect(() => {
-    if (isAddingClientPayment && newClientPayment.customerId > 0) {
-      setPaymentInitialData({ customerId: newClientPayment.customerId });
-      setNewClientPayment({ customerId: 0 });
-    }
-    if (!isAddingClientPayment) {
+    if (isAddingClientPayment) {
+      const { customerId } = useFormStore.getState().newClientPayment;
+      if (customerId > 0) {
+        setPaymentInitialData({ customerId });
+        setNewClientPayment({ customerId: 0 });
+      }
+    } else {
       setPaymentInitialData(null);
     }
-  }, [isAddingClientPayment]);
+  }, [isAddingClientPayment, setNewClientPayment]);
 
   const groupedPayments = React.useMemo(() => {
     const groups: { [key: string]: ClientPayment[] } = {};
@@ -156,7 +148,7 @@ export const ClientPayments = ({
             </select>
             <select
               value={paymentSortMode}
-              onChange={(e) => setPaymentSortMode(e.target.value as any)}
+              onChange={(e) => setPaymentSortMode(e.target.value as 'date' | 'amount' | 'alphabetical')}
               className="h-10 lg:h-12 bg-white/5 border border-white/10 rounded-xl px-3 lg:px-4 text-xs lg:text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
             >
               <option value="date">Recentes</option>

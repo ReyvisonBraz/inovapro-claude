@@ -9,14 +9,15 @@ const safeParseJSON = (str: string | null | undefined, fallback: unknown = []) =
   catch { return fallback; }
 };
 
-router.get('/public/os/:id', async (req: Request, res: Response) => {
+router.get('/public/os/:token', async (req: Request, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
-      return res.status(400).json({ error: 'ID inválido' });
+    const token = req.params.token;
+    // Token é um UUID; ids sequenciais curtos não passam (fecha o IDOR).
+    if (!token || token.length < 8) {
+      return res.status(404).json({ error: 'Ordem de serviço não encontrada' });
     }
 
-    const cacheKey = PUBLIC_OS_KEY(id);
+    const cacheKey = PUBLIC_OS_KEY(token);
     const cached = publicOsCache.get(cacheKey);
     if (cached) {
       return res.json(cached);
@@ -24,7 +25,7 @@ router.get('/public/os/:id', async (req: Request, res: Response) => {
 
     const [order, settings] = await Promise.all([
       prisma.serviceOrder.findUnique({
-        where: { id },
+        where: { publicToken: token },
         select: {
           id: true,
           status: true,

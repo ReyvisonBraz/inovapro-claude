@@ -6,6 +6,7 @@ import { serviceOrderService } from '../services/service-order.service.js';
 import { publicOsCache, PUBLIC_OS_KEY } from '../lib/cache.js';
 import { validate } from '../middleware/validate.js';
 import { AppError } from '../lib/errors.js';
+import { AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -45,9 +46,9 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/', validate(ServiceOrderSchema), async (req: Request, res: Response) => {
+router.post('/', validate(ServiceOrderSchema), async (req: AuthRequest, res: Response) => {
   try {
-    const order = await serviceOrderService.create(req.body);
+    const order = await serviceOrderService.create({ ...req.body, createdBy: req.user!.userId });
 
     info('Ordem de serviço criada', { details: { id: order.id, customerId: req.body.customerId } });
     res.json({ id: order.id });
@@ -57,14 +58,14 @@ router.post('/', validate(ServiceOrderSchema), async (req: Request, res: Respons
   }
 });
 
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const { _clientUpdatedAt, version, ...bodyRest } = req.body;
     const validatedData = ServiceOrderSchema.partial().parse(bodyRest);
     const expectedVersion = typeof version === 'number' ? version : undefined;
 
-    const updatedOrder = await serviceOrderService.update(id, validatedData, expectedVersion);
+    const updatedOrder = await serviceOrderService.update(id, { ...validatedData, updatedBy: req.user!.userId }, expectedVersion);
 
     publicOsCache.del(PUBLIC_OS_KEY(id));
     info('Ordem de serviço atualizada', { details: { id: updatedOrder.id } });

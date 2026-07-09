@@ -200,6 +200,7 @@ export interface ServiceOrderItem {
 export interface ServiceOrder {
   id: number;
   customerId: number;
+  publicToken?: string;
   firstName?: string;
   lastName?: string;
   phone?: string;

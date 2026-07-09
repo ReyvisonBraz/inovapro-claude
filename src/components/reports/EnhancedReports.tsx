@@ -15,21 +15,18 @@
  */
 
 import React, { useMemo, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line,
-  AreaChart, Area, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
+  AreaChart, Area
 } from 'recharts';
-import { format as formatDate, parseISO, subDays, subMonths, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { format as formatDate, parseISO, subDays, subMonths, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
-  BarChart3, PieChart as PieChartIcon, TrendingUp, TrendingDown,
-  Calendar, Filter, Download, Eye, EyeOff, Plus, Minus, Settings,
-  ChevronDown, ChevronUp, RefreshCw, Save, Trash2, Edit3, Check,
-  X, AlertTriangle, DollarSign, Users, ShoppingCart, Wrench,
-  ArrowUpRight, ArrowDownRight, Minus as MinusIcon, FileText,
-  Printer, Share2, Maximize2, Minimize2, LayoutDashboard
+  BarChart3, PieChart as PieChartIcon, TrendingUp, TrendingDown, Download,
+  ChevronDown, ChevronUp, DollarSign,
+  ArrowUpRight, ArrowDownRight, Minus as MinusIcon, FileText, Maximize2, Minimize2
 } from 'lucide-react';
 import { cn, formatCurrency } from '../../lib/utils';
 import { Transaction, Category } from '../../types';
@@ -124,12 +121,6 @@ export const EnhancedReports: React.FC<EnhancedReportsProps> = ({
   // 🔍 FILTER: Transações filtradas
   const filteredTransactions = useMemo(() => {
     // 📊 DEBUG: Log de filtragem
-    console.log('[REPORTS] 🔍 FILTER: Iniciando filtragem', {
-      totalTransactions: transactions.length,
-      dateRange,
-      typeFilter: reportTypeFilter,
-      categoryFilter: reportCategoryFilter
-    });
 
     const filtered = transactions.filter(tx => {
       const txDate = new Date(tx.date);
@@ -155,16 +146,12 @@ export const EnhancedReports: React.FC<EnhancedReportsProps> = ({
       return true;
     });
 
-    console.log('[REPORTS] 🔍 FILTER: Filtragem concluída', {
-      filteredCount: filtered.length
-    });
 
     return filtered;
   }, [transactions, dateRange, reportTypeFilter, reportCategoryFilter]);
 
   // 🧮 CALCULATION: KPIs principais
   const kpis = useMemo(() => {
-    console.log('[REPORTS] 🧮 CALCULATION: Calculando KPIs');
 
     const totalIncome = filteredTransactions
       .filter(t => t.type === 'income')
@@ -247,13 +234,11 @@ export const EnhancedReports: React.FC<EnhancedReportsProps> = ({
       },
     ];
 
-    console.log('[REPORTS] 🧮 CALCULATION: KPIs calculados', { kpis: kpiList.length });
     return kpiList;
   }, [filteredTransactions, dateRange, transactions]);
 
   // 🧮 CALCULATION: Dados para gráfico de barras (Receitas vs Despesas mensal)
   const monthlyBarData = useMemo(() => {
-    console.log('[REPORTS] 🧮 CALCULATION: Calculando dados mensais');
 
     const byMonth: Record<string, { income: number; expense: number }> = {};
 
@@ -289,7 +274,6 @@ export const EnhancedReports: React.FC<EnhancedReportsProps> = ({
 
   // 🧮 CALCULATION: Dados para gráfico de pizza (Por categoria)
   const categoryPieData = useMemo(() => {
-    console.log('[REPORTS] 🧮 CALCULATION: Calculando dados por categoria');
 
     const byCategory: Record<string, number> = {};
 
@@ -310,7 +294,6 @@ export const EnhancedReports: React.FC<EnhancedReportsProps> = ({
 
   // 🧮 CALCULATION: Dados para gráfico de linha (Tendência)
   const trendLineData = useMemo(() => {
-    console.log('[REPORTS] 🧮 CALCULATION: Calculando tendência');
 
     const byDay: Record<string, { income: number; expense: number; balance: number }> = {};
 
@@ -352,7 +335,6 @@ export const EnhancedReports: React.FC<EnhancedReportsProps> = ({
 
   // 🧮 CALCULATION: Dados para gráfico de área (Fluxo de Caixa)
   const cashFlowData = useMemo(() => {
-    console.log('[REPORTS] 🧮 CALCULATION: Calculando fluxo de caixa');
 
     let runningBalance = 0;
     const startBalance = 0; // Pode ser configurado das settings
@@ -373,7 +355,6 @@ export const EnhancedReports: React.FC<EnhancedReportsProps> = ({
 
   // Função para exportar dados
   const exportData = useCallback((format: 'csv' | 'json') => {
-    console.log('[REPORTS] 📊 DEBUG: Exportando dados em formato', format);
 
     if (format === 'json') {
       const dataStr = JSON.stringify({
@@ -594,7 +575,7 @@ export const EnhancedReports: React.FC<EnhancedReportsProps> = ({
                 </Pie>
                 <Tooltip
                   contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: 12 }}
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={(value) => formatCurrency(Number(value))}
                 />
                 <Legend />
               </PieChart>

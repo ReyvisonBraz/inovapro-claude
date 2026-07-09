@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import {
   TrendingUp, TrendingDown, Wallet, Wrench, Package,
-  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Plus, Minus,
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Plus,
 } from 'lucide-react';
 import { AreaChart, Area, CartesianGrid, XAxis, Tooltip, BarChart, Bar } from 'recharts';
 import { StatCard } from '../ui/StatCard';

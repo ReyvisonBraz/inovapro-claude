@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppSettings } from '../../types';
-import { MessageCircle, Info } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 
 interface WhatsAppSettingsProps {
   settings: AppSettings;

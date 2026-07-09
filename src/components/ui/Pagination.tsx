@@ -17,8 +17,6 @@ export const Pagination: React.FC<PaginationProps> = ({
   totalItems,
   limit
 }) => {
-  if (totalPages <= 1) return null;
-
   const startItem = (currentPage - 1) * limit + 1;
   const endItem = Math.min(currentPage * limit, totalItems);
 
@@ -37,6 +35,9 @@ export const Pagination: React.FC<PaginationProps> = ({
     }
     return items;
   }, [currentPage, totalPages]);
+
+  // Early-return depois dos hooks (regra dos hooks: chamada incondicional).
+  if (totalPages <= 1) return null;
 
   return (
     <div className="flex items-center justify-between mt-6">

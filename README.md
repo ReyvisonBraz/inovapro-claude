@@ -76,20 +76,21 @@ npm run build
 
 Gera Prisma Client e cria o build de producao do frontend.
 
-## Estado Atual
+## Qualidade e verificacao
 
-Validado localmente em 26 de maio de 2026:
+- `npm run lint`: ESLint (flat config; react-hooks + unused-imports).
+- `npm run typecheck`: `tsc --noEmit` com **strict mode** ativado.
+- `npm run test:coverage`: Vitest com cobertura e thresholds (catraca).
+- `npm run verify`: lint + typecheck + testes (gate local).
+- `npm run e2e`: smoke E2E do login com Playwright (requer `E2E_PASS`).
 
-- `npm.cmd run lint`: passou.
-- `npm.cmd test -- --run`: passou com 4 arquivos e 36 testes.
-- `npm.cmd run build`: passou.
-
-O build ainda mostra um aviso de chunks grandes do Vite. Esse aviso nao bloqueia a geracao, mas deve ser tratado em uma etapa futura de otimizacao.
+Um saneamento de qualidade esta em andamento (seguranca, tipagem, testes). O
+plano e o progresso vivem em [docs/planejamento-qualidade/](./docs/planejamento-qualidade/)
+(indice em `README.md`, estado em `PROGRESSO.md`).
 
 ## Documentacao
 
-- [Status do projeto](./STATUS.md)
-- [Plano de saneamento](./docs/PLANO-SANEAMENTO-INOVA-PRO.md)
+- [Planejamento de qualidade](./docs/planejamento-qualidade/README.md) — plano e progresso do saneamento.
 - [Documentacao tecnica](./docs/README.md)
 
 Alguns documentos antigos ainda podem mencionar SQLite ou Supabase como plano de migracao. A referencia atual do projeto e Express + Prisma + PostgreSQL.

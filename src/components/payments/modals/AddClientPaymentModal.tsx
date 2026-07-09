@@ -169,7 +169,7 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
                 <div className="flex gap-2">
                   <CustomerSearchSelect 
                     customers={customers}
-                    selectedId={typeof customerId === 'string' ? parseInt(customerId) || 0 : customerId}
+                    selectedId={typeof customerId === 'string' ? parseInt(customerId) || 0 : (customerId ?? 0)}
                     onSelect={(id) => setValue('customerId', id, { shouldValidate: true })}
                     className="flex-1"
                   />

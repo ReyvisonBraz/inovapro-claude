@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AppSettings, Screen } from '../types';
+import { Screen } from '../types';
 
 interface AppState {
   activeScreen: Screen;

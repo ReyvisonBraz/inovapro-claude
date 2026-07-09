@@ -10,12 +10,16 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { requireAuth } from './src/middleware/auth.js';
-import { prisma, testConnection, disconnect } from './src/lib/prisma.js';
+import { testConnection } from './src/lib/prisma.js';
 import authRoutes from './src/routes/auth.js';
 import publicRoutes from './src/routes/public.js';
 import protectedRoutes from './src/routes/index.js';
+import meRoutes from './src/routes/me.js';
+import healthRoutes from './src/routes/health.js';
 import { requestLogger, errorHandler, error, info } from './src/lib/server-logger.js';
+import { isOriginAllowed } from './src/lib/cors.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,103 +43,66 @@ const app = express();
  * ─── Middleware Global ───
  */
 
-// Helmet: segurança HTTP ajustada para cross-origin
+// Helmet com CSP explícita (antes estava desligada).
+// Origem da API quando o front está em domínio separado (opcional).
+const apiOrigin = process.env.PUBLIC_API_ORIGIN;
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],       // estilos injetados (motion/inline)
+      imgSrc: ["'self'", 'data:', 'https:'],           // avatares/QR/base64/storage
+      connectSrc: ["'self'", ...(apiOrigin ? [apiOrigin] : [])],
+      fontSrc: ["'self'", 'data:'],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'self'"],
+    },
+  },
   crossOriginResourcePolicy: { policy: 'cross-origin' },
-  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
 }));
 
-// Configuração robusta de CORS
-const allowedOrigins = [
-  'https://inovapro-theta.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:5173',
-  'http://127.0.0.1:5173'
-];
-
+// CORS: decisão isolada e testável em src/lib/cors.ts.
+// Origem desconhecida é REJEITADA (antes o código liberava tudo em produção).
 app.use(cors({
   origin: (origin, callback) => {
-    // Permitir requisições sem origin (como ferramentas de teste)
-    if (!origin) return callback(null, true);
-    
-    const isAllowed = allowedOrigins.includes(origin) || origin.endsWith('.vercel.app');
-    
-    if (isAllowed || process.env.NODE_ENV !== 'production') {
+    if (isOriginAllowed(origin, process.env.NODE_ENV)) {
       callback(null, true);
     } else {
-      // Em produção, vamos ser liberais por enquanto para debugar, mas logar
-      console.warn(`[CORS] Origem não listada tentando acessar: ${origin}`);
-      callback(null, true);
+      console.warn(`[CORS] Origem bloqueada: ${origin}`);
+      callback(new Error('Origem não permitida pelo CORS'));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range']
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
 }));
-
-// Handler explícito para preflight OPTIONS (crítico para alguns navegadores/proxies)
-app.options('*', (req, res) => {
-  const origin = req.headers.origin;
-  if (origin) {
-    res.header('Access-Control-Allow-Origin', origin);
-  } else {
-    res.header('Access-Control-Allow-Origin', '*');
-  }
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(204);
-});
+// O middleware cors() acima já responde ao preflight OPTIONS respeitando a
+// allowlist — não há handler manual que ecoe qualquer Origin.
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ limit: '5mb', extended: true }));
+app.use(cookieParser());
 
 // Logger de requisições
 app.use(requestLogger);
 
 /*
- * ─── Health Check e Diagnóstico ───
+ * ─── Health Check (sem vazar ambiente) ───
+ * /health e /ping minimalistas. Os antigos /api/ping (vazava DB_HOST/env) e
+ * /api/db-test (vazava version() e stack) foram removidos.
  */
-app.get('/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0-prisma',
-    uptime: process.uptime(),
-  });
-});
-
-app.get('/api/ping', (_req, res) => {
-  res.json({
-    ok: true,
-    env: {
-      DATABASE_URL: process.env.DATABASE_URL ? 'definido' : 'ausente',
-      DB_HOST: process.env.DB_HOST || 'ausente',
-      NODE_ENV: process.env.NODE_ENV || 'ausente',
-    },
-  });
-});
-
-app.get('/api/db-test', async (_req, res) => {
-  try {
-    await prisma.$connect();
-    const r = await prisma.$queryRawUnsafe('SELECT 1 AS ok, version() AS v');
-    await prisma.$disconnect();
-    res.json({ ok: true, result: r });
-  } catch (err: any) {
-    await prisma.$disconnect().catch(() => {});
-    res.status(500).json({ ok: false, erro: err?.message || String(err), code: err?.code, stack: err?.stack });
-  }
-});
+app.use(healthRoutes);        // /health, /ping
+app.use('/api', healthRoutes); // /api/ping (compatibilidade), sem env
 
 /*
  * ─── Rotas ───
  */
 app.use('/api', authRoutes);
 app.use('/api', publicRoutes);
+app.use('/api', requireAuth, meRoutes);
 app.use('/api', requireAuth, protectedRoutes);
 
 /*
@@ -167,6 +134,5 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
   app.listen(PORT, '0.0.0.0', () => {
     info(`Servidor rodando em http://localhost:${PORT}`, { details: { port: PORT, env: process.env.NODE_ENV || 'development' } });
-    console.log(`[SERVER] Rodando em http://localhost:${PORT}`);
   });
 }

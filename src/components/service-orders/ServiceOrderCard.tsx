@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   Briefcase, ChevronDown, AlertTriangle, Clock, 
   Smartphone, Calendar, Wallet, QrCode, 
-  MessageCircle, Printer, Edit, Trash2, Check, MoreHorizontal
+  MessageCircle, Printer, Edit, Trash2, Check
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';

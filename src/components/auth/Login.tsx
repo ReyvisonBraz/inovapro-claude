@@ -1,19 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { User, Lock, AlertCircle, Eye, EyeOff, Wrench } from 'lucide-react';
+import type { User as AppUser } from '../../types';
 import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 
 interface LoginProps {
-  onLogin: (token: string, user: User) => void;
-}
-
-interface User {
-  id: number;
-  username: string;
-  name: string;
-  role: string;
-  permissions: string[];
+  onLogin: (user: AppUser) => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin }) => {
@@ -34,12 +27,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
       const response = await fetch(`${API_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // recebe o cookie httpOnly de sessão
         body: JSON.stringify({ username, password }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        onLogin(data.token, data.user);
+        onLogin(data.user);
       } else {
         const data = await response.json();
         setError(data.error || 'Falha no login');

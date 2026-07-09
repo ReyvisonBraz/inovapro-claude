@@ -1,8 +1,6 @@
 import React from 'react';
-import { motion } from 'motion/react';
-import { 
-  History, Search, Filter, Calendar, 
-  User, Activity, ChevronRight 
+import { Search, 
+  User 
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { AuditLog } from '../../types';
@@ -17,8 +15,8 @@ const AuditLogs: React.FC<AuditLogsProps> = ({ auditLogs }) => {
 
   const filteredLogs = auditLogs.filter(log => 
     log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.userName.toLowerCase().includes(searchTerm.toLowerCase())
+    (log.details ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (log.userName ?? '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (

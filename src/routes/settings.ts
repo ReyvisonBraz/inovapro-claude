@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { error } from '../lib/server-logger.js';
+import { validate } from '../middleware/validate.js';
+import { SettingsSchema } from './schemas.js';
 
 const router = Router();
 
@@ -25,7 +27,7 @@ router.get('/', async (_req: Request, res: Response) => {
   }
 });
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', validate(SettingsSchema), async (req: Request, res: Response) => {
   try {
     const {
       appName, appVersion, fiscalYear, primaryColor, categories,

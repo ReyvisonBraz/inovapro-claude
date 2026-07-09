@@ -24,11 +24,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: TypeScript check
+      - name: Lint (ESLint)
         run: npm run lint
 
-      - name: Run tests
-        run: npm test -- --run
+      - name: TypeScript check
+        run: npm run typecheck
+
+      - name: Testes + cobertura (com thresholds)
+        run: npm run test:coverage
 
   build:
     name: Build

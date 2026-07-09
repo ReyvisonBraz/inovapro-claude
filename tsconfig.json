@@ -22,7 +22,8 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true,
+    "strict": true,
     "types": ["vite/client"]
   },
-  "exclude": ["supabase/**/*"]
+  "exclude": ["supabase/**/*", "scripts/**/*", "e2e/**/*"]
 }

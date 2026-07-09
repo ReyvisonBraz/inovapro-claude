@@ -31,7 +31,7 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
     const osNumber = `#OS-${order.id.toString().padStart(4, '0')}`;
     const equipment = `${order.equipmentType || ''} ${order.equipmentBrand || ''} ${order.equipmentModel || ''}`.trim();
     
-    let template = settings.whatsappOSTemplate || '';
+    const template = settings.whatsappOSTemplate || '';
     
     if (!template) {
       let message = `*ORDEM DE SERVIÇO ${osNumber}*\n\n`;

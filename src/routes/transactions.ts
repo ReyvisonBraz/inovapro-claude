@@ -4,6 +4,7 @@ import { error, info } from '../lib/server-logger.js';
 import { transactionService } from '../services/transaction.service.js';
 import { validate } from '../middleware/validate.js';
 import { AppError } from '../lib/errors.js';
+import { AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -30,9 +31,9 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/', validate(TransactionSchema), async (req: Request, res: Response) => {
+router.post('/', validate(TransactionSchema), async (req: AuthRequest, res: Response) => {
   try {
-    const transaction = await transactionService.create(req.body);
+    const transaction = await transactionService.create({ ...req.body, createdBy: req.user!.userId });
 
     info('Transação criada', { details: { id: transaction.id, description: transaction.description, type: transaction.type, amount: transaction.amount, date: transaction.date } });
     res.json({ id: transaction.id });
@@ -42,11 +43,11 @@ router.post('/', validate(TransactionSchema), async (req: Request, res: Response
   }
 });
 
-router.put('/:id', validate(TransactionSchema), async (req: Request, res: Response) => {
+router.put('/:id', validate(TransactionSchema), async (req: AuthRequest, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const expectedVersion = typeof req.body.version === 'number' ? req.body.version : undefined;
-    await transactionService.update(id, req.body, expectedVersion);
+    await transactionService.update(id, { ...req.body, updatedBy: req.user!.userId }, expectedVersion);
 
     res.json({ success: true });
   } catch (err) {

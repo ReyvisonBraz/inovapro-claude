@@ -3,22 +3,16 @@ import { FormProvider, useForm, useFieldArray, type FieldArrayPath } from 'react
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  X, User as UserIcon, Calendar, Plus, Search, 
-  Cpu, HardDrive, Lock, Camera, Trash2, AlertCircle, 
-  ClipboardList, Wrench, ChevronDown, ChevronUp, Check, QrCode
+  X, Check, QrCode
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { ServiceOrderPart, ServiceOrderItem } from '../../types';
 import { useServiceOrderFormContext } from '../../contexts/ServiceOrderFormContext';
 import { useFormStore } from '../../store/useFormStore';
-import { cn, formatCurrency } from '../../lib/utils';
-import { CustomerSearchSelect } from '../customers/CustomerSearchSelect';
-import { SearchableSelect } from '../ui/SearchableSelect';
+import { formatCurrency } from '../../lib/utils';
 import { ServicesAndPartsSection } from './form-sections/ServicesAndPartsSection';
 import { EquipmentSection } from './form-sections/EquipmentSection';
 import { CustomerSection } from './form-sections/CustomerSection';
 import { AnalysisSection } from './form-sections/AnalysisSection';
-import { ClosingSection } from './form-sections/ClosingSection';
 import { serviceOrderSchema, ServiceOrderFormData } from '../../schemas/serviceOrderSchema';
 import { format, parseISO } from 'date-fns';
 import { sendWhatsAppStatusUpdate } from '../../lib/whatsappUtils';
@@ -198,8 +192,8 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
   // Atualizar totais quando serviços ou peças mudarem (apenas se usuário não editou manualmente)
   useEffect(() => {
     if (manuallyEditedFee.current) return;
-    const servicesTotal = watchedServices.reduce((acc, s) => acc + (Number(s.price) || 0), 0);
-    const partsTotal = watchedParts.reduce((acc, p) => acc + (Number(p.subtotal) || 0), 0);
+    const servicesTotal = (watchedServices ?? []).reduce((acc, s) => acc + (Number(s.price) || 0), 0);
+    const partsTotal = (watchedParts ?? []).reduce((acc, p) => acc + (Number(p.subtotal) || 0), 0);
     const total = servicesTotal + partsTotal;
     
     setValue('serviceFee', servicesTotal);
@@ -304,7 +298,7 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
         setValue('equipmentBrand', '');
         setValue('equipmentModel', '');
       } else if (quickAddModal.type === 'brand') {
-        await onAddBrand(quickAddModal.value.trim(), watchedEquipmentType);
+        await onAddBrand(quickAddModal.value.trim(), watchedEquipmentType ?? '');
         setValue('equipmentBrand', quickAddModal.value.trim());
         setValue('equipmentModel', '');
       } else if (quickAddModal.type === 'model') {
@@ -363,7 +357,7 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
         setEditingOrder(null);
 
         const notifyStatuses = ['Concluído', 'Pronto', 'Aguardando Autorização', 'Aguardando Aprovação'];
-        if (notifyStatuses.includes(orderData.status)) {
+        if (notifyStatuses.includes(orderData.status ?? '')) {
           const appUrl = window.location.origin;
           const orderWithCustomer = { ...editingOrder, ...orderData };
           const customer = customers.find(c => c.id === editingOrder.customerId);
@@ -479,7 +473,7 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
               onAddBrand={onAddBrand}
               onAddModel={onAddModel}
               setQuickAddModal={setQuickAddModal}
-              showToast={showToast}
+              showToast={showToast as (msg: string, type: string) => void}
               watchedArrivalPhotos={watchedArrivalPhotos}
               addPhoto={addPhoto}
               removePhoto={removePhoto}
@@ -495,11 +489,11 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
             <ServicesAndPartsSection 
               inventoryItems={inventoryItems}
               serviceFields={serviceFields}
-              watchedServices={watchedServices}
+              watchedServices={watchedServices ?? []}
               appendService={appendService}
               removeService={removeService}
               partFields={partFields}
-              watchedParts={watchedParts}
+              watchedParts={watchedParts ?? []}
               appendPart={appendPart}
               removePart={removePart}
               updatePart={updatePart}

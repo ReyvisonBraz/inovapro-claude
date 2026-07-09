@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Transactions } from '../components/transactions/Transactions';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettingsStore } from '../store/useSettingsStore';

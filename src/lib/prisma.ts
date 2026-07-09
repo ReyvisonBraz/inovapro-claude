@@ -54,7 +54,6 @@ pool.on('error', (err) => {
 export async function testConnection(): Promise<boolean> {
   try {
     await prisma.$connect();
-    console.log('[PRISMA] ✅ Connected to database');
     return true;
   } catch (error) {
     console.error('[PRISMA] ❌ Connection failed:', error);

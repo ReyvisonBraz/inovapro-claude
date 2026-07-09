@@ -37,12 +37,13 @@ export const sendWhatsAppStatusUpdate = (
 
   const osNumber = `#OS-${order.id.toString().padStart(4, '0')}`;
   const equipment = `${order.equipmentType || ''} ${order.equipmentBrand || ''} ${order.equipmentModel || ''}`.trim() || 'Equipamento';
-  const trackingUrl = `${appUrl}/rastreio?osId=${order.id}`;
+  // Rastreio por token não-adivinhável (?t=<token>); id sequencial não é mais aceito.
+  const trackingUrl = `${appUrl}/rastreio?t=${order.publicToken ?? ''}`;
 
   const isComplete = order.status === 'Concluído' || order.status === 'Pronto';
   const isPendingAuth = order.status === 'Aguardando Autorização' || order.status === 'Aguardando Aprovação';
 
-  let message = '';
+  let message: string;
 
   if (isComplete) {
     message =

@@ -3,7 +3,7 @@ import {
   Plus, Trash2, Smartphone, Monitor, Printer, Laptop, Cpu, 
   Gamepad2, Tablet, MonitorCheck, HardDrive, Tag, X,
   Watch, Camera, Speaker, Headphones, Tv, MousePointer2, Keyboard,
-  Radio, Mic, Battery, Wifi, Settings as SettingsIcon,
+  Radio, Mic, Battery, Wifi,
   Box, Layers, Layout, Grid, List as ListIcon, Search, Edit2, Check, Info
 } from 'lucide-react';
 import { Brand, Model, EquipmentType } from '../../types';

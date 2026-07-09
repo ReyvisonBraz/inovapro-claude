@@ -1,5 +1,4 @@
 import React from 'react';
-import { Plus, Printer } from 'lucide-react';
 import { CustomerList } from './CustomerList';
 import { Customer, ClientPayment, AppSettings } from '../../types';
 

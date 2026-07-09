@@ -8,7 +8,6 @@ import { useFilterStore } from '../store/useFilterStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useModalStore } from '../store/useModalStore';
-import { useFormStore } from '../store/useFormStore';
 import { useAppStore } from '../store/useAppStore';
 import { useDebounce } from '../hooks/useDebounce';
 import { useReceipt } from '../hooks/useReceipt';
@@ -31,10 +30,10 @@ export const ClientPaymentsPage: React.FC = () => {
   const { customers, allCustomers } = useCustomers();
   const { settings } = useSettingsStore();
   const { currentUser } = useAuthStore();
-  const { 
+  const {
     paymentSearchTerm, setPaymentSearchTerm,
-    paymentFilterStatus, setPaymentFilterStatus,
-    paymentSortMode, setPaymentSortMode
+    paymentFilterStatus,
+    paymentSortMode
   } = useFilterStore();
   
   const [localSearchTerm, setLocalSearchTerm] = useState(paymentSearchTerm);
@@ -57,17 +56,16 @@ export const ClientPaymentsPage: React.FC = () => {
     openConfirm
   } = useModalStore();
   
-  const { 
-    isAddingClientPayment, setIsAddingClientPayment,
-    expandedPayments, togglePaymentExpansion,
+  const {
+    setIsAddingClientPayment,
     setIsAddingCustomer,
     setCustomerRegistrationSource
   } = useAppStore();
 
   const clientPayments = clientPaymentsQuery.data || { data: [], meta: { page: 1, totalPages: 1, total: 0, limit: 10 } };
 
-  const filteredClientPayments = clientPayments.data.filter(payment => {
-    const matchesSearch = payment.customerName.toLowerCase().includes(paymentSearchTerm.toLowerCase()) || 
+  const filteredClientPayments = clientPayments.data.filter((payment: ClientPayment) => {
+    const matchesSearch = (payment.customerName ?? '').toLowerCase().includes(paymentSearchTerm.toLowerCase()) ||
                           payment.description.toLowerCase().includes(paymentSearchTerm.toLowerCase());
     
     if (!matchesSearch) return false;
@@ -81,11 +79,11 @@ export const ClientPaymentsPage: React.FC = () => {
       case 'overdue': return isOverdue;
       default: return true;
     }
-  }).sort((a, b) => {
+  }).sort((a: ClientPayment, b: ClientPayment) => {
     if (paymentSortMode === 'amount') {
       return b.totalAmount - a.totalAmount;
     } else if (paymentSortMode === 'alphabetical') {
-      return a.customerName.localeCompare(b.customerName);
+      return (a.customerName ?? '').localeCompare(b.customerName ?? '');
     } else {
       return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
     }
@@ -122,7 +120,7 @@ export const ClientPaymentsPage: React.FC = () => {
         const installmentAmount = remainingAmount / installmentsCount;
 
         for (let i = 0; i < installmentsCount; i++) {
-          let dueDate = new Date(data.dueDate + 'T12:00:00');
+          const dueDate = new Date(data.dueDate + 'T12:00:00');
           if (interval === 'monthly') {
             dueDate.setMonth(dueDate.getMonth() + i);
           } else if (interval === 'biweekly' || interval === '15days') {
@@ -241,18 +239,8 @@ export const ClientPaymentsPage: React.FC = () => {
         limit: clientPayments.meta.limit
       }}
       onPageChange={setPaymentsPage}
-      isAddingClientPayment={isAddingClientPayment}
-      setIsAddingClientPayment={setIsAddingClientPayment}
-      expandedPayments={expandedPayments}
-      togglePaymentExpansion={togglePaymentExpansion}
       paymentSearchTerm={localSearchTerm}
       setPaymentSearchTerm={setLocalSearchTerm}
-      paymentFilterStatus={paymentFilterStatus}
-      setPaymentFilterStatus={setPaymentFilterStatus}
-      paymentSortMode={paymentSortMode}
-      setPaymentSortMode={setPaymentSortMode}
-      isRecordingPayment={isRecordingPayment}
-      setIsRecordingPayment={setIsRecordingPayment}
       onTriggerAddCustomer={() => {
         setCustomerRegistrationSource('payments');
         setIsAddingCustomer(true);

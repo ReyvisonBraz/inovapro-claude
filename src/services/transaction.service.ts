@@ -1,5 +1,4 @@
 import { prisma } from '../lib/prisma.js';
-import { z } from 'zod';
 import { ConflictError, NotFoundError } from '../lib/errors.js';
 
 // Tipagem parcial compatível com o TransactionSchema das rotas
@@ -72,7 +71,7 @@ export class TransactionService {
   async create(data: TransactionData) {
     const { description, category, type, amount, date, createdBy, customerId, customerName, customerPhone } = data;
     
-    let finalCustomerId = customerId;
+    const finalCustomerId = customerId;
     let finalCustomerName = customerName;
     let finalCustomerPhone = customerPhone;
     

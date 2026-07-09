@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Cpu, HardDrive, Lock, Camera, Trash2, X } from 'lucide-react';
+import { Plus, Cpu, HardDrive, Lock, Camera, Trash2 } from 'lucide-react';
 import { useFormContext } from 'react-hook-form';
 import { SearchableSelect } from '../../ui/SearchableSelect';
 import { ServiceOrderFormData } from '../../../schemas/serviceOrderSchema';

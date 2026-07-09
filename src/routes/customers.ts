@@ -3,6 +3,7 @@ import { customerSchema as CustomerSchema } from '../schemas/customerSchema.js';
 import { error, info } from '../lib/server-logger.js';
 import { customerService } from '../services/customer.service.js';
 import { validate } from '../middleware/validate.js';
+import { AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -20,9 +21,10 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/', validate(CustomerSchema), async (req: Request, res: Response) => {
+router.post('/', validate(CustomerSchema), async (req: AuthRequest, res: Response) => {
   try {
-    const { forceCreate, ...customerData } = req.body;
+    const { forceCreate, ...rest } = req.body;
+    const customerData = { ...rest, createdBy: req.user!.userId };
 
     if (!forceCreate) {
       const existingByPhone = await customerService.findByPhone(customerData.phone);
@@ -46,10 +48,10 @@ router.post('/', validate(CustomerSchema), async (req: Request, res: Response) =
   }
 });
 
-router.put('/:id', validate(CustomerSchema), async (req: Request, res: Response) => {
+router.put('/:id', validate(CustomerSchema), async (req: AuthRequest, res: Response) => {
   try {
     const customerId = parseInt(req.params.id);
-    await customerService.update(customerId, req.body);
+    await customerService.update(customerId, { ...req.body, updatedBy: req.user!.userId });
 
     info('Cliente atualizado', { details: { id: customerId, name: `${req.body.firstName} ${req.body.lastName}` } });
     res.json({ success: true, cascadeUpdated: true });
