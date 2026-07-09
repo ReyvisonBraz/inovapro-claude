@@ -30,8 +30,8 @@ jobs:
       - name: TypeScript check
         run: npm run typecheck
 
-      - name: Run tests
-        run: npm test -- --run
+      - name: Testes + cobertura (com thresholds)
+        run: npm run test:coverage
 
   build:
     name: Build
