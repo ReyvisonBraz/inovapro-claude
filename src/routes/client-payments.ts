@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { ClientPaymentSchema } from './schemas.js';
+import { ClientPaymentSchema, PaymentRegisterSchema } from './schemas.js';
 import { info } from '../lib/server-logger.js';
 import { clientPaymentService } from '../services/client-payment.service.js';
 import { validate } from '../middleware/validate.js';
@@ -34,7 +34,7 @@ router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   res.json({ success: true });
 }));
 
-router.post('/:id/pay', asyncHandler(async (req: AuthRequest, res: Response) => {
+router.post('/:id/pay', validate(PaymentRegisterSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { amount, date } = req.body;
   const paymentId = parseInt(req.params.id);
 

@@ -16,8 +16,9 @@ router.post('/generate', asyncHandler(async (req: Request, res: Response) => {
     const result = await genAI.models.generateContent({ model, contents: prompt });
     info('AI generate concluído', { details: { model, promptLength: prompt.length } });
     res.json({ text: result.text });
-  } catch {
-    throw new BusinessError('Erro ao chamar o modelo de IA. Tente novamente.');
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new BusinessError(`Erro ao chamar o modelo de IA: ${message}`);
   }
 }));
 

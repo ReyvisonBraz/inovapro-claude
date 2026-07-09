@@ -82,4 +82,9 @@ export const ServiceOrderStatusSchema = z.object({
   isDefault: z.coerce.number().optional(),
 });
 
+export const PaymentRegisterSchema = z.object({
+  amount: z.coerce.number().positive('Valor deve ser positivo'),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}/).optional(),
+});
+
 

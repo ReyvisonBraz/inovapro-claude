@@ -167,8 +167,9 @@ export class ClientPaymentService {
             version: { increment: 1 },
           },
         });
-      } catch (err: any) {
-        if (err?.code === 'P2025') throw new NotFoundError('Pagamento não encontrado');
+      } catch (err: unknown) {
+        const code = (err as { code?: string }).code;
+        if (code === 'P2025') throw new NotFoundError('Pagamento não encontrado');
         throw err;
       }
 

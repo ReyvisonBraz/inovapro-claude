@@ -131,8 +131,9 @@ export class TransactionService {
       let transaction;
       try {
         transaction = await tx.transaction.delete({ where: { id } });
-      } catch (err: any) {
-        if (err?.code === 'P2025') throw new NotFoundError('Transação não encontrada.');
+      } catch (err: unknown) {
+        const code = (err as { code?: string }).code;
+        if (code === 'P2025') throw new NotFoundError('Transação não encontrada.');
         throw err;
       }
 
@@ -148,8 +149,9 @@ export class TransactionService {
               version: { increment: 1 },
             },
           });
-        } catch (err: any) {
-          if (err?.code !== 'P2025') throw err; // pagamento já não existe: segue a exclusão
+        } catch (err: unknown) {
+          const code = (err as { code?: string }).code;
+          if (code !== 'P2025') throw err; // pagamento já não existe: segue a exclusão
         }
 
         if (payment) {

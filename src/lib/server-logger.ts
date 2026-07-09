@@ -116,22 +116,22 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
   const userId = (req as any).user?.userId;
   const username = (req as any).user?.username;
 
+  const statusCode = (err as any).statusCode || 500;
+  const isAppError = err instanceof AppError;
+
   error(err.message, err, {
     requestId,
     route: req.path,
     method: req.method,
     userId,
     username,
-    statusCode: 500,
+    statusCode,
     details: {
       body: sanitizeBody(req.body),
       query: req.query as Record<string, unknown>,
       params: req.params,
     },
   });
-
-  const statusCode = (err as any).statusCode || 500;
-  const isAppError = err instanceof AppError;
   res.status(statusCode).json({
     error: process.env.NODE_ENV === 'production' && !isAppError
       ? 'Erro interno do servidor'

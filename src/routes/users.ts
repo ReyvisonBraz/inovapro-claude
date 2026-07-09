@@ -30,8 +30,9 @@ router.post('/', validate(UserCreateSchema), asyncHandler(async (req: Request, r
     });
     info('Usuário criado', { details: { username, role } });
     res.status(201).json({ id: user.id });
-  } catch (err: any) {
-    if (err?.code === 'P2002') {
+  } catch (err: unknown) {
+    const code = (err as { code?: string }).code;
+    if (code === 'P2002') {
       throw new BusinessError(`Nome de usuário "${username}" já existe.`);
     }
     throw err;
