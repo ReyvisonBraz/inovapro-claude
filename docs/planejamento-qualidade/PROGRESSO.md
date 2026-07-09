@@ -2,9 +2,9 @@
 
 > Rastreador vivo. Atualizar ao concluir cada tarefa. Última atualização: **2026-07-09**.
 > Branch de trabalho: `qualidade/fase-0-preparacao` (~25 commits à frente de `main`).
-> Estado do build a cada commit: **ESLint 0 erros · `tsc` 0 erros (strict on) · 104 testes verdes** (baseline eram 50) + **E2E Playwright**. **Fases 0–4 completas; 5–6 no que é seguro/desbloqueado.**
+> Estado do build a cada commit: **ESLint 0 erros · `tsc` 0 erros (strict on) · 105 testes verdes** (baseline eram 50) + **E2E Playwright**. **Fases 0–5 completas; Fase 6 quase (só itens opcionais/arriscados).**
 >
-> **Restam só itens que dependem de você:** escolher a estratégia de deploy (Fase 5·01), e, se quiser, o refactor de prop drilling e a migração de datas (Fase 6·02/03, opcionais/arriscados).
+> **Deploy decidido: Vercel** (ver `docs/DEPLOY.md`). Restam só itens opcionais: prop drilling e datas String→DateTime (Fase 6·02/03), + ações de infra do dono (setar `REDIS_URL`, purga do histórico git de `backups/`, senha do banco).
 
 ## Legenda
 ✅ concluído · 🟡 parcial/adiado · ⬜ não iniciado
@@ -39,10 +39,10 @@
 - **Nota herdada:** testes de backend com supertest precisam de `// @vitest-environment node` + `server.close()` (o MSW global intercepta as requisições GET, mascarando o handler real). Padrão usado em todas as suítes de rota.
 - **Follow-up:** subir a cobertura ao longo do tempo (services têm muita lógica ainda não coberta); considerar job de E2E no CI (com secret `E2E_PASS` + browser).
 
-## Fase 5 — Deploy/Infra 🟡
-- ⬜ **01 escolher 1 deploy** — **DECISÃO DO DONO.** Existem 4 configs (Vercel/Render/Cloud Run/Cloud Build). Recomendado: **Render** (serviço único). Não removi as configs concorrentes porque não sei qual está em produção — apagar a errada derruba o app. Ver `fase-5-deploy-infra/01-escolher-deploy-unico.md`.
-- 🟡 **02 resíduo SQLite** — parcial: `better-sqlite3` removido (Fase 6·01) e Dockerfile limpo (dir SQLite removido). Falta o `DB_PATH`/env SQLite no `render.yaml` (fazer junto da decisão de deploy). **Bônus:** corrigi o Dockerfile para o `postinstall prisma generate` funcionar (copia `prisma/` antes do `npm ci`) — **não testado com build docker real**.
-- ⬜ **03 rate-limit/cache externos** — só necessário se o deploy for multi-instância. Se instância única (Render free), o in-memory atual serve. Condicional à decisão 01.
+## Fase 5 — Deploy/Infra ✅
+- ✅ **01 deploy único = Vercel** (decidido pelo dono). O `vercel.json` serve o front estático + a API serverless (`api/index.ts`) no mesmo domínio. **Removidas** as configs concorrentes: `render.yaml`, `cloudbuild.yaml`, `Dockerfile`, `scripts/deploy-cloud-run.sh`. Documentado em [`docs/DEPLOY.md`](../DEPLOY.md).
+- ✅ **02 resíduo SQLite** — `better-sqlite3` removido e o `Dockerfile` (com o resquício SQLite) removido de vez.
+- ✅ **03 rate-limit em Redis** — `src/lib/rate-limit.ts` (`makeLoginLimiter`): usa Redis se `REDIS_URL`, senão memória. Importante na Vercel (serverless): o rate-limit in-memory não protege entre instâncias — **setar `REDIS_URL` (ex.: Upstash) em produção** para o brute-force de login ser barrado. Cache do rastreio segue `node-cache` (TTL 2 min, aceitável).
 
 ## Fase 6 — Docs e Limpeza 🟡
 - ✅ **01 deps mortas** — `better-sqlite3`, `ts-morph` removidos; `vite` deduplicado (só devDeps).
