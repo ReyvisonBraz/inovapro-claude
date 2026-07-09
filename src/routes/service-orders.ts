@@ -1,102 +1,70 @@
 import { Router, Request, Response } from 'express';
 import { serviceOrderSchema as ServiceOrderSchema } from '../schemas/serviceOrderSchema.js';
-import { error, info } from '../lib/server-logger.js';
-import { z } from 'zod';
+import { info } from '../lib/server-logger.js';
 import { serviceOrderService } from '../services/service-order.service.js';
 import { publicOsCache, PUBLIC_OS_KEY } from '../lib/cache.js';
 import { validate } from '../middleware/validate.js';
-import { AppError } from '../lib/errors.js';
 import { AuthRequest } from '../middleware/auth.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 
 const router = Router();
 
-router.get('/', async (req: Request, res: Response) => {
-  try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
-    const search = req.query.search as string;
-    const status = req.query.status as string;
-    const priority = req.query.priority as string;
-    const sortBy = req.query.sortBy as string || 'newest';
+router.get('/', asyncHandler(async (req: Request, res: Response) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 20;
+  const search = req.query.search as string;
+  const status = req.query.status as string;
+  const priority = req.query.priority as string;
+  const sortBy = req.query.sortBy as string || 'newest';
 
-    const result = await serviceOrderService.findMany({
-      page, limit, search, status, priority, sortBy
-    });
+  const result = await serviceOrderService.findMany({
+    page, limit, search, status, priority, sortBy
+  });
 
-    res.json(result);
-  } catch (err) {
-    error('[SERVICE_ORDERS GET] Erro ao listar ordens de serviço', err);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+  res.json(result);
+}));
+
+router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
+  const id = parseInt(req.params.id);
+  const order = await serviceOrderService.findById(id);
+
+  if (!order) {
+    return res.status(404).json({ error: 'Ordem de serviço não encontrada' });
   }
-});
 
-router.get('/:id', async (req: Request, res: Response) => {
-  try {
-    const id = parseInt(req.params.id);
-    const order = await serviceOrderService.findById(id);
-    
-    if (!order) {
-      return res.status(404).json({ error: 'Ordem de serviço não encontrada' });
-    }
-    
-    res.json(order);
-  } catch (err) {
-    error('[SERVICE_ORDERS GET/:id] Erro ao buscar OS', err, { details: { id: req.params.id } });
-    res.status(500).json({ error: 'Erro interno do servidor' });
+  res.json(order);
+}));
+
+router.post('/', validate(ServiceOrderSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
+  const order = await serviceOrderService.create({ ...req.body, createdBy: req.user!.userId });
+
+  info('Ordem de serviço criada', { details: { id: order.id, customerId: req.body.customerId } });
+  res.status(201).json({ id: order.id });
+}));
+
+router.put('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const id = parseInt(req.params.id);
+  const { _clientUpdatedAt, version, ...bodyRest } = req.body;
+  const result = ServiceOrderSchema.partial().safeParse(bodyRest);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Falha na validação', details: result.error.issues });
   }
-});
+  const expectedVersion = typeof version === 'number' ? version : undefined;
 
-router.post('/', validate(ServiceOrderSchema), async (req: AuthRequest, res: Response) => {
-  try {
-    const order = await serviceOrderService.create({ ...req.body, createdBy: req.user!.userId });
+  const updatedOrder = await serviceOrderService.update(id, { ...result.data, updatedBy: req.user!.userId }, expectedVersion);
 
-    info('Ordem de serviço criada', { details: { id: order.id, customerId: req.body.customerId } });
-    res.json({ id: order.id });
-  } catch (err) {
-    error('[SERVICE_ORDERS POST] Erro ao criar OS', err);
-    res.status(500).json({ error: 'Erro interno do servidor' });
-  }
-});
+  publicOsCache.del(PUBLIC_OS_KEY(id));
+  info('Ordem de serviço atualizada', { details: { id: updatedOrder.id } });
+  res.json({ success: true, data: updatedOrder });
+}));
 
-router.put('/:id', async (req: AuthRequest, res: Response) => {
-  try {
-    const id = parseInt(req.params.id);
-    const { _clientUpdatedAt, version, ...bodyRest } = req.body;
-    const validatedData = ServiceOrderSchema.partial().parse(bodyRest);
-    const expectedVersion = typeof version === 'number' ? version : undefined;
+router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
+  const id = parseInt(req.params.id);
+  await serviceOrderService.delete(id);
 
-    const updatedOrder = await serviceOrderService.update(id, { ...validatedData, updatedBy: req.user!.userId }, expectedVersion);
-
-    publicOsCache.del(PUBLIC_OS_KEY(id));
-    info('Ordem de serviço atualizada', { details: { id: updatedOrder.id } });
-    res.json({ success: true, data: updatedOrder });
-  } catch (err: any) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Falha na validação', details: err.issues });
-    }
-    if (err.message === 'Nenhum campo para atualizar') {
-      return res.status(400).json({ error: err.message });
-    }
-    if (err instanceof AppError) {
-      return res.status(err.statusCode).json({ error: err.message });
-    }
-    error('[SERVICE_ORDERS PUT] Erro ao atualizar OS', err, { details: { id: req.params.id } });
-    res.status(500).json({ error: 'Erro interno do servidor' });
-  }
-});
-
-router.delete('/:id', async (req: Request, res: Response) => {
-  try {
-    const id = parseInt(req.params.id);
-    await serviceOrderService.delete(id);
-
-    publicOsCache.del(PUBLIC_OS_KEY(id));
-    info('Ordem de serviço excluída', { details: { id } });
-    res.json({ success: true });
-  } catch (err: any) {
-    error('[SERVICE_ORDERS DELETE] Erro ao excluir OS', err, { details: { id: req.params.id } });
-    res.status(400).json({ error: err.message });
-  }
-});
+  publicOsCache.del(PUBLIC_OS_KEY(id));
+  info('Ordem de serviço excluída', { details: { id } });
+  res.status(204).end();
+}));
 
 export default router;

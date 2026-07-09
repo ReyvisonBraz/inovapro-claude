@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Request, Response, NextFunction } from 'express';
+import { AppError } from '../lib/errors.js';
 
 export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 
@@ -130,8 +131,9 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
   });
 
   const statusCode = (err as any).statusCode || 500;
+  const isAppError = err instanceof AppError;
   res.status(statusCode).json({
-    error: process.env.NODE_ENV === 'production'
+    error: process.env.NODE_ENV === 'production' && !isAppError
       ? 'Erro interno do servidor'
       : err.message,
     requestId,

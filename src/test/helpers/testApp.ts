@@ -1,5 +1,6 @@
 import express, { Router } from 'express';
 import { vi } from 'vitest';
+import { errorHandler } from '../../lib/server-logger.js';
 
 export type TestUser = { userId: number; username: string; role: string };
 
@@ -32,5 +33,6 @@ export function makeApp(mountPath: string, router: Router, user: TestUser | null
   app.use(express.json());
   app.use((req, _res, next) => { if (user) (req as unknown as { user: TestUser }).user = user; next(); });
   app.use(mountPath, router);
+  app.use(errorHandler);
   return app;
 }

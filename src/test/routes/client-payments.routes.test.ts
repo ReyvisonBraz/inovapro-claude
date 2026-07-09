@@ -40,9 +40,9 @@ describe('rotas /client-payments', () => {
     expect(res.status).toBe(400);
   });
 
-  it('POST válido → 200 com id', async () => {
+  it('POST válido → 201 com id', async () => {
     const res = await request(app()).post('/api/client-payments').send(valid);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('id', 5);
   });
 
@@ -53,9 +53,9 @@ describe('rotas /client-payments', () => {
     expect(clientPaymentService.registerPayment).toHaveBeenCalled();
   });
 
-  it('DELETE responde success', async () => {
+  it('DELETE responde 204', async () => {
     const res = await request(app()).delete('/api/client-payments/5');
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
     expect(clientPaymentService.delete).toHaveBeenCalledWith(5);
   });
 });

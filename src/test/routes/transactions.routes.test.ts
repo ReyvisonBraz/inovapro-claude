@@ -36,10 +36,10 @@ describe('rotas /transactions', () => {
     expect(transactionService.create).not.toHaveBeenCalled();
   });
 
-  it('POST válido → 200 com id', async () => {
+  it('POST válido → 201 com id', async () => {
     const res = await request(app()).post('/api/transactions')
       .send({ description: 'v', category: 'Vendas', type: 'income', amount: 10, date: '2026-07-07' });
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('id', 10);
   });
 

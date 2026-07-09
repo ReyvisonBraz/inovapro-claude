@@ -45,16 +45,16 @@ describe('rotas /service-orders', () => {
     expect(res.status).toBe(400);
   });
 
-  it('POST válido → 200 com id', async () => {
+  it('POST válido → 201 com id', async () => {
     const res = await request(app()).post('/api/service-orders')
       .send({ customerId: 1, entryDate: '2026-07-07', status: 'Aguardando Análise' });
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('id', 3);
   });
 
-  it('DELETE invalida o cache e responde success', async () => {
+  it('DELETE invalida o cache e responde 204', async () => {
     const res = await request(app()).delete('/api/service-orders/3');
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
     expect(serviceOrderService.delete).toHaveBeenCalledWith(3);
   });
 });

@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma.js';
 import { CustomerFormData } from '../schemas/customerSchema.js';
+import { ConflictError, NotFoundError } from '../lib/errors.js';
 
 export class CustomerService {
   async findMany(options: { page?: number; limit?: number; search?: string }) {
@@ -46,16 +47,16 @@ export class CustomerService {
 
   async create(data: CustomerFormData) {
     const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, createdBy, updatedBy } = data;
-    
+
     return prisma.customer.create({
-      data: { 
-        firstName, 
-        lastName, 
-        nickname, 
-        cpf, 
-        companyName, 
-        phone, 
-        observation, 
+      data: {
+        firstName,
+        lastName,
+        nickname,
+        cpf,
+        companyName,
+        phone,
+        observation,
         creditLimit,
         createdBy,
         updatedBy
@@ -63,29 +64,45 @@ export class CustomerService {
     });
   }
 
-  async update(id: number, data: CustomerFormData) {
-    const { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, updatedBy } = data;
-    const fullName = `${firstName} ${lastName}`;
+  async update(id: number, data: Partial<CustomerFormData>, expectedVersion?: number) {
+    const fields = ['firstName', 'lastName', 'nickname', 'cpf', 'companyName', 'phone', 'observation', 'creditLimit', 'updatedBy'] as const;
+    const updateData: Record<string, unknown> = {};
+
+    for (const field of fields) {
+      const value = (data as Record<string, unknown>)[field];
+      if (value !== undefined) {
+        updateData[field] = value;
+      }
+    }
 
     return prisma.$transaction(async (tx) => {
-      // 1. Atualiza o cliente
-      const customer = await tx.customer.update({
-        where: { id },
-        data: { firstName, lastName, nickname, cpf, companyName, phone, observation, creditLimit, updatedBy, version: { increment: 1 } },
+      updateData.version = { increment: 1 };
+
+      const result = await tx.customer.updateMany({
+        where: expectedVersion !== undefined ? { id, version: expectedVersion } : { id },
+        data: updateData,
       });
 
-      // 2. Cascata em ordens de serviço e transações (desnormalização)
-      await tx.serviceOrder.updateMany({ 
-        where: { customerId: id }, 
-        data: { firstName, lastName, phone } 
-      });
-      
-      await tx.transaction.updateMany({ 
-        where: { customerId: id }, 
-        data: { customerName: fullName, customerPhone: phone } 
-      });
+      if (result.count === 0) {
+        const exists = await tx.customer.findUnique({ where: { id }, select: { id: true } });
+        if (!exists) throw new NotFoundError('Cliente não encontrado');
+        throw new ConflictError();
+      }
 
-      return customer;
+      if (updateData.firstName !== undefined || updateData.lastName !== undefined || updateData.phone !== undefined) {
+        const customer = await tx.customer.findUniqueOrThrow({ where: { id }, select: { firstName: true, lastName: true, phone: true } });
+        const fullName = `${customer.firstName} ${customer.lastName}`;
+        await tx.serviceOrder.updateMany({
+          where: { customerId: id },
+          data: { firstName: customer.firstName, lastName: customer.lastName, phone: customer.phone },
+        });
+        await tx.transaction.updateMany({
+          where: { customerId: id },
+          data: { customerName: fullName, customerPhone: customer.phone },
+        });
+      }
+
+      return tx.customer.findUniqueOrThrow({ where: { id } });
     });
   }
 
@@ -98,16 +115,16 @@ export class CustomerService {
   async delete(customerId: number) {
     return prisma.$transaction(async (tx) => {
       const payments = await tx.clientPayment.findMany({ where: { customerId } });
-      
+
       for (const p of payments) {
         await tx.transaction.deleteMany({ where: { paymentId: p.id } });
         await tx.receipt.deleteMany({ where: { paymentId: p.id } });
       }
-      
+
       await tx.clientPayment.deleteMany({ where: { customerId } });
       await tx.serviceOrder.deleteMany({ where: { customerId } });
       await tx.customer.delete({ where: { id: customerId } });
-      
+
       return true;
     });
   }

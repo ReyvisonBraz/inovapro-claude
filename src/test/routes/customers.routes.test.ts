@@ -37,9 +37,9 @@ describe('rotas /customers', () => {
     expect(res.status).toBe(400);
   });
 
-  it('POST válido (telefone novo) → 200 com id', async () => {
+  it('POST válido (telefone novo) → 201 com id', async () => {
     const res = await request(app()).post('/api/customers').send(validCustomer);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('id', 7);
     expect(customerService.create).toHaveBeenCalled();
   });
@@ -51,9 +51,9 @@ describe('rotas /customers', () => {
     expect(res.body.error).toBe('duplicate_phone');
   });
 
-  it('DELETE responde success', async () => {
+  it('DELETE responde 204', async () => {
     const res = await request(app()).delete('/api/customers/7');
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
     expect(customerService.delete).toHaveBeenCalledWith(7);
   });
 });

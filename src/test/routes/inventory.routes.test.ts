@@ -41,10 +41,10 @@ describe('rotas /inventory', () => {
     expect(res.status).toBe(400);
   });
 
-  it('POST válido → 200 com id', async () => {
+  it('POST válido → 201 com id', async () => {
     const res = await request(app()).post('/api/inventory')
       .send({ name: 'Peça', category: 'product', unitPrice: 10, stockLevel: 5 });
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('id', 8);
   });
 
@@ -54,8 +54,8 @@ describe('rotas /inventory', () => {
     expect(inventoryService.adjustStock).toHaveBeenCalledWith(8, -1, employee.userId);
   });
 
-  it('DELETE responde success', async () => {
+  it('DELETE responde 204', async () => {
     const res = await request(app()).delete('/api/inventory/8');
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
   });
 });

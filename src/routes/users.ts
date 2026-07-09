@@ -1,72 +1,61 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
+import { info } from '../lib/server-logger.js';
 import { hashPassword } from '../lib/password.js';
-import { error, info } from '../lib/server-logger.js';
 import { validate } from '../middleware/validate.js';
 import { UserCreateSchema, UserUpdateSchema } from './schemas.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
+import { BusinessError } from '../lib/errors.js';
 
 const router = Router();
 
-router.get('/', async (_req: Request, res: Response) => {
-  try {
-    const users = await prisma.user.findMany({
-      select: { id: true, username: true, role: true, name: true, permissions: true, createdAt: true },
-      orderBy: { name: 'asc' },
-    });
-    const usersWithPermissions = users.map(u => {
-      try { return { ...u, permissions: JSON.parse(u.permissions || '[]') }; }
-      catch { return { ...u, permissions: [] }; }
-    });
-    res.json(usersWithPermissions);
-  } catch (err) {
-    error('[USERS GET] Erro ao listar usuários', err);
-    res.status(500).json({ error: 'Erro interno do servidor' });
-  }
-});
+router.get('/', asyncHandler(async (_req: Request, res: Response) => {
+  const users = await prisma.user.findMany({
+    select: { id: true, username: true, role: true, name: true, permissions: true, createdAt: true },
+    orderBy: { name: 'asc' },
+  });
+  const usersWithPermissions = users.map(u => {
+    try { return { ...u, permissions: JSON.parse(u.permissions || '[]') }; }
+    catch { return { ...u, permissions: [] }; }
+  });
+  res.json(usersWithPermissions);
+}));
 
-router.post('/', validate(UserCreateSchema), async (req: Request, res: Response) => {
+router.post('/', validate(UserCreateSchema), asyncHandler(async (req: Request, res: Response) => {
+  const { username, password, role, name, permissions } = req.body;
+  const hashedPassword = await hashPassword(password);
   try {
-    const { username, password, role, name, permissions } = req.body;
-    const hashedPassword = await hashPassword(password);
     const user = await prisma.user.create({
       data: { username, password: hashedPassword, role, name, permissions: JSON.stringify(permissions || []) },
     });
     info('Usuário criado', { details: { username, role } });
-    res.json({ id: user.id });
+    res.status(201).json({ id: user.id });
   } catch (err: any) {
-    error('[USERS POST] Erro ao criar usuário', err, { details: { username: req.body.username } });
-    res.status(400).json({ error: err.message });
-  }
-});
-
-router.put('/:id', validate(UserUpdateSchema), async (req: Request, res: Response) => {
-  try {
-    const { name, role, password, permissions } = req.body;
-    const userId = parseInt(req.params.id);
-    const updateData: Record<string, unknown> = { name, role, permissions: JSON.stringify(permissions || []) };
-    if (password) {
-      updateData.password = await hashPassword(password);
+    if (err?.code === 'P2002') {
+      throw new BusinessError(`Nome de usuário "${username}" já existe.`);
     }
-    await prisma.user.update({ where: { id: userId }, data: updateData as any });
-    info('Usuário atualizado', { details: { id: userId, name } });
-    res.json({ success: true });
-  } catch (err: any) {
-    error('[USERS PUT] Erro ao atualizar usuário', err, { details: { id: req.params.id } });
-    res.status(400).json({ error: err.message });
+    throw err;
   }
-});
+}));
 
-router.delete('/:id', async (req: Request, res: Response) => {
-  try {
-    const userId = parseInt(req.params.id);
-    await prisma.auditLog.updateMany({ where: { userId }, data: { userId: null } });
-    await prisma.user.delete({ where: { id: userId } });
-    info('Usuário excluído', { details: { id: userId } });
-    res.json({ success: true });
-  } catch (err: any) {
-    error('[USERS DELETE] Erro ao excluir usuário', err, { details: { id: req.params.id } });
-    res.status(400).json({ error: err.message });
+router.put('/:id', validate(UserUpdateSchema), asyncHandler(async (req: Request, res: Response) => {
+  const { name, role, password, permissions } = req.body;
+  const userId = parseInt(req.params.id);
+  const updateData: Record<string, unknown> = { name, role, permissions: JSON.stringify(permissions || []) };
+  if (password) {
+    updateData.password = await hashPassword(password);
   }
-});
+  await prisma.user.update({ where: { id: userId }, data: updateData as Record<string, unknown> });
+  info('Usuário atualizado', { details: { id: userId, name } });
+  res.json({ success: true });
+}));
+
+router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
+  const userId = parseInt(req.params.id);
+  await prisma.auditLog.updateMany({ where: { userId }, data: { userId: null } });
+  await prisma.user.delete({ where: { id: userId } });
+  info('Usuário excluído', { details: { id: userId } });
+  res.status(204).end();
+}));
 
 export default router;
