@@ -2,30 +2,54 @@ import rateLimit from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import Redis from 'ioredis';
 
+let redisClient: Redis | null = null;
+
+function getRedisClient(): Redis | null {
+  if (redisClient) return redisClient;
+  if (!process.env.REDIS_URL) return null;
+  redisClient = new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: 3 });
+  return redisClient;
+}
+
+function withStore(options: Record<string, unknown>) {
+  const client = getRedisClient();
+  if (client) {
+    return rateLimit({
+      ...options,
+      store: new RedisStore({
+        sendCommand: (...args: string[]) => client.call(args[0], ...args.slice(1)) as Promise<never>,
+      }),
+    } as Parameters<typeof rateLimit>[0]);
+  }
+  return rateLimit(options as Parameters<typeof rateLimit>[0]);
+}
+
 /**
- * Rate limiter de login. Em deploy serverless (Vercel) o contador em memória
- * não é compartilhado entre instâncias — a proteção contra brute-force fica
- * fraca. Com `REDIS_URL` definido, usa Redis (contador compartilhado); sem ele,
- * cai para o store em memória (ok para instância única / dev).
+ * Rate limiter de login: 10 tentativas por 15 min por IP.
+ * Com REDIS_URL, o contador é compartilhado entre instâncias (importante
+ * em deploy serverless). Sem REDIS_URL, cai para memória (dev / instância única).
  */
 export function makeLoginLimiter() {
-  const base = {
+  return withStore({
     windowMs: 15 * 60 * 1000,
     max: 10,
     message: { error: 'Muitas tentativas. Tente novamente em 15 minutos.' },
     standardHeaders: true,
     legacyHeaders: false,
-  };
+  });
+}
 
-  if (process.env.REDIS_URL) {
-    const client = new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: 3 });
-    return rateLimit({
-      ...base,
-      store: new RedisStore({
-        sendCommand: (...args: string[]) => client.call(args[0], ...args.slice(1)) as Promise<never>,
-      }),
-    });
-  }
-
-  return rateLimit(base);
+/**
+ * Rate limiter de IA: 20 requisições por minuto por IP.
+ * A IA tem custo financeiro (Gemini API) e é um vetor de abuso —
+ * precisa de um teto mais apertado que as demais rotas.
+ */
+export function makeAiLimiter() {
+  return withStore({
+    windowMs: 60 * 1000,
+    max: 20,
+    message: { error: 'Limite de requisições de IA atingido. Aguarde um minuto.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
 }

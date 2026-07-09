@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import { validate } from '../middleware/validate.js';
 import { SettingsSchema } from './schemas.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import { hashPassword, verifyPassword } from '../lib/password.js';
 
 const router = Router();
 
@@ -41,7 +42,7 @@ router.post('/', validate(SettingsSchema), asyncHandler(async (req: Request, res
     osPrintConfig: req.body.osPrintConfig ?? undefined,
   };
 
-  if (req.body.settingsPassword) updateData.settingsPassword = req.body.settingsPassword;
+  if (req.body.settingsPassword) updateData.settingsPassword = await hashPassword(req.body.settingsPassword);
   if (req.body.sendPulseClientSecret) updateData.sendPulseClientSecret = req.body.sendPulseClientSecret;
 
   updateData.version = { increment: 1 };
@@ -51,6 +52,36 @@ router.post('/', validate(SettingsSchema), asyncHandler(async (req: Request, res
     data: updateData,
   });
   res.json({ success: true });
+}));
+
+router.post('/verify-password', asyncHandler(async (req: Request, res: Response) => {
+  const { password } = req.body;
+  if (typeof password !== 'string') {
+    return res.status(400).json({ error: 'Senha não fornecida' });
+  }
+
+  const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+  const stored = settings?.settingsPassword || '';
+
+  // Se nenhuma senha foi definida (campo vazio), aceita qualquer senha
+  if (!stored) {
+    return res.json({ valid: true });
+  }
+
+  // Se o valor armazenado parece um hash bcrypt ($2a$, $2b$, $2y$), usa bcrypt
+  if (/^\$2[aby]\$\d+\$/.test(stored)) {
+    const valid = await verifyPassword(password, stored);
+    return res.json({ valid });
+  }
+
+  // Fallback: senha em texto plano (migração — aceita e re-hashes para o futuro)
+  if (password === stored) {
+    const hashed = await hashPassword(password);
+    await prisma.settings.update({ where: { id: 1 }, data: { settingsPassword: hashed } });
+    return res.json({ valid: true });
+  }
+
+  return res.json({ valid: false });
 }));
 
 export default router;

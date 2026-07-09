@@ -14,6 +14,7 @@ import { useClientPayments } from '../../hooks/useClientPayments';
 import { useServiceOrders } from '../../hooks/useServiceOrders';
 import { useAuditLogs } from '../../hooks/useAuditLogs';
 import { useAuth } from '../../hooks/useAuth';
+import api from '../../lib/api';
 
 // Modals
 import { CustomerModal } from '../customers/modals/CustomerModal';
@@ -134,13 +135,18 @@ export const GlobalModals: React.FC = () => {
     }
   };
 
-  const handleUnlockSettings = () => {
-    if (passwordInput === settings.settingsPassword) {
-      setShowPasswordModal(false);
-      setPasswordInput('');
-      navigate('/configuracoes');
-    } else {
-      showToast('Senha incorreta!', 'error');
+  const handleUnlockSettings = async () => {
+    try {
+      const { data } = await api.post('/settings/verify-password', { password: passwordInput });
+      if (data.valid) {
+        setShowPasswordModal(false);
+        setPasswordInput('');
+        navigate('/configuracoes');
+      } else {
+        showToast('Senha incorreta!', 'error');
+      }
+    } catch {
+      showToast('Erro ao verificar senha. Tente novamente.', 'error');
     }
   };
 

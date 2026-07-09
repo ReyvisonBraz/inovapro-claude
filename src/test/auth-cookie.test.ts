@@ -15,7 +15,7 @@ function makeApp() {
   return app;
 }
 
-const token = jwt.sign({ userId: 42, username: 'a', role: 'owner' }, process.env.JWT_SECRET!);
+const token = jwt.sign({ userId: 42, username: 'a', role: 'owner', type: 'access' }, process.env.JWT_SECRET!);
 
 describe('requireAuth via cookie', () => {
   it('aceita token no cookie', async () => {

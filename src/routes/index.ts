@@ -15,6 +15,7 @@ import exportRoutes from './export.js';
 import auditLogRoutes from './audit-logs.js';
 import debugRoutes from './debug.js';
 import { requireRole, requirePermission } from '../middleware/roles.js';
+import { makeAiLimiter } from '../lib/rate-limit.js';
 
 const router = Router();
 
@@ -44,6 +45,6 @@ router.use('/receipts', requirePermission('manage_payments'), receiptsRoutes);
 // Referência / IA
 router.use('/categories', categoriesRoutes);   // guarda de escrita dentro do arquivo
 router.use('/', catalogRoutes);                 // guarda dentro do arquivo (requirePermission)
-router.use('/ai', aiRoutes);                    // qualquer autenticado (rate-limit vem na Fase 2)
+router.use('/ai', makeAiLimiter(), aiRoutes);    // rate-limit: 20 req/min por IP
 
 export default router;
