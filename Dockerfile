@@ -1,5 +1,5 @@
 # ============================================================
-# INOVA PRO — Dockerfile otimizado para Google Cloud Run
+# INOVA PRO — Dockerfile (Node + Express + Prisma + PostgreSQL)
 # ============================================================
 # Estágio 1: build (dependências completas + compilação)
 # Estágio 2: produção (apenas runtime, imagem mínima)
@@ -8,12 +8,12 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
+# Schema copiado ANTES do npm ci: o postinstall roda `prisma generate`
+# e precisa do schema presente.
 COPY package*.json ./
-RUN npm ci
-
-# Gerar Prisma client a partir do schema
 COPY prisma ./prisma
-RUN npx prisma generate
+COPY prisma.config.ts ./
+RUN npm ci
 
 COPY . .
 RUN npm run build
@@ -26,14 +26,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# tsx está em dependencies, não devDependencies — será instalado
+# Schema antes do install (postinstall gera o Prisma Client). tsx está em
+# dependencies, então roda o server em produção.
 COPY package*.json ./
-RUN npm ci --omit=dev
-
-# Prisma client gerado + schema + migrations
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/prisma ./prisma
+COPY prisma ./prisma
 COPY prisma.config.ts ./
+RUN npm ci --omit=dev
 
 # Frontend compilado
 COPY --from=builder /app/dist ./dist
@@ -41,9 +39,6 @@ COPY --from=builder /app/dist ./dist
 # Código do servidor (TypeScript, executado via tsx)
 COPY server.ts ./
 COPY src ./src
-
-# Diretório para dados SQLite (caso necessário)
-RUN mkdir -p /app/data
 
 EXPOSE 8080
 
