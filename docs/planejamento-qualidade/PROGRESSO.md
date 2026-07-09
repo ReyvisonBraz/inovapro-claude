@@ -1,8 +1,8 @@
 # Progresso da Execução — Saneamento de Qualidade
 
 > Rastreador vivo. Atualizar ao concluir cada tarefa. Última atualização: **2026-07-09**.
-> Branch de trabalho: `qualidade/fase-0-preparacao` (~21 commits à frente de `main`).
-> Estado do build a cada commit: **ESLint 0 erros · `tsc` 0 erros (strict on) · 79 testes verdes** (baseline eram 50). **Fases 0–3 completas.**
+> Branch de trabalho: `qualidade/fase-0-preparacao` (~25 commits à frente de `main`).
+> Estado do build a cada commit: **ESLint 0 erros · `tsc` 0 erros (strict on) · 104 testes verdes** (baseline eram 50) + **E2E Playwright**. **Fases 0–4 completas.**
 
 ## Legenda
 ✅ concluído · 🟡 parcial/adiado · ⬜ não iniciado
@@ -30,9 +30,12 @@
 - ✅ **03 strict TS** — **`"strict": true` ativado, `tsc` 0 erros + build Vite verde + 76 testes.** Corrigiu os 31 erros, incluindo 2 bugs reais: `ref` manual sobrescrito pelo `register` no AddTransactionModal (foco quebrado) e `interface User` local divergente no Login. `scripts/` excluído do tsconfig.
 - ✅ **04 JWT httpOnly** — **feito e validado.** Token agora em cookie `httpOnly`+`Secure`(prod)+`SameSite`; `requireAuth` lê cookie ou header (transição); `/api/me` reidrata sessão; `/api/logout` limpa. Front: `withCredentials`, sem token no localStorage, bootstrap via `/me`. **Validado com Playwright real** (login→/dashboard, cookie httpOnly inacessível a JS, sessão persiste no reload) e curl. **Follow-up:** remover o fallback do header `Authorization` numa limpeza futura; conferir cookies cross-site no deploy (SameSite=None+Secure) — ver Fase 5.
 
-## Fase 4 — Testes ⬜
-- ⬜ cobertura honesta (incluir routes/services) · ⬜ integração de rotas · ⬜ E2E Playwright.
-- **Nota herdada:** testes de backend com supertest precisam de `// @vitest-environment node` + `server.close()` (o MSW global intercepta as requisições GET, mascarando o handler real). Padrão já usado em `authz.routes.test.ts` etc.
+## Fase 4 — Testes ✅
+- ✅ **01 cobertura honesta** — `coverage.include` cobre routes/services/middleware/schemas; thresholds como catraca (piso ~24% linhas); CI roda `test:coverage`.
+- ✅ **02 integração de rotas** — helper `src/test/helpers/testApp.ts` + suítes por grupo (transactions, customers, client-payments, service-orders, inventory): GET/lista, validação 400, happy-path, delete. **104 testes** no total (eram 50).
+- ✅ **03 E2E Playwright** — `playwright.config.ts` (sobe API+front sozinho) + `e2e/smoke.spec.ts` (login→dashboard, cookie httpOnly inacessível a JS, sessão persiste no reload). **Validado num chromium real.** Senha via `E2E_PASS` (não commitada); `npm run e2e`.
+- **Nota herdada:** testes de backend com supertest precisam de `// @vitest-environment node` + `server.close()` (o MSW global intercepta as requisições GET, mascarando o handler real). Padrão usado em todas as suítes de rota.
+- **Follow-up:** subir a cobertura ao longo do tempo (services têm muita lógica ainda não coberta); considerar job de E2E no CI (com secret `E2E_PASS` + browser).
 
 ## Fase 5 — Deploy/Infra ⬜
 - ⬜ escolher 1 deploy (recomendado: Render) · ⬜ remover resíduo SQLite · ⬜ rate-limit/cache externos (só se multi-instância).
