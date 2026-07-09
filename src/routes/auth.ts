@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import rateLimit from 'express-rate-limit';
 import { prisma } from '../lib/prisma.js';
 import { generateToken } from '../middleware/auth.js';
 import { verifyPassword } from '../lib/password.js';
+import { makeLoginLimiter } from '../lib/rate-limit.js';
 import { error, info } from '../lib/server-logger.js';
 import { OWNER_PERMISSIONS } from '../constants/permissions.js';
 
@@ -17,13 +17,8 @@ const authCookieOptions = () => ({
   sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
 });
 
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  message: { error: 'Muitas tentativas. Tente novamente em 15 minutos.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// Usa Redis se REDIS_URL (serverless multi-instância); senão, memória.
+const loginLimiter = makeLoginLimiter();
 
 router.post('/login', loginLimiter, async (req: Request, res: Response) => {
   try {
