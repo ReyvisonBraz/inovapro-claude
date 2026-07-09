@@ -10,11 +10,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { requireAuth } from './src/middleware/auth.js';
 import { testConnection } from './src/lib/prisma.js';
 import authRoutes from './src/routes/auth.js';
 import publicRoutes from './src/routes/public.js';
 import protectedRoutes from './src/routes/index.js';
+import meRoutes from './src/routes/me.js';
 import healthRoutes from './src/routes/health.js';
 import { requestLogger, errorHandler, error, info } from './src/lib/server-logger.js';
 import { isOriginAllowed } from './src/lib/cors.js';
@@ -82,6 +84,7 @@ app.use(cors({
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ limit: '5mb', extended: true }));
+app.use(cookieParser());
 
 // Logger de requisições
 app.use(requestLogger);
@@ -99,6 +102,7 @@ app.use('/api', healthRoutes); // /api/ping (compatibilidade), sem env
  */
 app.use('/api', authRoutes);
 app.use('/api', publicRoutes);
+app.use('/api', requireAuth, meRoutes);
 app.use('/api', requireAuth, protectedRoutes);
 
 /*

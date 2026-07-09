@@ -18,6 +18,7 @@ import { GlobalModals } from './components/layout/GlobalModals';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { PageLoader } from './components/ui/PageLoader';
 import { useIsMobile } from './hooks/useMediaQuery';
+import api from './lib/api';
 
 const ProtectedRoute = ({ children, permission }: { children: React.ReactNode, permission: string }) => {
   const { hasPermission } = useAuth();
@@ -142,8 +143,16 @@ export default function App() {
     }
   }, []);
 
-  const handleLogin = (token: string, user: User) => {
-    login(token, user);
+  // Reidrata a sessão via cookie httpOnly (o token não é legível por JS).
+  useEffect(() => {
+    if (location.pathname === '/rastreio') return; // página pública
+    api.get('/me')
+      .then(({ data }) => { if (data?.user) login(data.user); })
+      .catch(() => { /* 401 → o interceptor de api.ts trata o redirect */ });
+  }, []);
+
+  const handleLogin = (user: User) => {
+    login(user);
     const { directOsId } = useAppStore.getState();
     const returnToOs = location.pathname.startsWith('/os/') ? location.pathname : null;
     navigate(returnToOs || (directOsId ? '/ordens' : '/dashboard'));

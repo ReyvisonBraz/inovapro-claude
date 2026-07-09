@@ -26,14 +26,17 @@ export const generateToken = (payload: JwtPayload): string => {
 };
 
 export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  // Aceita o token do cookie httpOnly (preferencial) ou do header Authorization
+  // (compatibilidade durante a transição / clientes server-to-server).
   const authHeader = req.headers.authorization;
+  const fromHeader = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+  const fromCookie = (req as Request & { cookies?: Record<string, string> }).cookies?.token;
+  const token = fromCookie || fromHeader;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!token) {
     res.status(401).json({ error: 'Token de autenticação necessário' });
     return;
   }
-
-  const token = authHeader.slice(7);
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
