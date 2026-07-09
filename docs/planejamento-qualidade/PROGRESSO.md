@@ -1,8 +1,8 @@
 # Progresso da Execução — Saneamento de Qualidade
 
-> Rastreador vivo. Atualizar ao concluir cada tarefa. Última atualização: **2026-07-08**.
-> Branch de trabalho: `qualidade/fase-0-preparacao` (16 commits à frente de `main`).
-> Estado do build a cada commit: **ESLint 0 erros · `tsc` 0 erros · 76 testes verdes** (baseline eram 50).
+> Rastreador vivo. Atualizar ao concluir cada tarefa. Última atualização: **2026-07-09**.
+> Branch de trabalho: `qualidade/fase-0-preparacao` (~21 commits à frente de `main`).
+> Estado do build a cada commit: **ESLint 0 erros · `tsc` 0 erros (strict on) · 79 testes verdes** (baseline eram 50). **Fases 0–3 completas.**
 
 ## Legenda
 ✅ concluído · 🟡 parcial/adiado · ⬜ não iniciado
@@ -24,11 +24,11 @@
 ## Fase 2 — Hardening Backend ✅
 - ✅ **01 bcrypt async** · ✅ **02 IDOR→token** (migration aplicada + backfill + smoke) · ✅ **03 índices** (migration aplicada) · ✅ **04 validação Zod** · ✅ **05 endpoints de diagnóstico**.
 
-## Fase 3 — Tipagem e Lint 🟡
+## Fase 3 — Tipagem e Lint ✅
 - ✅ **01 ESLint** — flat config (react-hooks + unused-imports); CI roda lint+typecheck+testes. Corrigiu 2 bugs de hooks (Pagination, DrillDownModal) e o link WhatsApp (`?osId`→`?t`).
 - ✅ **02 console** — `console.log/info/debug` removidos; `no-console` = **error**. `no-explicit-any` segue **warning** (debt).
 - ✅ **03 strict TS** — **`"strict": true` ativado, `tsc` 0 erros + build Vite verde + 76 testes.** Corrigiu os 31 erros, incluindo 2 bugs reais: `ref` manual sobrescrito pelo `register` no AddTransactionModal (foco quebrado) e `interface User` local divergente no Login. `scripts/` excluído do tsconfig.
-- 🟡 **04 JWT httpOnly** — **NÃO INICIADO / ADIADO.** Maior risco (reescreve login: cookie + `/api/me` + logout, remove token do localStorage). Detalhe pronto em [`fase-3-tipagem-e-lint/04-jwt-httponly.md`](./fase-3-tipagem-e-lint/04-jwt-httponly.md). **Requer credencial de login válida para smoke-testar o fluxo** (senha do admin foi rotacionada pelo dono). Único item da Fase 3 pendente.
+- ✅ **04 JWT httpOnly** — **feito e validado.** Token agora em cookie `httpOnly`+`Secure`(prod)+`SameSite`; `requireAuth` lê cookie ou header (transição); `/api/me` reidrata sessão; `/api/logout` limpa. Front: `withCredentials`, sem token no localStorage, bootstrap via `/me`. **Validado com Playwright real** (login→/dashboard, cookie httpOnly inacessível a JS, sessão persiste no reload) e curl. **Follow-up:** remover o fallback do header `Authorization` numa limpeza futura; conferir cookies cross-site no deploy (SameSite=None+Secure) — ver Fase 5.
 
 ## Fase 4 — Testes ⬜
 - ⬜ cobertura honesta (incluir routes/services) · ⬜ integração de rotas · ⬜ E2E Playwright.
@@ -45,7 +45,7 @@
 ## Pendências que dependem do DONO
 1. **Purga do histórico do git** de `backups/` (Fase 1 · 03 parte B) — `git filter-repo` + `push --force`; avisar quem tem clone.
 2. **Trocar a senha do banco** (`DATABASE_URL`/`DB_PASSWORD`) — mencionado que faria depois.
-3. **Fornecer credencial/usuário de teste** para destravar F3-04 (JWT) e futuros E2E (Fase 4).
+3. ~~Fornecer credencial de teste~~ — **fornecida** (`admin`/`admin2021`), F3-04 validado. E2E da Fase 4 desbloqueado. *(Idealmente criar um usuário de teste dedicado em vez de usar o admin.)*
 
 ## Retomada rápida (próxima sessão)
 - Concluir **F3-03** (strict) seguindo `_strict-baseline.md` — ~31 fixes mecânicos/bounded, validar telas OS/pagamentos/relatórios/transações.
