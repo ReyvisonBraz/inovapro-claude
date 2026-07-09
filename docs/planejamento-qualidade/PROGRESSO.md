@@ -27,8 +27,8 @@
 ## Fase 3 — Tipagem e Lint 🟡
 - ✅ **01 ESLint** — flat config (react-hooks + unused-imports); CI roda lint+typecheck+testes. Corrigiu 2 bugs de hooks (Pagination, DrillDownModal) e o link WhatsApp (`?osId`→`?t`).
 - ✅ **02 console** — `console.log/info/debug` removidos; `no-console` = **error**. `no-explicit-any` segue **warning** (debt).
-- 🟡 **03 strict TS** — **MEDIDO: 31 erros (bounded)**, `scripts/` já excluído. **PENDENTE:** ativar `"strict": true` e corrigir os 31. Passo a passo por erro em [`_strict-baseline.md`](./_strict-baseline.md). Fazer com o app rodando (toca ~14 componentes sem testes; há bugs reais: `ref` duplicado no AddTransactionModal, união de status divergente).
-- 🟡 **04 JWT httpOnly** — **NÃO INICIADO / ADIADO.** Maior risco (reescreve login: cookie + `/api/me` + logout, remove token do localStorage). Detalhe pronto em [`fase-3-tipagem-e-lint/04-jwt-httponly.md`](./fase-3-tipagem-e-lint/04-jwt-httponly.md). **Requer credencial de login válida para smoke-testar o fluxo** (senha do admin foi rotacionada pelo dono).
+- ✅ **03 strict TS** — **`"strict": true` ativado, `tsc` 0 erros + build Vite verde + 76 testes.** Corrigiu os 31 erros, incluindo 2 bugs reais: `ref` manual sobrescrito pelo `register` no AddTransactionModal (foco quebrado) e `interface User` local divergente no Login. `scripts/` excluído do tsconfig.
+- 🟡 **04 JWT httpOnly** — **NÃO INICIADO / ADIADO.** Maior risco (reescreve login: cookie + `/api/me` + logout, remove token do localStorage). Detalhe pronto em [`fase-3-tipagem-e-lint/04-jwt-httponly.md`](./fase-3-tipagem-e-lint/04-jwt-httponly.md). **Requer credencial de login válida para smoke-testar o fluxo** (senha do admin foi rotacionada pelo dono). Único item da Fase 3 pendente.
 
 ## Fase 4 — Testes ⬜
 - ⬜ cobertura honesta (incluir routes/services) · ⬜ integração de rotas · ⬜ E2E Playwright.
