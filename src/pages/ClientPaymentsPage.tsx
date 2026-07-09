@@ -30,10 +30,10 @@ export const ClientPaymentsPage: React.FC = () => {
   const { customers, allCustomers } = useCustomers();
   const { settings } = useSettingsStore();
   const { currentUser } = useAuthStore();
-  const { 
+  const {
     paymentSearchTerm, setPaymentSearchTerm,
-    paymentFilterStatus, setPaymentFilterStatus,
-    paymentSortMode, setPaymentSortMode
+    paymentFilterStatus,
+    paymentSortMode
   } = useFilterStore();
   
   const [localSearchTerm, setLocalSearchTerm] = useState(paymentSearchTerm);
@@ -56,9 +56,8 @@ export const ClientPaymentsPage: React.FC = () => {
     openConfirm
   } = useModalStore();
   
-  const { 
-    isAddingClientPayment, setIsAddingClientPayment,
-    expandedPayments, togglePaymentExpansion,
+  const {
+    setIsAddingClientPayment,
     setIsAddingCustomer,
     setCustomerRegistrationSource
   } = useAppStore();
@@ -240,18 +239,8 @@ export const ClientPaymentsPage: React.FC = () => {
         limit: clientPayments.meta.limit
       }}
       onPageChange={setPaymentsPage}
-      isAddingClientPayment={isAddingClientPayment}
-      setIsAddingClientPayment={setIsAddingClientPayment}
-      expandedPayments={expandedPayments}
-      togglePaymentExpansion={togglePaymentExpansion}
       paymentSearchTerm={localSearchTerm}
       setPaymentSearchTerm={setLocalSearchTerm}
-      paymentFilterStatus={paymentFilterStatus}
-      setPaymentFilterStatus={setPaymentFilterStatus}
-      paymentSortMode={paymentSortMode}
-      setPaymentSortMode={(v) => setPaymentSortMode(v as 'amount' | 'date' | 'alphabetical')}
-      isRecordingPayment={isRecordingPayment}
-      setIsRecordingPayment={setIsRecordingPayment}
       onTriggerAddCustomer={() => {
         setCustomerRegistrationSource('payments');
         setIsAddingCustomer(true);
