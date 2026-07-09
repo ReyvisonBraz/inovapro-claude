@@ -25,5 +25,5 @@
     "strict": true,
     "types": ["vite/client"]
   },
-  "exclude": ["supabase/**/*", "scripts/**/*"]
+  "exclude": ["supabase/**/*", "scripts/**/*", "e2e/**/*"]
 }
