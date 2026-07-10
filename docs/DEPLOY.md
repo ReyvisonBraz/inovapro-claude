@@ -46,3 +46,4 @@ Cada invocação serverless é um processo isolado e efêmero. Por isso, o que �
 - [ ] `REDIS_URL` configurada (rate-limit de login confiável).
 - [ ] Migrations aplicadas (`prisma migrate status` limpo).
 - [ ] Smoke: `GET /health` → 200; login → cookie httpOnly; navegar autenticado.
+- [ ] Após atualizar usuários existentes (role/password) no post-deploy, as sessões antigas expiram em até 15min (tokenVersion).

@@ -40,6 +40,20 @@ export function makeLoginLimiter() {
 }
 
 /**
+ * Rate limiter geral da API: 100 req/min por IP em rotas autenticadas.
+ * Protege contra abuso/DoS de baixo orçamento sem sufocar uso legítimo.
+ */
+export function makeApiLimiter() {
+  return withStore({
+    windowMs: 60 * 1000,
+    max: 100,
+    message: { error: 'Limite de requisições atingido. Aguarde um minuto.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+}
+
+/**
  * Rate limiter de IA: 20 requisições por minuto por IP.
  * A IA tem custo financeiro (Gemini API) e é um vetor de abuso —
  * precisa de um teto mais apertado que as demais rotas.

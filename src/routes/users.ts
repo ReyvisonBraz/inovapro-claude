@@ -46,6 +46,11 @@ router.put('/:id', validate(UserUpdateSchema), asyncHandler(async (req: Request,
   if (password) {
     updateData.password = await hashPassword(password);
   }
+  // Role change invalidates old sessions: increment tokenVersion so the next
+  // refresh fails verification and the client is forced to re-authenticate.
+  if (role !== undefined) {
+    updateData.tokenVersion = { increment: 1 };
+  }
   await prisma.user.update({ where: { id: userId }, data: updateData as Record<string, unknown> });
   info('Usuário atualizado', { details: { id: userId, name } });
   res.json({ success: true });

@@ -122,14 +122,15 @@ model Receipt {
 }
 
 model User {
-  id          Int        @id @default(autoincrement())
-  username    String     @unique
-  password    String
-  role        String     @default("employee")
-  name        String
-  permissions String?    @default("[]")
-  createdAt   DateTime   @default(now())
-  AuditLogs   AuditLog[]
+  id            Int        @id @default(autoincrement())
+  username      String     @unique
+  password      String
+  role          String     @default("employee")
+  name          String
+  permissions   String?    @default("[]")
+  tokenVersion  Int        @default(0)
+  createdAt     DateTime   @default(now())
+  AuditLogs     AuditLog[]
 }
 
 model AuditLog {

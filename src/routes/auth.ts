@@ -39,7 +39,7 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
     if (user.role === 'owner') {
       permissions = [...OWNER_PERMISSIONS];
     }
-    const payload = { userId: user.id, username: user.username, role: user.role };
+    const payload = { userId: user.id, username: user.username, role: user.role, tokenVersion: user.tokenVersion };
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
     const { password: _, ...userWithoutPassword } = user;
@@ -60,11 +60,29 @@ router.post('/refresh', asyncHandler(async (req: Request, res: Response) => {
   }
 
   try {
-    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET!) as { type: string; userId: number; username: string; role: string };
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET!) as { type: string; userId: number; username: string; role: string; tokenVersion: number };
     if (decoded.type !== 'refresh') {
       return res.status(401).json({ error: 'Tipo de token inválido' });
     }
-    const accessToken = generateAccessToken({ userId: decoded.userId, username: decoded.username, role: decoded.role });
+
+    // Validates the user still exists and tokenVersion matches.
+    // Deletes and role increments increment tokenVersion, invalidating old sessions.
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { tokenVersion: true, role: true, username: true },
+    });
+
+    if (!user || user.tokenVersion !== decoded.tokenVersion) {
+      return res.status(401).json({ error: 'Sessão inválida' });
+    }
+
+    // Issue a new access token with the latest tokenVersion (in case role changed).
+    const accessToken = generateAccessToken({
+      userId: decoded.userId,
+      username: user.username,
+      role: user.role,
+      tokenVersion: user.tokenVersion,
+    });
     res.cookie(ACCESS_COOKIE, accessToken, { ...authCookieOptions(), maxAge: accessMs });
     return res.json({ success: true });
   } catch {

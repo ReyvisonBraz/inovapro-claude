@@ -19,6 +19,7 @@ import protectedRoutes from './src/routes/index.js';
 import meRoutes from './src/routes/me.js';
 import healthRoutes from './src/routes/health.js';
 import { requestLogger, errorHandler, error, info } from './src/lib/server-logger.js';
+import { makeApiLimiter } from './src/lib/rate-limit.js';
 import { isOriginAllowed } from './src/lib/cors.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -100,10 +101,12 @@ app.use('/api', healthRoutes); // /api/ping (compatibilidade), sem env
 /*
  * ─── Rotas ───
  */
+const apiLimiter = makeApiLimiter();
+
 app.use('/api', authRoutes);
 app.use('/api', publicRoutes);
-app.use('/api', requireAuth, meRoutes);
-app.use('/api', requireAuth, protectedRoutes);
+app.use('/api', apiLimiter, requireAuth, meRoutes);
+app.use('/api', apiLimiter, requireAuth, protectedRoutes);
 
 /*
  * ─── Servir Frontend em Produção ───

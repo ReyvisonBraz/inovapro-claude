@@ -17,24 +17,18 @@ export interface AuthRequest extends Request {
   };
 }
 
-interface AccessPayload extends JwtPayload {
-  type: 'access';
+interface TokenPayload extends JwtPayload {
+  type: 'access' | 'refresh';
+  tokenVersion: number;
 }
 
-interface RefreshPayload extends JwtPayload {
-  type: 'refresh';
-}
-
-export const generateAccessToken = (payload: Omit<AccessPayload, 'type'>): string => {
+export const generateAccessToken = (payload: { userId: number; username: string; role: string; tokenVersion: number }): string => {
   return jwt.sign({ ...payload, type: 'access' }, JWT_SECRET, { expiresIn: JWT_ACCESS_EXPIRES_IN });
 };
 
-export const generateRefreshToken = (payload: Omit<RefreshPayload, 'type'>): string => {
+export const generateRefreshToken = (payload: { userId: number; username: string; role: string; tokenVersion: number }): string => {
   return jwt.sign({ ...payload, type: 'refresh' }, JWT_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN });
 };
-
-/** Compatibilidade: mantém o nome antigo usado por código externo. */
-export const generateToken = generateAccessToken;
 
 export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;
@@ -48,7 +42,7 @@ export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction)
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as AccessPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
 
     if (decoded.type !== 'access') {
       res.status(401).json({ error: 'Tipo de token inválido' });
