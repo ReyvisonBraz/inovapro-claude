@@ -94,17 +94,28 @@ model ClientPayment {
   installmentsCount Int?     @default(1)
   type              String?  @default("income")
   saleId            String?
-  paymentHistory    String?  @default("[]")
   createdBy         Int?
   updatedBy         Int?
   version           Int      @default(0)
   customer          Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   Receipts          Receipt[]
+  paymentEntries    PaymentEntry[]
 
   @@index([customerId])
   @@index([dueDate])
   @@index([status])
   @@index([customerId, status, dueDate])
+}
+
+model PaymentEntry {
+  id        Int      @id @default(autoincrement())
+  paymentId Int
+  amount    Decimal  @db.Decimal(12, 2)
+  date      DateTime @default(now())
+  createdBy Int?
+  payment   ClientPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
 }
 
 model Category {

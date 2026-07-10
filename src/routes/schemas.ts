@@ -28,7 +28,6 @@ export const ClientPaymentSchema = z.object({
   installmentsCount: z.coerce.number().int().positive().optional(),
   type: z.enum(['income', 'expense']).optional(),
   saleId: z.string().optional().nullable(),
-  paymentHistory: z.string().optional(),
   // createdBy/updatedBy NÃO vêm do cliente — são derivados do JWT na rota.
 });
 

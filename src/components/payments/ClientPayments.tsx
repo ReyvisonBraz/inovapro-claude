@@ -297,9 +297,9 @@ export const ClientPayments = ({
                     >
                       <div className="pt-4 border-t border-white/5">
                         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Histórico de Pagamentos</h4>
-                        {payment.paymentHistory && JSON.parse(payment.paymentHistory).length > 0 ? (
+                        {payment.paymentEntries && payment.paymentEntries.length > 0 ? (
                           <div className="space-y-2">
-                            {JSON.parse(payment.paymentHistory).map((h: any, i: number) => (
+                            {payment.paymentEntries.map((h, i) => (
                               <div key={i} className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/5">
                                 <div className="flex items-center gap-3">
                                   <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
@@ -600,9 +600,9 @@ export const ClientPayments = ({
                           <td colSpan={6} className="px-6 py-4">
                             <div className="pl-10">
                               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Histórico de Pagamentos</h4>
-                              {payment.paymentHistory && JSON.parse(payment.paymentHistory).length > 0 ? (
+                              {payment.paymentEntries && payment.paymentEntries.length > 0 ? (
                                 <div className="space-y-2">
-                                  {JSON.parse(payment.paymentHistory).map((h: any, i: number) => (
+                                  {payment.paymentEntries.map((h, i) => (
                                     <div key={i} className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/5 max-w-md">
                                       <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">

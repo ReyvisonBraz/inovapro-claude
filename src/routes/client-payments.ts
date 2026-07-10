@@ -25,10 +25,10 @@ router.post('/', validate(ClientPaymentSchema), asyncHandler(async (req: AuthReq
 }));
 
 router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { paidAmount, status, paymentHistory, version } = req.body;
+  const { paidAmount, status, version } = req.body;
   const expectedVersion = typeof version === 'number' ? version : undefined;
   await clientPaymentService.update(parseInt(req.params.id), {
-    paidAmount, status, paymentHistory, updatedBy: req.user!.userId
+    paidAmount, status, updatedBy: req.user!.userId
   }, expectedVersion);
 
   res.json({ success: true });

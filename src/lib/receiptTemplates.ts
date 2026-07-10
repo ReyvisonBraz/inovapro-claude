@@ -10,8 +10,8 @@ export const getA4ReceiptTemplate = (
 ) => {
   let historyHtml = '';
   try {
-    if (payment.paymentHistory) {
-      const history = JSON.parse(payment.paymentHistory);
+    if (payment.paymentEntries && payment.paymentEntries.length > 0) {
+      const history = payment.paymentEntries;
       if (history.length > 0) {
         historyHtml = `
           <div class="section" style="margin-top: 30px;">
@@ -289,13 +289,13 @@ export const getThermalReceiptTemplate = (
 ) => {
   let historyHtml = '';
   try {
-    if (payment.paymentHistory) {
-      const history = JSON.parse(payment.paymentHistory);
+    if (payment.paymentEntries && payment.paymentEntries.length > 0) {
+      const history = payment.paymentEntries;
       if (history.length > 0) {
         historyHtml = `
           <div class="divider"></div>
           <p class="center bold">HISTÓRICO DE PAGAMENTOS</p>
-          ${history.map((h: any) => `
+          ${history.map((h) => `
             <div style="display: flex; justify-content: space-between; font-size: 10px;">
               <span>${format(parseISO(h.date), 'dd/MM/yyyy HH:mm')}</span>
               <span>${formatCurrency(h.amount)}</span>

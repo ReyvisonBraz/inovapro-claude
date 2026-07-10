@@ -96,6 +96,7 @@ describe('ServiceOrderService.update — lock otimista', () => {
 describe('ClientPaymentService.registerPayment — recebimento atômico', () => {
   const makeTx = () => ({
     clientPayment: { update: vi.fn() },
+    paymentEntry: { create: vi.fn().mockResolvedValue({}) },
     customer: { findUnique: vi.fn().mockResolvedValue({ id: 1, firstName: 'Ana', lastName: 'Silva', phone: '11999999999' }) },
     transaction: { create: vi.fn() },
   });
@@ -107,7 +108,7 @@ describe('ClientPaymentService.registerPayment — recebimento atômico', () => 
     const tx = makeTx();
     tx.clientPayment.update.mockResolvedValueOnce({
       id: 5, customerId: 1, description: 'Venda', saleId: null,
-      paidAmount: 60, totalAmount: 100, paymentHistory: '[]',
+      paidAmount: 60, totalAmount: 100,
     }).mockResolvedValueOnce({});
     runInTx(tx);
 
@@ -125,7 +126,7 @@ describe('ClientPaymentService.registerPayment — recebimento atômico', () => 
     const tx = makeTx();
     tx.clientPayment.update.mockResolvedValueOnce({
       id: 5, customerId: 1, description: 'Venda', saleId: null,
-      paidAmount: 150, totalAmount: 100, paymentHistory: '[]',
+      paidAmount: 150, totalAmount: 100,
     });
     runInTx(tx);
 

@@ -41,7 +41,10 @@ export class ClientPaymentService {
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { dueDate: 'asc' },
-        include: { customer: { select: { firstName: true, lastName: true } } },
+        include: {
+          customer: { select: { firstName: true, lastName: true } },
+          paymentEntries: { orderBy: { date: 'asc' } },
+        },
       }),
       prisma.clientPayment.count({ where }),
     ]);
@@ -68,29 +71,35 @@ export class ClientPaymentService {
       paymentMethod, status, installmentsCount, type, saleId, createdBy 
     } = data;
     
-    const initialPaymentHistory = paidAmount && paidAmount > 0
-      ? JSON.stringify([{ amount: paidAmount, date: new Date().toISOString() }])
-      : '[]';
-      
+    const initialPaymentDate = new Date();
+
     return prisma.$transaction(async (tx) => {
       const payment = await tx.clientPayment.create({
         data: {
-          customerId, 
-          description, 
-          totalAmount, 
-          paidAmount: paidAmount || 0, 
-          purchaseDate, 
+          customerId,
+          description,
+          totalAmount,
+          paidAmount: paidAmount || 0,
+          purchaseDate,
           dueDate,
-          paymentMethod, 
-          status: status || 'pending', 
+          paymentMethod,
+          status: status || 'pending',
           installmentsCount: installmentsCount || 1,
-          type: type || 'income', 
-          saleId, 
-          paymentHistory: initialPaymentHistory,
+          type: type || 'income',
+          saleId,
         },
       });
-      
+
       if (paidAmount && paidAmount > 0) {
+        await tx.paymentEntry.create({
+          data: {
+            paymentId: payment.id,
+            amount: paidAmount,
+            date: initialPaymentDate,
+            createdBy: createdBy ?? null,
+          },
+        });
+
         const customer = await tx.customer.findUnique({ where: { id: customerId } });
         const customerName = customer ? `${customer.firstName} ${customer.lastName}` : 'Cliente';
         
@@ -117,10 +126,10 @@ export class ClientPaymentService {
 
   async update(
     id: number,
-    data: { paidAmount?: number, status?: string, paymentHistory?: any, updatedBy?: number },
+    data: { paidAmount?: number, status?: string, updatedBy?: number },
     expectedVersion?: number
   ) {
-    const { paidAmount, status, paymentHistory, updatedBy } = data;
+    const { paidAmount, status, updatedBy } = data;
 
     const updateData: Record<string, unknown> = {
       updatedBy: updatedBy || 1,
@@ -129,7 +138,6 @@ export class ClientPaymentService {
 
     if (paidAmount !== undefined) updateData.paidAmount = paidAmount;
     if (status !== undefined) updateData.status = status;
-    if (paymentHistory) updateData.paymentHistory = JSON.stringify(paymentHistory);
 
     const result = await prisma.clientPayment.updateMany({
       where: expectedVersion !== undefined ? { id, version: expectedVersion } : { id },
@@ -182,18 +190,17 @@ export class ClientPaymentService {
 
       const newStatus = newPaidAmount >= totalAmount ? 'paid' : 'partial';
 
-      // A linha está travada desde o UPDATE acima, então este append no
-      // histórico não corre com outras transações.
-      let history: Array<{ amount: number; date: string }> = [];
-      try { history = JSON.parse(payment.paymentHistory || '[]'); } catch { /* empty */ }
-
-      history.push({ amount, date: date || new Date().toISOString() });
-
       await tx.clientPayment.update({
         where: { id },
+        data: { status: newStatus },
+      });
+
+      await tx.paymentEntry.create({
         data: {
-          status: newStatus,
-          paymentHistory: JSON.stringify(history),
+          paymentId: id,
+          amount,
+          date: date ? new Date(date + 'T00:00:00.000Z') : new Date(),
+          createdBy: updatedBy ?? null,
         },
       });
 

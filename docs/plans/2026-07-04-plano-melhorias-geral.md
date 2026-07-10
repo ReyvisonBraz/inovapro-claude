@@ -133,7 +133,7 @@ Objetivo: eliminar as bombas-relógio de tipos. Depende da Fase 1.1 (migrations)
 
 ### 4.2 JSON estruturado
 
-- [ ] `ClientPayment.paymentHistory` (string JSON) → tabela `PaymentEntry` (id, paymentId, amount, method, date, createdBy) — é registro financeiro, precisa de integridade
+- [x] `ClientPayment.paymentHistory` (string JSON) → tabela `PaymentEntry` (id, paymentId, amount, date, createdBy) (migration `20260709210000`)
 - [x] `User.permissions`, `Settings.hiddenColumns`, `ServiceOrder.arrivalPhotoUrls` → tipo `Json` (migration `20260709190000`)
 - [ ] Concluir migração de fotos para Supabase Storage e **dropar `arrivalPhotoBase64`**; reduzir `express.json` limit de 5mb
   - *Nota:pendente — requer confirmação de que Storage está configurado em todos os deployments*

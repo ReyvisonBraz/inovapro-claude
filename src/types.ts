@@ -87,9 +87,17 @@ export interface ClientPayment {
   type: 'income' | 'expense';
   saleId?: string;
   customerName?: string;
-  paymentHistory?: string; // JSON string — usar parsePaymentHistory() para ler
+  paymentEntries?: PaymentEntry[];
   createdBy?: number;
   updatedBy?: number;
+}
+
+export interface PaymentEntry {
+  id: number;
+  paymentId: number;
+  amount: number;
+  date: string;
+  createdBy?: number | null;
 }
 
 export interface Category {
