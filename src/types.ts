@@ -100,6 +100,14 @@ export interface PaymentEntry {
   createdBy?: number | null;
 }
 
+export interface GroupedClientPayment {
+  isGroup: true;
+  payments: ClientPayment[];
+  saleId: string;
+}
+
+export type PaymentListItem = ClientPayment | GroupedClientPayment;
+
 export interface Category {
   id: number;
   name: string;
