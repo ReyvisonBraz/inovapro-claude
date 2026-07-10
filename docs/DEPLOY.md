@@ -14,6 +14,7 @@ Rewrites: `/api/*` → função serverless; `/*` → `index.html` (SPA).
 Obrigatórias:
 - `DATABASE_URL` — Postgres (Supabase pooler).
 - `JWT_SECRET` — segredo de assinatura do JWT.
+- `ENCRYPTION_KEY` — chave de criptografia AES-256 para credenciais no banco (sendPulseClientSecret). Mínimo 32 caracteres.
 - `NODE_ENV=production` (a Vercel já define).
 
 Recomendadas/opcionais:

@@ -4,6 +4,7 @@ import { validate } from '../middleware/validate.js';
 import { SettingsSchema } from './schemas.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { hashPassword, verifyPassword } from '../lib/password.js';
+import { encrypt } from '../lib/crypto-util.js';
 
 const router = Router();
 
@@ -43,7 +44,7 @@ router.post('/', validate(SettingsSchema), asyncHandler(async (req: Request, res
   };
 
   if (req.body.settingsPassword) updateData.settingsPassword = await hashPassword(req.body.settingsPassword);
-  if (req.body.sendPulseClientSecret) updateData.sendPulseClientSecret = req.body.sendPulseClientSecret;
+  if (req.body.sendPulseClientSecret) updateData.sendPulseClientSecret = encrypt(req.body.sendPulseClientSecret);
 
   updateData.version = { increment: 1 };
 
