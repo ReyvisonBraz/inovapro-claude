@@ -41,16 +41,12 @@ router.post('/', validate(ServiceOrderSchema), asyncHandler(async (req: AuthRequ
   res.status(201).json({ id: order.id });
 }));
 
-router.put('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
+router.put('/:id', validate(ServiceOrderSchema.partial()), asyncHandler(async (req: AuthRequest, res: Response) => {
   const id = parseInt(req.params.id);
-  const { _clientUpdatedAt, version, ...bodyRest } = req.body;
-  const result = ServiceOrderSchema.partial().safeParse(bodyRest);
-  if (!result.success) {
-    return res.status(400).json({ error: 'Falha na validação', details: result.error.issues });
-  }
+  const { version, ...rest } = req.body;
   const expectedVersion = typeof version === 'number' ? version : undefined;
 
-  const updatedOrder = await serviceOrderService.update(id, { ...result.data, updatedBy: req.user!.userId }, expectedVersion);
+  const updatedOrder = await serviceOrderService.update(id, { ...rest, updatedBy: req.user!.userId }, expectedVersion);
 
   info('Ordem de serviço atualizada', { details: { id: updatedOrder.id } });
   res.json({ success: true, data: updatedOrder });

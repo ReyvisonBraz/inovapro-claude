@@ -38,6 +38,7 @@ export const serviceOrderSchema = z.object({
   createdBy: z.coerce.number().optional(),
   updatedBy: z.coerce.number().optional(),
   arrivalPhotoUrls: z.string().optional().nullable(),
+  version: z.number().int().nonnegative().optional(),
 });
 
 export type ServiceOrderFormData = z.infer<typeof serviceOrderSchema>;

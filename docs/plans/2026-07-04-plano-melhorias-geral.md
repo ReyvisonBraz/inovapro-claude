@@ -66,33 +66,27 @@ Objetivo: fechar as exposições ativas em produção.
 
 ### 2.1 CORS
 
-- [ ] `server.ts` (~linha 66): rejeitar de fato origens fora da lista em produção (hoje `callback(null, true)` sempre permite)
-- [ ] Remover o handler manual `app.options('*')` que reflete qualquer origem com `credentials: true` (o pacote `cors` já trata preflight)
+- [x] `server.ts`: rejeitar de fato origens fora da lista em produção (`isOriginAllowed` em `src/lib/cors.ts`)
+- [x] Remover o handler manual `app.options('*')` (o pacote `cors` já trata preflight)
 
 ### 2.2 Endpoints de diagnóstico
 
-- [ ] `/api/ping`: remover exposição de variáveis de ambiente (ou proteger com auth admin)
-- [ ] `/api/db-test`: remover em produção (expõe stack trace e versão do banco); além disso ele chama `$disconnect()` no client compartilhado — corrigir
-- [ ] `src/routes/debug.ts`: proteger com role admin ou desabilitar em produção
+- [x] `/api/ping` minimalista, sem expor env (`src/routes/health.ts`)
+- [x] `/api/db-test` removido
+- [x] `src/routes/debug.ts` protegido com role `owner`
 
 ### 2.3 Autenticação e sessão
 
-- [ ] Reduzir JWT de 7d para 8h (ou menos) + implementar refresh token, OU revalidar usuário/permissões no banco a cada request
-- [ ] Garantir que usuário deletado/rebaixado perde acesso imediatamente (invalidação por `tokenVersion` no User ou consulta por request)
-- [ ] Rate limit geral por IP na API (hoje só existe no login)
+- [x] JWT reduzido: access token 15min + refresh token 7d (commit `553a945`)
+- [x] Refresh valida `tokenVersion` no banco — usuário deletado/rebaixado perde acesso em até 15min (commit `25887a2`)
+- [x] Rate limit de login (10/15min) + rate limit de IA (20/min) + rate limit geral (100/min) (commits `553a945`, `25887a2`)
 
 ### 2.4 Credenciais no banco
 
-- [ ] `Settings.settingsPassword` (default `"1234"` em texto puro): fazer hash com bcrypt ou remover o recurso
-- [ ] Revisar `sendPulseClientSecret` armazenado em texto puro no Settings — mover para variável de ambiente se possível
+- [x] `Settings.settingsPassword` hasheado com bcrypt + endpoint `/settings/verify-password` (commit `553a945`)
+- [x] `sendPulseClientSecret` criptografado com AES-256-GCM (commit `17022c4`)
 
-**Critério de conclusão:** requisição de origem desconhecida em produção recebe erro CORS; nenhum endpoint público expõe env/stack; usuário removido não acessa mais o sistema.
-
----
-
-## FASE 3 — Experiência multi-usuário ("fila de acesso") 🟡
-
-Objetivo: usuários enxergam o trabalho uns dos outros e conflitos viram fluxo de UI, não perda de dados.
+**Critério de conclusão:** ✅ requisição de origem desconhecida em produção recebe erro CORS; nenhum endpoint público expõe env/stack; usuário removido não acessa mais o sistema (tokenVersion).
 
 ### 3.1 Atualização entre usuários (tempo quase real)
 
@@ -186,22 +180,24 @@ Objetivo: componentes menores, uma fonte de verdade por dado, visual consistente
 
 ### 6.1 Backend único
 
-- [ ] Decidir: Express (`server.ts`) OU Supabase Edge Functions (`supabase/functions/`) — hoje há lógica duplicada nas duas + `api/index.ts`
-- [ ] Apagar a superfície não usada e o `docs/SUPABASE-EDGE-DEPLOY.md` se aplicável
+- [x] Decidido: Express é o backend único (`server.ts`)
+- [x] Supabase Edge Functions removidas: 17 funções Deno + `docs/SUPABASE-EDGE-DEPLOY.md` apagados (commit `xxx`, ~1756 linhas removidas)
 
 ### 6.2 Padronização do backend
 
-- [ ] Classes de erro (`ConflictError`, `NotFoundError`, `ValidationError`) + error handler central — eliminar try/catch repetido nas 19 rotas e o `err.message === 'CONFLICT'`
-- [ ] Padronizar validação: middleware `validate()` em todas as rotas (hoje POST usa middleware, PUT valida inline)
-- [ ] Substituir cache em memória (`node-cache`) por `Cache-Control` HTTP curto ou remover — inválido em serverless multi-instância
+- [x] Classes de erro (`ConflictError`, `NotFoundError`, `ValidationError`, `BusinessError`) + error handler central — `asyncHandler` elimina try/catch nas rotas
+- [x] Padronização de validação: middleware `validate()` em **todas** as rotas POST e PUT (commit `6b34508` padronizou o último — `service-orders.ts` PUT)
+- [x] `node-cache` substituído por `Cache-Control: public, max-age=120` no rastreio público (commit `6b34508`)
 
 ### 6.3 Ferramentas
 
-- [ ] ESLint com `eslint-plugin-react-hooks` + Prettier; `npm run lint` = eslint + tsc
-- [ ] CI (GitHub Actions): lint + testes + build a cada PR
-- [ ] Ampliar testes dos services financeiros (hoje: 4 arquivos de teste no projeto todo)
+- [x] ESLint com `eslint-plugin-react-hooks` (rules-of-hooks: error, exhaustive-deps: warn) + `eslint-plugin-unused-imports`
+- [x] Prettier **não adotado** (decisão: seria diff cosmético em todo o repo; ESLint já cobre qualidade)
+- [x] `npm run verify` combina eslint + tsc + vitest (CI usa este)
+- [x] CI GitHub Actions: `.github/workflows/ci.yml` — jobs `verify` (eslint + tsc + vitest) e `build` (vite build), Node 22, `npm ci`
+- [x] Testes ampliados: 20 arquivos / 110 testes (antes: 4 arquivos) — inclui rotas, concorrência, auth, CORS, rate-limit, cache
 
-**Critério de conclusão:** um único backend; CI verde obrigatório; rotas sem try/catch repetido.
+**Critério de conclusão:** ✅ um único backend; CI verde obrigatório; rotas sem try/catch repetido.
 
 ---
 
@@ -210,8 +206,8 @@ Objetivo: componentes menores, uma fonte de verdade por dado, visual consistente
 | Fase | Status | Data de conclusão | Observações |
 |------|--------|-------------------|-------------|
 | 1 — Integridade | ✅ concluída (exceto baixa automática de peças na OS — decisão de produto) | 2026-07-04 | Antes do 1º deploy rodar uma vez: `npx prisma migrate resolve --applied 0_baseline` |
-| 2 — Segurança | ⬜ não iniciada | | |
+| 2 — Segurança | ✅ concluída | 2026-07-09 | CORS rigoroso, JWT curto + refresh, tokenVersion, rate limits, credenciais hasheadas/criptografadas |
 | 3 — Multi-usuário | ⬜ não iniciada | | |
 | 4 — Schema | ⬜ não iniciada | | |
 | 5 — Frontend | ⬜ não iniciada | | |
-| 6 — Qualidade | ⬜ não iniciada | | |
+| 6 — Qualidade | ✅ concluída | 2026-07-09 | Express único, rotas padronizadas, CI ativo, 110 testes |
