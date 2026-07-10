@@ -14,10 +14,6 @@ vi.mock('../../services/service-order.service.js', () => ({
     delete: vi.fn().mockResolvedValue({ id: 3 }),
   },
 }));
-vi.mock('../../lib/cache.js', () => ({
-  publicOsCache: { del: vi.fn(), get: () => undefined, set: () => {} },
-  PUBLIC_OS_KEY: (t: string | number) => `public_os_${t}`,
-}));
 
 import serviceOrdersRoutes from '../../routes/service-orders';
 import { makeApp, employee } from '../helpers/testApp';
@@ -52,7 +48,7 @@ describe('rotas /service-orders', () => {
     expect(res.body).toHaveProperty('id', 3);
   });
 
-  it('DELETE invalida o cache e responde 204', async () => {
+  it('DELETE responde 204', async () => {
     const res = await request(app()).delete('/api/service-orders/3');
     expect(res.status).toBe(204);
     expect(serviceOrderService.delete).toHaveBeenCalledWith(3);

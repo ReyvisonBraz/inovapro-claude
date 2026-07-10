@@ -1,6 +1,5 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
-import { publicOsCache, PUBLIC_OS_KEY } from '../lib/cache.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 
 const router = Router();
@@ -14,12 +13,6 @@ router.get('/public/os/:token', asyncHandler(async (req: Request, res: Response)
   const token = req.params.token;
   if (!token || token.length < 8) {
     return res.status(404).json({ error: 'Ordem de serviço não encontrada' });
-  }
-
-  const cacheKey = PUBLIC_OS_KEY(token);
-  const cached = publicOsCache.get(cacheKey);
-  if (cached) {
-    return res.json(cached);
   }
 
   const [order, settings] = await Promise.all([
@@ -73,7 +66,10 @@ router.get('/public/os/:token', asyncHandler(async (req: Request, res: Response)
     shopName: settings?.profileName ?? 'Inova Pro',
   };
 
-  publicOsCache.set(cacheKey, payload);
+  // Cache HTTP delega ao CDN/browser (TTL 2 min). Em serverless multi-instância,
+  // o node-cache era por-instância e não invalidava entre instâncias; o
+  // Cache-Control public funciona igualmente em todas as instâncias.
+  res.set('Cache-Control', 'public, max-age=120');
   res.json(payload);
 }));
 

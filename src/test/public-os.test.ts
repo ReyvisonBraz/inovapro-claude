@@ -20,10 +20,6 @@ vi.mock('../lib/prisma.js', () => ({
     settings: { findUnique: vi.fn(async () => ({ shopWhatsapp: null, profileName: 'Inova' })) },
   },
 }));
-vi.mock('../lib/cache.js', () => ({
-  publicOsCache: { get: () => undefined, set: () => {} },
-  PUBLIC_OS_KEY: (t: string | number) => `public_os_${t}`,
-}));
 
 import publicRoutes from '../routes/public';
 

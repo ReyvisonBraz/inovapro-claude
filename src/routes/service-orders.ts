@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express';
 import { serviceOrderSchema as ServiceOrderSchema } from '../schemas/serviceOrderSchema.js';
 import { info } from '../lib/server-logger.js';
 import { serviceOrderService } from '../services/service-order.service.js';
-import { publicOsCache, PUBLIC_OS_KEY } from '../lib/cache.js';
 import { validate } from '../middleware/validate.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
@@ -53,7 +52,6 @@ router.put('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
 
   const updatedOrder = await serviceOrderService.update(id, { ...result.data, updatedBy: req.user!.userId }, expectedVersion);
 
-  publicOsCache.del(PUBLIC_OS_KEY(id));
   info('Ordem de serviço atualizada', { details: { id: updatedOrder.id } });
   res.json({ success: true, data: updatedOrder });
 }));
@@ -62,7 +60,6 @@ router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
   await serviceOrderService.delete(id);
 
-  publicOsCache.del(PUBLIC_OS_KEY(id));
   info('Ordem de serviço excluída', { details: { id } });
   res.status(204).end();
 }));
