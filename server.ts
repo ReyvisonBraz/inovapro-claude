@@ -6,6 +6,7 @@
 
 import express from 'express';
 import 'dotenv/config';
+import './src/lib/serialize.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';

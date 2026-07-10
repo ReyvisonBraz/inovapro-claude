@@ -125,9 +125,10 @@ Objetivo: eliminar as bombas-relógio de tipos. Depende da Fase 1.1 (migrations)
 
 ### 4.1 Tipos corretos
 
-- [ ] Dinheiro `Float` → `Decimal @db.Decimal(12, 2)`: `Transaction.amount`, `ClientPayment.totalAmount/paidAmount`, `ServiceOrder.serviceFee/totalAmount`, `InventoryItem.unitPrice/costPrice/salePrice`, `Customer.creditLimit`, `Settings.initialBalance`
-- [ ] Datas `String` → `DateTime`: `Transaction.date`, `ClientPayment.purchaseDate/dueDate`, `ServiceOrder.entryDate`
-- [ ] Script de migração de dados para converter valores existentes (testar em cópia do banco antes; backup em `backups/`)
+- [x] Dinheiro `Float` → `Decimal @db.Decimal(12, 2)`: `Transaction.amount`, `ClientPayment.totalAmount/paidAmount`, `ServiceOrder.serviceFee/totalAmount`, `InventoryItem.unitPrice/costPrice/salePrice`, `Customer.creditLimit`, `Settings.initialBalance`
+- [x] Datas `String` → `DateTime @db.Date`: `Transaction.date`, `ClientPayment.purchaseDate/dueDate`, `ServiceOrder.entryDate`
+- [x] Migration SQL em `prisma/migrations/20260709180000_correct_types/migration.sql` — `ALTER COLUMN ... TYPE DECIMAL(12,2)` e `... TYPE DATE`
+- [x] Serialização transparente: `Prisma.Decimal.prototype.toJSON` → `Number()` (API retorna números, não strings); `Date.prototype.toJSON` → `"yyyy-MM-dd"` para meia-noite UTC (preserva contrato da API)
 - [ ] Ajustar serialização no front (formatação de moeda/data centralizada em `src/lib/utils.ts`)
 
 ### 4.2 JSON estruturado

@@ -1,6 +1,7 @@
 import express, { Router } from 'express';
 import { vi } from 'vitest';
 import { errorHandler } from '../../lib/server-logger.js';
+import '../../lib/serialize.js';
 
 export type TestUser = { userId: number; username: string; role: string };
 

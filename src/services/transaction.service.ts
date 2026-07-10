@@ -155,8 +155,8 @@ export class TransactionService {
         }
 
         if (payment) {
-          const clamped = Math.max(0, payment.paidAmount ?? 0);
-          const newStatus = clamped >= payment.totalAmount ? 'paid' : 'pending';
+          const clamped = Math.max(0, Number(payment.paidAmount ?? 0));
+          const newStatus = clamped >= Number(payment.totalAmount) ? 'paid' : 'pending';
           await tx.clientPayment.update({
             where: { id: transaction.paymentId },
             data: { paidAmount: clamped, status: newStatus },

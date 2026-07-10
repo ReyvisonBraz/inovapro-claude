@@ -40,7 +40,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 
   const byMonth: Record<string, { income: number; expense: number }> = {};
   for (const tx of monthlyTransactions) {
-    const m = tx.date.substring(0, 7);
+    const m = tx.date.toISOString().substring(0, 7);
     if (!byMonth[m]) byMonth[m] = { income: 0, expense: 0 };
     if (tx.type === 'income') byMonth[m].income += Number(tx.amount);
     else byMonth[m].expense += Number(tx.amount);
@@ -100,18 +100,18 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
     .map(([name, data]) => ({ name, ...data }));
 
   res.json({
-    totalIncome: totalIncome._sum.amount || 0,
-    totalExpenses: totalExpenses._sum.amount || 0,
-    netBalance: (totalIncome._sum.amount || 0) - (totalExpenses._sum.amount || 0),
+    totalIncome: Number(totalIncome._sum.amount || 0),
+    totalExpenses: Number(totalExpenses._sum.amount || 0),
+    netBalance: Number(totalIncome._sum.amount || 0) - Number(totalExpenses._sum.amount || 0),
     chartData,
-    sortedIncomeRanking: incomeRanking.map(r => [r.category, r._sum.amount || 0]),
-    sortedExpenseRanking: expenseRanking.map(r => [r.category, r._sum.amount || 0]),
+    sortedIncomeRanking: incomeRanking.map(r => [r.category, Number(r._sum.amount || 0)]),
+    sortedExpenseRanking: expenseRanking.map(r => [r.category, Number(r._sum.amount || 0)]),
     pendingPayments,
     activeOS,
     recentTransactions: recentTx,
-    monthIncome: monthIncome._sum.amount || 0,
-    monthExpenses: monthExpenses._sum.amount || 0,
-    monthNet: ((monthIncome._sum.amount || 0) - (monthExpenses._sum.amount || 0)),
+    monthIncome: Number(monthIncome._sum.amount || 0),
+    monthExpenses: Number(monthExpenses._sum.amount || 0),
+    monthNet: Number(monthIncome._sum.amount || 0) - Number(monthExpenses._sum.amount || 0),
     monthOS,
     monthOSCount: (monthOS as unknown[]).length,
     osStatusCount,

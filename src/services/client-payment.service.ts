@@ -173,14 +173,14 @@ export class ClientPaymentService {
         throw err;
       }
 
-      const newPaidAmount = payment.paidAmount ?? 0;
+      const newPaidAmount = Number(payment.paidAmount ?? 0);
+      const totalAmount = Number(payment.totalAmount);
 
-      // Tolerância de 1 centavo para ruído de ponto flutuante
-      if (newPaidAmount > payment.totalAmount + 0.01) {
+      if (newPaidAmount > totalAmount + 0.01) {
         throw new BusinessError('Valor excede o saldo restante deste pagamento');
       }
 
-      const newStatus = newPaidAmount >= payment.totalAmount ? 'paid' : 'partial';
+      const newStatus = newPaidAmount >= totalAmount ? 'paid' : 'partial';
 
       // A linha está travada desde o UPDATE acima, então este append no
       // histórico não corre com outras transações.
