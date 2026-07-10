@@ -211,6 +211,6 @@ Objetivo: componentes menores, uma fonte de verdade por dado, visual consistente
 | 1 — Integridade | ✅ concluída (exceto baixa automática de peças na OS — decisão de produto) | 2026-07-04 | Antes do 1º deploy rodar uma vez: `npx prisma migrate resolve --applied 0_baseline` |
 | 2 — Segurança | ✅ concluída | 2026-07-09 | CORS rigoroso, JWT curto + refresh, tokenVersion, rate limits, credenciais hasheadas/criptografadas |
 | 3 — Multi-usuário | ⬜ não iniciada | | |
-| 4 — Schema | 🟡 em andamento | 2026-07-09 | 4.1 concluído, 4.2 parcial (b feito; a e c pendentes), 4.3 parcial (b,c feitos; a pendente) |
+| 4 — Schema | 🟡 em andamento (4.1 ✅, 4.2 a+b ✅, 4.3 b+c ✅) | 2026-07-09 | Pendente: 4.2c (drop base64, requer Storage), 4.3a (status FK, requer @unique) |
 | 5 — Frontend | ⬜ não iniciada | | |
 | 6 — Qualidade | ✅ concluída | 2026-07-09 | Express único, rotas padronizadas, CI ativo, 110 testes |
