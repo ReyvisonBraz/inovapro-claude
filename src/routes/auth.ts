@@ -31,10 +31,8 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
     let permissions: string[] = [];
-    try {
-      permissions = JSON.parse(user.permissions || '[]');
-    } catch {
-      permissions = [];
+    if (Array.isArray(user.permissions)) {
+      permissions = user.permissions as string[];
     }
     if (user.role === 'owner') {
       permissions = [...OWNER_PERMISSIONS];

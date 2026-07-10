@@ -33,9 +33,14 @@ type OSData = {
 
 type StatusOption = { id: number; name: string; color: string };
 
-function parsePhotos(raw: string | null | undefined): string[] {
+function parsePhotos(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw.map((p: string | { base64: string }) =>
+      typeof p === 'string' ? p : p.base64
+    );
+  }
   try {
-    const arr = raw ? JSON.parse(raw) : [];
+    const arr = raw ? JSON.parse(raw as string) : [];
     return arr.map((p: string | { base64: string }) =>
       typeof p === 'string' ? p : p.base64
     );

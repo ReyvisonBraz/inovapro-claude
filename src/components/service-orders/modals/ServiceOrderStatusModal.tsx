@@ -126,9 +126,13 @@ export const ServiceOrderStatusModal: React.FC<ServiceOrderStatusModalProps> = (
                 
                 <div className="grid grid-cols-3 gap-3">
                   {(() => {
-                    const parsePhotos = (raw: string | null | undefined) => {
-                      try { return raw ? JSON.parse(raw) : []; }
-                      catch { return []; }
+                    const parsePhotos = (raw: unknown) => {
+                      if (Array.isArray(raw)) return raw;
+                      if (typeof raw === 'string') {
+                        try { return raw ? JSON.parse(raw) : []; }
+                        catch { return []; }
+                      }
+                      return [];
                     };
                     const rawUrls = parsePhotos(showStatusOnly.arrivalPhotoUrls);
                     const rawBase64 = parsePhotos(showStatusOnly.arrivalPhotoBase64);

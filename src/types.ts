@@ -231,7 +231,7 @@ export interface ServiceOrder {
   updatedAt?: string;
   createdBy?: number;
   updatedBy?: number;
-  arrivalPhotoUrls?: string;
+  arrivalPhotoUrls?: string[] | string | null;
   version?: number;
 }
 

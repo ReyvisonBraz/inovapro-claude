@@ -15,7 +15,9 @@ router.get('/me', asyncHandler(async (req: AuthRequest, res: Response) => {
   if (!user) throw new NotFoundError('Usuário não encontrado');
 
   let permissions: string[] = [];
-  try { permissions = JSON.parse(user.permissions || '[]'); } catch { /* empty */ }
+  if (Array.isArray(user.permissions)) {
+    permissions = user.permissions as string[];
+  }
   if (user.role === 'owner') permissions = [...OWNER_PERMISSIONS];
 
   res.json({ user: { ...user, permissions } });

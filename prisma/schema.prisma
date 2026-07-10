@@ -43,7 +43,7 @@ model Settings {
   profileAvatar            String? @default("https://picsum.photos/seed/inova/100/100")
   initialBalance           Decimal? @default(0) @db.Decimal(12, 2)
   showWarnings             Int?    @default(1)
-  hiddenColumns            String? @default("[]")
+  hiddenColumns            Json?    @default("[]")
   settingsPassword         String? @default("1234")
   receiptLayout           String? @default("a4")
   receiptLogo              String?
@@ -127,7 +127,7 @@ model User {
   password      String
   role          String     @default("employee")
   name          String
-  permissions   String?    @default("[]")
+  permissions   Json?      @default("[]")
   tokenVersion  Int        @default(0)
   createdAt     DateTime   @default(now())
   AuditLogs     AuditLog[]
@@ -180,7 +180,7 @@ model ServiceOrder {
   reportedProblem    String?
   arrivalPhotoUrl    String?
   arrivalPhotoBase64 String?
-  arrivalPhotoUrls   String?
+  arrivalPhotoUrls   Json?
   status             String?  @default("Aguardando Análise")
   technicalAnalysis  String?
   servicesPerformed  String?

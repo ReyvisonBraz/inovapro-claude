@@ -222,10 +222,10 @@ const watchedArrivalPhotos: Array<{base64: string; timestamp: string}> = (() => 
         ssdInfo: editingOrder.ssdInfo || '',
         arrivalPhotoBase64: (() => {
           if (editingOrder.arrivalPhotoUrls) {
-            try {
-              const urls: string[] = JSON.parse(editingOrder.arrivalPhotoUrls);
-              return JSON.stringify(urls.map(url => ({ base64: url, timestamp: '' })));
-            } catch { return ''; }
+            const urls = Array.isArray(editingOrder.arrivalPhotoUrls)
+              ? editingOrder.arrivalPhotoUrls as string[]
+              : (() => { try { return JSON.parse(editingOrder.arrivalPhotoUrls as string) as string[]; } catch { return []; } })();
+            return JSON.stringify(urls.map(url => ({ base64: url, timestamp: '' })));
           }
           return editingOrder.arrivalPhotoBase64 || '';
         })(),

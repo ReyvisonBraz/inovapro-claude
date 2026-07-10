@@ -14,10 +14,10 @@ router.get('/', asyncHandler(async (_req: Request, res: Response) => {
     select: { id: true, username: true, role: true, name: true, permissions: true, createdAt: true },
     orderBy: { name: 'asc' },
   });
-  const usersWithPermissions = users.map(u => {
-    try { return { ...u, permissions: JSON.parse(u.permissions || '[]') }; }
-    catch { return { ...u, permissions: [] }; }
-  });
+  const usersWithPermissions = users.map(u => ({
+    ...u,
+    permissions: Array.isArray(u.permissions) ? u.permissions as string[] : [],
+  }));
   res.json(usersWithPermissions);
 }));
 
@@ -26,7 +26,7 @@ router.post('/', validate(UserCreateSchema), asyncHandler(async (req: Request, r
   const hashedPassword = await hashPassword(password);
   try {
     const user = await prisma.user.create({
-      data: { username, password: hashedPassword, role, name, permissions: JSON.stringify(permissions || []) },
+      data: { username, password: hashedPassword, role, name, permissions: permissions || [] },
     });
     info('Usuário criado', { details: { username, role } });
     res.status(201).json({ id: user.id });
@@ -42,7 +42,7 @@ router.post('/', validate(UserCreateSchema), asyncHandler(async (req: Request, r
 router.put('/:id', validate(UserUpdateSchema), asyncHandler(async (req: Request, res: Response) => {
   const { name, role, password, permissions } = req.body;
   const userId = parseInt(req.params.id);
-  const updateData: Record<string, unknown> = { name, role, permissions: JSON.stringify(permissions || []) };
+  const updateData: Record<string, unknown> = { name, role, permissions: permissions || [] };
   if (password) {
     updateData.password = await hashPassword(password);
   }

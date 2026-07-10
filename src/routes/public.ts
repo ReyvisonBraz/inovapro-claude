@@ -46,7 +46,9 @@ router.get('/public/os/:token', asyncHandler(async (req: Request, res: Response)
     return res.status(404).json({ error: 'Ordem de serviço não encontrada' });
   }
 
-  const photos = safeParseJSON(order.arrivalPhotoUrls || order.arrivalPhotoBase64, []);
+  const photos = Array.isArray(order.arrivalPhotoUrls)
+    ? order.arrivalPhotoUrls
+    : safeParseJSON(order.arrivalPhotoBase64, []);
 
   const payload = {
     id: order.id,

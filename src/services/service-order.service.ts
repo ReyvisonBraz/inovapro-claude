@@ -12,7 +12,7 @@ const safeParseJSON = (str: string | null | undefined, fallback: unknown = []) =
 async function migratePhotosToStorage(
   rawBase64: string | null | undefined,
   osId: number
-): Promise<string | null> {
+): Promise<string[] | null> {
   if (!rawBase64 || !isStorageConfigured()) return null;
 
   const photos: Array<{ base64: string; timestamp: string }> = safeParseJSON(rawBase64, []);
@@ -22,7 +22,7 @@ async function migratePhotosToStorage(
     const urls = await Promise.all(
       photos.map((p, i) => uploadPhotoToStorage(p.base64, osId, i))
     );
-    return JSON.stringify(urls);
+    return urls;
   } catch {
     return null;
   }
