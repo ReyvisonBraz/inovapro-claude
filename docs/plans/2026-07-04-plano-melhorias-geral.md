@@ -134,14 +134,16 @@ Objetivo: eliminar as bombas-relógio de tipos. Depende da Fase 1.1 (migrations)
 ### 4.2 JSON estruturado
 
 - [ ] `ClientPayment.paymentHistory` (string JSON) → tabela `PaymentEntry` (id, paymentId, amount, method, date, createdBy) — é registro financeiro, precisa de integridade
-- [ ] `User.permissions`, `Settings.hiddenColumns`, `ServiceOrder.arrivalPhotoUrls` → tipo `Json`
+- [x] `User.permissions`, `Settings.hiddenColumns`, `ServiceOrder.arrivalPhotoUrls` → tipo `Json` (migration `20260709190000`)
 - [ ] Concluir migração de fotos para Supabase Storage e **dropar `arrivalPhotoBase64`**; reduzir `express.json` limit de 5mb
+  - *Nota:pendente — requer confirmação de que Storage está configurado em todos os deployments*
 
 ### 4.3 Integridade referencial e índices
 
 - [ ] `ServiceOrder.status` string solta → FK para `ServiceOrderStatus` (renomear status não pode orfanar OS)
-- [ ] Índices: `@@index([status, createdAt])` em ServiceOrder; `@@index([date, type])` em Transaction; `@@index([customerId, status, dueDate])` em ClientPayment; `@@index([entity, entityId])` em AuditLog
-- [ ] Definir `onDelete` explícito nas relações (hoje comportamento default implícito)
+  - *Pendente — requer `@unique` em `ServiceOrderStatus.name` e limpeza de duplicatas; decisão de produto*
+- [x] Índices: `@@index([date, type])` em Transaction; `@@index([customerId, status, dueDate])` em ClientPayment; `@@index([entity, entityId])` em AuditLog; `@@index([status, createdAt])` em ServiceOrder (migration `20260709200000`)
+- [x] `onDelete` explícito: Transaction → SetNull, ClientPayment → Cascade, Receipt → Cascade, AuditLog → SetNull, ServiceOrder → Cascade, Model → Cascade
 
 **Critério de conclusão:** `npx prisma migrate deploy` roda limpo; totais financeiros batem antes/depois da conversão (script de verificação); nenhuma coluna base64 no banco.
 
@@ -209,6 +211,6 @@ Objetivo: componentes menores, uma fonte de verdade por dado, visual consistente
 | 1 — Integridade | ✅ concluída (exceto baixa automática de peças na OS — decisão de produto) | 2026-07-04 | Antes do 1º deploy rodar uma vez: `npx prisma migrate resolve --applied 0_baseline` |
 | 2 — Segurança | ✅ concluída | 2026-07-09 | CORS rigoroso, JWT curto + refresh, tokenVersion, rate limits, credenciais hasheadas/criptografadas |
 | 3 — Multi-usuário | ⬜ não iniciada | | |
-| 4 — Schema | ⬜ não iniciada | | |
+| 4 — Schema | 🟡 em andamento | 2026-07-09 | 4.1 concluído, 4.2 parcial (b feito; a e c pendentes), 4.3 parcial (b,c feitos; a pendente) |
 | 5 — Frontend | ⬜ não iniciada | | |
 | 6 — Qualidade | ✅ concluída | 2026-07-09 | Express único, rotas padronizadas, CI ativo, 110 testes |
