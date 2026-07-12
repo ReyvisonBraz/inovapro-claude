@@ -5,12 +5,14 @@ import { asyncHandler } from '../middleware/asyncHandler.js';
 
 const router = Router();
 
+const EXPORT_LIMIT = 5000;
+
 router.get('/', asyncHandler(async (_req: Request, res: Response) => {
   const [customers, transactions, serviceOrders, clientPayments, categories, brands, models, equipmentTypes] = await Promise.all([
-    prisma.customer.findMany(),
-    prisma.transaction.findMany(),
-    prisma.serviceOrder.findMany(),
-    prisma.clientPayment.findMany(),
+    prisma.customer.findMany({ take: EXPORT_LIMIT }),
+    prisma.transaction.findMany({ take: EXPORT_LIMIT, orderBy: { date: 'desc' } }),
+    prisma.serviceOrder.findMany({ take: EXPORT_LIMIT, orderBy: { createdAt: 'desc' } }),
+    prisma.clientPayment.findMany({ take: EXPORT_LIMIT }),
     prisma.category.findMany(),
     prisma.brand.findMany(),
     prisma.model.findMany(),
@@ -18,6 +20,7 @@ router.get('/', asyncHandler(async (_req: Request, res: Response) => {
   ]);
   const data = {
     exportedAt: new Date().toISOString(),
+    limit: EXPORT_LIMIT,
     customers, transactions, serviceOrders, clientPayments,
     categories, brands, models, equipmentTypes,
   };

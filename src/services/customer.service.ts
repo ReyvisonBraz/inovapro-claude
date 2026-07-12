@@ -114,11 +114,16 @@ export class CustomerService {
 
   async delete(customerId: number) {
     return prisma.$transaction(async (tx) => {
-      const payments = await tx.clientPayment.findMany({ where: { customerId } });
+      const paymentIds = await tx.clientPayment.findMany({
+        where: { customerId },
+        select: { id: true },
+      }).then(payments => payments.map(p => p.id));
 
-      for (const p of payments) {
-        await tx.transaction.deleteMany({ where: { paymentId: p.id } });
-        await tx.receipt.deleteMany({ where: { paymentId: p.id } });
+      if (paymentIds.length > 0) {
+        await Promise.all([
+          tx.transaction.deleteMany({ where: { paymentId: { in: paymentIds } } }),
+          tx.receipt.deleteMany({ where: { paymentId: { in: paymentIds } } }),
+        ]);
       }
 
       await tx.clientPayment.deleteMany({ where: { customerId } });

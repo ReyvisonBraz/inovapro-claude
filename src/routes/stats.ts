@@ -17,33 +17,32 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
     return d.toISOString().split('T')[0];
   })() : '';
 
-  const monthFilter = month ? { date: { gte: monthStart, lt: monthEnd } } : {};
-
   const [totalIncome, totalExpenses, pendingPayments, activeOS, recentTx,
-    monthIncome, monthExpenses, monthOS, allOS] = await Promise.all([
+    monthIncome, monthExpenses] = await Promise.all([
     prisma.transaction.aggregate({ where: { type: 'income' }, _sum: { amount: true } }),
     prisma.transaction.aggregate({ where: { type: 'expense' }, _sum: { amount: true } }),
     prisma.clientPayment.count({ where: { status: { in: ['pending', 'partial'] } } }),
     prisma.serviceOrder.count({ where: { NOT: { status: { in: ['Concluído', 'Cancelado', 'Entregue'] } } } }),
     prisma.transaction.findMany({ orderBy: { date: 'desc' }, take: 5 }),
-
-    month ? prisma.transaction.aggregate({ where: { ...monthFilter, type: 'income' }, _sum: { amount: true } }) : Promise.resolve({ _sum: { amount: 0 } }),
-    month ? prisma.transaction.aggregate({ where: { ...monthFilter, type: 'expense' }, _sum: { amount: true } }) : Promise.resolve({ _sum: { amount: 0 } }),
-    month ? prisma.serviceOrder.findMany({ where: { entryDate: { gte: monthStart, lt: monthEnd } } }) : Promise.resolve([]),
-    prisma.serviceOrder.findMany({ select: { services: true, partsUsed: true } }),
+    month ? prisma.transaction.aggregate({ where: { ...{ date: { gte: monthStart, lt: monthEnd } }, type: 'income' }, _sum: { amount: true } }) : Promise.resolve({ _sum: { amount: 0 } }),
+    month ? prisma.transaction.aggregate({ where: { ...{ date: { gte: monthStart, lt: monthEnd } }, type: 'expense' }, _sum: { amount: true } }) : Promise.resolve({ _sum: { amount: 0 } }),
   ]);
 
-  const monthlyTransactions = await prisma.transaction.findMany({
-    where: { date: { gte: twelveMonthsAgoStr } },
-    select: { date: true, type: true, amount: true },
-  });
+  const monthlyData = await prisma.$queryRaw<Array<{ month: string; type: string; total: number }>>`
+    SELECT
+      TO_CHAR("date", 'YYYY-MM') as month,
+      type,
+      SUM(amount)::float as total
+    FROM "Transaction"
+    WHERE "date" >= ${twelveMonthsAgoStr}
+    GROUP BY TO_CHAR("date", 'YYYY-MM'), type
+  `;
 
   const byMonth: Record<string, { income: number; expense: number }> = {};
-  for (const tx of monthlyTransactions) {
-    const m = tx.date.toISOString().substring(0, 7);
-    if (!byMonth[m]) byMonth[m] = { income: 0, expense: 0 };
-    if (tx.type === 'income') byMonth[m].income += Number(tx.amount);
-    else byMonth[m].expense += Number(tx.amount);
+  for (const row of monthlyData) {
+    if (!byMonth[row.month]) byMonth[row.month] = { income: 0, expense: 0 };
+    if (row.type === 'income') byMonth[row.month].income = row.total;
+    else byMonth[row.month].expense = row.total;
   }
 
   const chartData = [];
@@ -56,48 +55,38 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
     chartData.push({ name, income, expense });
   }
 
-  const incomeRanking = await prisma.transaction.groupBy({
-    by: ['category'], where: { type: 'income' },
-    _sum: { amount: true }, orderBy: { _sum: { amount: 'desc' } },
-  });
-
-  const expenseRanking = await prisma.transaction.groupBy({
-    by: ['category'], where: { type: 'expense' },
-    _sum: { amount: true }, orderBy: { _sum: { amount: 'desc' } },
-  });
+  const [incomeRanking, expenseRanking, monthOSData, topProductsData] = await Promise.all([
+    prisma.transaction.groupBy({
+      by: ['category'], where: { type: 'income' },
+      _sum: { amount: true }, orderBy: { _sum: { amount: 'desc' } },
+    }),
+    prisma.transaction.groupBy({
+      by: ['category'], where: { type: 'expense' },
+      _sum: { amount: true }, orderBy: { _sum: { amount: 'desc' } },
+    }),
+    month ? prisma.serviceOrder.groupBy({
+      by: ['status'],
+      where: { entryDate: { gte: monthStart, lt: monthEnd } },
+      _count: true,
+    }) : Promise.resolve([]),
+    prisma.$queryRaw<Array<{ name: string; qty: number; revenue: number }>>`
+      SELECT
+        COALESCE(svc.name, 'Serviço') as name,
+        COUNT(*)::int as qty,
+        SUM((svc.price)::float)::float as revenue
+      FROM "ServiceOrder",
+           jsonb_array_elements("services"::jsonb) AS elem
+      CROSS JOIN LATERAL jsonb_to_record(elem) AS svc(name text, price numeric)
+      GROUP BY svc.name
+      ORDER BY qty DESC
+      LIMIT 8
+    `,
+  ]);
 
   const osStatusCount: Record<string, number> = {};
-  for (const os of monthOS as unknown[]) {
-    const s = (os as { status?: string }).status || 'Sem status';
-    osStatusCount[s] = (osStatusCount[s] || 0) + 1;
+  for (const row of monthOSData as Array<{ status: string; _count: number }>) {
+    osStatusCount[row.status || 'Sem status'] = row._count;
   }
-
-  const serviceCount: Record<string, { qty: number; revenue: number }> = {};
-  for (const os of allOS as unknown[]) {
-    try {
-      const services = JSON.parse(((os as { services?: string }).services) || '[]');
-      for (const s of services) {
-        const name = s.name || 'Serviço';
-        if (!serviceCount[name]) serviceCount[name] = { qty: 0, revenue: 0 };
-        serviceCount[name].qty += 1;
-        serviceCount[name].revenue += Number(s.price || 0);
-      }
-    } catch { /* empty */ }
-    try {
-      const parts = JSON.parse(((os as { partsUsed?: string }).partsUsed) || '[]');
-      for (const p of parts) {
-        const name = p.name || 'Peça';
-        if (!serviceCount[name]) serviceCount[name] = { qty: 0, revenue: 0 };
-        serviceCount[name].qty += Number(p.quantity || 1);
-        serviceCount[name].revenue += Number(p.subtotal || 0);
-      }
-    } catch { /* empty */ }
-  }
-
-  const topProducts = Object.entries(serviceCount)
-    .sort(([, a], [, b]) => b.qty - a.qty)
-    .slice(0, 8)
-    .map(([name, data]) => ({ name, ...data }));
 
   res.json({
     totalIncome: Number(totalIncome._sum.amount || 0),
@@ -112,10 +101,10 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
     monthIncome: Number(monthIncome._sum.amount || 0),
     monthExpenses: Number(monthExpenses._sum.amount || 0),
     monthNet: Number(monthIncome._sum.amount || 0) - Number(monthExpenses._sum.amount || 0),
-    monthOS,
-    monthOSCount: (monthOS as unknown[]).length,
+    monthOS: monthOSData,
+    monthOSCount: (monthOSData as unknown[]).length,
     osStatusCount,
-    topProducts,
+    topProducts: topProductsData,
   });
 }));
 

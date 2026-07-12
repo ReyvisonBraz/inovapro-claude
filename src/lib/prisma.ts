@@ -38,7 +38,7 @@ function getPoolConfig() {
 }
 
 const config = getPoolConfig();
-const pool = new pg.Pool({ ...config, max: 10, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 });
+const pool = new pg.Pool({ ...config, max: 20, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 });
 
 const adapter = new PrismaPg(pool);
 
