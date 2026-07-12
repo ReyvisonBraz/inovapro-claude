@@ -4,6 +4,7 @@ import { User, Lock, AlertCircle, Eye, EyeOff, Wrench } from 'lucide-react';
 import type { User as AppUser } from '../../types';
 import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/useMediaQuery';
+import { SavingButton } from '../ui/SavingButton';
 
 interface LoginProps {
   onLogin: (user: AppUser) => void;
@@ -148,28 +149,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
               </div>
 
-              <motion.button
+              <SavingButton
                 type="submit"
-                disabled={loading}
-                whileTap={{ scale: 0.97 }}
-                className={cn(
-                  "w-full h-12 btn-primary text-sm tracking-wide",
-                  loading && "opacity-70"
-                )}
+                isSaving={loading}
+                className="w-full h-12 btn-primary text-sm tracking-wide"
               >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <motion.span
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                      className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
-                    />
-                    Entrando...
-                  </span>
-                ) : (
-                  'Entrar no Sistema'
-                )}
-              </motion.button>
+                Entrar no Sistema
+              </SavingButton>
             </form>
           </motion.div>
 

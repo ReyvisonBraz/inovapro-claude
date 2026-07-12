@@ -4,6 +4,7 @@ import { X, ChevronDown } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { customerSchema, CustomerFormData } from '../../../schemas/customerSchema';
+import { SavingButton } from '../../ui/SavingButton';
 
 const COUNTRIES = [
   { code: '+55', name: 'Brasil', flag: '🇧🇷' },
@@ -256,13 +257,13 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                 >
                   Cancelar
                 </button>
-                <button
+                <SavingButton
                   type="submit"
-                  disabled={isSubmitting || isSaving}
+                  isSaving={isSaving || isSubmitting}
                   className="flex-1 bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  {isSaving ? 'Salvando...' : (editingCustomer ? 'Atualizar Cliente' : 'Salvar Cliente')}
-                </button>
+                  {editingCustomer ? 'Atualizar Cliente' : 'Salvar Cliente'}
+                </SavingButton>
               </div>
             </form>
           </motion.div>

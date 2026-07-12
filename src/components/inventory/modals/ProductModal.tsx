@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { productSchema, ProductFormData } from '../../../schemas/productSchema';
 import { cn } from '../../../lib/utils';
+import { SavingButton } from '../../ui/SavingButton';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -177,13 +178,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 >
                   Cancelar
                 </button>
-                <button 
+                <SavingButton
                   type="submit"
-                  disabled={isSubmitting}
+                  isSaving={isSubmitting}
                   className="flex-1 h-12 rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Salvando...' : (editingItem ? 'Salvar Alterações' : 'Adicionar Item')}
-                </button>
+                  {editingItem ? 'Salvar Alterações' : 'Adicionar Item'}
+                </SavingButton>
               </div>
             </form>
           </motion.div>

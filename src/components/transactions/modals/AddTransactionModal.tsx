@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { transactionSchema, TransactionFormData } from '../../../schemas/transactionSchema';
 import { cn } from '../../../lib/utils';
+import { SavingButton } from '../../ui/SavingButton';
 import { MiniCalendar } from '../../ui/MiniCalendar';
 
 const formatCurrencyInput = (value: string): string => {
@@ -393,9 +394,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     <span className="px-1.5 py-0.5 rounded bg-white/5 text-xs font-mono">Esc</span>
                     <span>Cancelar</span>
                   </button>
-                  <button
+                  <SavingButton
                     type="submit"
-                    disabled={isSubmitting}
+                    isSaving={isSubmitting}
                     className={cn(
                       'flex-1 py-3.5 rounded-xl font-bold shadow-lg transition-all hover:scale-[1.01] active:scale-[0.98] text-sm uppercase tracking-wider disabled:opacity-50 disabled:hover:scale-100',
                       isIncome
@@ -403,8 +404,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                         : 'bg-rose-500 text-white shadow-rose-500/30'
                     )}
                   >
-                    {isSubmitting ? 'Salvando...' : (editingTransaction ? 'Atualizar' : (isIncome ? '+ Confirmar Entrada' : '− Confirmar Saída'))}
-                  </button>
+                    {editingTransaction ? 'Atualizar' : (isIncome ? '+ Confirmar Entrada' : '− Confirmar Saída')}
+                  </SavingButton>
                 </div>
               </form>
             </div>

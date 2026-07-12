@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { FormProvider, useForm, useFieldArray, type FieldArrayPath } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Check } from 'lucide-react';
+import { X } from 'lucide-react';
+import { SavingButton } from '../ui/SavingButton';
 import { useServiceOrderFormContext } from '../../contexts/ServiceOrderFormContext';
 import { useFormStore } from '../../store/useFormStore';
 import { ServicesAndPartsSection } from './form-sections/ServicesAndPartsSection';
@@ -231,9 +232,9 @@ export const ServiceOrderForm: React.FC = () => {
 
           <div className="p-4 sm:p-6 border-t border-white/5 bg-white/5 flex flex-col sm:flex-row gap-3 sm:gap-4">
             <button type="button" onClick={() => setIsAdding(false)} className="flex-1 h-12 sm:h-14 rounded-xl sm:rounded-2xl font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all order-2 sm:order-1">Cancelar</button>
-            <button type="button" onClick={handleSubmit(onFormSubmit as any)} disabled={isSaving} className="flex-[2] h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-primary text-white font-black shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 order-1 sm:order-2 disabled:opacity-60 disabled:cursor-not-allowed">
-              {isSaving ? (<span className="animate-pulse flex items-center gap-2"><span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Salvando...</span>) : (<><Check size={20} />{editingOrder ? 'Salvar Alterações' : 'Gerar Ordem de Serviço'}</>)}
-            </button>
+            <SavingButton type="button" onClick={handleSubmit(onFormSubmit as any)} isSaving={isSaving} className="flex-[2] h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-primary text-white font-black shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 order-1 sm:order-2 disabled:opacity-60 disabled:cursor-not-allowed">
+              {editingOrder ? 'Salvar Alterações' : 'Gerar Ordem de Serviço'}
+            </SavingButton>
           </div>
         </motion.div>
       </div>

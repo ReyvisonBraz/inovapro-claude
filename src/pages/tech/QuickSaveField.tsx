@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, Save } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { SavingButton } from '../../components/ui/SavingButton';
 
 interface QuickSaveFieldProps {
   icon: React.ReactNode;
@@ -46,9 +47,11 @@ export function QuickSaveField({ icon, label, placeholder, value, onSave }: Quic
         rows={3}
         className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 font-medium resize-none outline-none focus:border-primary/40 focus:bg-white/8 transition-all"
       />
-      <button
+      <SavingButton
         onClick={handleSave}
-        disabled={!dirty || saving}
+        isSaving={saving}
+        saved={saved}
+        disabled={!dirty}
         className={cn(
           "w-full h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all",
           dirty && !saving
@@ -56,12 +59,8 @@ export function QuickSaveField({ icon, label, placeholder, value, onSave }: Quic
             : "bg-white/5 text-slate-600 cursor-not-allowed border border-white/10"
         )}
       >
-        {saving ? (
-          <span className="animate-pulse">Salvando...</span>
-        ) : (
-          <><Save size={13} /> Salvar {label}</>
-        )}
-      </button>
+        <Save size={13} /> Salvar {label}
+      </SavingButton>
     </div>
   );
 }
