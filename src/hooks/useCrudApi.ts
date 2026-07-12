@@ -8,7 +8,7 @@ interface CrudApiOptions {
   deleteSuccessMessage?: string;
   extraInvalidations?: string[][];
   onSaveSuccess?: () => void;
-  showToast: (msg: string, type: 'success' | 'error') => void;
+  showToast: (msg: string, type?: 'success' | 'error' | 'warning' | 'info') => void;
 }
 
 export function useCrudApi({

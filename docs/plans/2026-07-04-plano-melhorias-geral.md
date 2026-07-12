@@ -170,9 +170,9 @@ Objetivo: componentes menores, uma fonte de verdade por dado, visual consistente
 ### 5.3 Visual / UX padrão
 
 - [x] Componentes unificados em `ui/`: `<LoadingState/>`, `<EmptyState/>`, `<ErrorState/>` — substituir implementações caso a caso em todas as listas (commit `xxx`)
-- [ ] Tokens de design: CSS variables derivadas do `primaryColor` das Settings (cores, espaçamentos, raios) usadas em todo lugar
-- [ ] Botão de salvar com estados: `salvando → salvo ✓ / conflito ⚠` (integra com Fase 3.2)
-- [ ] Toasts padronizados (sucesso/erro/aviso) num único sistema
+- [x] Tokens de design: CSS variables derivadas do `primaryColor` das Settings (cores, espaçamentos, raios) usadas em todo lugar (commit `b4b8efc`)
+- [x] Botão de salvar com estados: `salvando → salvo ✓ / conflito ⚠` (integra com Fase 3.2) (commit `36bacd9`)
+- [x] Toasts padronizados (sucesso/erro/aviso) num único sistema (commit `xxx` — tipo `warning`/`info` disponível em todos os hooks)
 - [ ] Revisar responsividade das telas principais em tablet (continuação do trabalho já iniciado no Dashboard)
 
 **Critério de conclusão:** nenhum componente >400 linhas; nenhum dado de servidor duplicado em Zustand; todas as listas usam os estados padrão.
@@ -212,5 +212,5 @@ Objetivo: componentes menores, uma fonte de verdade por dado, visual consistente
 | 2 — Segurança | ✅ concluída | 2026-07-09 | CORS rigoroso, JWT curto + refresh, tokenVersion, rate limits, credenciais hasheadas/criptografadas |
 | 3 — Multi-usuário | ⬜ não iniciada | | |
 | 4 — Schema | 🟡 em andamento (4.1 ✅, 4.2 a+b ✅, 4.3 b+c ✅) | 2026-07-09 | Pendente: 4.2c (drop base64, requer Storage), 4.3a (status FK, requer @unique) |
-| 5 — Frontend | 🟡 em andamento (5.1 ✅, 5.2 ✅, 5.3 parcial) | 2026-07-12 | LoadingState/EmptyState/ErrorState/SavingButton criados e aplicados |
+| 5 — Frontend | 🟡 em andamento (5.1 ✅, 5.2 ✅, 5.3 ✅ exceto responsividade tablet) | 2026-07-12 | LoadingState/EmptyState/ErrorState/SavingButton, design tokens, toasts padronizados |
 | 6 — Qualidade | ✅ concluída | 2026-07-09 | Express único, rotas padronizadas, CI ativo, 110 testes |

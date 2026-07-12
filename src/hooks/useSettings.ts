@@ -3,7 +3,7 @@ import api from '../lib/api';
 import { AppSettings, Category } from '../types';
 import { useSettingsStore } from '../store/useSettingsStore';
 
-export function useSettings(showToast: (message: string, type: 'success' | 'error') => void) {
+export function useSettings(showToast: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void) {
   const queryClient = useQueryClient();
   const { setSettings, setCategories } = useSettingsStore();
 

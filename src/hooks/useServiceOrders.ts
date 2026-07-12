@@ -4,7 +4,7 @@ import { ServiceOrderFormData } from '../schemas/serviceOrderSchema';
 import { useDataStore } from '../store/useDataStore';
 import { useFilterStore } from '../store/useFilterStore';
 
-export const useServiceOrders = (showToast?: (message: string, type: 'success' | 'error') => void) => {
+export const useServiceOrders = (showToast?: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void) => {
   const queryClient = useQueryClient();
   const { serviceOrdersPage, setServiceOrdersPage } = useDataStore();
 

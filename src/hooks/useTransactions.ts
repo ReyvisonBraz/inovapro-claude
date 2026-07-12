@@ -7,7 +7,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { format, endOfMonth, parseISO } from 'date-fns';
 import { useCrudApi } from './useCrudApi';
 
-export function useTransactions(showToast: (message: string, type: 'success' | 'error') => void) {
+export function useTransactions(showToast: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void) {
   const { isAuthenticated } = useAuthStore();
   const { transactionsPage, setTransactionsPage } = useDataStore();
   const { 

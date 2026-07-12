@@ -3,7 +3,7 @@ import api from '../lib/api';
 import { InventoryItem } from '../types';
 import { useCrudApi } from './useCrudApi';
 
-export function useInventory(showToast: (message: string, type: 'success' | 'error') => void) {
+export function useInventory(showToast: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void) {
 
   // Query para buscar itens do estoque
   const { data: inventoryItems, isLoading, isError, refetch } = useQuery({
