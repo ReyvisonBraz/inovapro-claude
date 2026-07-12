@@ -105,7 +105,7 @@ app.use('/api', healthRoutes); // /api/ping (compatibilidade), sem env
  */
 const apiLimiter = makeApiLimiter();
 
-app.use('/api', idempotencyMiddleware);
+// app.use('/api', idempotencyMiddleware); // TEMP: desabilitado pra debugar 500 no login
 app.use('/api', authRoutes);
 app.use('/api', publicRoutes);
 app.use('/api', apiLimiter, requireAuth, meRoutes);
