@@ -98,9 +98,9 @@ Objetivo: fechar as exposições ativas em produção.
 
 ### 3.2 UX de conflito (409)
 
-- [ ] Componente `ConflictModal`: mostra diff campo a campo entre "sua versão" e "versão salva por outro usuário", com quem/quando alterou
-- [ ] Ações no modal: sobrescrever / mesclar campo a campo / descartar minhas mudanças
-- [ ] Nunca descartar o que o usuário digitou (hoje o 409 manda recarregar a página e perde tudo)
+- [x] Componente `ConflictModal`: mostra diff campo a campo entre "sua versão" e "versão salva por outro usuário", com quem/quando alterou (commit `ae7e85e`)
+- [x] Ações no modal: sobrescrever / mesclar campo a campo / descartar minhas mudanças
+- [x] Nunca descartar o que o usuário digitou (hoje o 409 manda recarregar a página e perde tudo)
 - [ ] Usar em: OS, pagamentos, clientes, estoque, settings
 
 ### 3.3 Presença ("Fulano está editando")
@@ -111,9 +111,9 @@ Objetivo: fechar as exposições ativas em produção.
 
 ### 3.4 Idempotência e rascunhos
 
-- [ ] Front gera UUID (`Idempotency-Key`) por submissão de POST; back registra e ignora repetição → elimina OS/pagamento duplicado por duplo clique ou retry
-- [ ] Autosave de rascunho em localStorage (debounce ~2s) nos formulários longos (`ServiceOrderForm` primeiro)
-- [ ] Restaurar rascunho ao reabrir formulário após queda de conexão/conflito
+- [x] Front gera UUID (`Idempotency-Key`) por submissão de POST; back registra e ignora repetição → elimina OS/pagamento duplicado por duplo clique ou retry (commit `3ad5f76`)
+- [x] Autosave de rascunho em localStorage (debounce ~2s) nos formulários longos (`ServiceOrderForm` primeiro) (commit `47fdc8d`)
+- [x] Restaurar rascunho ao reabrir formulário após queda de conexão/conflito
 
 **Critério de conclusão:** simulação com 2 navegadores logados com usuários diferentes: edição simultânea gera modal de conflito sem perda de texto; criação duplicada por duplo clique não ocorre; mudança de um aparece para o outro em <20s.
 
@@ -210,7 +210,7 @@ Objetivo: componentes menores, uma fonte de verdade por dado, visual consistente
 |------|--------|-------------------|-------------|
 | 1 — Integridade | ✅ concluída (exceto baixa automática de peças na OS — decisão de produto) | 2026-07-04 | Antes do 1º deploy rodar uma vez: `npx prisma migrate resolve --applied 0_baseline` |
 | 2 — Segurança | ✅ concluída | 2026-07-09 | CORS rigoroso, JWT curto + refresh, tokenVersion, rate limits, credenciais hasheadas/criptografadas |
-| 3 — Multi-usuário | ⬜ não iniciada | | |
+| 3 — Multi-usuário | 🟡 parcial (3.2 ✅, 3.4 ✅, pendente: 3.1 real-time, 3.3 presença) | 2026-07-12 | Idempotency key, ConflictModal, autosave draft |
 | 4 — Schema | 🟡 em andamento (4.1 ✅, 4.2 a+b ✅, 4.3 b+c ✅) | 2026-07-09 | Pendente: 4.2c (drop base64, requer Storage), 4.3a (status FK, requer @unique) |
 | 5 — Frontend | 🟡 em andamento (5.1 ✅, 5.2 ✅, 5.3 ✅ exceto responsividade tablet) | 2026-07-12 | LoadingState/EmptyState/ErrorState/SavingButton, design tokens, toasts padronizados |
 | 6 — Qualidade | ✅ concluída | 2026-07-09 | Express único, rotas padronizadas, CI ativo, 110 testes |
