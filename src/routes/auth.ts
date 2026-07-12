@@ -47,7 +47,8 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
     res.json({ token: accessToken, user: { ...userWithoutPassword, permissions } });
   } catch (err) {
     error('Erro no login', err, { route: '/api/login' });
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    const detail = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: 'Erro interno do servidor', detail });
   }
 });
 
