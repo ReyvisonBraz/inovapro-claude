@@ -226,7 +226,7 @@ model ServiceOrder {
 
 model ServiceOrderStatus {
   id        Int     @id @default(autoincrement())
-  name      String
+  name      String  @unique
   color     String
   priority  Int?    @default(0)
   isDefault Int?    @default(0)

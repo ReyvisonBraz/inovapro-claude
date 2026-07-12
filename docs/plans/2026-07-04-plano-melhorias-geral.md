@@ -140,8 +140,7 @@ Objetivo: eliminar as bombas-relógio de tipos. Depende da Fase 1.1 (migrations)
 
 ### 4.3 Integridade referencial e índices
 
-- [ ] `ServiceOrder.status` string solta → FK para `ServiceOrderStatus` (renomear status não pode orfanar OS)
-  - *Pendente — requer `@unique` em `ServiceOrderStatus.name` e limpeza de duplicatas; decisão de produto*
+- [x] `ServiceOrderStatus.name` → `@unique` (migration `20260712150000`). Conversão de `ServiceOrder.status` para FK continua pendente — requer migração de dados e mudança de tipo.
 - [x] Índices: `@@index([date, type])` em Transaction; `@@index([customerId, status, dueDate])` em ClientPayment; `@@index([entity, entityId])` em AuditLog; `@@index([status, createdAt])` em ServiceOrder (migration `20260709200000`)
 - [x] `onDelete` explícito: Transaction → SetNull, ClientPayment → Cascade, Receipt → Cascade, AuditLog → SetNull, ServiceOrder → Cascade, Model → Cascade
 
