@@ -38,7 +38,13 @@ function getPoolConfig() {
 }
 
 const config = getPoolConfig();
-const pool = new pg.Pool({ ...config, max: 10, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 });
+const isVercel = !!process.env.VERCEL;
+const pool = new pg.Pool({
+  ...config,
+  max: isVercel ? 2 : 10,
+  idleTimeoutMillis: isVercel ? 5000 : 30000,
+  connectionTimeoutMillis: 10000,
+});
 
 const adapter = new PrismaPg(pool);
 
