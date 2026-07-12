@@ -68,24 +68,27 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
       by: ['status'],
       where: { entryDate: { gte: monthStart, lt: monthEnd } },
       _count: true,
-    }) : Promise.resolve([]),
+    }).catch(() => [] as never) : Promise.resolve([]),
     prisma.$queryRaw<Array<{ name: string; qty: number; revenue: number }>>`
       SELECT
         COALESCE(svc.name, 'Serviço') as name,
         COUNT(*)::int as qty,
-        SUM((svc.price)::float)::float as revenue
-      FROM "ServiceOrder",
-           jsonb_array_elements("services"::jsonb) AS elem
+        COALESCE(SUM((svc.price)::numeric), 0)::float as revenue
+      FROM "ServiceOrder"
+      CROSS JOIN LATERAL jsonb_array_elements(COALESCE("services"::jsonb, '[]'::jsonb)) AS elem
       CROSS JOIN LATERAL jsonb_to_record(elem) AS svc(name text, price numeric)
+      WHERE "services" IS NOT NULL AND "services" != 'null'
       GROUP BY svc.name
       ORDER BY qty DESC
       LIMIT 8
-    `,
+    `.catch(() => [] as never),
   ]);
 
   const osStatusCount: Record<string, number> = {};
+  let monthOSCount = 0;
   for (const row of monthOSData as Array<{ status: string; _count: number }>) {
     osStatusCount[row.status || 'Sem status'] = row._count;
+    monthOSCount += row._count;
   }
 
   res.json({
@@ -102,7 +105,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
     monthExpenses: Number(monthExpenses._sum.amount || 0),
     monthNet: Number(monthIncome._sum.amount || 0) - Number(monthExpenses._sum.amount || 0),
     monthOS: monthOSData,
-    monthOSCount: (monthOSData as unknown[]).length,
+    monthOSCount,
     osStatusCount,
     topProducts: topProductsData,
   });
