@@ -38,18 +38,39 @@ function getPoolConfig() {
 }
 
 const config = getPoolConfig();
-const pool = new pg.Pool({ ...config, max: 20, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 });
 
-const adapter = new PrismaPg(pool);
+const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 
-export const prisma = new PrismaClient({
-  adapter,
-  log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-});
+function createPrismaClient() {
+  const pool = new pg.Pool({
+    ...config,
+    max: isServerless ? 4 : 20,
+    idleTimeoutMillis: isServerless ? 10000 : 30000,
+    connectionTimeoutMillis: 10000,
+  });
 
-pool.on('error', (err) => {
-  console.error('[PRISMA] Unexpected error on idle client', err);
-});
+  pool.on('error', (err) => {
+    console.error('[PRISMA] Unexpected error on idle client', err);
+  });
+
+  const adapter = new PrismaPg(pool);
+
+  return { prisma: new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  }), pool };
+}
+
+const globalForPrisma = globalThis as unknown as {
+  prisma?: ReturnType<typeof createPrismaClient>;
+};
+
+const cached = globalForPrisma.prisma || createPrismaClient();
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = cached;
+}
+
+export const prisma = cached.prisma;
 
 export async function testConnection(): Promise<boolean> {
   try {
@@ -63,7 +84,7 @@ export async function testConnection(): Promise<boolean> {
 
 export async function disconnect(): Promise<void> {
   await prisma.$disconnect();
-  await pool.end();
+  await cached.pool.end();
 }
 
 export default prisma;
