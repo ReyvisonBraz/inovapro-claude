@@ -1,65 +1,68 @@
 import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import pg from 'pg';
 
-function getPoolConfig() {
-  const url = process.env.DATABASE_URL;
-  if (url) {
-    const parsed = new URL(url);
-    const params = Object.fromEntries(parsed.searchParams);
-    const ssl = params.sslmode !== 'disable';
+/**
+ * PrismaClient com connection pool nativo do Prisma.
+ *
+ * Antes usávamos @prisma/adapter-pg (PrismaPg) com pg.Pool manual, mas o
+ * adapter tem bugs conhecidos em serverless:
+ *   - Não propaga erros de conexão (issue #27626)
+ *   - Timeout sem sslmode (issue #29252)
+ *   - Falhas com operações concorrentes em client único (issue #29407)
+ *
+ * O PrismaClient nativo gerencia o pool internamente com retry automático,
+ * circuit breaker e tratamento adequado de erros.
+ *
+ * Pool sizing: O Supabase session-mode pooler aceita ~15 conexões totais.
+ * Em Vercel, cada instância serverless é um processo isolado. Limitamos
+ * via DATABASE_URL (connection_limit=5) para não exceder o pooler.
+ */
 
-    let host = parsed.hostname;
-    let port = parseInt(parsed.port || '5432');
-    let user = decodeURIComponent(parsed.username);
-    const pass = decodeURIComponent(parsed.password);
-    const dbName = parsed.pathname.replace(/^\//, '');
+function buildDatabaseUrl(): string {
+  const raw = process.env.DATABASE_URL;
+  if (!raw) throw new Error('[PRISMA] DATABASE_URL não configurada');
 
-    if (host.endsWith('.supabase.co')) {
-      const projectRef = host.split('.').at(-3);
-      host = 'aws-1-us-west-2.pooler.supabase.com';
-      port = 6543;
-      if (projectRef && !user.includes('.')) {
-        user = `${user}.${projectRef}`;
-      }
+  const parsed = new URL(raw);
+
+  // Supabase direto → pooler (porta 6543)
+  if (parsed.hostname.endsWith('.supabase.co')) {
+    const projectRef = parsed.hostname.split('.').at(-3);
+    parsed.hostname = 'aws-1-us-west-2.pooler.supabase.com';
+    parsed.port = '6543';
+    if (projectRef && !decodedUsername(parsed).includes('.')) {
+      parsed.username = `${decodedUsername(parsed)}.${projectRef}`;
     }
-
-    return { host, port, user, password: pass, database: dbName, ssl: ssl ? { rejectUnauthorized: false } : false };
   }
-  const ssl = process.env.DB_SSL === 'true';
-  return {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432'),
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'postgres',
-    ssl: ssl ? { rejectUnauthorized: false } : false,
-  };
+
+  // Garantir sslmode=require para conexões Supabase
+  if (!parsed.searchParams.has('sslmode')) {
+    parsed.searchParams.set('sslmode', 'require');
+  }
+
+  // Limitar pool por instância serverless (5 de 15 do pooler)
+  const isVercel = !!process.env.VERCEL;
+  if (isVercel && !parsed.searchParams.has('connection_limit')) {
+    parsed.searchParams.set('connection_limit', '5');
+  }
+
+  return parsed.toString();
 }
 
-const config = getPoolConfig();
-const isVercel = !!process.env.VERCEL;
-const pool = new pg.Pool({
-  ...config,
-  max: isVercel ? 2 : 10,
-  idleTimeoutMillis: isVercel ? 5000 : 30000,
-  connectionTimeoutMillis: 10000,
-});
+function decodedUsername(url: URL): string {
+  return decodeURIComponent(url.username);
+}
 
-const adapter = new PrismaPg(pool);
+// Validate and enrich DATABASE_URL at startup
+const databaseUrl = buildDatabaseUrl();
+process.env.DATABASE_URL = databaseUrl;
 
 export const prisma = new PrismaClient({
-  adapter,
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-});
-
-pool.on('error', (err) => {
-  console.error('[PRISMA] Unexpected error on idle client', err);
 });
 
 export async function testConnection(): Promise<boolean> {
   try {
-    await prisma.$connect();
+    // Query simples para validar a conexão
+    await prisma.$queryRaw`SELECT 1 as ok`;
     return true;
   } catch (error) {
     console.error('[PRISMA] ❌ Connection failed:', error);
@@ -69,7 +72,6 @@ export async function testConnection(): Promise<boolean> {
 
 export async function disconnect(): Promise<void> {
   await prisma.$disconnect();
-  await pool.end();
 }
 
 export default prisma;
