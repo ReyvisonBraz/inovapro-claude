@@ -3,7 +3,7 @@ import { Inventory } from '../components/inventory/Inventory';
 import { useInventory } from '../hooks/useInventory';
 import { useToast } from '../components/ui/Toast';
 import { useFilterStore } from '../store/useFilterStore';
-import { useAppStore } from '../store/useAppStore';
+
 import { useModalStore } from '../store/useModalStore';
 import { useDebounce } from '../hooks/useDebounce';
 import { InventoryItem } from '../types';
@@ -21,8 +21,7 @@ export const InventoryPage: React.FC = () => {
     setInventorySearchTerm(debouncedSearchTerm);
   }, [debouncedSearchTerm, setInventorySearchTerm]);
 
-  const { isAddingInventoryItem, setIsAddingInventoryItem } = useAppStore();
-  const { openConfirm } = useModalStore();
+  const { openConfirm, isAddingInventoryItem, setIsAddingInventoryItem } = useModalStore();
 
   const { 
     inventoryItems, 

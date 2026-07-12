@@ -7,7 +7,7 @@ import { useClientPayments } from '../hooks/useClientPayments';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useFilterStore } from '../store/useFilterStore';
 import { useModalStore } from '../store/useModalStore';
-import { useAppStore } from '../store/useAppStore';
+
 import { useFormStore } from '../store/useFormStore';
 import { useToast } from '../components/ui/Toast';
 import { useDebounce } from '../hooks/useDebounce';
@@ -40,12 +40,10 @@ export const CustomersPage: React.FC = () => {
     setHistoryCustomer, 
     setShowHistoryModal,
     setCustomerToDelete,
-    setEditingCustomer
-  } = useModalStore();
-  const { 
+    setEditingCustomer,
     setIsAddingClientPayment,
     setIsAddingCustomer
-  } = useAppStore();
+  } = useModalStore();
   const { 
     setNewClientPayment,
     setNewCustomer

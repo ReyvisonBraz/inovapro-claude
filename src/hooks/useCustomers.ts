@@ -2,12 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
 import { Customer } from '../types';
 import { useToast } from '../components/ui/Toast';
-import { useCustomerStore } from '../store/useCustomerStore';
+import { useDataStore } from '../store/useDataStore';
 import { useFilterStore } from '../store/useFilterStore';
 import { useCrudApi } from './useCrudApi';
 
 export const useCustomers = () => {
-  const { customersPage, setCustomersPage } = useCustomerStore();
+  const { customersPage, setCustomersPage } = useDataStore();
   const { customerSearchTerm, setCustomerSearchTerm } = useFilterStore();
   const { showToast } = useToast();
 

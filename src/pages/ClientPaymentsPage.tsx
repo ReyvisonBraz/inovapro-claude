@@ -8,7 +8,7 @@ import { useFilterStore } from '../store/useFilterStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useModalStore } from '../store/useModalStore';
-import { useAppStore } from '../store/useAppStore';
+
 import { useDebounce } from '../hooks/useDebounce';
 import { useReceipt } from '../hooks/useReceipt';
 import { format } from 'date-fns';
@@ -53,14 +53,11 @@ export const ClientPaymentsPage: React.FC = () => {
     setPaymentAmount,
     paymentDate,
     setPaymentDate,
-    openConfirm
-  } = useModalStore();
-  
-  const {
+    openConfirm,
     setIsAddingClientPayment,
     setIsAddingCustomer,
     setCustomerRegistrationSource
-  } = useAppStore();
+  } = useModalStore();
 
   const clientPayments = clientPaymentsQuery.data || { data: [], meta: { page: 1, totalPages: 1, total: 0, limit: 10 } };
 

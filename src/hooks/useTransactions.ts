@@ -2,14 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
 import { Transaction } from '../types';
 import { useFilterStore } from '../store/useFilterStore';
-import { useTransactionStore } from '../store/useTransactionStore';
+import { useDataStore } from '../store/useDataStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { format, endOfMonth, parseISO } from 'date-fns';
 import { useCrudApi } from './useCrudApi';
 
 export function useTransactions(showToast: (message: string, type: 'success' | 'error') => void) {
   const { isAuthenticated } = useAuthStore();
-  const { transactionsPage, setTransactionsPage } = useTransactionStore();
+  const { transactionsPage, setTransactionsPage } = useDataStore();
   const { 
     searchTerm, filterType, filterCategory,
     dateFilterMode, selectedDate, selectedMonth, startDate, endDate,

@@ -58,19 +58,21 @@ export default function App() {
     fontSize, setFontSize,
     showNotifications, setShowNotifications,
     notificationTab, setNotificationTab,
-    isAdding, setIsAdding,
-    isAddingServiceOrder, setIsAddingServiceOrder,
-    isAddingInventoryItem, setIsAddingInventoryItem,
-    isAddingCustomer, setIsAddingCustomer,
-    setCustomerRegistrationSource,
-    isAddingClientPayment, setIsAddingClientPayment,
     setIsSearchingOS,
     setDirectOsId,
     setDirectMode
   } = useAppStore();
 
   const { searchTerm, setSearchTerm } = useFilterStore();
-  const { passwordInput, setPasswordInput, editingTransaction, setEditingTransaction, editingCustomer, setEditingCustomer } = useModalStore();
+  const {
+    passwordInput, setPasswordInput, editingTransaction, setEditingTransaction, editingCustomer, setEditingCustomer,
+    isAdding, setIsAdding,
+    isAddingServiceOrder, setIsAddingServiceOrder,
+    isAddingInventoryItem, setIsAddingInventoryItem,
+    isAddingCustomer, setIsAddingCustomer,
+    setCustomerRegistrationSource,
+    isAddingClientPayment, setIsAddingClientPayment
+  } = useModalStore();
   const location = useLocation();
   const navigate = useNavigate();
   const { setNewCustomer, setNewTx } = useFormStore();

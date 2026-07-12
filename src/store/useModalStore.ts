@@ -66,6 +66,20 @@ interface ModalState {
   setShowHistoryModal: (show: boolean) => void;
   historyCustomer: Customer | null;
   setHistoryCustomer: (customer: Customer | null) => void;
+
+  // Add-entity modals (consolidated from useAppStore)
+  isAdding: boolean;
+  setIsAdding: (isAdding: boolean) => void;
+  isAddingServiceOrder: boolean;
+  setIsAddingServiceOrder: (isAdding: boolean) => void;
+  isAddingInventoryItem: boolean;
+  setIsAddingInventoryItem: (isAdding: boolean) => void;
+  isAddingCustomer: boolean;
+  setIsAddingCustomer: (isAdding: boolean) => void;
+  customerRegistrationSource: 'customers' | 'service-orders' | 'payments' | null;
+  setCustomerRegistrationSource: (source: 'customers' | 'service-orders' | 'payments' | null) => void;
+  isAddingClientPayment: boolean;
+  setIsAddingClientPayment: (isAdding: boolean) => void;
 }
 
 export const useModalStore = create<ModalState>((set) => ({
@@ -131,4 +145,17 @@ export const useModalStore = create<ModalState>((set) => ({
   setShowHistoryModal: (show) => set({ showHistoryModal: show }),
   historyCustomer: null,
   setHistoryCustomer: (customer) => set({ historyCustomer: customer }),
+
+  isAdding: false,
+  setIsAdding: (isAdding) => set({ isAdding }),
+  isAddingServiceOrder: false,
+  setIsAddingServiceOrder: (isAdding) => set({ isAddingServiceOrder: isAdding }),
+  isAddingInventoryItem: false,
+  setIsAddingInventoryItem: (isAdding) => set({ isAddingInventoryItem: isAdding }),
+  isAddingCustomer: false,
+  setIsAddingCustomer: (isAdding) => set({ isAddingCustomer: isAdding }),
+  customerRegistrationSource: null,
+  setCustomerRegistrationSource: (source) => set({ customerRegistrationSource: source }),
+  isAddingClientPayment: false,
+  setIsAddingClientPayment: (isAdding) => set({ isAddingClientPayment: isAdding }),
 }));

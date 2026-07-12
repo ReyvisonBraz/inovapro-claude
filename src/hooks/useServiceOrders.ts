@@ -1,14 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { ServiceOrderFormData } from '../schemas/serviceOrderSchema';
-import { useServiceOrderStore } from '../store/useServiceOrderStore';
+import { useDataStore } from '../store/useDataStore';
 import { useFilterStore } from '../store/useFilterStore';
 
 export const useServiceOrders = (showToast?: (message: string, type: 'success' | 'error') => void) => {
   const queryClient = useQueryClient();
-  const {
-    serviceOrdersPage, setServiceOrdersPage,
-  } = useServiceOrderStore();
+  const { serviceOrdersPage, setServiceOrdersPage } = useDataStore();
 
   const { 
     osSearchTerm,

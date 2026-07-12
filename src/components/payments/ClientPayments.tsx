@@ -51,9 +51,9 @@ export const ClientPayments = ({
   onTriggerAddCustomer
 }: ClientPaymentsProps) => {
 
-  const { isAddingClientPayment, setIsAddingClientPayment, expandedPayments, togglePaymentExpansion } = useAppStore();
+  const { expandedPayments, togglePaymentExpansion } = useAppStore();
   const { paymentFilterStatus, setPaymentFilterStatus, paymentSortMode, setPaymentSortMode } = useFilterStore();
-  const { isRecordingPayment, setIsRecordingPayment } = useModalStore();
+  const { isRecordingPayment, setIsRecordingPayment, isAddingClientPayment, setIsAddingClientPayment } = useModalStore();
 
   const setNewClientPayment = useFormStore((s) => s.setNewClientPayment);
   const [paymentInitialData, setPaymentInitialData] = useState<{ customerId: number } | null>(null);

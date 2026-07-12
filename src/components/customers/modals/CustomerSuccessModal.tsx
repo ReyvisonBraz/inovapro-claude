@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Wallet, Briefcase, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../../store/useAppStore';
+import { useModalStore } from '../../../store/useModalStore';
 import { useFormStore } from '../../../store/useFormStore';
 
 interface CustomerSuccessModalProps {
@@ -19,7 +20,8 @@ export const CustomerSuccessModal: React.FC<CustomerSuccessModalProps> = ({
   source
 }) => {
   const navigate = useNavigate();
-  const { setIsAddingClientPayment, setIsAddingServiceOrder, setActiveScreen } = useAppStore();
+  const { setActiveScreen } = useAppStore();
+  const { setIsAddingClientPayment, setIsAddingServiceOrder } = useModalStore();
   const { setNewClientPayment, setNewServiceOrder } = useFormStore();
 
   if (!isOpen || !customerId) return null;

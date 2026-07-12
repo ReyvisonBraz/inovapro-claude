@@ -34,7 +34,8 @@ function renderPage() {
 beforeEach(() => {
   cleanup();
   // Stores Zustand são singletons globais — reseta o estado de UI entre testes.
-  useAppStore.setState({ isAddingClientPayment: false, expandedPayments: [] });
+  useAppStore.setState({ expandedPayments: [] });
+  useModalStore.setState({ isAddingClientPayment: false });
   useFilterStore.setState({ paymentSearchTerm: '', paymentFilterStatus: 'all', paymentSortMode: 'date' });
   useModalStore.setState({ isRecordingPayment: null });
 });
@@ -57,12 +58,12 @@ describe('ClientPaymentsPage — comportamento (caracterização)', () => {
     await userEvent.click(screen.getByRole('button', { name: /Novo Registro/i }));
 
     expect(await screen.findByText('Novo Registro de Venda/Pagamento')).toBeInTheDocument();
-    expect(useAppStore.getState().isAddingClientPayment).toBe(true);
+    expect(useModalStore.getState().isAddingClientPayment).toBe(true);
   });
 
   it('reflete isAddingClientPayment do store abrindo o modal já aberto', async () => {
     // Estado de UI vindo do store (o que o refactor passa a consumir direto).
-    useAppStore.setState({ isAddingClientPayment: true });
+    useModalStore.setState({ isAddingClientPayment: true });
     renderPage();
     expect(await screen.findByText('Novo Registro de Venda/Pagamento')).toBeInTheDocument();
   });

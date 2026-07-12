@@ -19,19 +19,6 @@ interface AppState {
   notificationTab: 'payments' | 'service-orders';
   setNotificationTab: (tab: 'payments' | 'service-orders') => void;
 
-  isAdding: boolean;
-  setIsAdding: (isAdding: boolean) => void;
-  isAddingServiceOrder: boolean;
-  setIsAddingServiceOrder: (isAdding: boolean) => void;
-  isAddingInventoryItem: boolean;
-  setIsAddingInventoryItem: (isAdding: boolean) => void;
-  isAddingCustomer: boolean;
-  setIsAddingCustomer: (isAdding: boolean) => void;
-  customerRegistrationSource: 'customers' | 'service-orders' | 'payments' | null;
-  setCustomerRegistrationSource: (source: 'customers' | 'service-orders' | 'payments' | null) => void;
-  isAddingClientPayment: boolean;
-  setIsAddingClientPayment: (isAdding: boolean) => void;
-  
   isSaving: boolean;
   setIsSaving: (isSaving: boolean) => void;
 
@@ -73,19 +60,6 @@ export const useAppStore = create<AppState>((set) => ({
   setShowNotifications: (show) => set({ showNotifications: show }),
   notificationTab: 'payments',
   setNotificationTab: (tab) => set({ notificationTab: tab }),
-
-  isAdding: false,
-  setIsAdding: (isAdding) => set({ isAdding: isAdding }),
-  isAddingServiceOrder: false,
-  setIsAddingServiceOrder: (isAdding) => set({ isAddingServiceOrder: isAdding }),
-  isAddingInventoryItem: false,
-  setIsAddingInventoryItem: (isAdding) => set({ isAddingInventoryItem: isAdding }),
-  isAddingCustomer: false,
-  setIsAddingCustomer: (isAdding) => set({ isAddingCustomer: isAdding }),
-  customerRegistrationSource: null,
-  setCustomerRegistrationSource: (source) => set({ customerRegistrationSource: source }),
-  isAddingClientPayment: false,
-  setIsAddingClientPayment: (isAdding) => set({ isAddingClientPayment: isAdding }),
 
   isSaving: false,
   setIsSaving: (isSaving) => set({ isSaving: isSaving }),

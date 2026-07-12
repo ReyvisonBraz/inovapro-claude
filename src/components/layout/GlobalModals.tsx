@@ -38,9 +38,6 @@ export const GlobalModals: React.FC = () => {
   const { currentUser } = useAuth();
 
   const {
-    isAdding, setIsAdding,
-    isAddingCustomer, setIsAddingCustomer,
-    customerRegistrationSource,
     isSearchingOS, setIsSearchingOS,
     setDirectOsId, setDirectMode
   } = useAppStore();
@@ -63,7 +60,10 @@ export const GlobalModals: React.FC = () => {
     customerPaymentsWarning, setCustomerPaymentsWarning,
     clientPaymentToDelete, setClientPaymentToDelete,
     showHistoryModal, setShowHistoryModal,
-    historyCustomer
+    historyCustomer,
+    isAdding, setIsAdding,
+    isAddingCustomer, setIsAddingCustomer,
+    customerRegistrationSource
   } = useModalStore();
 
   const {

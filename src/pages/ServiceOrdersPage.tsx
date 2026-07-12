@@ -35,16 +35,18 @@ export const ServiceOrdersPage: React.FC = () => {
     setOsSearchTerm(debouncedSearchTerm);
   }, [debouncedSearchTerm, setOsSearchTerm]);
 
-  const { openConfirm, setEditingCustomer } = useModalStore();
+  const {
+    openConfirm, setEditingCustomer,
+    isAddingServiceOrder, setIsAddingServiceOrder,
+    isAddingClientPayment, setIsAddingClientPayment,
+    setIsAddingCustomer,
+    setCustomerRegistrationSource
+  } = useModalStore();
   const { currentUser } = useAuthStore();
   const { setNewCustomer, setNewClientPayment, newClientPayment } = useFormStore();
   const { 
-    isAddingServiceOrder, setIsAddingServiceOrder,
-    isAddingClientPayment, setIsAddingClientPayment,
     directOsId, setDirectOsId,
-    directMode, setDirectMode,
-    setIsAddingCustomer,
-    setCustomerRegistrationSource
+    directMode, setDirectMode
   } = useAppStore();
 
   const { 

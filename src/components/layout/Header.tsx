@@ -35,13 +35,7 @@ export const Header = () => {
     fontSize, setFontSize,
     showNotifications, setShowNotifications,
     notificationTab, setNotificationTab,
-    setIsSearchingOS,
-    setIsAdding,
-    setIsAddingServiceOrder,
-    setIsAddingCustomer,
-    setCustomerRegistrationSource,
-    setIsAddingInventoryItem,
-    setIsAddingClientPayment
+    setIsSearchingOS
   } = useAppStore();
 
   const { searchTerm, setSearchTerm } = useFilterStore();
@@ -51,7 +45,15 @@ export const Header = () => {
   const { customers } = useCustomers();
   const { inventoryItems } = useInventory(() => {});
   const { setNewCustomer } = useFormStore();
-  const { setEditingTransaction, setEditingCustomer } = useModalStore();
+  const {
+    setEditingTransaction, setEditingCustomer,
+    setIsAdding,
+    setIsAddingServiceOrder,
+    setIsAddingCustomer,
+    setCustomerRegistrationSource,
+    setIsAddingInventoryItem,
+    setIsAddingClientPayment
+  } = useModalStore();
 
   const {
     exportTransactionsToCSV,

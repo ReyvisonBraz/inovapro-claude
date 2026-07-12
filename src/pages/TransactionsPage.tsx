@@ -4,7 +4,7 @@ import { useTransactions } from '../hooks/useTransactions';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useFilterStore } from '../store/useFilterStore';
 import { useModalStore } from '../store/useModalStore';
-import { useAppStore } from '../store/useAppStore';
+
 import { useToast } from '../components/ui/Toast';
 import { useDebounce } from '../hooks/useDebounce';
 import { sendWhatsAppPaymentReminder } from '../lib/whatsappUtils';
@@ -31,10 +31,11 @@ export const TransactionsPage: React.FC = () => {
   
   const { 
     setEditingTransaction,
-    setTransactionToDelete
+    setTransactionToDelete,
+    setIsAdding
   } = useModalStore();
 
-  const { setIsAdding } = useAppStore();
+
 
   const { 
     filteredTransactions, 

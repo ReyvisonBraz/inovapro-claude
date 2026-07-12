@@ -2,14 +2,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ClientPayment } from '../types';
 import api from '../lib/api';
 import { useToast } from '../components/ui/Toast';
-import { useClientPaymentStore } from '../store/useClientPaymentStore';
+import { useDataStore } from '../store/useDataStore';
 import { useFilterStore } from '../store/useFilterStore';
 import { useCrudApi } from './useCrudApi';
 
 export function useClientPayments() {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
-  const { paymentsPage, setPaymentsPage } = useClientPaymentStore();
+  const { clientPaymentsPage: paymentsPage, setClientPaymentsPage: setPaymentsPage } = useDataStore();
   const { paymentSearchTerm } = useFilterStore();
 
   const fetchClientPayments = async (page: number, searchTerm: string = '') => {
