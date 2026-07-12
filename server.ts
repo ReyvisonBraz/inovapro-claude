@@ -13,6 +13,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { requireAuth } from './src/middleware/auth.js';
+import { idempotencyMiddleware } from './src/middleware/idempotency.js';
 import { testConnection } from './src/lib/prisma.js';
 import authRoutes from './src/routes/auth.js';
 import publicRoutes from './src/routes/public.js';
@@ -78,7 +79,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-Idempotency-Key'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
 }));
 // O middleware cors() acima já responde ao preflight OPTIONS respeitando a
@@ -104,6 +105,7 @@ app.use('/api', healthRoutes); // /api/ping (compatibilidade), sem env
  */
 const apiLimiter = makeApiLimiter();
 
+app.use('/api', idempotencyMiddleware);
 app.use('/api', authRoutes);
 app.use('/api', publicRoutes);
 app.use('/api', apiLimiter, requireAuth, meRoutes);

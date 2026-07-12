@@ -8,6 +8,13 @@ const api = axios.create({
   withCredentials: true,
 });
 
+api.interceptors.request.use((config) => {
+  if (config.method === 'post') {
+    config.headers['X-Idempotency-Key'] = crypto.randomUUID();
+  }
+  return config;
+});
+
 let isRefreshing = false;
 let pendingQueue: Array<(token: string) => void> = [];
 
