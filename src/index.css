@@ -49,7 +49,7 @@
   }
 
   ::selection {
-    background-color: rgba(17, 82, 212, 0.3);
+    background-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
     color: white;
   }
 
@@ -68,7 +68,7 @@
 
   :focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(17, 82, 212, 0.5), 0 0 0 4px rgba(17, 82, 212, 0.1);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 50%, transparent), 0 0 0 4px color-mix(in srgb, var(--color-primary) 10%, transparent);
     border-radius: 0.5rem;
   }
 
@@ -135,8 +135,8 @@
   color: #475569;
 }
 .glass-input:focus {
-  border-color: rgba(17, 82, 212, 0.4);
-  box-shadow: 0 0 0 3px rgba(17, 82, 212, 0.1);
+  border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 
 /* === Neon === */
@@ -156,7 +156,7 @@
   box-shadow: 0 0 12px rgba(0, 255, 136, 0.12), 0 0 24px rgba(0, 255, 136, 0.04);
 }
 .neon-glow-blue {
-  box-shadow: 0 0 16px rgba(17, 82, 212, 0.25), 0 0 32px rgba(17, 82, 212, 0.10);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--color-primary) 25%, transparent), 0 0 32px color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 .neon-glow-cyan {
   box-shadow: 0 0 12px rgba(0, 212, 255, 0.12), 0 0 24px rgba(0, 212, 255, 0.04);
@@ -168,16 +168,16 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background-color: #1152d4;
+  background-color: var(--color-primary);
   color: white;
   font-weight: 700;
   border-radius: 0.75rem;
   transition: all 0.2s;
-  box-shadow: 0 4px 14px rgba(17, 82, 212, 0.3);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 .btn-primary:hover {
-  background-color: #0e44b0;
-  box-shadow: 0 6px 20px rgba(17, 82, 212, 0.4);
+  background-color: var(--color-primary-dark);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--color-primary) 40%, transparent);
 }
 .btn-primary:active {
   transform: scale(0.97);
@@ -502,7 +502,7 @@
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(17, 82, 212, 0.5);
+  background: color-mix(in srgb, var(--color-primary) 50%, transparent);
 }
 
 /* Print Styles */

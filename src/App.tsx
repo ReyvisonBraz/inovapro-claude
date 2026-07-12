@@ -81,10 +81,17 @@ export default function App() {
   const { isAuthenticated, currentUser, login, logout, hasPermission } = useAuth();
 
   useEffect(() => {
-    document.documentElement.style.setProperty(
-      '--color-primary',
-      settings?.primaryColor ?? '#1152d4'
-    );
+    const hex = settings?.primaryColor ?? '#1152d4';
+    document.documentElement.style.setProperty('--color-primary', hex);
+    // Derive light/dark variants
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const toHex = (n: number) => Math.round(Math.min(255, n)).toString(16).padStart(2, '0');
+    const lighten = (factor: number) => `#${toHex(r + (255 - r) * factor)}${toHex(g + (255 - g) * factor)}${toHex(b + (255 - b) * factor)}`;
+    const darken = (factor: number) => `#${toHex(r * (1 - factor))}${toHex(g * (1 - factor))}${toHex(b * (1 - factor))}`;
+    document.documentElement.style.setProperty('--color-primary-light', lighten(0.3));
+    document.documentElement.style.setProperty('--color-primary-dark', darken(0.2));
   }, [settings?.primaryColor]);
 
   useEffect(() => {
