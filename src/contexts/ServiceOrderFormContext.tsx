@@ -22,7 +22,7 @@ interface ServiceOrderFormContextValue {
   onAddBrand: (name: string, equipmentType: string) => Promise<void>;
   onAddModel: (brandId: number, name: string) => Promise<void>;
   onTriggerAddCustomer: () => void;
-  showToast: (message: string, type: 'success' | 'error') => void;
+  showToast: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void;
   onOpenConfirm: (title: string, message: string, onConfirm: () => void, type?: 'danger' | 'warning' | 'info') => void;
   setSelectedOrder: (order: ServiceOrder | null) => void;
   setShowWhatsAppModal: (show: boolean) => void;

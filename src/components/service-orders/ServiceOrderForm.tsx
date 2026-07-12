@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 import { SavingButton } from '../ui/SavingButton';
 import { useServiceOrderFormContext } from '../../contexts/ServiceOrderFormContext';
 import { useFormStore } from '../../store/useFormStore';
+import { useAutosave } from '../../hooks/useAutosave';
 import { ServicesAndPartsSection } from './form-sections/ServicesAndPartsSection';
 import { EquipmentSection } from './form-sections/EquipmentSection';
 import { CustomerSection } from './form-sections/CustomerSection';
@@ -41,6 +42,21 @@ export const ServiceOrderForm: React.FC = () => {
   });
 
   const { register, handleSubmit, control, setValue, watch, reset, setError, clearErrors, formState: { errors } } = methods;
+
+  const draftKey = editingOrder ? `so-draft-${editingOrder.id}` : 'so-draft-new';
+  const { load: loadDraft, clear: clearDraft } = useAutosave(draftKey, watch());
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
+
+  useEffect(() => {
+    if (hasRestoredDraft || editingOrder) return;
+    const draft = loadDraft();
+    if (draft && Object.keys(draft).length > 0) {
+      reset(draft);
+      showToast('Rascunho restaurado automaticamente', 'info');
+    }
+    setHasRestoredDraft(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasRestoredDraft]);
 
   const { fields: serviceFields, append: appendService, remove: removeService } = useFieldArray({ control, name: 'services' as FieldArrayPath<ServiceOrderFormData> });
   const { fields: partFields, append: appendPart, remove: removePart, update: updatePart } = useFieldArray({ control, name: 'partsUsed' as FieldArrayPath<ServiceOrderFormData> });
@@ -161,6 +177,7 @@ export const ServiceOrderForm: React.FC = () => {
   const onFormSubmit = async (data: ServiceOrderFormData) => {
     if (isSaving) return;
     setIsSaving(true);
+    const editingOrderId = editingOrder?.id;
     let hasError = false;
     if (!isSimplified && !skipEquipmentValidation) {
       if (!data.equipmentType) { setError('equipmentType', { message: 'Obrigatório no modo completo', type: 'manual' }); hasError = true; }
@@ -178,7 +195,7 @@ export const ServiceOrderForm: React.FC = () => {
 
     try {
       if (editingOrder) {
-        const success = await onUpdateOrder(editingOrder.id, orderData, editingOrder.version);
+        const success = await onUpdateOrder(editingOrderId!, orderData, editingOrder.version);
         if (!success) { setIsSaving(false); return; }
         setIsAdding(false); setEditingOrder(null);
         const notifyStatuses = ['Concluído', 'Pronto', 'Aguardando Autorização', 'Aguardando Aprovação'];
@@ -187,15 +204,16 @@ export const ServiceOrderForm: React.FC = () => {
           if (customer?.phone) setTimeout(() => sendWhatsAppStatusUpdate({ ...editingOrder, ...orderData }, customer, 'INOVA PRO', window.location.origin), 300);
         }
         if (orderData.status === 'Concluído' && onGeneratePayment) {
-          onOpenConfirm('Gerar Pagamento', 'Deseja gerar a cobrança/pagamento para esta OS agora?', () => onGeneratePayment({ ...orderData, id: editingOrder.id }), 'info');
+          onOpenConfirm('Gerar Pagamento', 'Deseja gerar a cobrança/pagamento para esta OS agora?', () => onGeneratePayment({ ...orderData, id: editingOrderId! }), 'info');
         }
         reset();
+        clearDraft();
       } else {
         const newId = await onAddOrder(orderData);
         if (!newId) { setIsSaving(false); return; }
         setIsAdding(false); setEditingOrder(null);
         if (orderData.status === 'Concluído' && onGeneratePayment) {
-          onOpenConfirm('Gerar Pagamento', 'Deseja gerar a cobrança/pagamento para esta OS agora?', () => onGeneratePayment({ ...orderData, id: newId }), 'info');
+          onOpenConfirm('Gerar Pagamento', 'Deseja gerar a cobrança/pagamento para esta OS agora?', () => onGeneratePayment({ ...orderData, id: editingOrderId! }), 'info');
         } else {
           onOpenConfirm('Enviar via WhatsApp', 'Deseja enviar a Ordem de Serviço via WhatsApp agora?', () => {
             setSelectedOrder({ ...orderData, id: newId, createdAt: new Date().toISOString() } as any);
@@ -203,6 +221,7 @@ export const ServiceOrderForm: React.FC = () => {
           }, 'info');
         }
         reset();
+        clearDraft();
       }
     } finally { setIsSaving(false); }
   };
