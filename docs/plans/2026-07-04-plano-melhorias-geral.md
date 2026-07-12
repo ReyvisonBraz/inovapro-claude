@@ -157,7 +157,7 @@ Objetivo: componentes menores, uma fonte de verdade por dado, visual consistente
 
 - [ ] Consolidar os booleans de modal do `useAppStore` (`isAdding`, `isAddingServiceOrder`, `isAddingInventoryItem`, ...) em um único `useModalStore`: `openModal('service-order', props)` / `closeModal()`
 - [ ] Remover estado de servidor do Zustand: `users` e `auditLogs` do `useAuthStore` passam a viver só no React Query
-- [ ] Revisar os 11 stores e fundir os que sobraram com pouca responsabilidade
+- [x] Revisar os 11 stores e fundir os que sobraram com pouca responsabilidade (commits `1282099`)
 
 ### 5.2 Componentes gigantes (regra: >250 linhas divide)
 
@@ -169,7 +169,7 @@ Objetivo: componentes menores, uma fonte de verdade por dado, visual consistente
 
 ### 5.3 Visual / UX padrão
 
-- [ ] Componentes unificados em `ui/`: `<LoadingState/>`, `<EmptyState/>`, `<ErrorState/>` — substituir implementações caso a caso em todas as listas
+- [x] Componentes unificados em `ui/`: `<LoadingState/>`, `<EmptyState/>`, `<ErrorState/>` — substituir implementações caso a caso em todas as listas (commit `xxx`)
 - [ ] Tokens de design: CSS variables derivadas do `primaryColor` das Settings (cores, espaçamentos, raios) usadas em todo lugar
 - [ ] Botão de salvar com estados: `salvando → salvo ✓ / conflito ⚠` (integra com Fase 3.2)
 - [ ] Toasts padronizados (sucesso/erro/aviso) num único sistema
@@ -212,5 +212,5 @@ Objetivo: componentes menores, uma fonte de verdade por dado, visual consistente
 | 2 — Segurança | ✅ concluída | 2026-07-09 | CORS rigoroso, JWT curto + refresh, tokenVersion, rate limits, credenciais hasheadas/criptografadas |
 | 3 — Multi-usuário | ⬜ não iniciada | | |
 | 4 — Schema | 🟡 em andamento (4.1 ✅, 4.2 a+b ✅, 4.3 b+c ✅) | 2026-07-09 | Pendente: 4.2c (drop base64, requer Storage), 4.3a (status FK, requer @unique) |
-| 5 — Frontend | ⬜ não iniciada | | |
+| 5 — Frontend | 🟡 em andamento (5.1 ✅, 5.2 ✅, 5.3 parcial) | 2026-07-12 | LoadingState/EmptyState/ErrorState/SavingButton criados e aplicados |
 | 6 — Qualidade | ✅ concluída | 2026-07-09 | Express único, rotas padronizadas, CI ativo, 110 testes |

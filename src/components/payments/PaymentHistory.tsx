@@ -2,6 +2,7 @@ import { CheckCircle2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { ClientPayment } from '../../types';
 import { formatCurrency } from '../../lib/utils';
+import { EmptyState } from '../ui/EmptyState';
 
 interface PaymentHistoryProps {
   payment: ClientPayment;
@@ -32,7 +33,7 @@ export function PaymentHistory({ payment, className }: PaymentHistoryProps) {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-slate-500 italic">Nenhum pagamento registrado ainda.</p>
+        <EmptyState title="Nenhum pagamento registrado" />
       )}
     </div>
   );

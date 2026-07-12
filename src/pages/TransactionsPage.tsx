@@ -8,6 +8,7 @@ import { useModalStore } from '../store/useModalStore';
 import { useToast } from '../components/ui/Toast';
 import { useDebounce } from '../hooks/useDebounce';
 import { sendWhatsAppPaymentReminder } from '../lib/whatsappUtils';
+import { ErrorState } from '../components/ui/ErrorState';
 
 export const TransactionsPage: React.FC = () => {
   const { showToast } = useToast();
@@ -47,6 +48,10 @@ export const TransactionsPage: React.FC = () => {
     isLoading,
     isError
   } = useTransactions(showToast);
+
+  if (isError) {
+    return <ErrorState message="Erro ao carregar transações." />;
+  }
 
   return (
     <Transactions 

@@ -7,6 +7,7 @@ import {
 import { cn, formatCurrency } from '../../lib/utils';
 
 import { ProductModal } from './modals/ProductModal';
+import { EmptyState } from '../ui/EmptyState';
 
 interface InventoryProps {
   items: InventoryItem[];
@@ -208,10 +209,7 @@ export const Inventory: React.FC<InventoryProps> = ({
         ))}
         
         {filteredItems.length === 0 && (
-          <div className="col-span-full text-center py-12 glass-card">
-            <Package size={48} className="mx-auto text-slate-600 mb-4 opacity-50" />
-            <p className="text-slate-400 font-medium">Nenhum item encontrado.</p>
-          </div>
+          <EmptyState icon={Package} title="Nenhum item encontrado" className="col-span-full" />
         )}
       </div>
 

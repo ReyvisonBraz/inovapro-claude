@@ -4,6 +4,7 @@ import { cn, formatCurrency } from '../../lib/utils';
 import { Search, Plus, Phone, MessageCircle, History, CreditCard, Trash2, Edit, AlertTriangle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { WhatsAppModal } from './modals/WhatsAppModal';
+import { EmptyState } from '../ui/EmptyState';
 
 import { Pagination } from '../ui/Pagination';
 
@@ -196,9 +197,11 @@ export const CustomerList: React.FC<CustomerListProps> = ({
         })}
         
         {filteredCustomers.length === 0 && (
-          <div className="text-center py-20 text-slate-500">
-            <p>Nenhum cliente encontrado com os filtros atuais.</p>
-          </div>
+          <EmptyState
+            title="Nenhum cliente encontrado"
+            description="Ajuste os filtros ou cadastre um novo cliente."
+            className="py-20"
+          />
         )}
       </div>
 

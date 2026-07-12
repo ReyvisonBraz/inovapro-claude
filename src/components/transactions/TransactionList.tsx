@@ -9,6 +9,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn, formatCurrency } from '../../lib/utils';
 import { Transaction, AppSettings } from '../../types';
 import { Pagination } from '../ui/Pagination';
+import { EmptyState } from '../ui/EmptyState';
 
 const parseLocalDate = (dateStr: string): Date => {
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -141,23 +142,19 @@ export const TransactionList = ({
           </div>
         ))}
         {filteredTransactions.length === 0 && (
-          <div className="p-8 text-center">
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-slate-600">
-                <Search size={32} />
-              </div>
-              <div>
-                <p className="text-slate-400 font-bold">Nenhuma transação encontrada</p>
-                <p className="text-xs text-slate-600 uppercase tracking-widest mt-1">Ajuste seus filtros</p>
-              </div>
-              <button 
+          <EmptyState
+            icon={Search}
+            title="Nenhuma transação encontrada"
+            description="Ajuste seus filtros"
+            action={
+              <button
                 onClick={() => onAddNewTransaction()}
                 className="mt-2 px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black uppercase tracking-widest rounded-xl transition-all border border-primary/20"
               >
                 Nova Transação
               </button>
-            </div>
-          </div>
+            }
+          />
         )}
       </div>
 
@@ -301,21 +298,19 @@ export const TransactionList = ({
             {filteredTransactions.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-16 text-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-slate-600">
-                      <Search size={32} />
-                    </div>
-                    <div>
-                      <p className="text-slate-400 font-bold">Nenhuma transação encontrada</p>
-                      <p className="text-[10px] text-slate-600 uppercase tracking-widest mt-1">Tente ajustar seus filtros de busca</p>
-                    </div>
-                    <button
-                      onClick={() => onAddNewTransaction()}
-                      className="mt-2 px-5 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-primary/20"
-                    >
-                      Nova Transação
-                    </button>
-                  </div>
+                  <EmptyState
+                    icon={Search}
+                    title="Nenhuma transação encontrada"
+                    description="Tente ajustar seus filtros de busca"
+                    action={
+                      <button
+                        onClick={() => onAddNewTransaction()}
+                        className="mt-2 px-5 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-primary/20"
+                      >
+                        Nova Transação
+                      </button>
+                    }
+                  />
                 </td>
               </tr>
             )}

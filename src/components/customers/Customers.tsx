@@ -1,6 +1,7 @@
 import React from 'react';
 import { CustomerList } from './CustomerList';
 import { Customer, ClientPayment, AppSettings } from '../../types';
+import { LoadingState } from '../ui/LoadingState';
 
 interface CustomersProps {
   customers: { data: Customer[], meta: any };
@@ -39,9 +40,7 @@ export const Customers = ({
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
+        <LoadingState className="py-20" />
       ) : (
         <CustomerList 
           settings={settings}

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { ClientPayment, PaymentListItem } from '../../types';
 import { cn, formatCurrency } from '../../lib/utils';
 import { PaymentHistory } from './PaymentHistory';
+import { EmptyState } from '../ui/EmptyState';
 
 interface PaymentTableDesktopProps {
   groupedPayments: PaymentListItem[];
@@ -233,8 +234,8 @@ export function PaymentTableDesktop({
           })}
           {!hasPayments && (
             <tr>
-              <td colSpan={6} className="px-6 py-20 text-center text-slate-500 italic">
-                Nenhum pagamento encontrado com os filtros atuais.
+              <td colSpan={6} className="px-6 py-20 text-center">
+                <EmptyState title="Nenhum pagamento encontrado" description="Ajuste os filtros para encontrar pagamentos." />
               </td>
             </tr>
           )}

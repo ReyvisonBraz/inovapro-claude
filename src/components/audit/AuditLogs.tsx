@@ -5,6 +5,7 @@ import { Search,
 import { cn } from '../../lib/utils';
 import { AuditLog } from '../../types';
 import { format, parseISO } from 'date-fns';
+import { EmptyState } from '../ui/EmptyState';
 
 interface AuditLogsProps {
   auditLogs: AuditLog[];
@@ -62,9 +63,7 @@ const AuditLogs: React.FC<AuditLogsProps> = ({ auditLogs }) => {
             </div>
           ))}
           {filteredLogs.length === 0 && (
-            <div className="px-4 py-16 text-center text-slate-500 italic text-sm">
-              Nenhum log de auditoria encontrado.
-            </div>
+            <EmptyState title="Nenhum log de auditoria encontrado" className="px-4" />
           )}
         </div>
 
@@ -114,8 +113,8 @@ const AuditLogs: React.FC<AuditLogsProps> = ({ auditLogs }) => {
               ))}
               {filteredLogs.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-20 text-center text-slate-500 italic">
-                    Nenhum log de auditoria encontrado.
+                  <td colSpan={4} className="px-6 py-20 text-center">
+                    <EmptyState title="Nenhum log de auditoria encontrado" />
                   </td>
                 </tr>
               )}

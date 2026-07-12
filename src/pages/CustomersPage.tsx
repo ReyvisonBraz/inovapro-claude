@@ -11,6 +11,7 @@ import { useModalStore } from '../store/useModalStore';
 import { useFormStore } from '../store/useFormStore';
 import { useToast } from '../components/ui/Toast';
 import { useDebounce } from '../hooks/useDebounce';
+import { ErrorState } from '../components/ui/ErrorState';
 
 export const CustomersPage: React.FC = () => {
   const navigate = useNavigate();
@@ -48,6 +49,10 @@ export const CustomersPage: React.FC = () => {
     setNewClientPayment,
     setNewCustomer
   } = useFormStore();
+
+  if (isError) {
+    return <ErrorState message="Erro ao carregar clientes." />;
+  }
 
   return (
     <Customers 

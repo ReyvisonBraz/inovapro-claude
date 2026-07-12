@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { ServiceOrderCard } from './ServiceOrderCard';
 import { Pagination } from '../ui/Pagination';
 import { cn } from '../../lib/utils';
+import { EmptyState } from '../ui/EmptyState';
 
 interface ServiceOrderListProps {
   filteredOrders: any[];
@@ -94,10 +95,7 @@ export const ServiceOrderList: React.FC<ServiceOrderListProps> = ({
         ))}
         
         {filteredOrders.length === 0 && (
-          <div className="text-center py-12 glass-card">
-            <Briefcase size={48} className="mx-auto text-slate-600 mb-4 opacity-50" />
-            <p className="text-slate-400 font-medium">Nenhuma ordem de serviço encontrada.</p>
-          </div>
+          <EmptyState icon={Briefcase} title="Nenhuma ordem de serviço encontrada" className="col-span-full" />
         )}
       </div>
 
