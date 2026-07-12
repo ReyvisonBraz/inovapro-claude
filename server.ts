@@ -32,12 +32,12 @@ const __dirname = path.dirname(__filename);
  */
 process.on('uncaughtException', (err) => {
   error('[FATAL] Exceção não capturada', err);
-  process.exit(1);
+  if (!process.env.VERCEL) process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
   error('[FATAL] Rejeição não tratada', reason);
-  process.exit(1);
+  if (!process.env.VERCEL) process.exit(1);
 });
 
 const app = express();
