@@ -1,20 +1,22 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 /**
- * PrismaClient com connection pool nativo do Prisma.
+ * PrismaClient com PrismaPg driver adapter.
  *
- * Antes usávamos @prisma/adapter-pg (PrismaPg) com pg.Pool manual, mas o
- * adapter tem bugs conhecidos em serverless:
- *   - Não propaga erros de conexão (issue #27626)
- *   - Timeout sem sslmode (issue #29252)
- *   - Falhas com operações concorrentes em client único (issue #29407)
+ * Prisma 7 em ambientes bundled (Vercel) força engine type "client"
+ * que requer obrigatoriamente um adapter. Usamos o pattern documentado:
+ *   new PrismaPg({ connectionString })
  *
- * O PrismaClient nativo gerencia o pool internamente com retry automático,
- * circuit breaker e tratamento adequado de erros.
+ * O adapter gerencia o pool internamente — não precisamos criar pg.Pool.
  *
- * Pool sizing: O Supabase session-mode pooler aceita ~15 conexões totais.
- * Em Vercel, cada instância serverless é um processo isolado. Limitamos
- * via DATABASE_URL (connection_limit=5) para não exceder o pooler.
+ * Antes usávamos pg.Pool manual passado ao adapter, o que causava bugs:
+ *   - Adapter não propaga erros de conexão (#27626)
+ *   - Timeout sem sslmode (#29252)
+ *   - Falhas com operações concorrentes (#29407)
+ *
+ * Pool sizing: Supabase session-mode pooler aceita ~15 conexões totais.
+ * Em Vercel, limitamos via connection_limit=5 na URL.
  */
 
 function buildDatabaseUrl(): string {
@@ -28,8 +30,8 @@ function buildDatabaseUrl(): string {
     const projectRef = parsed.hostname.split('.').at(-3);
     parsed.hostname = 'aws-1-us-west-2.pooler.supabase.com';
     parsed.port = '6543';
-    if (projectRef && !decodedUsername(parsed).includes('.')) {
-      parsed.username = `${decodedUsername(parsed)}.${projectRef}`;
+    if (projectRef && !decodeURIComponent(parsed.username).includes('.')) {
+      parsed.username = `${decodeURIComponent(parsed.username)}.${projectRef}`;
     }
   }
 
@@ -47,21 +49,18 @@ function buildDatabaseUrl(): string {
   return parsed.toString();
 }
 
-function decodedUsername(url: URL): string {
-  return decodeURIComponent(url.username);
-}
-
-// Validate and enrich DATABASE_URL at startup
 const databaseUrl = buildDatabaseUrl();
-process.env.DATABASE_URL = databaseUrl;
+
+// PrismaPg com connection string — adapter gerencia o pool internamente
+const adapter = new PrismaPg({ connectionString: databaseUrl });
 
 export const prisma = new PrismaClient({
+  adapter,
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
 });
 
 export async function testConnection(): Promise<boolean> {
   try {
-    // Query simples para validar a conexão
     await prisma.$queryRaw`SELECT 1 as ok`;
     return true;
   } catch (error) {
