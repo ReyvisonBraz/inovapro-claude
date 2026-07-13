@@ -45,7 +45,7 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = (props) => {
   const [activeTab, setActiveTab] = useState<'print' | 'interface' | 'categories' | 'users' | 'whatsapp' | 'equipment' | 'updates' | 'overview'>('overview');
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 p-6">
+    <div className="max-w-6xl mx-auto space-y-5 sm:space-y-8 p-0 sm:p-6">
       <div className="flex flex-col md:flex-row gap-8">
         {/* Sidebar de Navegação */}
         <div className="w-full md:w-64 shrink-0 space-y-2">

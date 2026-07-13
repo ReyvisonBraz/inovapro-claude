@@ -132,23 +132,23 @@ export const Header = () => {
   if (isMobile) {
     return (
       <header className="sticky top-0 z-30 bg-bg-dark/90 backdrop-blur-xl border-b border-white/[0.04] mobile-safe-top">
-        <div className="flex items-center justify-between px-4 h-14">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-2 px-3 sm:px-4 h-14">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors"
             >
               <Menu size={20} />
             </button>
-            <div className="flex flex-col">
-              <h1 className="text-sm font-bold font-display tracking-tight text-white leading-tight">{config.title}</h1>
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-xs min-[360px]:text-sm font-bold font-display tracking-tight text-white leading-tight truncate">{config.title}</h1>
               {config.subtitle && (
-                <span className="text-[10px] font-medium text-slate-500 leading-tight">{config.subtitle}</span>
+                <span className="text-[10px] font-medium text-slate-500 leading-tight truncate">{config.subtitle}</span>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <NotificationCenter
               showNotifications={showNotifications}
               setShowNotifications={setShowNotifications}

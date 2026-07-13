@@ -42,14 +42,14 @@ export const ServicesAndPartsSection: React.FC<ServicesAndPartsSectionProps> = (
 
   return (
     <div className="space-y-4 pt-6 border-t border-white/5">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div className="flex items-center gap-3">
           <div className="h-1 w-8 bg-primary rounded-full" />
           <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
             <Wrench size={12} /> Serviços e Peças
           </h4>
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto [&>button]:justify-center">
           <button 
             onClick={() => {
               setIsAddingService(!isAddingService);

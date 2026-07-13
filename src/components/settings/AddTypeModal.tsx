@@ -24,18 +24,18 @@ export function AddTypeModal({ isOpen, onClose, onAdd }: AddTypeModalProps) {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-bg-dark/95 backdrop-blur-xl">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-bg-dark/95 backdrop-blur-xl">
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 40 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 40 }}
-            className="w-full max-w-2xl glass-modal p-10 relative overflow-hidden"
+            className="w-full max-w-2xl max-h-[96dvh] overflow-y-auto glass-modal p-4 sm:p-7 lg:p-10 relative rounded-2xl"
           >
             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary via-blue-500 to-emerald-500" />
 
-            <div className="flex justify-between items-center mb-10">
+            <div className="flex justify-between items-center gap-3 mb-6 sm:mb-10">
               <div>
-                <h3 className="text-3xl font-black text-white tracking-tight">Novo Tipo</h3>
+                <h3 className="text-xl sm:text-3xl font-black text-white tracking-tight">Novo Tipo</h3>
                 <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.2em] mt-2">Categoria de Equipamento</p>
               </div>
               <button onClick={onClose} className="h-12 w-12 flex items-center justify-center rounded-2xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all">
@@ -58,7 +58,7 @@ export function AddTypeModal({ isOpen, onClose, onAdd }: AddTypeModalProps) {
 
               <div className="space-y-4">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">Selecione um Ícone</label>
-                <div className="grid grid-cols-5 sm:grid-cols-7 gap-3 max-h-[240px] overflow-y-auto p-2 custom-scrollbar bg-white/[0.02] rounded-[1.5rem] border border-white/5">
+                <div className="grid grid-cols-4 min-[360px]:grid-cols-5 sm:grid-cols-7 gap-2 sm:gap-3 max-h-[240px] overflow-y-auto p-2 custom-scrollbar bg-white/[0.02] rounded-[1.5rem] border border-white/5">
                   {AVAILABLE_ICONS.map((item) => {
                     const Icon = item.icon;
                     const isSelected = selectedIconName === item.name;

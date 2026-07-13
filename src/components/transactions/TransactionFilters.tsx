@@ -173,7 +173,7 @@ export const TransactionFilters = ({
               )}
 
               {dateFilterMode === 'month' && (
-                <div className="flex flex-col gap-4 p-6 min-w-[320px]">
+                <div className="flex flex-col gap-4 p-3 sm:p-6 w-[calc(100vw-2rem)] max-w-[320px]">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
                       <div className="p-2.5 rounded-xl bg-primary text-white shadow-lg shadow-primary/20">

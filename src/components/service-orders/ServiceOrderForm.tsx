@@ -228,13 +228,13 @@ export const ServiceOrderForm: React.FC = () => {
 
   return (
     <FormProvider {...methods}>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 flex items-stretch sm:items-center justify-center p-0 sm:p-4">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAdding(false)} className="absolute inset-0 bg-bg-dark/95 backdrop-blur-xl" />
-        <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-5xl glass-modal p-0 max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border-white/10">
-          <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+        <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-5xl glass-modal p-0 h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border-white/10 sm:rounded-2xl">
+          <div className="px-4 py-3 sm:p-6 border-b border-white/5 flex justify-between items-center gap-3 bg-white/5 mobile-safe-top">
             <div>
-              <h3 className="text-xl font-bold text-white">{editingOrder ? 'Editar Ordem de Serviço' : 'Nova Ordem de Serviço'}</h3>
-              <p className="text-xs text-slate-400 mt-1">Preencha os dados técnicos e do cliente com atenção.</p>
+              <h3 className="text-base sm:text-xl font-bold text-white">{editingOrder ? 'Editar Ordem de Serviço' : 'Nova Ordem de Serviço'}</h3>
+              <p className="hidden sm:block text-xs text-slate-400 mt-1">Preencha os dados técnicos e do cliente com atenção.</p>
             </div>
             <button onClick={() => setIsAdding(false)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all">
               <X size={20} />
@@ -249,7 +249,7 @@ export const ServiceOrderForm: React.FC = () => {
             <ClosingSection register={register} editingOrder={editingOrder} computedTotal={computedTotal} manuallyEditedFee={manuallyEditedFee} setShowQRCodeModal={setShowQRCodeModal} />
           </div>
 
-          <div className="p-4 sm:p-6 border-t border-white/5 bg-white/5 flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <div className="p-3 sm:p-6 border-t border-white/5 bg-white/5 flex flex-col sm:flex-row gap-2 sm:gap-4 mobile-safe-bottom">
             <button type="button" onClick={() => setIsAdding(false)} className="flex-1 h-12 sm:h-14 rounded-xl sm:rounded-2xl font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all order-2 sm:order-1">Cancelar</button>
             <SavingButton type="button" onClick={handleSubmit(onFormSubmit as any)} isSaving={isSaving} className="flex-[2] h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-primary text-white font-black shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 order-1 sm:order-2 disabled:opacity-60 disabled:cursor-not-allowed">
               {editingOrder ? 'Salvar Alterações' : 'Gerar Ordem de Serviço'}

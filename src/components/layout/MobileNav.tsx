@@ -37,8 +37,8 @@ export function MobileNav() {
   };
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-bg-elevated/95 border-t border-white/[0.06] pb-safe">
-      <div className="flex items-center justify-around h-16 px-2">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-bg-elevated/95 border-t border-white/[0.06] [padding-bottom:env(safe-area-inset-bottom)]">
+      <div className="flex items-center justify-around h-16 px-1 sm:px-2">
         {visibleItems.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
@@ -47,7 +47,7 @@ export function MobileNav() {
               key={item.path}
               onClick={() => handleNavigation(item.path, item.screen)}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-1 w-full h-full transition-all",
+                "relative flex flex-col items-center justify-center gap-1 min-w-0 w-full h-full transition-all",
                 "active:scale-90"
               )}
             >

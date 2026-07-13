@@ -108,7 +108,7 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
   return (
     <AnimatePresence>
       {show && selectedOrder && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 sm:p-4">
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -120,7 +120,7 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-lg glass-modal p-8"
+            className="relative w-full max-w-lg max-h-[96dvh] overflow-y-auto glass-modal p-4 sm:p-8 rounded-2xl"
           >
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-3">

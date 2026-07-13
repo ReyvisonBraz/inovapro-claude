@@ -20,16 +20,16 @@ export const ServiceOrderStatusModal: React.FC<ServiceOrderStatusModalProps> = (
   return (
     <AnimatePresence>
       {showStatusOnly && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-bg-dark/90 backdrop-blur-md">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-2 sm:p-4 bg-bg-dark/90 backdrop-blur-md">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="w-full max-w-lg glass-modal p-8 relative overflow-hidden"
+            className="w-full max-w-lg max-h-[96dvh] overflow-y-auto glass-modal p-4 sm:p-8 relative rounded-2xl"
           >
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-blue-500 to-primary animate-gradient-x" />
             
-            <div className="flex justify-between items-start mb-8">
+            <div className="flex justify-between items-start gap-3 mb-5 sm:mb-8">
               <div>
                 <h3 className="text-2xl font-black text-white tracking-tight">Status da Ordem</h3>
                 <p className="text-slate-500 font-medium">OS #{showStatusOnly.id.toString().padStart(4, '0')}</p>
@@ -94,7 +94,7 @@ export const ServiceOrderStatusModal: React.FC<ServiceOrderStatusModalProps> = (
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 sm:gap-4">
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
                   <div className="text-xs font-black uppercase tracking-widest text-slate-500 mb-1">Equipamento</div>
                   <div className="text-sm font-bold text-white">{showStatusOnly.equipmentBrand} {showStatusOnly.equipmentModel}</div>
@@ -124,7 +124,7 @@ export const ServiceOrderStatusModal: React.FC<ServiceOrderStatusModalProps> = (
                   <div className="h-px flex-1 bg-white/10" />
                 </div>
                 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                   {(() => {
                     const parsePhotos = (raw: unknown) => {
                       if (Array.isArray(raw)) return raw;

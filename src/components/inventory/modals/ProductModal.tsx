@@ -65,7 +65,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -77,7 +77,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md glass-modal p-8"
+            className="relative w-full max-w-md max-h-[96dvh] overflow-y-auto glass-modal p-4 sm:p-8 rounded-2xl"
           >
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold">{editingItem ? 'Editar Item' : 'Novo Item'}</h3>
@@ -132,7 +132,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-widest text-slate-500">SKU / Código</label>
                   <input 

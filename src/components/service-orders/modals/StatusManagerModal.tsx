@@ -24,12 +24,12 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-bg-dark/90 backdrop-blur-md">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-2 sm:p-4 bg-bg-dark/90 backdrop-blur-md">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="w-full max-w-md glass-modal p-8 relative overflow-hidden"
+            className="w-full max-w-md max-h-[96dvh] overflow-y-auto glass-modal p-4 sm:p-8 relative rounded-2xl"
           >
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-blue-500" />
             
@@ -61,7 +61,7 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                   animate={{ opacity: 1, height: 'auto' }}
                   className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-4 overflow-hidden"
                 >
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">Nome</label>
                       <input 
