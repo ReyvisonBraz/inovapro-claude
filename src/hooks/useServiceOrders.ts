@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
-import { ServiceOrderFormData } from '../schemas/serviceOrderSchema';
+import type { ServiceOrderFormData } from '../schemas/index.js';
 import { useDataStore } from '../store/useDataStore';
 import { useFilterStore } from '../store/useFilterStore';
 

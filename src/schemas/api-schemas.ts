@@ -6,15 +6,11 @@ export const TransactionSchema = z.object({
   type: z.enum(['income', 'expense']),
   amount: z.coerce.number().positive(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}/),
-  // createdBy/updatedBy NÃO vêm do cliente — são derivados do JWT na rota.
   customerId: z.coerce.number().optional().nullable(),
   customerName: z.string().optional().nullable(),
   customerPhone: z.string().optional().nullable(),
-  // Versão para lock otimista: o cliente devolve a versão que conhecia
-  version: z.number().int().nonnegative().optional()
+  version: z.number().int().nonnegative().optional(),
 });
-
-
 
 export const ClientPaymentSchema = z.object({
   customerId: z.coerce.number(),
@@ -28,7 +24,6 @@ export const ClientPaymentSchema = z.object({
   installmentsCount: z.coerce.number().int().positive().optional(),
   type: z.enum(['income', 'expense']).optional(),
   saleId: z.string().optional().nullable(),
-  // createdBy/updatedBy NÃO vêm do cliente — são derivados do JWT na rota.
 });
 
 export const UserCreateSchema = z.object({
@@ -64,16 +59,28 @@ export const SettingsSchema = z.object({
   showWarnings: z.boolean().optional(),
   hiddenColumns: z.array(z.string()).optional(),
   initialBalance: z.coerce.number().optional(),
-}).passthrough(); // settings tem muitos campos livres; passthrough evita quebrar campos válidos
+}).passthrough();
 
 export const CategorySchema = z.object({
   name: z.string().min(1),
   type: z.enum(['income', 'expense']),
 });
 
-export const BrandSchema = z.object({ name: z.string().min(1), equipmentType: z.string().optional().nullable() });
-export const ModelSchema = z.object({ brandId: z.coerce.number().int().positive(), name: z.string().min(1) });
-export const EquipmentTypeSchema = z.object({ name: z.string().min(1), icon: z.string().optional().nullable() });
+export const BrandSchema = z.object({
+  name: z.string().min(1),
+  equipmentType: z.string().optional().nullable(),
+});
+
+export const ModelSchema = z.object({
+  brandId: z.coerce.number().int().positive(),
+  name: z.string().min(1),
+});
+
+export const EquipmentTypeSchema = z.object({
+  name: z.string().min(1),
+  icon: z.string().optional().nullable(),
+});
+
 export const ServiceOrderStatusSchema = z.object({
   name: z.string().min(1),
   color: z.string().optional(),
@@ -85,5 +92,3 @@ export const PaymentRegisterSchema = z.object({
   amount: z.coerce.number().positive('Valor deve ser positivo'),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}/).optional(),
 });
-
-

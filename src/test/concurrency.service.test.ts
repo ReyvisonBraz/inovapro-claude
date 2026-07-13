@@ -58,7 +58,7 @@ describe('ServiceOrderService.update — lock otimista', () => {
 
     await serviceOrderService.update(7, { status: 'Pronto' }, 3);
 
-    const call = prismaMock.serviceOrder.updateMany.mock.calls[0][0];
+    const call = prismaMock.serviceOrder.updateMany.mock.calls[0]![0]!;
     expect(call.where).toEqual({ id: 7, version: 3 });
     expect(call.data.version).toEqual({ increment: 1 });
   });
@@ -89,7 +89,7 @@ describe('ServiceOrderService.update — lock otimista', () => {
 
     await serviceOrderService.update(7, { status: 'Pronto' });
 
-    expect(prismaMock.serviceOrder.updateMany.mock.calls[0][0].where).toEqual({ id: 7 });
+    expect(prismaMock.serviceOrder.updateMany.mock.calls[0]![0]!.where).toEqual({ id: 7 });
   });
 });
 
@@ -114,7 +114,7 @@ describe('ClientPaymentService.registerPayment — recebimento atômico', () => 
 
     const result = await clientPaymentService.registerPayment(5, { amount: 60 });
 
-    const firstUpdate = tx.clientPayment.update.mock.calls[0][0];
+    const firstUpdate = tx.clientPayment.update.mock.calls[0]![0]!;
     expect(firstUpdate.data.paidAmount).toEqual({ increment: 60 });
     expect(firstUpdate.data.version).toEqual({ increment: 1 });
     expect(result.newPaidAmount).toBe(60);
@@ -161,7 +161,7 @@ describe('InventoryService.adjustStock — estoque atômico', () => {
 
     await inventoryService.adjustStock(3, -2);
 
-    const call = prismaMock.inventoryItem.updateMany.mock.calls[0][0];
+    const call = prismaMock.inventoryItem.updateMany.mock.calls[0]![0]!;
     expect(call.where).toEqual({ id: 3, quantity: { gte: 2 } });
     expect(call.data.quantity).toEqual({ increment: -2 });
   });
@@ -186,7 +186,7 @@ describe('InventoryService.adjustStock — estoque atômico', () => {
 
     await inventoryService.adjustStock(3, 5);
 
-    expect(prismaMock.inventoryItem.updateMany.mock.calls[0][0].where).toEqual({ id: 3 });
+    expect(prismaMock.inventoryItem.updateMany.mock.calls[0]![0]!.where).toEqual({ id: 3 });
   });
 });
 
@@ -219,7 +219,7 @@ describe('TransactionService.delete — estorno sem duplicação', () => {
 
     await transactionService.delete(10);
 
-    const firstUpdate = tx.clientPayment.update.mock.calls[0][0];
+    const firstUpdate = tx.clientPayment.update.mock.calls[0]![0]!;
     expect(firstUpdate.data.paidAmount).toEqual({ decrement: 30 });
   });
 });

@@ -72,8 +72,8 @@ export function PaymentCardMobile({
                       <Zap size={11} className="text-primary shrink-0" />
                       <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Venda Agrupada</p>
                     </div>
-                    <p className="text-xs font-bold text-slate-200 truncate mt-0.5">{item.payments[0].customerName}</p>
-                    <p className="text-[10px] text-slate-500 truncate">{item.payments[0].description.split(' (')[0]}</p>
+                    <p className="text-xs font-bold text-slate-200 truncate mt-0.5">{item.payments[0]?.customerName ?? ''}</p>
+                    <p className="text-[10px] text-slate-500 truncate">{(item.payments[0]?.description ?? '').split(' (')[0]}</p>
                   </div>
                 </div>
                 <div className="shrink-0 text-right">

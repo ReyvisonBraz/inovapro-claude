@@ -300,7 +300,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     <div className="flex gap-1.5">
                       <button
                         type="button"
-                        onClick={() => setValue('date', today())}
+                        onClick={() => setValue('date', today() ?? '')}
                         className={cn(
                           'px-2.5 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all border',
                           dateValue === today()
@@ -312,7 +312,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                       </button>
                       <button
                         type="button"
-                        onClick={() => setValue('date', yesterday())}
+                        onClick={() => setValue('date', yesterday() ?? '')}
                         className={cn(
                           'px-2.5 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all border',
                           dateValue === yesterday()

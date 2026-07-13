@@ -70,8 +70,9 @@ export const TransactionFilters = ({
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
 
-  const currentYear = parseInt(selectedMonth.split('-')[0]);
-  const currentMonthIdx = parseInt(selectedMonth.split('-')[1]) - 1;
+  const [yearStr, monthStr] = selectedMonth.split('-');
+  const currentYear = parseInt(yearStr ?? '0');
+  const currentMonthIdx = parseInt(monthStr ?? '0') - 1;
 
   const handleYearChange = (delta: number) => {
     onSelectedMonthChange(`${currentYear + delta}-${(currentMonthIdx + 1).toString().padStart(2, '0')}`);

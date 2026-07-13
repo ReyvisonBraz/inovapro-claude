@@ -16,12 +16,20 @@ interface AuthState {
   setAuditLogs: (logs: AuditLog[]) => void;
 }
 
+function getInitialUser(): User | null {
+  try {
+    const stored = localStorage.getItem('currentUser');
+    if (stored) return JSON.parse(stored) as User;
+  } catch { /* silently ignore corrupted data */ }
+  return null;
+}
+
 // O token de sessão vive num cookie httpOnly (inacessível a JS). Guardamos
 // apenas o currentUser (não sensível) no localStorage para render imediato no
 // reload; o estado é confirmado pelo servidor via GET /api/me no bootstrap.
 export const useAuthStore = create<AuthState>((set, get) => ({
-  isAuthenticated: !!localStorage.getItem('currentUser'),
-  currentUser: localStorage.getItem('currentUser') ? JSON.parse(localStorage.getItem('currentUser')!) : null,
+  isAuthenticated: !!getInitialUser(),
+  currentUser: getInitialUser(),
   users: [],
   auditLogs: [],
 
@@ -31,7 +39,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: () => {
-    // Limpa o cookie no servidor (best-effort) e o estado local.
     api.post('/logout').catch(() => { /* ignore */ });
     localStorage.removeItem('currentUser');
     set({ isAuthenticated: false, currentUser: null });

@@ -17,7 +17,7 @@ function withStore(options: Record<string, unknown>) {
     return rateLimit({
       ...options,
       store: new RedisStore({
-        sendCommand: (...args: string[]) => client.call(args[0], ...args.slice(1)) as Promise<never>,
+        sendCommand: (...args: string[]) => client.call(args[0] ?? '', ...args.slice(1)) as Promise<never>,
       }),
     } as Parameters<typeof rateLimit>[0]);
   }

@@ -1,5 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { ConflictError, NotFoundError } from '../lib/errors.js';
+import { buildTransactionFilters, toPrismaDate } from '../lib/prisma-helpers.js';
+import { isPrismaNotFoundError } from '../lib/prisma-error.js';
 
 // Tipagem parcial compatível com o TransactionSchema das rotas
 type TransactionData = {
@@ -29,23 +31,8 @@ export class TransactionService {
   }) {
     const page = options.page || 1;
     const limit = options.limit || 20;
-    const { search, type, category, startDate, endDate, minAmount, maxAmount } = options;
     
-    const where: Record<string, unknown> = {};
-    
-    if (search) {
-      where.OR = [
-        { description: { contains: search, mode: 'insensitive' } },
-        { category: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-    
-    if (type && type !== 'all') where.type = type;
-    if (category && category !== 'all') where.category = category;
-    if (startDate) where.date = { ...(where.date as object || {}), gte: startDate };
-    if (endDate) where.date = { ...(where.date as object || {}), lte: endDate };
-    if (minAmount !== undefined && !isNaN(minAmount)) where.amount = { ...(where.amount as object || {}), gte: minAmount };
-    if (maxAmount !== undefined && !isNaN(maxAmount)) where.amount = { ...(where.amount as object || {}), lte: maxAmount };
+    const where = buildTransactionFilters(options);
 
     const [transactions, total] = await Promise.all([
       prisma.transaction.findMany({
@@ -89,7 +76,7 @@ export class TransactionService {
         category,
         type,
         amount,
-        date,
+        date: toPrismaDate(date),
         createdBy: createdBy || 1,
         customerId: finalCustomerId,
         customerName: finalCustomerName,
@@ -108,7 +95,7 @@ export class TransactionService {
         category,
         type,
         amount,
-        date,
+        date: toPrismaDate(date),
         updatedBy: updatedBy || 1,
         version: { increment: 1 },
       },
@@ -132,14 +119,11 @@ export class TransactionService {
       try {
         transaction = await tx.transaction.delete({ where: { id } });
       } catch (err: unknown) {
-        const code = (err as { code?: string }).code;
-        if (code === 'P2025') throw new NotFoundError('Transação não encontrada.');
+        if (isPrismaNotFoundError(err)) throw new NotFoundError('Transação não encontrada.');
         throw err;
       }
 
       if (transaction.paymentId) {
-        // Decremento atômico: trava a linha do pagamento até o commit,
-        // evitando corrida com registerPayment simultâneo.
         let payment = null;
         try {
           payment = await tx.clientPayment.update({
@@ -150,8 +134,7 @@ export class TransactionService {
             },
           });
         } catch (err: unknown) {
-          const code = (err as { code?: string }).code;
-          if (code !== 'P2025') throw err; // pagamento já não existe: segue a exclusão
+          if (!isPrismaNotFoundError(err)) throw err;
         }
 
         if (payment) {

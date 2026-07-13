@@ -27,8 +27,8 @@ export async function uploadPhotoToStorage(
   const matches = base64DataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
   if (!matches) throw new Error('Formato de imagem inválido');
 
-  const mimeType = matches[1];
-  const base64Data = matches[2];
+  const mimeType = matches[1] ?? 'image/jpeg';
+  const base64Data = matches[2] ?? '';
   const ext = mimeType.split('/')[1] || 'jpg';
   const buffer = Buffer.from(base64Data, 'base64');
   const filePath = `os-${osId}/${index}-${Date.now()}.${ext}`;
@@ -49,5 +49,6 @@ export async function deletePhotoFromStorage(publicUrl: string): Promise<void> {
   const pathParts = urlObj.pathname.split(`/${STORAGE_BUCKET}/`);
   if (pathParts.length < 2) return;
 
-  await supabase.storage.from(STORAGE_BUCKET).remove([pathParts[1]]);
+  const filePath = pathParts[1];
+  if (filePath) await supabase.storage.from(STORAGE_BUCKET).remove([filePath]);
 }

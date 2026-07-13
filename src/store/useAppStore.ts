@@ -1,6 +1,17 @@
 import { create } from 'zustand';
 import { Screen } from '../types';
 
+function getInitialFontSize(): number {
+  try {
+    const stored = localStorage.getItem('app_font_size');
+    if (stored) {
+      const parsed = parseInt(stored, 10);
+      if (!isNaN(parsed) && parsed >= 10 && parsed <= 30) return parsed;
+    }
+  } catch { /* ignore */ }
+  return 16;
+}
+
 interface AppState {
   activeScreen: Screen;
   setActiveScreen: (screen: Screen) => void;
@@ -45,11 +56,7 @@ export const useAppStore = create<AppState>((set) => ({
   isSidebarCollapsed: false,
   setIsSidebarCollapsed: (isCollapsed) => set({ isSidebarCollapsed: isCollapsed }),
   
-  fontSize: (() => {
-    const stored = localStorage.getItem('app_font_size');
-    const parsed = parseInt(stored || '16', 10);
-    return isNaN(parsed) ? 16 : parsed;
-  })(),
+  fontSize: getInitialFontSize(),
   setFontSize: (size) => {
     localStorage.setItem('app_font_size', size.toString());
     document.documentElement.style.fontSize = `${size}px`;

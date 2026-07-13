@@ -31,9 +31,9 @@ export function useConflictHandler() {
       const remoteData = (error.response?.data as Record<string, unknown>)?.remote as Record<string, unknown>;
       if (!remoteData) return false;
 
-      const fields: ConflictField[] = Object.keys(fieldLabels).map((key) => ({
+      const fields: ConflictField[] = Object.keys(fieldLabels).map((key: string) => ({
         field: key,
-        label: fieldLabels[key],
+        label: fieldLabels[key] ?? '',
         local: localData[key],
         remote: remoteData[key],
       }));

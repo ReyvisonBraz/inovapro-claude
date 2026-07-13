@@ -3,12 +3,16 @@ import api from '../lib/api';
 import { AppSettings, Category } from '../types';
 import { useSettingsStore } from '../store/useSettingsStore';
 
-export function useSettings(showToast: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void) {
+export function useSettings(
+  showToast: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void,
+  enabled = true,
+) {
   const queryClient = useQueryClient();
   const { setSettings, setCategories } = useSettingsStore();
 
   const { data: settings, isLoading: isLoadingSettings } = useQuery({
     queryKey: ['settings'],
+    enabled,
     staleTime: 5 * 60_000,
     queryFn: async () => {
       const { data } = await api.get('/settings');
@@ -19,6 +23,7 @@ export function useSettings(showToast: (message: string, type?: 'success' | 'err
 
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
+    enabled,
     staleTime: 5 * 60_000,
     queryFn: async () => {
       const { data } = await api.get('/categories');

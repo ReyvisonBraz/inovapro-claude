@@ -32,10 +32,19 @@ export default defineConfig(() => {
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/[a-z0-9-]+\.vercel\.app\/api\/.*/i,
-              handler: 'NetworkFirst',
+              handler: 'StaleWhileRevalidate',
               options: {
                 cacheName: 'api-cache',
-                expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
+                expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 },
+                backgroundSync: { name: 'api-sync' },
+              },
+            },
+            {
+              urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'image-cache',
+                expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 },
               },
             },
           ],
@@ -46,6 +55,20 @@ export default defineConfig(() => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            'motion-vendor': ['motion'],
+            'chart-vendor': ['recharts'],
+            'form-vendor': ['react-hook-form', '@hookform/resolvers'],
+            'dnd-vendor': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+          },
+        },
+      },
+      target: 'es2022',
     },
     optimizeDeps: {
       include: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],

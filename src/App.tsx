@@ -1,4 +1,4 @@
-import React, { useEffect, lazy, Suspense } from 'react';
+import React, { useEffect, lazy, Suspense, useState } from 'react';
 import { useLocation, useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, Screen } from './types';
@@ -50,6 +50,7 @@ const TechOrderPage = lazy(() => import('./pages/TechOrderPage').then(m => ({ de
 const PrintPreviewPage = lazy(() => import('./pages/PrintPreviewPage').then(m => ({ default: m.PrintPreviewPage })));
 
 export default function App() {
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const isMobile = useIsMobile()
   const {
     activeScreen, setActiveScreen,
@@ -77,8 +78,8 @@ export default function App() {
   const navigate = useNavigate();
   const { setNewCustomer, setNewTx } = useFormStore();
   const { showToast } = useToast();
-  const { settings, fetchSettings, fetchCategories } = useSettings(showToast);
   const { isAuthenticated, currentUser, login, logout, hasPermission } = useAuth();
+  const { settings } = useSettings(showToast, isAuthenticated && !isAuthChecking);
 
   useEffect(() => {
     const hex = settings?.primaryColor ?? '#1152d4';
@@ -133,13 +134,6 @@ export default function App() {
   }, [editingTransaction]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchSettings();
-      fetchCategories();
-    }
-  }, [isAuthenticated]);
-
-  useEffect(() => {
     // /rastreio is the public client page — it reads osId on its own, don't redirect
     if (location.pathname === '/rastreio') return;
     const params = new URLSearchParams(window.location.search);
@@ -154,11 +148,15 @@ export default function App() {
 
   // Reidrata a sessão via cookie httpOnly (o token não é legível por JS).
   useEffect(() => {
-    if (location.pathname === '/rastreio') return; // página pública
+    if (window.location.pathname === '/rastreio') {
+      setIsAuthChecking(false);
+      return;
+    }
     api.get('/me')
       .then(({ data }) => { if (data?.user) login(data.user); })
-      .catch(() => { /* 401 → o interceptor de api.ts trata o redirect */ });
-  }, []);
+      .catch(() => { /* 401 → o interceptor de api.ts trata o redirect */ })
+      .finally(() => setIsAuthChecking(false));
+  }, [login]);
 
   const handleLogin = (user: User) => {
     login(user);
@@ -172,16 +170,21 @@ export default function App() {
     navigate('/login');
   };
 
+  if (location.pathname === '/rastreio') {
+    return (
+      <SplashScreen>
+        <Suspense fallback={<PageLoader />}>
+          <PublicTrackingPage />
+        </Suspense>
+      </SplashScreen>
+    );
+  }
+
+  if (isAuthChecking) {
+    return <SplashScreen><PageLoader /></SplashScreen>;
+  }
+
   if (!isAuthenticated) {
-    if (location.pathname === '/rastreio') {
-      return (
-        <SplashScreen>
-          <Suspense fallback={<PageLoader />}>
-            <PublicTrackingPage />
-          </Suspense>
-        </SplashScreen>
-      );
-    }
     return <SplashScreen><Login onLogin={handleLogin} /></SplashScreen>;
   }
 

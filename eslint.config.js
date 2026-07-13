@@ -37,7 +37,7 @@ export default tseslint.config(
       'no-empty': ['error', { allowEmptyCatch: true }],
       // console.log/info/debug proibido fora dos loggers (warn/error liberados).
       'no-console': ['error', { allow: ['warn', 'error'] }],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': ['warn', { ignoreRestArgs: true }],
       '@typescript-eslint/ban-ts-comment': 'warn',
       // unused-imports cuida de imports/vars não usados (auto-fix).
       '@typescript-eslint/no-unused-vars': 'off',

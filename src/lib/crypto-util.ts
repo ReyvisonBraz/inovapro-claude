@@ -36,9 +36,9 @@ export function decrypt(stored: string): string | null {
 
   try {
     const key = getKey();
-    const iv = Buffer.from(parts[0], 'hex');
-    const tag = Buffer.from(parts[1], 'hex');
-    const enc = Buffer.from(parts[2], 'hex');
+    const iv = Buffer.from(parts[0] ?? '', 'hex');
+    const tag = Buffer.from(parts[1] ?? '', 'hex');
+    const enc = Buffer.from(parts[2] ?? '', 'hex');
     const decipher = createDecipheriv(ALGO, key, iv);
     decipher.setAuthTag(tag);
     const dec = Buffer.concat([decipher.update(enc), decipher.final()]);

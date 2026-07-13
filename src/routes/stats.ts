@@ -1,11 +1,13 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
+import { AuthRequest } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import { parseQueryParam } from '../lib/query-params.js';
 
 const router = Router();
 
-router.get('/', asyncHandler(async (req: Request, res: Response) => {
-  const month = (req.query.month as string) || '';
+router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const month = parseQueryParam(req.query.month) ?? '';
   const twelveMonthsAgo = new Date();
   twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
   const twelveMonthsAgoStr = twelveMonthsAgo.toISOString().split('T')[0];
@@ -40,9 +42,10 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 
   const byMonth: Record<string, { income: number; expense: number }> = {};
   for (const row of monthlyData) {
-    if (!byMonth[row.month]) byMonth[row.month] = { income: 0, expense: 0 };
-    if (row.type === 'income') byMonth[row.month].income = row.total;
-    else byMonth[row.month].expense = row.total;
+    const monthKey = row.month ?? '';
+    if (!byMonth[monthKey]) byMonth[monthKey] = { income: 0, expense: 0 };
+    if (row.type === 'income') byMonth[monthKey].income = row.total;
+    else byMonth[monthKey].expense = row.total;
   }
 
   const chartData = [];

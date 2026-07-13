@@ -100,8 +100,8 @@ export const EnhancedReports: React.FC<EnhancedReportsProps> = ({ transactions }
 
       {/* Sidebar (Top Categorias, Resumo, Transações Recentes) */}
       <ReportSidebar
-        topCategories={topCategories}
-        categoryPieData={categoryPieData}
+        topCategories={(topCategories ?? []).map(c => ({ ...c, color: c.color ?? '#6366f1' }))}
+        categoryPieData={(categoryPieData ?? []).map(c => ({ ...c, color: c.color ?? '#6366f1' }))}
         kpis={kpis}
         dateRange={dateRange}
         filteredTransactions={filteredTransactions}

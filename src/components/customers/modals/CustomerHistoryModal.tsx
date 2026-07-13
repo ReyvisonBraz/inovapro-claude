@@ -44,7 +44,7 @@ export const CustomerHistoryModal: React.FC<CustomerHistoryModalProps> = ({
       status: o.status,
       details: o.reportedProblem
     }))
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  ].sort((a, b) => new Date(b.date ?? '').getTime() - new Date(a.date ?? '').getTime());
 
   return (
     <AnimatePresence>
@@ -101,7 +101,7 @@ export const CustomerHistoryModal: React.FC<CustomerHistoryModalProps> = ({
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] md:text-xs text-slate-500 mb-2">
                         <span className="flex items-center gap-1 font-bold uppercase tracking-widest">
                           <Calendar size={12} />
-                          {format(parseISO(item.date), 'dd/MM/yyyy')}
+                          {format(parseISO(item.date ?? ''), 'dd/MM/yyyy')}
                         </span>
                         <span className="flex items-center gap-1 font-bold uppercase tracking-widest">
                           <Clock size={12} />

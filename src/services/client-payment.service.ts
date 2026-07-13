@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma.js';
 import { BusinessError, ConflictError, NotFoundError } from '../lib/errors.js';
+import { toPrismaDate } from '../lib/prisma-helpers.js';
 
 type ClientPaymentData = {
   customerId: number;
@@ -109,7 +110,7 @@ export class ClientPaymentService {
             category: 'Vendas',
             type: 'income', 
             amount: paidAmount, 
-            date: purchaseDate || new Date().toISOString().split('T')[0],
+            date: toPrismaDate(purchaseDate || new Date().toISOString().slice(0, 10)),
             createdBy: createdBy || 1, 
             paymentId: payment.id, 
             saleId,
@@ -213,7 +214,7 @@ export class ClientPaymentService {
           category: 'Vendas',
           type: 'income', 
           amount, 
-          date: (date || new Date().toISOString()).split('T')[0],
+          date: toPrismaDate(date || new Date().toISOString().slice(0, 10)),
           createdBy: updatedBy || 1, 
           paymentId: id, 
           saleId: payment.saleId || null,

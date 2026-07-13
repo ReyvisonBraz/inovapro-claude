@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { User, Lock, AlertCircle, Eye, EyeOff, Wrench } from 'lucide-react';
 import type { User as AppUser } from '../../types';
-import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { SavingButton } from '../ui/SavingButton';
 

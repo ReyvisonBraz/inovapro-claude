@@ -47,7 +47,8 @@ export const NeonChart: React.FC<NeonChartProps> = ({
 
   const handleChildClick = (props: { activePayload?: Array<{ payload: ChartClickData }> }) => {
     if (props && props.activePayload && onChartClick) {
-      onChartClick(props.activePayload[0]?.payload);
+      const payload = props.activePayload[0]?.payload;
+      if (payload) onChartClick(payload);
     }
   };
 

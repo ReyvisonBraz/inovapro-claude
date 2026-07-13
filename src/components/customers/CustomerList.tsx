@@ -83,7 +83,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({
     const payments = (clientPayments || [])
       .filter(p => p.customerId === customerId)
       .sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime());
-    return payments.length > 0 ? payments[0].purchaseDate : null;
+    return payments.length > 0 ? (payments[0]?.purchaseDate ?? null) : null;
   };
 
   return (

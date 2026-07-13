@@ -73,7 +73,6 @@ app.use(cors({
     if (isOriginAllowed(origin, process.env.NODE_ENV)) {
       callback(null, true);
     } else {
-      console.warn(`[CORS] Origem bloqueada: ${origin}`);
       callback(new Error('Origem não permitida pelo CORS'));
     }
   },
@@ -82,8 +81,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-Idempotency-Key'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
 }));
-// O middleware cors() acima já responde ao preflight OPTIONS respeitando a
-// allowlist — não há handler manual que ecoe qualquer Origin.
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ limit: '5mb', extended: true }));

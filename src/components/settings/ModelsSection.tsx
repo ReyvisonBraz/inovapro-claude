@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2, Edit2, Check, X, Cpu, HardDrive, Search } from 'lucide-react';
 import type { Brand, Model } from '../../types';
-import { cn } from '../../lib/utils';
 
 interface ModelsSectionProps {
   models: Model[];

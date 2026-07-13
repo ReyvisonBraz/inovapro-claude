@@ -52,8 +52,8 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
   // Sem early-return antes dos hooks (regra dos hooks: chamada incondicional).
   // currentEntry/currentLevel são calculados de forma null-safe; o guard de
   // render fica após todos os hooks (ver "if (!isOpen || !currentLevel)").
-  const currentEntry = history[history.length - 1];
-  const currentLevel = drillDownData?.levels?.[currentEntry?.level ?? -1];
+  const currentEntry = history[history.length - 1]!;
+  const currentLevel = drillDownData?.levels?.[currentEntry.level ?? -1];
 
   const drillDownDataFiltered = useMemo(() => {
     if (!currentLevel) return [];
@@ -242,7 +242,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
                       <div className="h-1 bg-white/5 rounded-full overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
-                          animate={{ width: `${sortedCategories.length > 0 && data.total / sortedCategories[0][1].total * 100}%` }}
+                          animate={{ width: `${sortedCategories.length > 0 && data.total / (sortedCategories[0]?.[1]?.total ?? 1) * 100}%` }}
                           className="h-full bg-primary"
                         />
                       </div>

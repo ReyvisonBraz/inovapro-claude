@@ -78,7 +78,8 @@ export const ClientPayments = ({
     filteredClientPayments.forEach(payment => {
       if (payment.saleId) {
         if (!groups[payment.saleId]) groups[payment.saleId] = [];
-        groups[payment.saleId].push(payment);
+        const group = groups[payment.saleId]!;
+        group.push(payment);
       }
     });
 
@@ -86,7 +87,7 @@ export const ClientPayments = ({
       if (!payment.saleId) {
         result.push(payment);
       } else if (!processedSaleIds.has(payment.saleId)) {
-        const groupPayments = groups[payment.saleId];
+        const groupPayments = groups[payment.saleId]!;
         if (groupPayments.length > 1) {
           result.push({ isGroup: true, payments: groupPayments, saleId: payment.saleId });
         } else {

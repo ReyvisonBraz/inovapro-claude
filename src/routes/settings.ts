@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { validate } from '../middleware/validate.js';
-import { SettingsSchema } from './schemas.js';
+import { SettingsSchema } from '../schemas/index.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { hashPassword, verifyPassword } from '../lib/password.js';
 import { encrypt } from '../lib/crypto-util.js';

@@ -16,7 +16,7 @@ export function formatCurrency(amount: number) {
 
 export const formatMonthYear = (dateStr: string) => {
   const [year, month] = dateStr.split('-');
-  const date = new Date(parseInt(year), parseInt(month) - 1);
+  const date = new Date(parseInt(year ?? '0'), parseInt(month ?? '0') - 1);
   const monthName = format(date, 'MMMM', { locale: ptBR });
   return `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`;
 };

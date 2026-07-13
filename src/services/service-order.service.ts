@@ -1,6 +1,6 @@
 import { prisma } from '../lib/prisma.js';
 import { Prisma } from '@prisma/client';
-import { ServiceOrderFormData } from '../schemas/serviceOrderSchema.js';
+import type { ServiceOrderFormData } from '../schemas/index.js';
 import { uploadPhotoToStorage, isStorageConfigured } from '../lib/storage.js';
 import { ConflictError, NotFoundError } from '../lib/errors.js';
 

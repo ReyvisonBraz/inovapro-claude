@@ -37,7 +37,7 @@ describe('formatMonthYear', () => {
 
   it('começa com letra maiúscula', () => {
     const result = formatMonthYear('2024-06');
-    expect(result[0]).toBe(result[0].toUpperCase());
+    expect(result[0]?.toUpperCase()).toBe(result[0]);
   });
 });
 

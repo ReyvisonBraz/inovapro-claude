@@ -1,20 +1,21 @@
-import { Router, Request, Response } from 'express';
-import { serviceOrderSchema as ServiceOrderSchema } from '../schemas/serviceOrderSchema.js';
+import { Router, Response } from 'express';
+import { serviceOrderSchema as ServiceOrderSchema } from '../schemas/index.js';
 import { info } from '../lib/server-logger.js';
 import { serviceOrderService } from '../services/service-order.service.js';
 import { validate } from '../middleware/validate.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import { parseQueryParam, parseQueryInt } from '../lib/query-params.js';
 
 const router = Router();
 
-router.get('/', asyncHandler(async (req: Request, res: Response) => {
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 20;
-  const search = req.query.search as string;
-  const status = req.query.status as string;
-  const priority = req.query.priority as string;
-  const sortBy = req.query.sortBy as string || 'newest';
+router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const page = parseQueryInt(req.query.page, 1) ?? 1;
+  const limit = parseQueryInt(req.query.limit, 20) ?? 20;
+  const search = parseQueryParam(req.query.search);
+  const status = parseQueryParam(req.query.status);
+  const priority = parseQueryParam(req.query.priority);
+  const sortBy = parseQueryParam(req.query.sortBy, 'newest');
 
   const result = await serviceOrderService.findMany({
     page, limit, search, status, priority, sortBy
@@ -23,8 +24,9 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
   res.json(result);
 }));
 
-router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id);
+router.get('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const id = parseInt(req.params.id ?? '');
+  if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return; }
   const order = await serviceOrderService.findById(id);
 
   if (!order) {
@@ -35,25 +37,29 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 router.post('/', validate(ServiceOrderSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
-  const order = await serviceOrderService.create({ ...req.body, createdBy: req.user!.userId });
+  if (!req.user) { res.status(401).json({ error: 'Não autenticado' }); return; }
+  const order = await serviceOrderService.create({ ...req.body, createdBy: req.user.userId });
 
   info('Ordem de serviço criada', { details: { id: order.id, customerId: req.body.customerId } });
   res.status(201).json({ id: order.id });
 }));
 
 router.put('/:id', validate(ServiceOrderSchema.partial()), asyncHandler(async (req: AuthRequest, res: Response) => {
-  const id = parseInt(req.params.id);
+  if (!req.user) { res.status(401).json({ error: 'Não autenticado' }); return; }
+  const id = parseInt(req.params.id ?? '');
+  if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return; }
   const { version, ...rest } = req.body;
   const expectedVersion = typeof version === 'number' ? version : undefined;
 
-  const updatedOrder = await serviceOrderService.update(id, { ...rest, updatedBy: req.user!.userId }, expectedVersion);
+  const updatedOrder = await serviceOrderService.update(id, { ...rest, updatedBy: req.user.userId }, expectedVersion);
 
   info('Ordem de serviço atualizada', { details: { id: updatedOrder.id } });
   res.json({ success: true, data: updatedOrder });
 }));
 
-router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id);
+router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const id = parseInt(req.params.id ?? '');
+  if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return; }
   await serviceOrderService.delete(id);
 
   info('Ordem de serviço excluída', { details: { id } });

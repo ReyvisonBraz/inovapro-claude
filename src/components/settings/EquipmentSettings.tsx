@@ -42,7 +42,7 @@ export const EquipmentSettings: React.FC<EquipmentSettingsProps> = ({
 
   React.useEffect(() => {
     if (equipmentTypes.length > 0 && !selectedType) {
-      setSelectedType(equipmentTypes[0].name);
+      setSelectedType(equipmentTypes[0]?.name ?? '');
     }
   }, [equipmentTypes, selectedType]);
 

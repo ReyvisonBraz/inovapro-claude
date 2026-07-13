@@ -104,7 +104,7 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
     
     const dates: { date: string, amount: number }[] = [];
     try {
-      let current = parseISO(dueDate || purchaseDate || new Date().toISOString().split('T')[0]);
+      let current = parseISO(dueDate || purchaseDate || new Date().toISOString().slice(0, 10));
       
       for (let i = 0; i < count; i++) {
         dates.push({

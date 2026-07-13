@@ -4,16 +4,12 @@ import {
   useSensor, useSensors, PointerSensor,
 } from '@dnd-kit/core';
 import {
-  SortableContext, useSortable, verticalListSortingStrategy, arrayMove,
+  SortableContext, verticalListSortingStrategy, arrayMove,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Eye, EyeOff, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import type { AppSettings, OSSection, OSLayoutConfig, OSPrintTemplateConfig } from '../../types';
 import {
   parseOSPrintTemplateConfig,
   DEFAULT_OS_PRINT_TEMPLATE_CONFIG,
-  PLACEHOLDER_GROUPS,
-  TEMPLATE_CAPABLE_IDS,
   LAYOUT_REGISTRY,
   LayoutRegistryKey,
 } from '../../lib/osTemplateConfig';

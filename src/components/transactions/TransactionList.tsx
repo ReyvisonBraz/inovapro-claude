@@ -13,7 +13,7 @@ import { EmptyState } from '../ui/EmptyState';
 
 const parseLocalDate = (dateStr: string): Date => {
   const [year, month, day] = dateStr.split('-').map(Number);
-  return new Date(year, month - 1, day);
+  return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1);
 };
 
 interface TransactionListProps {

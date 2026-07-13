@@ -9,7 +9,7 @@ interface NewTxForm {
   date: string;
 }
 
-import { CustomerFormData } from '../schemas/customerSchema';
+import type { CustomerFormData } from '../schemas/index.js';
 
 type NewCustomerForm = CustomerFormData;
 

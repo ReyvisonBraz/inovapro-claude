@@ -95,8 +95,9 @@ export const OSReports: React.FC<OSReportsProps> = ({ serviceOrders, inventoryIt
     filtered.forEach(os => {
       (os.services || []).forEach(s => {
         if (!map[s.name]) map[s.name] = { count: 0, revenue: 0 };
-        map[s.name].count++;
-        map[s.name].revenue += s.price || 0;
+        const svcEntry = map[s.name]!;
+        svcEntry.count++;
+        svcEntry.revenue += s.price || 0;
       });
     });
     return Object.entries(map)
@@ -111,9 +112,10 @@ export const OSReports: React.FC<OSReportsProps> = ({ serviceOrders, inventoryIt
     filtered.forEach(os => {
       (os.partsUsed || []).forEach(p => {
         if (!map[p.name]) map[p.name] = { count: 0, qty: 0, revenue: 0 };
-        map[p.name].count++;
-        map[p.name].qty += p.quantity || 1;
-        map[p.name].revenue += p.subtotal || 0;
+        const partEntry = map[p.name]!;
+        partEntry.count++;
+        partEntry.qty += p.quantity || 1;
+        partEntry.revenue += p.subtotal || 0;
       });
     });
     return Object.entries(map)
@@ -331,7 +333,7 @@ export const OSReports: React.FC<OSReportsProps> = ({ serviceOrders, inventoryIt
                       <p className="text-sm font-bold truncate">{s.name}</p>
                       <div className="mt-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
                         <div className="h-full rounded-full transition-all"
-                          style={{ width: `${(s.count / topServices[0]?.count) * 100}%`, backgroundColor: COLORS[i % COLORS.length] }} />
+                          style={{ width: `${(s.count / (topServices[0]?.count ?? 1)) * 100}%`, backgroundColor: COLORS[i % COLORS.length] }} />
                       </div>
                     </div>
                     <div className="text-right shrink-0">
@@ -380,7 +382,7 @@ export const OSReports: React.FC<OSReportsProps> = ({ serviceOrders, inventoryIt
                       <p className="text-sm font-bold truncate">{p.name}</p>
                       <div className="mt-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
                         <div className="h-full rounded-full transition-all"
-                          style={{ width: `${(p.qty / topParts[0]?.qty) * 100}%`, backgroundColor: COLORS[i % COLORS.length] }} />
+                          style={{ width: `${(p.qty / (topParts[0]?.qty ?? 1)) * 100}%`, backgroundColor: COLORS[i % COLORS.length] }} />
                       </div>
                     </div>
                     <div className="text-right shrink-0">
@@ -442,7 +444,7 @@ export const OSReports: React.FC<OSReportsProps> = ({ serviceOrders, inventoryIt
                     <div className="flex-1">
                       <p className="text-sm font-bold">{b.name}</p>
                       <div className="mt-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${(b.count / topBrands[0]?.count) * 100}%`, backgroundColor: b.color }} />
+                        <div className="h-full rounded-full" style={{ width: `${(b.count / (topBrands[0]?.count ?? 1)) * 100}%`, backgroundColor: b.color }} />
                       </div>
                     </div>
                     <p className="text-sm font-black shrink-0">{b.count} OS</p>

@@ -15,8 +15,8 @@ import { PrismaPg } from '@prisma/adapter-pg';
  *   - Timeout sem sslmode (#29252)
  *   - Falhas com operações concorrentes (#29407)
  *
- * Pool sizing: Supabase session-mode pooler aceita ~15 conexões totais.
- * Em Vercel, limitamos via connection_limit=5 na URL.
+ * Na Vercel usamos o transaction pooler do Supabase (porta 6543) e limitamos
+ * o pool real do driver `pg` a uma conexão por instância serverless.
  */
 
 function buildDatabaseUrl(): string {
@@ -25,31 +25,27 @@ function buildDatabaseUrl(): string {
 
   const parsed = new URL(raw);
 
-  // Supabase direto → pooler (porta 6543)
-  if (parsed.hostname.endsWith('.supabase.co')) {
-    const projectRef = parsed.hostname.split('.').at(-3);
-    parsed.hostname = 'aws-1-us-west-2.pooler.supabase.com';
+  // O Supavisor usa 5432 para session mode e 6543 para transaction mode.
+  // Transaction mode é o indicado para conexões transitórias da Vercel.
+  const isSupabasePooler = parsed.hostname.endsWith('.pooler.supabase.com');
+  if (isSupabasePooler) {
     parsed.port = '6543';
-    if (projectRef && !decodeURIComponent(parsed.username).includes('.')) {
-      parsed.username = `${decodeURIComponent(parsed.username)}.${projectRef}`;
-    }
-  }
-
-  // Cada instância serverless Vercel processa 1 request por vez.
-  // Pooler Supabase session-mode aceita 15 conexões totais.
-  // connection_limit=1 evita estourar o pool com múltiplas instâncias.
-  const isVercel = !!process.env.VERCEL;
-  if (isVercel && !parsed.searchParams.has('connection_limit')) {
-    parsed.searchParams.set('connection_limit', '1');
   }
 
   return parsed.toString();
 }
 
 const databaseUrl = buildDatabaseUrl();
+const usesSupabasePooler = new URL(databaseUrl).hostname.endsWith('.pooler.supabase.com');
 
-// PrismaPg com connection string — adapter gerencia o pool internamente
-const adapter = new PrismaPg({ connectionString: databaseUrl });
+// Com o driver adapter, quem gerencia conexões é o `pg.Pool`. Parâmetros do
+// engine Prisma como `connection_limit` não alteram o limite desse pool.
+const adapter = new PrismaPg({
+  connectionString: databaseUrl,
+  max: process.env.VERCEL || usesSupabasePooler ? 1 : 10,
+  idleTimeoutMillis: process.env.VERCEL || usesSupabasePooler ? 5_000 : 30_000,
+  connectionTimeoutMillis: 10_000,
+});
 
 export const prisma = new PrismaClient({
   adapter,

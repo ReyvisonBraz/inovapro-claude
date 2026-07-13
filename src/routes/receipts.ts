@@ -1,19 +1,22 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
+import { AuthRequest } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { BusinessError } from '../lib/errors.js';
 
 const router = Router();
 
-router.get('/:paymentId', asyncHandler(async (req: Request, res: Response) => {
+router.get('/:paymentId', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const paymentId = parseInt(req.params.paymentId ?? '');
+  if (isNaN(paymentId)) { res.status(400).json({ error: 'ID inválido' }); return; }
   const receipts = await prisma.receipt.findMany({
-    where: { paymentId: parseInt(req.params.paymentId) },
+    where: { paymentId },
     orderBy: { createdAt: 'desc' },
   });
   res.json(receipts);
 }));
 
-router.post('/', asyncHandler(async (req: Request, res: Response) => {
+router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { paymentId, content } = req.body;
   if (!paymentId || !content) {
     throw new BusinessError('paymentId e content são obrigatórios');

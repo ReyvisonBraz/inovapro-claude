@@ -29,7 +29,7 @@ const parsePhone = (fullPhone: string) => {
   if (fullPhone.startsWith('+')) {
      const match = fullPhone.match(/^(\+\d{1,3})(.*)$/);
      if (match) {
-        return { country: match[1], number: match[2] };
+        return { country: match[1] ?? '+55', number: match[2] ?? '' };
      }
   }
   return { country: '+55', number: fullPhone };
@@ -202,7 +202,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                       <select
                         value={country}
                         onChange={(e) => {
-                          const currentNumber = number.replace(/\D/g, '');
+                          const currentNumber = (number ?? '').replace(/\D/g, '');
                           setValue('phone', e.target.value + currentNumber);
                         }}
                         className="w-full h-12 bg-white/5 border-2 border-primary/30 rounded-xl pl-3 pr-8 text-sm font-bold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all appearance-none text-white"
@@ -218,7 +218,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                       </div>
                     </div>
                     <input 
-                      value={formatNumber(country, number)}
+                      value={formatNumber(country, number ?? '')}
                       onChange={(e) => {
                         const rawNumber = e.target.value.replace(/\D/g, '');
                         setValue('phone', country + rawNumber);

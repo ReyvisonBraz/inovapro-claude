@@ -2,26 +2,15 @@ import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { getLogs, getErrors, clearLogs, info } from '../lib/server-logger.js';
 import { prisma } from '../lib/prisma.js';
+import { parseQueryParam, parseQueryInt } from '../lib/query-params.js';
 
 const router = Router();
 
-/**
- * Endpoint: GET /api/debug/logs
- *
- * Retorna logs recentes do servidor com filtro opcional por nível.
- * Query params:
- *   - level: 'info' | 'warn' | 'error' | 'debug' (opcional)
- *   - limit: número máximo de entradas (opcional, default 200)
- *
- * Uso estratégico:
- *   - /api/debug/logs?level=error → ver apenas erros recentes
- *   - /api/debug/logs?limit=50 → últimas 50 entradas
- */
 router.get('/logs', requireAuth, (req: Request, res: Response) => {
-  const level = req.query.level as string | undefined;
-  const limit = parseInt(req.query.limit as string) || 200;
-  const validLevels = ['info', 'warn', 'error', 'debug'];
-  const filteredLevel = level && validLevels.includes(level)
+  const level = parseQueryParam(req.query.level);
+  const limit = parseQueryInt(req.query.limit, 200) ?? 200;
+  const validLevels = ['info', 'warn', 'error', 'debug'] as const;
+  const filteredLevel = level && validLevels.includes(level as typeof validLevels[number])
     ? level as 'info' | 'warn' | 'error' | 'debug'
     : undefined;
 
@@ -42,7 +31,7 @@ router.get('/logs', requireAuth, (req: Request, res: Response) => {
  * Ideal para monitoramento e diagnóstico rápido de problemas.
  */
 router.get('/errors', requireAuth, (req: Request, res: Response) => {
-  const limit = parseInt(req.query.limit as string) || 100;
+  const limit = parseQueryInt(req.query.limit, 100) ?? 100;
   const errors = getErrors(limit);
   res.json({ success: true, data: errors, total: errors.length });
 });
@@ -122,7 +111,7 @@ router.get('/db-test', requireAuth, async (_req: Request, res: Response) => {
     `],
   ];
 
-  console.log(`[DB-TEST] Starting ${tests.length} database tests...`);
+  info(`[DB-TEST] Starting ${tests.length} database tests...`);
 
   for (const [name, fn] of tests) {
     const start = t();
@@ -130,7 +119,7 @@ router.get('/db-test', requireAuth, async (_req: Request, res: Response) => {
       await fn();
       const ms = t() - start;
       results[name] = { ok: true, ms };
-      console.log(`[DB-TEST] ✅ ${name} — ${ms}ms`);
+      info(`[DB-TEST] ✅ ${name} — ${ms}ms`);
     } catch (err: unknown) {
       const ms = t() - start;
       const errorMsg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
@@ -143,7 +132,7 @@ router.get('/db-test', requireAuth, async (_req: Request, res: Response) => {
 
   const passed = Object.values(results).filter(r => r.ok).length;
   const failed = Object.values(results).filter(r => !r.ok).length;
-  console.log(`[DB-TEST] Done: ${passed} passed, ${failed} failed out of ${tests.length}`);
+  info(`[DB-TEST] Done: ${passed} passed, ${failed} failed out of ${tests.length}`);
 
   res.json({ passed, failed, total: tests.length, results });
 });

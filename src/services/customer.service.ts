@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma.js';
-import { CustomerFormData } from '../schemas/customerSchema.js';
+import type { CustomerFormData } from '../schemas/index.js';
 import { ConflictError, NotFoundError } from '../lib/errors.js';
 
 export class CustomerService {
