@@ -35,11 +35,6 @@ function buildDatabaseUrl(): string {
     }
   }
 
-  // Garantir sslmode=require para conexões Supabase
-  if (!parsed.searchParams.has('sslmode')) {
-    parsed.searchParams.set('sslmode', 'require');
-  }
-
   // Limitar pool por instância serverless (5 de 15 do pooler)
   const isVercel = !!process.env.VERCEL;
   if (isVercel && !parsed.searchParams.has('connection_limit')) {
