@@ -49,7 +49,7 @@ export const CustomerHistoryModal: React.FC<CustomerHistoryModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -61,7 +61,7 @@ export const CustomerHistoryModal: React.FC<CustomerHistoryModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-3xl glass-modal p-4 sm:p-6 md:p-8 max-h-[90vh] flex flex-col"
+            className="relative w-full max-w-3xl glass-modal p-4 sm:p-6 md:p-8 max-h-[96dvh] sm:max-h-[90vh] flex flex-col"
           >
             <div className="flex items-start justify-between mb-4 md:mb-6">
               <div>

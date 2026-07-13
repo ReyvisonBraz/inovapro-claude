@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  Briefcase, ChevronDown, AlertTriangle, Clock, 
+  ChevronDown, AlertTriangle, Clock, 
   Smartphone, Calendar, Wallet, QrCode, 
   MessageCircle, Printer, Edit, Trash2, Check
 } from 'lucide-react';
@@ -61,13 +61,6 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
         isGrid ? "flex-col" : "flex-col md:flex-row justify-between"
       )}>
         <div className="flex items-start gap-3 md:gap-4 flex-1 min-w-0">
-          <div className={cn(
-            "rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0 transition-transform group-hover:scale-110",
-            isGrid ? "h-10 w-10" : "h-10 w-10 md:h-12 md:w-12"
-          )}>
-            <Briefcase size={20} />
-          </div>
-
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 md:gap-2 mb-1.5 md:mb-2">
               {visibleColumns.id && (
@@ -90,7 +83,6 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
 
                   {quickStatusOrder?.id === order.id && (
                     <>
-                      {/* invisible backdrop to close on outside click */}
                       <div
                         className="fixed inset-0 z-[90]"
                         onClick={() => setQuickStatusOrder(null)}
@@ -247,23 +239,20 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
           </div>
         )}
 
-        <div className={cn(
-          "flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/5",
-          isGrid ? "flex-wrap w-full justify-evenly" : ""
-        )}>
+        <div className="flex items-center gap-1 rounded-xl bg-white/5 border border-white/5 overflow-hidden">
           <button
             onClick={() => handleEdit(order)}
             className={cn(
-              "flex items-center justify-center gap-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-95",
-              isGrid ? "p-2" : "px-4 py-2"
+              "flex items-center justify-center rounded-lg bg-primary text-white hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-95 shrink-0",
+              isGrid ? "p-1.5" : "px-4 py-2"
             )}
             title="Editar"
           >
-            <Edit size={16} />
-            {!isGrid && <span className="hidden lg:inline text-xs font-bold">Editar</span>}
+            <Edit size={isGrid ? 14 : 16} />
+            {!isGrid && <span className="hidden lg:inline text-xs font-bold ml-2">Editar</span>}
           </button>
 
-          <div className={cn("h-4 w-px bg-white/10 mx-1", isGrid && "hidden")} />
+          <div className="h-5 w-px bg-white/10 shrink-0" />
 
           <button
             onClick={() => {
@@ -271,26 +260,29 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
               setShowQRCodeModal(true);
             }}
             className={cn(
-              "flex items-center justify-center gap-2 rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all active:scale-95",
-              isGrid ? "p-2" : "px-4 py-2"
+              "flex items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all active:scale-95 shrink-0",
+              isGrid ? "p-1.5" : "px-4 py-2"
             )}
             title="QR Code"
           >
-            <QrCode size={16} />
-            {!isGrid && <span className="text-xs font-bold">QR Code</span>}
+            <QrCode size={isGrid ? 14 : 16} />
+            {!isGrid && <span className="text-xs font-bold ml-2">QR Code</span>}
           </button>
 
-          <div className={cn("h-4 w-px bg-white/10 mx-1", isGrid && "hidden")} />
+          <div className="h-5 w-px bg-white/10 shrink-0" />
 
           <button 
             onClick={() => {
               setSelectedOrder(order);
               setShowWhatsAppModal(true);
             }}
-            className="p-2 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 transition-all"
+            className={cn(
+              "rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 transition-all shrink-0",
+              isGrid ? "p-1.5" : "p-2"
+            )}
             title="WhatsApp"
           >
-            <MessageCircle size={18} />
+            <MessageCircle size={isGrid ? 14 : 18} />
           </button>
           
           <button 
@@ -298,20 +290,26 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
               setSelectedOrder(order);
               setShowPrintModal(true);
             }}
-            className="p-2 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-500/10 transition-all"
+            className={cn(
+              "rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-500/10 transition-all shrink-0",
+              isGrid ? "p-1.5" : "p-2"
+            )}
             title="Imprimir"
           >
-            <Printer size={18} />
+            <Printer size={isGrid ? 14 : 18} />
           </button>
 
           <button 
             onClick={() => {
               onGeneratePayment?.(order);
             }}
-            className="p-2 rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 transition-all"
-            title="Transações / Gerar Pagamento"
+            className={cn(
+              "rounded-lg text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10 transition-all shrink-0",
+              isGrid ? "p-1.5" : "p-2"
+            )}
+            title="Gerar Pagamento"
           >
-            <Wallet size={18} />
+            <Wallet size={isGrid ? 14 : 18} />
           </button>
 
           <button 
@@ -332,10 +330,13 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
                 'danger'
               );
             }}
-            className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all"
+            className={cn(
+              "rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all shrink-0",
+              isGrid ? "p-1.5" : "p-2"
+            )}
             title="Excluir"
           >
-            <Trash2 size={18} />
+            <Trash2 size={isGrid ? 14 : 18} />
           </button>
         </div>
       </div>

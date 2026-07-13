@@ -134,7 +134,7 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -146,7 +146,7 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className={`relative w-full glass-modal p-4 sm:p-6 md:p-8 max-h-[90vh] overflow-y-auto custom-scrollbar transition-all duration-300 ${preview && preview.length > 0 ? 'max-w-5xl' : 'max-w-3xl'}`}
+            className={`relative w-full glass-modal p-4 sm:p-6 md:p-8 max-h-[96dvh] sm:max-h-[90vh] overflow-y-auto custom-scrollbar transition-all duration-300 ${preview && preview.length > 0 ? 'max-w-5xl' : 'max-w-3xl'}`}
           >
             <div className="flex justify-between items-center mb-4 md:mb-6">
               <h3 className="text-lg md:text-xl font-bold">Novo Registro de Venda/Pagamento</h3>

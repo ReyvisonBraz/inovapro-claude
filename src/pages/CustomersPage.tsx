@@ -79,6 +79,11 @@ export const CustomersPage: React.FC = () => {
         setEditingCustomer(customer);
         setIsAddingCustomer(true);
       }}
+      onAdd={() => {
+        setEditingCustomer(null);
+        setNewCustomer({});
+        setIsAddingCustomer(true);
+      }}
       onPageChange={setCustomersPage}
     />
   );

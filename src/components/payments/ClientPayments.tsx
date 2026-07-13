@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, SlidersHorizontal, X } from 'lucide-react';
 import { ClientPayment, Customer, PaymentListItem } from '../../types';
 import { formatCurrency } from '../../lib/utils';
 import { useFormStore } from '../../store/useFormStore';
@@ -112,40 +112,47 @@ export const ClientPayments = ({
   };
 
   return (
-    <div className="p-4 lg:p-10 space-y-4 lg:space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-6">
-        <div>
-          <h3 className="text-xl lg:text-2xl font-bold tracking-tight">Pagamentos e Parcelamentos</h3>
-          <p className="text-xs lg:text-sm text-slate-500 font-bold mt-1">Registre vendas, parcelamentos e envie lembretes de cobrança</p>
+    <div className="px-3 py-4 sm:p-6 lg:p-10 space-y-4 lg:space-y-8 pb-28 lg:pb-10">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-lg sm:text-xl lg:text-2xl font-bold tracking-tight truncate">Vendas e pagamentos</h3>
+          <p className="text-xs lg:text-sm text-slate-500 font-medium mt-0.5 line-clamp-1 sm:line-clamp-none">Vendas, parcelas e cobranças em um só lugar</p>
         </div>
         <button
           onClick={() => setIsAddingClientPayment(true)}
-          className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white px-4 lg:px-6 py-3 lg:py-4 rounded-xl lg:rounded-2xl text-sm lg:text-base font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95"
+          aria-label="Novo Registro"
+          className="shrink-0 h-11 sm:h-12 bg-primary hover:bg-primary/90 text-white px-3.5 sm:px-5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95"
         >
           <Plus size={18} />
-          Novo Registro
+          <span className="hidden min-[360px]:inline">Nova venda</span>
+          <span className="min-[360px]:hidden">Nova</span>
         </button>
       </div>
 
-      <div className="glass-card overflow-hidden">
-        <div className="p-3 lg:p-4 border-b border-white/5 flex flex-col lg:flex-row gap-3 lg:gap-4">
+      <div className="glass-card overflow-hidden rounded-2xl lg:rounded-[2rem]">
+        <div className="p-3 sm:p-4 border-b border-white/5 space-y-2.5 lg:flex lg:items-center lg:gap-4 lg:space-y-0">
           <div className="relative flex-1 w-full">
-            <Search className="absolute left-3.5 lg:left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <Search className="absolute left-3.5 lg:left-4 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
             <input
               type="text"
               placeholder="Buscar por cliente ou descrição..."
               value={paymentSearchTerm}
               onChange={(e) => setPaymentSearchTerm(e.target.value)}
-              className="w-full h-10 lg:h-12 bg-white/5 border border-white/10 rounded-xl pl-10 lg:pl-12 pr-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
+              className="w-full h-11 lg:h-12 bg-white/5 border border-white/10 rounded-xl pl-10 lg:pl-12 pr-10 text-sm font-semibold focus:ring-1 focus:ring-primary outline-none"
             />
+            {paymentSearchTerm && (
+              <button onClick={() => setPaymentSearchTerm('')} className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 grid place-items-center text-slate-500 active:text-white" aria-label="Limpar busca">
+                <X size={16} />
+              </button>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-2 w-full lg:flex lg:w-auto">
             <select
               value={paymentFilterStatus}
               onChange={(e) => setPaymentFilterStatus(e.target.value)}
-              className="h-10 lg:h-12 bg-white/5 border border-white/10 rounded-xl px-3 lg:px-4 text-xs lg:text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
+              className="h-11 lg:h-12 min-w-0 bg-white/5 border border-white/10 rounded-xl px-2.5 lg:px-4 text-xs lg:text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
             >
-              <option value="all">Status</option>
+              <option value="all">Todos os status</option>
               <option value="paid">Pagos</option>
               <option value="partial">Parciais</option>
               <option value="pending">Pendentes</option>
@@ -154,12 +161,16 @@ export const ClientPayments = ({
             <select
               value={paymentSortMode}
               onChange={(e) => setPaymentSortMode(e.target.value as 'date' | 'amount' | 'alphabetical')}
-              className="h-10 lg:h-12 bg-white/5 border border-white/10 rounded-xl px-3 lg:px-4 text-xs lg:text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
+              className="h-11 lg:h-12 min-w-0 bg-white/5 border border-white/10 rounded-xl px-2.5 lg:px-4 text-xs lg:text-sm font-bold focus:ring-1 focus:ring-primary outline-none text-slate-200 [&>option]:bg-slate-900"
             >
               <option value="date">Recentes</option>
               <option value="amount">Valor</option>
               <option value="alphabetical">A-Z</option>
             </select>
+          </div>
+          <div className="lg:hidden flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-slate-500 font-bold px-1">
+            <SlidersHorizontal size={12} />
+            {pagination.totalItems} {pagination.totalItems === 1 ? 'registro' : 'registros'}
           </div>
         </div>
 

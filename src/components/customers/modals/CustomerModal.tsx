@@ -123,7 +123,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4">
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -135,7 +135,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-2xl glass-modal p-4 sm:p-6 md:p-8 overflow-y-auto max-h-[90vh] custom-scrollbar"
+            className="relative w-full max-w-2xl glass-modal p-4 sm:p-6 md:p-8 overflow-y-auto max-h-[96dvh] sm:max-h-[90vh] custom-scrollbar"
           >
             <div className="flex justify-between items-center mb-4 md:mb-6">
               <h3 className="text-lg md:text-xl font-bold">{editingCustomer ? 'Editar Cliente' : 'Novo Cliente'}</h3>

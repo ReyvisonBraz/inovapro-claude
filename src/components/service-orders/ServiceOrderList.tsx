@@ -59,8 +59,8 @@ export const ServiceOrderList: React.FC<ServiceOrderListProps> = ({
   return (
     <>
       <div className={cn(
-        "grid gap-4",
-        viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
+        "grid gap-3 md:gap-4",
+        viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
       )}>
         {filteredOrders.map((order, index) => (
           <motion.div
@@ -88,7 +88,6 @@ export const ServiceOrderList: React.FC<ServiceOrderListProps> = ({
               onDeleteOrder={onDeleteOrder}
               clientPayments={clientPayments}
               viewMode={viewMode}
-              // @ts-ignore
               onGeneratePayment={onGeneratePayment}
             />
           </motion.div>

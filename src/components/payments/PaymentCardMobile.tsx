@@ -20,7 +20,7 @@ interface PaymentCardMobileProps {
 
 function statusBadgeClass(status: string) {
   return cn(
-    'px-1.5 py-0.5 rounded text-[10px] font-bold uppercase border',
+    'px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border',
     status === 'paid'
       ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
       : status === 'partial'
@@ -52,7 +52,7 @@ export function PaymentCardMobile({
   hasPayments,
 }: PaymentCardMobileProps) {
   return (
-    <div className="lg:hidden divide-y divide-white/5">
+    <div className="lg:hidden bg-black/10 divide-y divide-white/5">
       {groupedPayments.map((item) => {
         if ('isGroup' in item) {
           const totalGroupAmount = item.payments.reduce((acc, p) => acc + p.totalAmount, 0);
@@ -61,19 +61,19 @@ export function PaymentCardMobile({
           const someOverdue = item.payments.some((p) => isOverdue(p));
 
           return (
-            <div key={item.saleId} className="p-3 space-y-2 bg-white/[0.02] border-l-4 border-primary/60">
+            <article key={item.saleId} className="p-3.5 space-y-3 bg-white/[0.025] border-l-[3px] border-primary/60">
               <div className="flex justify-between items-start gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <button onClick={() => togglePaymentExpansion(item.saleId)} className="p-1 rounded-md hover:bg-white/10 text-slate-400 transition-colors shrink-0">
-                    {expandedPayments.includes(item.saleId) ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  <button onClick={() => togglePaymentExpansion(item.saleId)} className="h-10 w-10 -ml-2 grid place-items-center rounded-xl active:bg-white/10 text-slate-400 transition-colors shrink-0" aria-label="Expandir venda">
+                    {expandedPayments.includes(item.saleId) ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
                   </button>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <Zap size={11} className="text-primary shrink-0" />
                       <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Venda Agrupada</p>
                     </div>
-                    <p className="text-xs font-bold text-slate-200 truncate mt-0.5">{item.payments[0]?.customerName ?? ''}</p>
-                    <p className="text-[10px] text-slate-500 truncate">{(item.payments[0]?.description ?? '').split(' (')[0]}</p>
+                    <p className="text-sm font-bold text-slate-100 truncate mt-0.5">{item.payments[0]?.customerName ?? ''}</p>
+                    <p className="text-[11px] text-slate-500 truncate">{(item.payments[0]?.description ?? '').split(' (')[0]}</p>
                   </div>
                 </div>
                 <div className="shrink-0 text-right">
@@ -117,22 +117,22 @@ export function PaymentCardMobile({
                 )}
               </AnimatePresence>
 
-              <div className="flex justify-end">
-                <button onClick={() => onDeleteGroup(item.saleId)} className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-rose-500/10 text-rose-500 border border-rose-500/20 text-[10px] font-bold">
+              <div className="flex justify-end border-t border-white/5 pt-2">
+                <button onClick={() => onDeleteGroup(item.saleId)} className="flex items-center gap-1.5 min-h-10 px-3 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 text-[10px] font-bold">
                   <Trash2 size={11} /> Excluir venda
                 </button>
               </div>
-            </div>
+            </article>
           );
         }
 
         const payment = item;
         return (
-          <div key={payment.id} className="p-3 space-y-2.5">
+          <article key={payment.id} className="p-3.5 space-y-3">
             <div className="flex justify-between items-start gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <button onClick={() => togglePaymentExpansion(payment.id)} className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-slate-400 transition-colors shrink-0">
-                  {expandedPayments.includes(payment.id) ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                <button onClick={() => togglePaymentExpansion(payment.id)} className="h-10 w-10 -ml-2 flex items-center justify-center rounded-xl active:bg-white/10 text-slate-400 transition-colors shrink-0" aria-label="Expandir pagamento">
+                  {expandedPayments.includes(payment.id) ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
                 </button>
                 <div className="min-w-0">
                   <p className="text-sm font-bold truncate">{payment.customerName}</p>
@@ -144,7 +144,7 @@ export function PaymentCardMobile({
               </span>
             </div>
 
-            <div className="flex items-center justify-between bg-black/20 px-3 py-2 rounded-xl border border-white/5">
+            <div className="grid grid-cols-2 gap-3 bg-black/20 px-3 py-2.5 rounded-xl border border-white/5">
               <div>
                 <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-0.5">Vencimento</p>
                 <p className={cn('text-sm font-bold', isOverdue(payment) ? 'text-rose-400' : 'text-slate-200')}>
@@ -155,18 +155,21 @@ export function PaymentCardMobile({
                 <p className="text-sm font-black text-white">{formatCurrency(payment.totalAmount)}</p>
                 <p className="text-xs text-emerald-400 font-bold">Pago: {formatCurrency(payment.paidAmount)}</p>
               </div>
+              <div className="col-span-2 h-1.5 overflow-hidden rounded-full bg-white/5">
+                <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${Math.min(100, payment.totalAmount > 0 ? (payment.paidAmount / payment.totalAmount) * 100 : 0)}%` }} />
+              </div>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="grid grid-cols-6 gap-1.5">
               {payment.status !== 'paid' && (
-                <button onClick={() => onRecordPayment(payment)} className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-xl bg-primary/10 text-primary border border-primary/20 active:bg-primary/20 transition-all text-xs font-bold" title="Registrar Pagamento">
+                <button onClick={() => onRecordPayment(payment)} className="col-span-2 flex items-center justify-center gap-1.5 h-11 rounded-xl bg-primary/10 text-primary border border-primary/20 active:bg-primary/20 transition-all text-xs font-bold" title="Registrar Pagamento">
                   <CheckCircle2 size={14} /> Pagar
                 </button>
               )}
-              <button onClick={() => onGenerateReceipt(payment, 'simple')} className="h-9 w-9 flex items-center justify-center rounded-xl bg-white/5 text-slate-400 border border-white/10 active:bg-white/10 transition-all" title="Recibo Térmico"><Zap size={14} /></button>
-              <button onClick={() => onGenerateReceipt(payment, 'a4')} className="h-9 w-9 flex items-center justify-center rounded-xl bg-white/5 text-slate-400 border border-white/10 active:bg-white/10 transition-all" title="Recibo A4"><Printer size={14} /></button>
-              <button onClick={() => onSendWhatsApp(payment)} className="h-9 w-9 flex items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 active:bg-emerald-500/20 transition-all" title="WhatsApp"><MessageCircle size={14} /></button>
-              <button onClick={() => onDeletePayment(payment)} className="h-9 w-9 flex items-center justify-center rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 active:bg-rose-500/20 transition-all" title="Excluir"><Trash2 size={14} /></button>
+              <button onClick={() => onGenerateReceipt(payment, 'simple')} className={cn('h-11 flex items-center justify-center rounded-xl bg-white/5 text-slate-400 border border-white/10 active:bg-white/10 transition-all', payment.status === 'paid' && 'col-span-1')} title="Recibo Térmico"><Zap size={15} /></button>
+              <button onClick={() => onGenerateReceipt(payment, 'a4')} className="h-11 flex items-center justify-center rounded-xl bg-white/5 text-slate-400 border border-white/10 active:bg-white/10 transition-all" title="Recibo A4"><Printer size={15} /></button>
+              <button onClick={() => onSendWhatsApp(payment)} className="h-11 flex items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 active:bg-emerald-500/20 transition-all" title="WhatsApp"><MessageCircle size={15} /></button>
+              <button onClick={() => onDeletePayment(payment)} className="h-11 flex items-center justify-center rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 active:bg-rose-500/20 transition-all" title="Excluir"><Trash2 size={15} /></button>
             </div>
 
             <AnimatePresence>
@@ -176,7 +179,7 @@ export function PaymentCardMobile({
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+          </article>
         );
       })}
       {!hasPayments && (
