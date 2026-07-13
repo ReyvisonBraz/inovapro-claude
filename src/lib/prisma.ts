@@ -35,10 +35,12 @@ function buildDatabaseUrl(): string {
     }
   }
 
-  // Limitar pool por instância serverless (5 de 15 do pooler)
+  // Cada instância serverless Vercel processa 1 request por vez.
+  // Pooler Supabase session-mode aceita 15 conexões totais.
+  // connection_limit=1 evita estourar o pool com múltiplas instâncias.
   const isVercel = !!process.env.VERCEL;
   if (isVercel && !parsed.searchParams.has('connection_limit')) {
-    parsed.searchParams.set('connection_limit', '5');
+    parsed.searchParams.set('connection_limit', '1');
   }
 
   return parsed.toString();
