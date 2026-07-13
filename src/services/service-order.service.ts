@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import type { ServiceOrderFormData } from '../schemas/index.js';
 import { uploadPhotoToStorage, isStorageConfigured } from '../lib/storage.js';
 import { ConflictError, NotFoundError } from '../lib/errors.js';
+import { toPrismaDate } from '../lib/prisma-helpers.js';
 
 const safeParseJSON = (str: string | null | undefined, fallback: unknown = []) => {
   try { return str ? JSON.parse(str) : fallback; }
@@ -145,7 +146,7 @@ export class ServiceOrderService {
         arrivalPhotoUrl,
         arrivalPhotoBase64,
         status: status || 'Aguardando Análise',
-        entryDate,
+        entryDate: entryDate ? toPrismaDate(entryDate) : null,
         analysisPrediction,
         customerPassword,
         accessories,
@@ -203,6 +204,8 @@ export class ServiceOrderService {
           ].includes(field)
         ) {
           updateData[field] = null;
+        } else if (field === 'entryDate' && typeof value === 'string') {
+          updateData[field] = toPrismaDate(value);
         } else {
           updateData[field] = value;
         }

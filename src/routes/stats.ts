@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { parseQueryParam } from '../lib/query-params.js';
+import { toPrismaDate } from '../lib/prisma-helpers.js';
 
 const router = Router();
 
@@ -16,8 +17,11 @@ router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   const monthEnd = month ? (() => {
     const d = new Date(monthStart);
     d.setMonth(d.getMonth() + 1);
-    return d.toISOString().split('T')[0];
+    return d.toISOString().split('T')[0] ?? '';
   })() : '';
+  const monthRange = month
+    ? { gte: toPrismaDate(monthStart), lt: toPrismaDate(monthEnd) }
+    : undefined;
 
   const [totalIncome, totalExpenses, pendingPayments, activeOS, recentTx,
     monthIncome, monthExpenses] = await Promise.all([
@@ -26,8 +30,8 @@ router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
     prisma.clientPayment.count({ where: { status: { in: ['pending', 'partial'] } } }),
     prisma.serviceOrder.count({ where: { NOT: { status: { in: ['Concluído', 'Cancelado', 'Entregue'] } } } }),
     prisma.transaction.findMany({ orderBy: { date: 'desc' }, take: 5 }),
-    month ? prisma.transaction.aggregate({ where: { ...{ date: { gte: monthStart, lt: monthEnd } }, type: 'income' }, _sum: { amount: true } }) : Promise.resolve({ _sum: { amount: 0 } }),
-    month ? prisma.transaction.aggregate({ where: { ...{ date: { gte: monthStart, lt: monthEnd } }, type: 'expense' }, _sum: { amount: true } }) : Promise.resolve({ _sum: { amount: 0 } }),
+    monthRange ? prisma.transaction.aggregate({ where: { date: monthRange, type: 'income' }, _sum: { amount: true } }) : Promise.resolve({ _sum: { amount: 0 } }),
+    monthRange ? prisma.transaction.aggregate({ where: { date: monthRange, type: 'expense' }, _sum: { amount: true } }) : Promise.resolve({ _sum: { amount: 0 } }),
   ]);
 
   const monthlyData = await prisma.$queryRaw<Array<{ month: string; type: string; total: number }>>`
@@ -67,9 +71,9 @@ router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
       by: ['category'], where: { type: 'expense' },
       _sum: { amount: true }, orderBy: { _sum: { amount: 'desc' } },
     }),
-    month ? prisma.serviceOrder.groupBy({
+    monthRange ? prisma.serviceOrder.groupBy({
       by: ['status'],
-      where: { entryDate: { gte: monthStart, lt: monthEnd } },
+      where: { entryDate: monthRange },
       _count: true,
     }).catch(() => [] as never) : Promise.resolve([]),
     prisma.$queryRaw<Array<{ name: string; qty: number; revenue: number }>>`

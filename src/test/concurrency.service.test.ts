@@ -11,9 +11,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const prismaMock = vi.hoisted(() => ({
   serviceOrder: {
+    create: vi.fn(),
     updateMany: vi.fn(),
     findUnique: vi.fn(),
     findUniqueOrThrow: vi.fn(),
+  },
+  customer: {
+    findUnique: vi.fn(),
   },
   clientPayment: {
     updateMany: vi.fn(),
@@ -47,6 +51,32 @@ import { ConflictError, NotFoundError, BusinessError } from '../lib/errors';
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+describe('ServiceOrderService - datas do formulario', () => {
+  it('converte entryDate para Date antes de criar a OS', async () => {
+    prismaMock.customer.findUnique.mockResolvedValue({
+      id: 1, firstName: 'Ana', lastName: 'Silva', phone: '11999999999',
+    });
+    prismaMock.serviceOrder.create.mockResolvedValue({ id: 8 });
+
+    await serviceOrderService.create({ customerId: 1, entryDate: '2026-07-13' });
+
+    const call = prismaMock.serviceOrder.create.mock.calls[0]![0]!;
+    expect(call.data.entryDate).toEqual(new Date('2026-07-13T00:00:00.000Z'));
+  });
+
+  it('converte entryDate para Date antes de atualizar a OS', async () => {
+    prismaMock.serviceOrder.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.serviceOrder.findUniqueOrThrow.mockResolvedValue({
+      id: 7, services: [], partsUsed: [],
+    });
+
+    await serviceOrderService.update(7, { entryDate: '2026-07-14' });
+
+    const call = prismaMock.serviceOrder.updateMany.mock.calls[0]![0]!;
+    expect(call.data.entryDate).toEqual(new Date('2026-07-14T00:00:00.000Z'));
+  });
 });
 
 describe('ServiceOrderService.update — lock otimista', () => {
