@@ -41,7 +41,7 @@ router.post('/', validate(ServiceOrderSchema), asyncHandler(async (req: AuthRequ
   const order = await serviceOrderService.create({ ...req.body, createdBy: req.user.userId });
 
   info('Ordem de serviço criada', { details: { id: order.id, customerId: req.body.customerId } });
-  res.status(201).json({ id: order.id });
+  res.status(201).json(order);
 }));
 
 router.put('/:id', validate(ServiceOrderSchema.partial()), asyncHandler(async (req: AuthRequest, res: Response) => {

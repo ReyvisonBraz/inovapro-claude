@@ -27,7 +27,8 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
   onAdd,
   onTriggerAddCustomer,
   isSaving,
-  initialData
+  initialData,
+  newClientPayment,
 }) => {
   const {
     register,
@@ -64,10 +65,11 @@ export const AddClientPaymentModal: React.FC<AddClientPaymentModalProps> = ({
         paymentMethod: 'Dinheiro',
         installmentsCount: 1,
         installmentInterval: 'monthly',
+        ...(newClientPayment || {}),
         ...initialData
       });
     }
-  }, [isOpen, initialData, reset]);
+  }, [isOpen, initialData, newClientPayment, reset]);
 
   const customerId = watch('customerId');
   const installmentsCount = watch('installmentsCount');

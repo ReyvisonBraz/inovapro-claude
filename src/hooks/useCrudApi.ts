@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
+import { mergeSavedRecord, upsertCachedRecord } from '../lib/query-cache';
 
 interface CrudApiOptions {
   baseKey: string;
@@ -29,7 +30,12 @@ export function useCrudApi({
         : await api.post(endpoint, item);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      const saved = mergeSavedRecord(variables.item, data, variables.id);
+      queryClient.setQueriesData(
+        { queryKey: [baseKey] },
+        current => upsertCachedRecord(current, saved),
+      );
       queryClient.invalidateQueries({ queryKey: [baseKey] });
       extraInvalidations?.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
       showToast(saveSuccessMessage, 'success');

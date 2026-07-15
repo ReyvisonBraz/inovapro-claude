@@ -83,8 +83,7 @@ export const ServiceOrderForm: React.FC = () => {
       setValue('customerId', (newServiceOrder as any).customerId);
       setNewServiceOrder(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [editingOrder, newServiceOrder, setNewServiceOrder, setValue]);
 
   const [isSimplified, setIsSimplified] = useState(false);
   const [skipEquipmentValidation, setSkipEquipmentValidation] = useState(false);

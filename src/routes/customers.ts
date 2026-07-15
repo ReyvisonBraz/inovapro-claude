@@ -38,7 +38,7 @@ router.post('/', validate(CustomerSchema), asyncHandler(async (req: AuthRequest,
 
   const customer = await customerService.create(customerData);
   info('Cliente criado', { details: { id: customer.id, name: `${customer.firstName} ${customer.lastName}` } });
-  res.status(201).json({ id: customer.id });
+  res.status(201).json(customer);
 }));
 
 router.put('/:id', validate(CustomerSchema.partial()), asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -47,10 +47,10 @@ router.put('/:id', validate(CustomerSchema.partial()), asyncHandler(async (req: 
   if (isNaN(customerId)) { res.status(400).json({ error: 'ID inválido' }); return; }
   const expectedVersion = typeof req.body.version === 'number' ? req.body.version : undefined;
   const { version: _version, forceCreate: _forceCreate, ...rest } = req.body;
-  await customerService.update(customerId, { ...rest, updatedBy: req.user.userId }, expectedVersion);
+  const customer = await customerService.update(customerId, { ...rest, updatedBy: req.user.userId }, expectedVersion);
 
   info('Cliente atualizado', { details: { id: customerId, name: `${req.body.firstName ?? ''} ${req.body.lastName ?? ''}` } });
-  res.json({ success: true, cascadeUpdated: true });
+  res.json({ ...customer, cascadeUpdated: true });
 }));
 
 router.get('/:id/payments', asyncHandler(async (req: AuthRequest, res: Response) => {

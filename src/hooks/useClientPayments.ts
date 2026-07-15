@@ -5,6 +5,7 @@ import { useToast } from '../components/ui/Toast';
 import { useDataStore } from '../store/useDataStore';
 import { useFilterStore } from '../store/useFilterStore';
 import { useCrudApi } from './useCrudApi';
+import { mergeSavedRecord, upsertCachedRecord } from '../lib/query-cache';
 
 export function useClientPayments() {
   const { showToast } = useToast();
@@ -28,7 +29,12 @@ export function useClientPayments() {
       const res = await api.post('/client-payments', payment);
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data, payment) => {
+      const saved = mergeSavedRecord(payment, data);
+      queryClient.setQueriesData(
+        { queryKey: ['clientPayments'] },
+        current => upsertCachedRecord(current, saved),
+      );
       queryClient.invalidateQueries({ queryKey: ['clientPayments'] });
       showToast('Pagamento salvo com sucesso!', 'success');
     },
@@ -51,7 +57,15 @@ export function useClientPayments() {
       const res = await api.post(`/client-payments/${id}/pay`, { amount, date, updatedBy });
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      queryClient.setQueriesData(
+        { queryKey: ['clientPayments'] },
+        current => upsertCachedRecord(current, {
+          id: variables.id,
+          paidAmount: data.newPaidAmount,
+          status: data.newStatus,
+        }),
+      );
       queryClient.invalidateQueries({ queryKey: ['clientPayments'] });
       showToast('Pagamento registrado com sucesso!', 'success');
     },

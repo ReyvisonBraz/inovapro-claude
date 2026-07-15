@@ -33,7 +33,7 @@ router.post('/service-order-statuses', validate(ServiceOrderStatusSchema), async
   try {
     const status = await prisma.serviceOrderStatus.create({ data: { name, color, priority, isDefault } });
     info('Status de OS criado', { details: { id: status.id, name } });
-    res.status(201).json({ id: status.id });
+    res.status(201).json(status);
   } catch (err: unknown) {
     if (isPrismaUniqueConstraintError(err)) throw new BusinessError(`Status "${name}" já existe.`);
     throw err;
@@ -66,7 +66,7 @@ router.post('/brands', validate(BrandSchema), asyncHandler(async (req: AuthReque
   const { name, equipmentType } = req.body;
   try {
     const brand = await prisma.brand.create({ data: { name, equipmentType } });
-    res.status(201).json({ id: brand.id });
+    res.status(201).json({ ...brand, Models: [] });
   } catch (err: unknown) {
     if (isPrismaUniqueConstraintError(err)) throw new BusinessError(`Marca "${name}" já existe.`);
     throw err;
@@ -106,7 +106,7 @@ router.post('/models', validate(ModelSchema), asyncHandler(async (req: AuthReque
   const { brandId, name } = req.body;
   try {
     const model = await prisma.model.create({ data: { brandId, name } });
-    res.status(201).json({ id: model.id });
+    res.status(201).json(model);
   } catch (err: unknown) {
     if (isPrismaUniqueConstraintError(err)) throw new BusinessError(`Modelo "${name}" já existe nesta marca.`);
     throw err;
@@ -146,7 +146,7 @@ router.post('/equipment-types', validate(EquipmentTypeSchema), asyncHandler(asyn
   const { name, icon } = req.body;
   try {
     const type = await prisma.equipmentType.create({ data: { name, icon } });
-    res.status(201).json({ id: type.id });
+    res.status(201).json(type);
   } catch (err: unknown) {
     if (isPrismaUniqueConstraintError(err)) throw new BusinessError(`Tipo "${name}" já existe.`);
     throw err;

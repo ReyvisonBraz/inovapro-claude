@@ -68,7 +68,9 @@ export const GlobalModals: React.FC = () => {
 
   const {
     newCustomer, setNewCustomer,
-    newTx, setNewTx
+    newTx, setNewTx,
+    setNewClientPayment,
+    setNewServiceOrder
   } = useFormStore();
 
   // Hooks for API calls
@@ -102,6 +104,13 @@ export const GlobalModals: React.FC = () => {
       };
       // payload vem do form (campos anuláveis); o backend aceita null. Cast contido.
       const data = await saveCustomerAPI(payload as Parameters<typeof saveCustomerAPI>[0], editingCustomer?.id);
+
+      if (!editingCustomer && customerRegistrationSource === 'service-orders') {
+        setNewServiceOrder({ customerId: data.id });
+      }
+      if (!editingCustomer && customerRegistrationSource === 'payments') {
+        setNewClientPayment({ customerId: data.id });
+      }
 
       setIsAddingCustomer(false);
       setShowCustomerWarningModal(false);

@@ -23,7 +23,7 @@ router.post('/', validate(ClientPaymentSchema), asyncHandler(async (req: AuthReq
   const payment = await clientPaymentService.create({ ...req.body, createdBy: req.user.userId });
 
   info('Pagamento criado', { details: { id: payment.id, customerId: payment.customerId, totalAmount: payment.totalAmount } });
-  res.status(201).json({ id: payment.id });
+  res.status(201).json(payment);
 }));
 
 router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {

@@ -74,15 +74,15 @@ export class ClientPaymentService {
     
     const initialPaymentDate = new Date();
 
-    return prisma.$transaction(async (tx) => {
+    const created = await prisma.$transaction(async (tx) => {
       const payment = await tx.clientPayment.create({
         data: {
           customerId,
           description,
           totalAmount,
           paidAmount: paidAmount || 0,
-          purchaseDate,
-          dueDate,
+          purchaseDate: toPrismaDate(purchaseDate),
+          dueDate: toPrismaDate(dueDate),
           paymentMethod,
           status: status || 'pending',
           installmentsCount: installmentsCount || 1,
@@ -123,6 +123,20 @@ export class ClientPaymentService {
       
       return payment;
     });
+
+    const payment = await prisma.clientPayment.findUnique({
+      where: { id: created.id },
+      include: {
+        customer: { select: { firstName: true, lastName: true } },
+        paymentEntries: { orderBy: { date: 'asc' } },
+      },
+    });
+
+    if (!payment) return created;
+    return {
+      ...payment,
+      customerName: `${payment.customer.firstName} ${payment.customer.lastName}`.trim(),
+    };
   }
 
   async update(

@@ -11,7 +11,7 @@ interface SearchableSelectProps {
   options: Option[];
   value: string | number;
   onChange: (value: string | number) => void;
-  onAdd?: (name: string) => void;
+  onAdd?: (name: string) => void | Promise<void>;
   placeholder?: string;
   label?: string;
   className?: string;
@@ -61,11 +61,17 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     setSearchTerm('');
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (onAdd && searchTerm.trim()) {
-      onAdd(searchTerm.trim());
-      setSearchTerm('');
-      setIsOpen(false);
+      const name = searchTerm.trim();
+      try {
+        await onAdd(name);
+        onChange(name);
+        setSearchTerm('');
+        setIsOpen(false);
+      } catch {
+        // O chamador exibe o erro; mantemos a busca aberta para correção.
+      }
     }
   };
 
@@ -120,7 +126,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                 className="w-full h-10 pl-10 pr-4 bg-white/5 border border-white/10 rounded-lg text-sm outline-none focus:ring-1 focus:ring-primary"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && filteredOptions.length === 0 && onAdd) {
-                    handleAdd();
+                    void handleAdd();
                   }
                 }}
               />
@@ -146,7 +152,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                 <p className="text-xs text-slate-500 mb-2">Nenhum resultado encontrado</p>
                 {onAdd && searchTerm.trim() && (
                   <button
-                    onClick={handleAdd}
+                    onClick={() => void handleAdd()}
                     className="flex items-center justify-center gap-2 w-full py-2 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20 transition-colors"
                   >
                     <Plus size={14} />

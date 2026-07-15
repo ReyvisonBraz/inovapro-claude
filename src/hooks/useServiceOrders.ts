@@ -3,6 +3,7 @@ import api from '../lib/api';
 import type { ServiceOrderFormData } from '../schemas/index.js';
 import { useDataStore } from '../store/useDataStore';
 import { useFilterStore } from '../store/useFilterStore';
+import { mergeSavedRecord, upsertCachedRecord } from '../lib/query-cache';
 
 export const useServiceOrders = (showToast?: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void) => {
   const queryClient = useQueryClient();
@@ -93,7 +94,12 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
         return data;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      const saved = mergeSavedRecord(variables.order, data, variables.id);
+      queryClient.setQueriesData(
+        { queryKey: ['service-orders'] },
+        current => upsertCachedRecord(current, saved),
+      );
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
     },
     onError: (error: any) => {
@@ -126,8 +132,12 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
 
   // Mutações para configurações
   const addStatusMutation = useMutation({
-    mutationFn: (status: { name: string; color?: string }) => api.post('/service-order-statuses', status),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['service-order-statuses'] }),
+    mutationFn: async (status: { name: string; color?: string }) => (await api.post('/service-order-statuses', status)).data,
+    onSuccess: (data, status) => {
+      const saved = mergeSavedRecord(status, data);
+      queryClient.setQueryData(['service-order-statuses'], current => upsertCachedRecord(current, saved, false));
+      queryClient.invalidateQueries({ queryKey: ['service-order-statuses'] });
+    },
     onError: (error: any) => {
       console.error('Failed to add status', error);
       if (showToast) showToast('Erro ao adicionar status.', 'error');
@@ -144,8 +154,12 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
   });
 
   const addEquipmentTypeMutation = useMutation({
-    mutationFn: (type: { name: string; icon?: string }) => api.post('/equipment-types', type),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment-types'] }),
+    mutationFn: async (type: { name: string; icon?: string }) => (await api.post('/equipment-types', type)).data,
+    onSuccess: (data, type) => {
+      const saved = mergeSavedRecord(type, data);
+      queryClient.setQueryData(['equipment-types'], current => upsertCachedRecord(current, saved, false));
+      queryClient.invalidateQueries({ queryKey: ['equipment-types'] });
+    },
     onError: (error: any) => {
       console.error('Failed to add equipment type', error);
       if (showToast) showToast('Erro ao adicionar tipo de equipamento.', 'error');
@@ -162,8 +176,12 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
   });
 
   const addBrandMutation = useMutation({
-    mutationFn: (brand: { name: string; equipmentType: string }) => api.post('/brands', brand),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['brands'] }),
+    mutationFn: async (brand: { name: string; equipmentType: string }) => (await api.post('/brands', brand)).data,
+    onSuccess: (data, brand) => {
+      const saved = mergeSavedRecord({ ...brand, Models: [] }, data);
+      queryClient.setQueryData(['brands'], current => upsertCachedRecord(current, saved, false));
+      queryClient.invalidateQueries({ queryKey: ['brands'] });
+    },
     onError: (error: any) => {
       console.error('Failed to add brand', error);
       if (showToast) showToast('Erro ao adicionar marca.', 'error');
@@ -180,8 +198,12 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
   });
 
   const addModelMutation = useMutation({
-    mutationFn: (model: { brandId: number; name: string }) => api.post('/models', model),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['models'] }),
+    mutationFn: async (model: { brandId: number; name: string }) => (await api.post('/models', model)).data,
+    onSuccess: (data, model) => {
+      const saved = mergeSavedRecord(model, data);
+      queryClient.setQueryData(['models'], current => upsertCachedRecord(current, saved, false));
+      queryClient.invalidateQueries({ queryKey: ['models'] });
+    },
     onError: (error: any) => {
       console.error('Failed to add model', error);
       if (showToast) showToast('Erro ao adicionar modelo.', 'error');

@@ -33,7 +33,7 @@ router.post('/', validate(InventoryItemSchema), asyncHandler(async (req: AuthReq
     },
   });
   info('Item de inventário criado', { details: { id: item.id, name } });
-  res.status(201).json({ id: item.id });
+  res.status(201).json(item);
 }));
 
 router.put('/:id', validate(InventoryItemSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -48,14 +48,14 @@ router.put('/:id', validate(InventoryItemSchema), asyncHandler(async (req: AuthR
   const id = parseInt(req.params.id ?? '');
   if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return; }
 
-  await inventoryService.update(id, {
+  const item = await inventoryService.update(id, {
     name, category, sku: sku || null,
     costPrice: pCostPrice, salePrice: pUnitPrice,
     quantity: pStockLevel, minQuantity: pMinQuantity,
     unitPrice: pUnitPrice, stockLevel: pStockLevel,
     updatedBy: req.user.userId,
   }, expectedVersion);
-  res.json({ success: true });
+  res.json(item);
 }));
 
 router.patch('/:id/stock', asyncHandler(async (req: AuthRequest, res: Response) => {

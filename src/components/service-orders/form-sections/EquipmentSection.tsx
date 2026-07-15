@@ -13,9 +13,9 @@ interface EquipmentSectionProps {
   equipmentTypes: {id: number, name: string}[];
   brands: Brand[];
   models: Model[];
-  onAddEquipmentType: (name: string) => void;
-  onAddBrand: (name: string, equipmentType: string) => void;
-  onAddModel: (brandId: number, name: string) => void;
+  onAddEquipmentType: (name: string) => Promise<void>;
+  onAddBrand: (name: string, equipmentType: string) => Promise<void>;
+  onAddModel: (brandId: number, name: string) => Promise<void>;
   setQuickAddModal: (modal: any) => void;
   showToast: (msg: string, type: string) => void;
   watchedArrivalPhotos: Array<{base64: string; timestamp: string}>;
@@ -142,12 +142,13 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
                 value={watch('equipmentModel') || ''}
                 onChange={(val) => setValue('equipmentModel', val as string)}
                 placeholder="Selecione o Modelo"
-                onAdd={(val) => {
+                onAdd={async (val) => {
                   const brand = brands.find(b => b.name === watchedEquipmentBrand);
                   if (brand) {
-                    onAddModel(brand.id, val);
+                    await onAddModel(brand.id, val);
                   } else {
                     showToast('Selecione uma marca primeiro!', 'error');
+                    throw new Error('Marca não selecionada');
                   }
                 }}
                 disabled={!watchedEquipmentBrand}

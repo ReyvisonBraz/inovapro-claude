@@ -258,6 +258,7 @@ export const ServiceOrdersPage: React.FC = () => {
           await addEquipmentTypeAPI(name, icon);
         } catch (err) {
           showToast('Erro ao adicionar tipo de equipamento.', 'error');
+          throw err;
         }
       }}
       onAddBrand={async (name, equipmentType) => {
@@ -265,6 +266,7 @@ export const ServiceOrdersPage: React.FC = () => {
           await addBrandAPI(name, equipmentType);
         } catch (err) {
           showToast('Erro ao adicionar marca.', 'error');
+          throw err;
         }
       }}
       onAddModel={async (brandId, name) => {
@@ -272,6 +274,7 @@ export const ServiceOrdersPage: React.FC = () => {
           await addModelAPI(brandId, name);
         } catch (err) {
           showToast('Erro ao adicionar modelo.', 'error');
+          throw err;
         }
       }}
       onPrintBlankForm={() => {
