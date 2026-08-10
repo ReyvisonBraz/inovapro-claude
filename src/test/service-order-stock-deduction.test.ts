@@ -58,6 +58,7 @@ describe('ServiceOrderService - baixa de estoque na transição (M4)', () => {
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       inventoryItem: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      warranty: { count: vi.fn().mockResolvedValue(0), createMany: vi.fn().mockResolvedValue({ count: 1 }) },
     };
     runInTx(tx);
     concludingOS();
@@ -120,6 +121,7 @@ describe('ServiceOrderService - baixa de estoque na transição (M4)', () => {
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       inventoryItem: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      warranty: { count: vi.fn().mockResolvedValue(0), createMany: vi.fn().mockResolvedValue({ count: 1 }) },
     };
     runInTx(tx);
     concludingOS();
@@ -165,6 +167,7 @@ describe('ServiceOrderService - baixa de estoque na transição (M4)', () => {
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       inventoryItem: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      warranty: { count: vi.fn().mockResolvedValue(0), createMany: vi.fn().mockResolvedValue({ count: 1 }) },
       settings: prismaMock.settings,
     };
     runInTx(tx);
@@ -219,5 +222,78 @@ describe('ServiceOrderService - checklist de entrada/saída (M1)', () => {
 
     const call = tx.serviceOrder.updateMany.mock.calls[0]![0]!;
     expect(call.data.checklistIn).toEqual([{ label: 'Tampa', done: true }]);
+  });
+});
+describe('ServiceOrderService - garantia (M3)', () => {
+  it('cria Warranties ao concluir a OS (serviços + peças), com validade do padrão', async () => {
+    const tx = {
+      serviceOrder: {
+        findUnique: vi.fn().mockResolvedValue({
+          status: 'Em Atendimento',
+          partsUsed: [{ id: 10, name: 'Tela', quantity: 1 }],
+          services: [{ name: 'Troca de tela', price: 50 }],
+        }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      inventoryItem: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      warranty: { count: vi.fn().mockResolvedValue(0), createMany: vi.fn().mockResolvedValue({ count: 2 }) },
+      settings: prismaMock.settings,
+    };
+    runInTx(tx);
+    concludingOS();
+
+    prismaMock.settings.findUnique.mockResolvedValue({ warrantyDefaultMonths: 12 });
+
+    await serviceOrderService.update(7, { status: 'Pronto' });
+
+    const data = tx.warranty.createMany.mock.calls[0]![0]!.data;
+    expect(data).toHaveLength(2);
+    expect(data[0].itemType).toBe('service');
+    expect(data[0].itemName).toBe('Troca de tela');
+    expect(data[1].itemType).toBe('part');
+    expect(data[1].itemName).toBe('Tela');
+    expect(data[0].warrantyMonths).toBe(12);
+    expect(data[0].expiresAt).toBeInstanceOf(Date);
+  });
+
+  it('não duplica garantias ao salvar repetidamente já concluído', async () => {
+    const tx = {
+      serviceOrder: {
+        findUnique: vi.fn().mockResolvedValue({
+          status: 'Pronto',
+          partsUsed: [{ id: 10, name: 'Tela', quantity: 1 }],
+          services: [],
+        }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      inventoryItem: { updateMany: vi.fn() },
+      warranty: { count: vi.fn().mockResolvedValue(1), createMany: vi.fn() },
+      settings: prismaMock.settings,
+    };
+    runInTx(tx);
+    concludingOS();
+
+    await serviceOrderService.update(7, { status: 'Pronto' });
+
+    expect(tx.warranty.createMany).not.toHaveBeenCalled();
+  });
+
+  it('persiste warrantyReturn no create e no update', async () => {
+    prismaMock.customer.findUnique.mockResolvedValue({ id: 1 });
+    prismaMock.serviceOrder.create.mockResolvedValue({ id: 8 });
+    await serviceOrderService.create({ customerId: 1, entryDate: '2026-08-10', warrantyReturn: true });
+    expect(prismaMock.serviceOrder.create.mock.calls[0]![0]!.data.warrantyReturn).toBe(true);
+
+    const tx = {
+      serviceOrder: {
+        findUnique: vi.fn().mockResolvedValue({ status: 'Aguardando Análise', partsUsed: [], services: [] }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      inventoryItem: { updateMany: vi.fn() },
+    };
+    runInTx(tx);
+    concludingOS();
+    await serviceOrderService.update(7, { warrantyReturn: true });
+    expect(tx.serviceOrder.updateMany.mock.calls[0]![0]!.data.warrantyReturn).toBe(true);
   });
 });

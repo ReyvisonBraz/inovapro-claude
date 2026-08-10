@@ -6,6 +6,7 @@ import { BusinessError, ConflictError, NotFoundError } from '../lib/errors.js';
 import { toPrismaDate } from '../lib/prisma-helpers.js';
 
 const DEFAULT_DEDUCT_STATUSES = ['Concluído', 'Entregue', 'Pronto'];
+const DEFAULT_WARRANTY_MONTHS = 3;
 
 const safeParseJSON = (str: string | null | undefined, fallback: unknown = []) => {
   try { return str ? JSON.parse(str) : fallback; }
@@ -69,6 +70,38 @@ async function stockShouldDeduct(
   return deduct.includes(newStatus) && !deduct.includes(oldStatus);
 }
 
+async function getWarrantyMonths(tx: Prisma.TransactionClient): Promise<number> {
+  try {
+    const settings = await tx.settings.findUnique({ where: { id: 1 } });
+    const months = Number((settings as any)?.warrantyDefaultMonths);
+    if (Number.isFinite(months) && months > 0) return Math.round(months);
+  } catch {
+    /* ignore */
+  }
+  return DEFAULT_WARRANTY_MONTHS;
+}
+
+function addMonths(date: Date, months: number): Date {
+  const d = new Date(date);
+  d.setUTCMonth(d.getUTCMonth() + months);
+  return d;
+}
+
+function buildWarrantyItems(services: unknown, parts: unknown): Array<{ itemName: string; itemType: 'service' | 'part' }> {
+  const items: Array<{ itemName: string; itemType: 'service' | 'part' }> = [];
+  if (Array.isArray(services)) {
+    for (const s of services as any[]) {
+      if (s?.name) items.push({ itemName: String(s.name), itemType: 'service' });
+    }
+  }
+  if (Array.isArray(parts)) {
+    for (const p of parts as any[]) {
+      if (p?.name) items.push({ itemName: String(p.name), itemType: 'part' });
+    }
+  }
+  return items;
+}
+
 export class ServiceOrderService {
   async findMany(options: {
     page?: number;
@@ -111,7 +144,10 @@ export class ServiceOrderService {
         skip: (page - 1) * limit,
         take: limit,
         orderBy,
-        include: { customer: { select: { firstName: true, lastName: true, phone: true } } },
+        include: {
+          customer: { select: { firstName: true, lastName: true, phone: true } },
+          Warranties: { orderBy: { id: 'asc' } },
+        },
       }),
       prisma.serviceOrder.count({ where }),
       prisma.serviceOrder.groupBy({ by: ['status'], _count: { status: true } }),
@@ -122,14 +158,18 @@ export class ServiceOrderService {
       if (group.status) statusCounts[group.status] = group._count.status;
     }
 
-    const data = orders.map(o => ({
-      ...o,
-      firstName: o.customer.firstName,
-      lastName: o.customer.lastName,
-      phone: o.customer.phone,
-      partsUsed: (o.partsUsed as unknown[]) ?? [],
-      services: (o.services as unknown[]) ?? [],
-    }));
+    const data = orders.map(o => {
+      const { Warranties, ...rest } = o;
+      return {
+        ...rest,
+        firstName: o.customer.firstName,
+        lastName: o.customer.lastName,
+        phone: o.customer.phone,
+        partsUsed: (o.partsUsed as unknown[]) ?? [],
+        services: (o.services as unknown[]) ?? [],
+        warranties: Warranties ?? [],
+      };
+    });
 
     return {
       data,
@@ -146,18 +186,23 @@ export class ServiceOrderService {
   async findById(id: number) {
     const order = await prisma.serviceOrder.findUnique({
       where: { id },
-      include: { customer: { select: { firstName: true, lastName: true, phone: true } } },
+      include: {
+        customer: { select: { firstName: true, lastName: true, phone: true } },
+        Warranties: { orderBy: { id: 'asc' } },
+      },
     });
 
     if (!order) return null;
 
+    const { Warranties, ...rest } = order;
     return {
-      ...order,
+      ...rest,
       firstName: order.customer.firstName,
       lastName: order.customer.lastName,
       phone: order.customer.phone,
       partsUsed: (order.partsUsed as unknown[]) ?? [],
       services: (order.services as unknown[]) ?? [],
+      warranties: Warranties ?? [],
     };
   }
 
@@ -167,7 +212,7 @@ export class ServiceOrderService {
       reportedProblem, arrivalPhotoUrl, arrivalPhotoBase64, status, entryDate, analysisPrediction,
       customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy, technicalAnalysis,
       servicesPerformed, services, partsUsed, serviceFee, totalAmount, finalObservations,
-      checklistIn, checklistOut
+      checklistIn, checklistOut, warrantyReturn
     } = data;
 
     const customer = await prisma.customer.findUnique({ where: { id: customerId } });
@@ -204,6 +249,7 @@ export class ServiceOrderService {
         serviceFee: serviceFee || 0,
         totalAmount: totalAmount || 0,
         finalObservations,
+        warrantyReturn: warrantyReturn ?? false,
       },
     });
 
@@ -227,7 +273,7 @@ export class ServiceOrderService {
       'customerPassword', 'accessories', 'ramInfo', 'ssdInfo', 'priority', 'equipmentType',
       'equipmentBrand', 'equipmentModel', 'equipmentColor', 'equipmentSerial', 'arrivalPhotoBase64',
       'reportedProblem', 'updatedBy', 'firstName', 'lastName', 'phone',
-      'checklistIn', 'checklistOut'
+      'checklistIn', 'checklistOut', 'warrantyReturn'
     ] as const;
 
     const updateData: Record<string, unknown> = {};
@@ -277,7 +323,7 @@ export class ServiceOrderService {
     const result = await prisma.$transaction(async (tx) => {
       const previous = await tx.serviceOrder.findUnique({
         where: { id },
-        select: { status: true, partsUsed: true },
+        select: { status: true, partsUsed: true, services: true },
       });
 
       const updateManyResult = await tx.serviceOrder.updateMany({
@@ -293,12 +339,12 @@ export class ServiceOrderService {
 
       const newStatus = String(updateData.status ?? previous?.status ?? '');
       const oldStatus = previous?.status ?? '';
-
-      if (
+      const didConclude =
         updateData.status !== undefined &&
         oldStatus !== newStatus &&
-        (await stockShouldDeduct(oldStatus, newStatus, tx))
-      ) {
+        (await stockShouldDeduct(oldStatus, newStatus, tx));
+
+      if (didConclude) {
         const parts = aggregateParts(previous?.partsUsed ?? updateData.partsUsed ?? []);
         for (const part of parts) {
           const stock = await tx.inventoryItem.updateMany({
@@ -315,17 +361,43 @@ export class ServiceOrderService {
             );
           }
         }
+
+        const existingWarranties = await tx.warranty.count({ where: { serviceOrderId: id } });
+        if (existingWarranties === 0) {
+          const months = await getWarrantyMonths(tx);
+          const base = new Date();
+          const items = buildWarrantyItems(
+            updateData.services ?? previous?.services,
+            updateData.partsUsed ?? previous?.partsUsed
+          );
+          if (items.length) {
+            await tx.warranty.createMany({
+              data: items.map((item) => ({
+                serviceOrderId: id,
+                itemName: item.itemName,
+                itemType: item.itemType,
+                warrantyMonths: months,
+                expiresAt: addMonths(base, months),
+              })),
+            });
+          }
+        }
       }
 
       return updateManyResult;
     });
 
-    const updated = await prisma.serviceOrder.findUniqueOrThrow({ where: { id } });
+    const updated = await prisma.serviceOrder.findUniqueOrThrow({
+      where: { id },
+      include: { Warranties: { orderBy: { id: 'asc' } } },
+    });
 
+    const { Warranties, ...rest } = updated;
     return {
-      ...updated,
+      ...rest,
       services: (updated.services as unknown[]) ?? [],
       partsUsed: (updated.partsUsed as unknown[]) ?? [],
+      warranties: Warranties ?? [],
     };
   }
 

@@ -6,7 +6,8 @@ import {
   DEFAULT_THERMAL_CONFIG,
   substituteTemplate,
 } from '../../../lib/osTemplateConfig';
-import { renderChecklistHtml } from '../../../lib/printUtils';
+import { renderChecklistHtml, renderWarrantyHtml } from '../../../lib/printUtils';
+import { getOrderWarranties } from '../../../lib/warrantyUtils';
 
 export interface PrintData {
   osNumber: string;
@@ -256,6 +257,22 @@ const sharedCSS = (fs: number, c: Colors, sp = 1.0) => `
   .checklist-mark { color: ${c.accent}; font-weight: 900; }
   .checklist-label { color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .checklist-value { color: #0f172a; font-weight: 800; }
+  .warranty-sec { flex-shrink: 0; }
+  .warranty-title {
+    font-size: ${fs * 0.7}px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    color: #059669;
+    border-bottom: 1.5px solid #10b98145;
+    padding-bottom: 3px;
+    margin-bottom: 5px;
+  }
+  .warranty-list { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; }
+  .warranty-item { min-width: 0; background: #ecfdf5 !important; border: 1px solid #a7f3d0; border-radius: 3px; padding: 4px 6px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 5px; }
+  .warranty-name { color: #064e3b; font-size: ${fs * 0.72}px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .warranty-meta { color: #64748b; font-size: ${fs * 0.58}px; grid-column: 1; }
+  .warranty-date { color: #047857; font-size: ${fs * 0.65}px; font-weight: 800; grid-column: 2; grid-row: 1 / span 2; align-self: center; white-space: nowrap; }
   .st {
     font-size: ${fs * 0.76}px;
     font-weight: 800;
@@ -453,7 +470,7 @@ function techBody(data: PrintData, config: OSLayoutConfig, substValues: Record<s
       <div class="hd-sub">Data: ${date}</div>
     </div>
   </div>
-  <div class="bd">${sections}<div class="checklist-wrap">${renderOrderChecklists(so)}</div></div>
+  <div class="bd">${sections}<div class="checklist-wrap">${renderOrderChecklists(so)}</div>${renderWarrantyHtml(getOrderWarranties(so))}</div>
   <div class="sig-analyst-wrap">
     <div class="sig-analyst">Anal. por: ___________________________</div>
   </div>
@@ -742,6 +759,13 @@ body { font-family: ${c.font}; width: 72mm; color: #1e293b; font-size: 9px; line
 .checklist-mark { color: ${c.accent}; font-weight: 900; }
 .checklist-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .checklist-value { font-weight: 800; }
+.warranty-sec { margin: 8px 0; }
+.warranty-title { font-size: 7px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px; color: #059669; border-bottom: 1px solid #10b98150; padding-bottom: 2px; margin-bottom: 4px; }
+.warranty-list { display: grid; gap: 3px; }
+.warranty-item { background: #ecfdf5 !important; border: 1px solid #a7f3d0; border-radius: 3px; padding: 4px 5px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 4px; }
+.warranty-name { color: #064e3b; font-size: 8px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.warranty-meta { color: #64748b; font-size: 6.5px; grid-column: 1; }
+.warranty-date { color: #047857; font-size: 7px; font-weight: 800; grid-column: 2; grid-row: 1 / span 2; align-self: center; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -774,6 +798,8 @@ body { font-family: ${c.font}; width: 72mm; color: #1e293b; font-size: 9px; line
   </div>` : ''}
 
   <div class="checklist-wrap">${renderOrderChecklists(so)}</div>
+
+  ${renderWarrantyHtml(getOrderWarranties(so))}
 
   ${config.showWarning !== false ? `
   <div class="twbox">

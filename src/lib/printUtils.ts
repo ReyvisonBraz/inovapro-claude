@@ -1,4 +1,5 @@
-import { AppSettings, ChecklistItem } from '../types';
+import { AppSettings, ChecklistItem, Warranty } from '../types';
+import { formatWarrantyDate } from './warrantyUtils';
 
 export const QR_BASE = 'https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=';
 
@@ -32,6 +33,23 @@ export function renderChecklistHtml(title: string, checklist?: ChecklistItem[] |
           <span class="checklist-value">${escapeHtml(value)}</span>
         </div>`;
       }).join('')}
+    </div>
+  </div>`;
+}
+
+export function renderWarrantyHtml(warranties?: Warranty[] | null): string {
+  const items = warranties ?? [];
+  if (items.length === 0) return '';
+
+  return `<div class="warranty-sec">
+    <div class="warranty-title">Garantia</div>
+    <div class="warranty-list">
+      ${items.map((warranty) => `
+        <div class="warranty-item">
+          <span class="warranty-name">${escapeHtml(warranty.itemName)}</span>
+          <span class="warranty-meta">${warranty.itemType === 'part' ? 'Peça' : 'Serviço'} · ${warranty.warrantyMonths} ${warranty.warrantyMonths === 1 ? 'mês' : 'meses'}</span>
+          <span class="warranty-date">até ${formatWarrantyDate(warranty.expiresAt)}</span>
+        </div>`).join('')}
     </div>
   </div>`;
 }

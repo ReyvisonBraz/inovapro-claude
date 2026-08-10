@@ -21,6 +21,7 @@ export const serviceOrderSchema = z.object({
   arrivalPhotoUrl: z.string().optional().nullable(),
   analysisPrediction: z.string().optional().nullable(),
   servicesPerformed: z.string().optional().nullable(),
+  warrantyReturn: z.boolean().optional(),
   serviceFee: z.coerce.number().optional().nullable(),
   totalAmount: z.coerce.number().optional().nullable(),
   finalObservations: z.string().optional().nullable(),

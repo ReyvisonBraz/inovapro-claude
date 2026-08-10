@@ -70,6 +70,7 @@ export const SettingsSchema = z.object({
     })).optional().default([]),
   }).optional(),
   deductStockStatuses: z.array(z.string()).optional(),
+  warrantyDefaultMonths: z.coerce.number().int().nonnegative().optional(),
 }).passthrough();
 
 export const CategorySchema = z.object({

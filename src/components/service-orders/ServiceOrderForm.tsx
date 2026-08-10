@@ -13,6 +13,7 @@ import { CustomerSection } from './form-sections/CustomerSection';
 import { AnalysisSection } from './form-sections/AnalysisSection';
 import { ClosingSection } from './form-sections/ClosingSection';
 import { ChecklistSection } from './form-sections/ChecklistSection';
+import { WarrantySection } from './form-sections/WarrantySection';
 import { QuickAddModal } from './QuickAddModal';
 import { serviceOrderSchema, ServiceOrderFormData } from '../../schemas/serviceOrderSchema';
 import { format, parseISO } from 'date-fns';
@@ -38,7 +39,7 @@ export const ServiceOrderForm: React.FC = () => {
       customerPassword: '', accessories: '', ramInfo: '', ssdInfo: '',
       arrivalPhotoBase64: '', servicesPerformed: '',
       serviceFee: 0, totalAmount: 0, finalObservations: '',
-      services: [], partsUsed: [], checklistIn: [], checklistOut: [],
+      services: [], partsUsed: [], checklistIn: [], checklistOut: [], warrantyReturn: false,
     }
   });
 
@@ -139,6 +140,7 @@ export const ServiceOrderForm: React.FC = () => {
         finalObservations: editingOrder.finalObservations || '',
         services: editingOrder.services || [], partsUsed: editingOrder.partsUsed || [],
         checklistIn: editingOrder.checklistIn || [], checklistOut: editingOrder.checklistOut || [],
+        warrantyReturn: editingOrder.warrantyReturn ?? false,
       });
     } else {
       reset({
@@ -147,7 +149,7 @@ export const ServiceOrderForm: React.FC = () => {
         equipmentSerial: '', reportedProblem: '', technicalAnalysis: '', priority: 'medium',
         status: 'Aguardando Análise', customerPassword: '', accessories: '', ramInfo: '', ssdInfo: '',
         arrivalPhotoBase64: '', servicesPerformed: '', serviceFee: 0, totalAmount: 0,
-        finalObservations: '', services: [], partsUsed: [], checklistIn: [], checklistOut: [],
+        finalObservations: '', services: [], partsUsed: [], checklistIn: [], checklistOut: [], warrantyReturn: false,
       });
     }
   }, [editingOrder, reset]);
@@ -192,6 +194,7 @@ export const ServiceOrderForm: React.FC = () => {
       ...data,
       checklistIn: data.checklistIn ?? [],
       checklistOut: data.checklistOut ?? [],
+      warrantyReturn: data.warrantyReturn ?? false,
       ...(editingOrder ? { updatedBy: currentUser?.id } : { createdBy: currentUser?.id }),
       ...(skipEquipmentValidation && { equipmentType: '', equipmentBrand: '', equipmentModel: '', equipmentColor: '', equipmentSerial: '' }),
     };
@@ -250,6 +253,7 @@ export const ServiceOrderForm: React.FC = () => {
             <AnalysisSection isSimplified={isSimplified} statuses={statuses} />
             <ChecklistSection />
             <ServicesAndPartsSection inventoryItems={inventoryItems} serviceFields={serviceFields} watchedServices={watchedServices ?? []} appendService={appendService} removeService={removeService} partFields={partFields} watchedParts={watchedParts ?? []} appendPart={appendPart} removePart={removePart} updatePart={updatePart} />
+            <WarrantySection editingOrder={editingOrder} />
             <ClosingSection register={register} editingOrder={editingOrder} computedTotal={computedTotal} manuallyEditedFee={manuallyEditedFee} setShowQRCodeModal={setShowQRCodeModal} />
           </div>
 

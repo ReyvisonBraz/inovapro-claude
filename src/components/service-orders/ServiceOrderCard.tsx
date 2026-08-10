@@ -2,11 +2,12 @@ import React from 'react';
 import { 
   ChevronDown, AlertTriangle, Clock, 
   Smartphone, Calendar, Wallet, QrCode, 
-  MessageCircle, Printer, Edit, Trash2, Check
+  MessageCircle, Printer, Edit, Trash2, Check, RotateCcw, ShieldCheck
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
+import { getOrderWarranties, getWarrantyExpirySummary } from '../../lib/warrantyUtils';
 
 interface ServiceOrderCardProps {
   order: any;
@@ -50,6 +51,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
   onGeneratePayment
 }) => {
   const isGrid = viewMode === 'grid';
+  const warrantySummary = getWarrantyExpirySummary(getOrderWarranties(order));
 
   return (
     <div key={order.id} className={cn(
@@ -124,6 +126,23 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
               {visibleColumns.priority && order.priority === 'high' && (
                 <span className="flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-rose-500/10 text-rose-500 border border-rose-500/20">
                   <AlertTriangle size={10} /> Alta
+                </span>
+              )}
+
+              {warrantySummary && (
+                <span className={cn(
+                  'flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded-full uppercase tracking-wider border',
+                  warrantySummary.state === 'active' && 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+                  warrantySummary.state === 'expiring' && 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                  warrantySummary.state === 'expired' && 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+                )}>
+                  <ShieldCheck size={11} /> {warrantySummary.label}
+                </span>
+              )}
+
+              {order.warrantyReturn && (
+                <span className="flex items-center gap-1 text-[9px] font-bold px-2 py-1 rounded-full uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <RotateCcw size={10} /> Retorno em garantia
                 </span>
               )}
             </div>

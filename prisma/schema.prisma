@@ -61,6 +61,7 @@ model Settings {
   osPrintConfig            String?
   checklistTemplate        Json?    @default("{\"entrada\":[],\"saida\":[]}")
   deductStockStatuses      Json?    @default("[\"Concluído\",\"Entregue\",\"Pronto\"]")
+  warrantyDefaultMonths    Int?     @default(3)
   version                  Int     @default(0)
 }
 
@@ -214,6 +215,7 @@ model ServiceOrder {
   ramInfo            String?
   ssdInfo            String?
   priority           String?  @default("medium")
+  warrantyReturn     Boolean? @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @default(now()) @updatedAt
   createdBy          Int?
@@ -221,11 +223,26 @@ model ServiceOrder {
   version            Int      @default(0)
   publicToken        String?  @unique @default(uuid())
   customer           Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  Warranties         Warranty[]
 
   @@index([customerId])
   @@index([status])
   @@index([createdAt])
   @@index([status, createdAt])
+}
+
+model Warranty {
+  id            Int      @id @default(autoincrement())
+  serviceOrderId Int
+  itemName      String
+  itemType      String // 'service' | 'part'
+  warrantyMonths Int
+  expiresAt     DateTime @db.Date
+  createdAt     DateTime @default(now())
+  serviceOrder  ServiceOrder @relation(fields: [serviceOrderId], references: [id], onDelete: Cascade)
+
+  @@index([serviceOrderId])
+  @@index([expiresAt])
 }
 
 model ServiceOrderStatus {

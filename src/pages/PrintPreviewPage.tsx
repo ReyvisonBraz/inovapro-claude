@@ -37,6 +37,10 @@ const SAMPLE: PrintData = {
       { label: 'Carregamento testado', done: true },
       { label: 'Teste final do aparelho', value: 'Aprovado', done: true },
     ],
+    warranties: [
+      { id: 1, serviceOrderId: 42, itemName: 'Substituição do display AMOLED', itemType: 'service', warrantyMonths: 3, expiresAt: '2026-08-19T00:00:00.000Z' },
+      { id: 2, serviceOrderId: 42, itemName: 'Display Samsung Galaxy S22 AMOLED', itemType: 'part', warrantyMonths: 3, expiresAt: '2026-08-19' },
+    ],
     partsUsed: [
       { name: 'Display Samsung Galaxy S22 AMOLED', quantity: 1, unitPrice: 420, subtotal: 420 },
       { name: 'Conector de carga USB-C', quantity: 1, unitPrice: 35, subtotal: 35 },

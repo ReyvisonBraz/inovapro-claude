@@ -3,10 +3,11 @@ import { motion } from 'motion/react';
 import {
   Settings as SettingsIcon, User, Shield,
   Database, Palette, Plus, Trash2, Edit2, Key,
-  MessageSquare, Send, RefreshCw, Github, Laptop, FileText, ClipboardCheck
+  MessageSquare, Send, RefreshCw, Github, Laptop, FileText, ClipboardCheck, ShieldCheck
 } from 'lucide-react';
 import { OSTemplateEditor } from './OSTemplateEditor';
 import { ChecklistSettings } from './ChecklistSettings';
+import { WarrantySettings } from './WarrantySettings';
 import { cn } from '../../lib/utils';
 import { AppSettings, Category, User as UserType, Brand, Model, EquipmentType } from '../../types';
 import AuditLogs from '../audit/AuditLogs';
@@ -85,6 +86,7 @@ const Settings: React.FC<SettingsProps> = ({
     { id: 'categories', label: 'Categorias', icon: Palette },
     { id: 'equipment', label: 'Equipamentos', icon: Laptop },
     { id: 'os-checklist', label: 'Checklist OS', icon: ClipboardCheck },
+    { id: 'warranty', label: 'Garantia', icon: ShieldCheck },
     { id: 'os-template', label: 'Template OS', icon: FileText },
     { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
     { id: 'users', label: 'Usuários', icon: User },
@@ -282,6 +284,10 @@ const Settings: React.FC<SettingsProps> = ({
 
             {activeTab === 'os-checklist' && (
               <ChecklistSettings settings={settings} onUpdateSettings={onUpdateSettings} />
+            )}
+
+            {activeTab === 'warranty' && (
+              <WarrantySettings settings={settings} onUpdateSettings={onUpdateSettings} />
             )}
 
             {activeTab === 'whatsapp' && (

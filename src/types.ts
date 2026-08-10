@@ -146,6 +146,7 @@ export interface AppSettings {
   osPrintConfig?: string;
   checklistTemplate?: ChecklistTemplate;
   deductStockStatuses?: string[];
+  warrantyDefaultMonths?: number;
 }
 
 export interface OSSection {
@@ -226,6 +227,16 @@ export interface ChecklistTemplate {
   saida: { label: string; defaultValue?: boolean }[];
 }
 
+export interface Warranty {
+  id: number;
+  serviceOrderId: number;
+  itemName: string;
+  itemType: 'service' | 'part';
+  warrantyMonths: number;
+  expiresAt: string;
+  createdAt?: string;
+}
+
 export interface ServiceOrder {
   id: number;
   customerId: number;
@@ -258,6 +269,8 @@ export interface ServiceOrder {
   ramInfo?: string;
   ssdInfo?: string;
   priority?: 'low' | 'medium' | 'high';
+  warrantyReturn?: boolean;
+  warranties?: Warranty[];
   createdAt: string;
   updatedAt?: string;
   createdBy?: number;

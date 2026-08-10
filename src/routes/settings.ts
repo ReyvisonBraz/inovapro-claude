@@ -44,6 +44,7 @@ router.post('/', validate(SettingsSchema), asyncHandler(async (req: Request, res
     osPrintConfig: req.body.osPrintConfig ?? undefined,
     checklistTemplate: req.body.checklistTemplate ?? undefined,
     deductStockStatuses: req.body.deductStockStatuses ?? undefined,
+    warrantyDefaultMonths: req.body.warrantyDefaultMonths ?? undefined,
   };
 
   if (req.body.settingsPassword) updateData.settingsPassword = await hashPassword(req.body.settingsPassword);
