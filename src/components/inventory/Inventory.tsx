@@ -71,7 +71,7 @@ export const Inventory: React.FC<InventoryProps> = ({
   const stats = {
     totalProducts: items.filter(i => i.category === 'product').length,
     totalServices: items.filter(i => i.category === 'service').length,
-    lowStock: items.filter(i => i.category === 'product' && i.stockLevel <= 5).length,
+    lowStock: items.filter(i => i.category === 'product' && i.stockLevel <= (i.minQuantity ?? 5)).length,
   };
 
   return (
@@ -198,7 +198,7 @@ export const Inventory: React.FC<InventoryProps> = ({
                   <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Estoque</p>
                   <p className={cn(
                     "font-bold",
-                    item.stockLevel <= 5 ? "text-rose-500" : "text-slate-300"
+                    item.stockLevel <= (item.minQuantity ?? 5) ? "text-rose-500" : "text-slate-300"
                   )}>
                     {item.stockLevel} un
                   </p>

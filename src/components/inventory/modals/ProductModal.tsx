@@ -34,7 +34,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({
       category: 'product',
       sku: '',
       unitPrice: 0 as any,
-      stockLevel: '0' as any
+      stockLevel: '0' as any,
+      minQuantity: 5 as any
     }
   });
 
@@ -48,7 +49,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({
           category: editingItem.category,
           sku: editingItem.sku || '',
           unitPrice: editingItem.unitPrice.toString(),
-          stockLevel: editingItem.stockLevel.toString()
+          stockLevel: editingItem.stockLevel.toString(),
+          minQuantity: (editingItem.minQuantity ?? 5).toString()
         });
       } else {
         reset({
@@ -56,7 +58,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({
           category: 'product',
           sku: '',
           unitPrice: '' as any,
-          stockLevel: '0' as any
+          stockLevel: '0' as any,
+          minQuantity: '5' as any
         });
       }
     }
@@ -159,14 +162,25 @@ export const ProductModal: React.FC<ProductModalProps> = ({
               </div>
 
               {categoryValue === 'product' && (
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Quantidade em Estoque</label>
-                  <input 
-                    type="number"
-                    {...register('stockLevel')}
-                    className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
-                    placeholder="0"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Quantidade em Estoque</label>
+                    <input 
+                      type="number"
+                      {...register('stockLevel')}
+                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Avisar abaixo de</label>
+                    <input 
+                      type="number"
+                      {...register('minQuantity')}
+                      className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-1 focus:ring-primary outline-none"
+                      placeholder="5"
+                    />
+                  </div>
                 </div>
               )}
 

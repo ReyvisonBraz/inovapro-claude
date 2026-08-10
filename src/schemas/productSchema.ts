@@ -6,6 +6,7 @@ export const productSchema = z.object({
   sku: z.string().optional(),
   unitPrice: z.union([z.string(), z.number()]).optional(),
   stockLevel: z.union([z.string(), z.number()]).optional(),
+  minQuantity: z.union([z.string(), z.number()]).optional(),
 });
 
 export type ProductFormData = {
@@ -14,4 +15,5 @@ export type ProductFormData = {
   sku?: string;
   unitPrice?: string | number;
   stockLevel?: string | number;
+  minQuantity?: string | number;
 };
