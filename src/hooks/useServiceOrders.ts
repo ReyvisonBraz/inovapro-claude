@@ -3,11 +3,13 @@ import api from '../lib/api';
 import type { ServiceOrderFormData } from '../schemas/index.js';
 import { useDataStore } from '../store/useDataStore';
 import { useFilterStore } from '../store/useFilterStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { mergeSavedRecord, upsertCachedRecord } from '../lib/query-cache';
 
 export const useServiceOrders = (showToast?: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void) => {
   const queryClient = useQueryClient();
   const { serviceOrdersPage, setServiceOrdersPage } = useDataStore();
+  const { isAuthenticated } = useAuthStore();
 
   const { 
     osSearchTerm,
@@ -29,6 +31,7 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
       osDateFilter
     ],
     staleTime: 30_000,
+    enabled: isAuthenticated,
     queryFn: async () => {
       const query = new URLSearchParams({
         page: serviceOrdersPage.toString(),
@@ -48,6 +51,7 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
   // Queries para dados de configuração (caching automático)
   const { data: serviceOrderStatuses } = useQuery({
     queryKey: ['service-order-statuses'],
+    enabled: isAuthenticated,
     queryFn: async () => {
       const { data } = await api.get('/service-order-statuses');
       return data;
@@ -57,6 +61,7 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
 
   const { data: equipmentTypes } = useQuery({
     queryKey: ['equipment-types'],
+    enabled: isAuthenticated,
     queryFn: async () => {
       const { data } = await api.get('/equipment-types');
       return data;
@@ -66,6 +71,7 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
 
   const { data: brands } = useQuery({
     queryKey: ['brands'],
+    enabled: isAuthenticated,
     queryFn: async () => {
       const { data } = await api.get('/brands');
       return data;
@@ -75,6 +81,7 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
 
   const { data: models } = useQuery({
     queryKey: ['models'],
+    enabled: isAuthenticated,
     queryFn: async () => {
       const { data } = await api.get('/models');
       return data;

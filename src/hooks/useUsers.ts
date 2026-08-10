@@ -2,10 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User } from '../types';
 import api from '../lib/api';
 import { useToast } from '../components/ui/Toast';
+import { useAuthStore } from '../store/useAuthStore';
 
 export const useUsers = () => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuthStore();
 
   const fetchUsers = async () => {
     const res = await api.get('/users');
@@ -16,6 +18,7 @@ export const useUsers = () => {
     return useQuery({
       queryKey: ['users'],
       queryFn: fetchUsers,
+      enabled: isAuthenticated,
     });
   };
 

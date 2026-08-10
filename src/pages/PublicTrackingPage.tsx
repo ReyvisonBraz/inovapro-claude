@@ -69,6 +69,10 @@ export const PublicTrackingPage: React.FC = () => {
 
   const isComplete = data.status === 'Concluído' || data.status === 'Pronto';
   const photos = data.arrivalPhotos || [];
+  const checklists = [
+    { title: 'Checklist de Entrada', items: data.checklistIn ?? [] },
+    { title: 'Checklist de Saída', items: data.checklistOut ?? [] },
+  ].filter((checklist) => checklist.items.length > 0);
 
   return (
     <div style={styles.container}>
@@ -112,6 +116,28 @@ export const PublicTrackingPage: React.FC = () => {
             <div style={styles.problemBox}>{data.reportedProblem}</div>
           </div>
         )}
+
+        {checklists.map((checklist) => (
+          <div key={checklist.title} style={styles.section}>
+            <div style={styles.sectionTitle}>{checklist.title}</div>
+            <div style={{ display: 'grid', gap: 8 }}>
+              {checklist.items.map((item, index) => {
+                const value = item.value?.trim()
+                  ? item.value.trim()
+                  : typeof item.done === 'boolean'
+                    ? (item.done ? 'Sim' : 'Não')
+                    : '—';
+                return (
+                  <div key={`${item.label}-${index}`} style={{ ...styles.infoItem, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ color: item.done ? '#10b981' : '#94a3b8', fontWeight: 900 }}>{item.done ? '✓' : '□'}</span>
+                    <span style={{ ...styles.infoValue, flex: 1 }}>{item.label}</span>
+                    <span style={{ ...styles.infoLabel, color: '#334155' }}>{value}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
 
         <div style={styles.datesRow}>
           {data.entryDate && (

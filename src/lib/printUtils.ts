@@ -1,9 +1,39 @@
-import { AppSettings } from '../types';
+import { AppSettings, ChecklistItem } from '../types';
 
 export const QR_BASE = 'https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=';
 
 export function stripScript(html: string): string {
   return html.replace(/<script[\s\S]*?<\/script>/gi, '');
+}
+
+const escapeHtml = (value: string): string => value
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
+
+export function renderChecklistHtml(title: string, checklist?: ChecklistItem[] | null): string {
+  const items = checklist ?? [];
+  if (items.length === 0) return '';
+
+  return `<div class="checklist-sec">
+    <div class="checklist-title">${escapeHtml(title)}</div>
+    <div class="checklist-list">
+      ${items.map((item) => {
+        const value = item.value?.trim()
+          ? item.value.trim()
+          : typeof item.done === 'boolean'
+            ? (item.done ? 'Sim' : 'Não')
+            : '—';
+        return `<div class="checklist-item">
+          <span class="checklist-mark">${item.done ? '&#10003;' : '&#9633;'}</span>
+          <span class="checklist-label">${escapeHtml(item.label)}</span>
+          <span class="checklist-value">${escapeHtml(value)}</span>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
 }
 
 export const getBlankFormLayout = (settings: AppSettings): string => {

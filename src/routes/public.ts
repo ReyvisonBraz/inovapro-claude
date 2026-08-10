@@ -32,6 +32,8 @@ router.get('/public/os/:token', asyncHandler(async (req: Request, res: Response)
         arrivalPhotoBase64: true,
         arrivalPhotoUrls: true,
         partsUsed: true,
+        checklistIn: true,
+        checklistOut: true,
         totalAmount: true,
         serviceFee: true,
       },
@@ -64,6 +66,8 @@ router.get('/public/os/:token', asyncHandler(async (req: Request, res: Response)
     arrivalPhotos: photos,
     totalAmount: order.totalAmount,
     serviceFee: order.serviceFee,
+    checklistIn: Array.isArray(order.checklistIn) ? order.checklistIn : [],
+    checklistOut: Array.isArray(order.checklistOut) ? order.checklistOut : [],
     shopWhatsapp: settings?.shopWhatsapp ?? null,
     shopName: settings?.profileName ?? 'Inova Pro',
   };

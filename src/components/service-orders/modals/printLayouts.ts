@@ -6,6 +6,7 @@ import {
   DEFAULT_THERMAL_CONFIG,
   substituteTemplate,
 } from '../../../lib/osTemplateConfig';
+import { renderChecklistHtml } from '../../../lib/printUtils';
 
 export interface PrintData {
   osNumber: string;
@@ -46,6 +47,13 @@ function resolveStatusStyle(status: string): string {
   if (s.includes('cancel'))
     return 'background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;';
   return 'background:#fef3c7;color:#92400e;border:1px solid #fbbf24;';
+}
+
+function renderOrderChecklists(so: any): string {
+  return [
+    renderChecklistHtml('Checklist de Entrada', so.checklistIn ?? []),
+    renderChecklistHtml('Checklist de Saída', so.checklistOut ?? []),
+  ].filter(Boolean).join('');
 }
 
 // ─── Build substitution values from PrintData ─────────────────────────────────
@@ -233,6 +241,21 @@ const sharedCSS = (fs: number, c: Colors, sp = 1.0) => `
   }
 
   .sec { flex-shrink: 0; }
+  .checklist-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex-shrink: 0; }
+  .checklist-sec { min-width: 0; }
+  .checklist-title {
+    font-size: ${fs * 0.7}px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    color: ${c.accent};
+    margin-bottom: 4px;
+  }
+  .checklist-list { display: grid; gap: 2px; }
+  .checklist-item { display: grid; grid-template-columns: 13px minmax(0, 1fr) auto; gap: 4px; align-items: center; font-size: ${fs * 0.72}px; }
+  .checklist-mark { color: ${c.accent}; font-weight: 900; }
+  .checklist-label { color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .checklist-value { color: #0f172a; font-weight: 800; }
   .st {
     font-size: ${fs * 0.76}px;
     font-weight: 800;
@@ -430,7 +453,7 @@ function techBody(data: PrintData, config: OSLayoutConfig, substValues: Record<s
       <div class="hd-sub">Data: ${date}</div>
     </div>
   </div>
-  <div class="bd">${sections}</div>
+  <div class="bd">${sections}<div class="checklist-wrap">${renderOrderChecklists(so)}</div></div>
   <div class="sig-analyst-wrap">
     <div class="sig-analyst">Anal. por: ___________________________</div>
   </div>
@@ -711,6 +734,14 @@ body { font-family: ${c.font}; width: 72mm; color: #1e293b; font-size: 9px; line
 .tqr-sub { font-size: 7.5px; color: #64748b; margin-top: 3px; }
 .tdiv    { border: none; border-top: 1px dashed #cbd5e1; margin: 9px 0; }
 .tfooter { text-align: center; font-size: 7.5px; color: #94a3b8; letter-spacing: .5px; padding-top: 5px; }
+.checklist-wrap { margin: 8px 0; }
+.checklist-sec { margin-top: 7px; }
+.checklist-title { font-size: 7px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px; color: ${c.accent}; border-bottom: 1px solid ${c.accent}50; padding-bottom: 2px; margin-bottom: 4px; }
+.checklist-list { display: grid; gap: 2px; }
+.checklist-item { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 3px; align-items: center; font-size: 8px; }
+.checklist-mark { color: ${c.accent}; font-weight: 900; }
+.checklist-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.checklist-value { font-weight: 800; }
 </style>
 </head>
 <body>
@@ -741,6 +772,8 @@ body { font-family: ${c.font}; width: 72mm; color: #1e293b; font-size: 9px; line
     <div class="tprob-lbl">Problema Relatado</div>
     <div class="tprob-text">${probContent}</div>
   </div>` : ''}
+
+  <div class="checklist-wrap">${renderOrderChecklists(so)}</div>
 
   ${config.showWarning !== false ? `
   <div class="twbox">

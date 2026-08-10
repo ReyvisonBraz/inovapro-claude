@@ -12,6 +12,7 @@ import { EquipmentSection } from './form-sections/EquipmentSection';
 import { CustomerSection } from './form-sections/CustomerSection';
 import { AnalysisSection } from './form-sections/AnalysisSection';
 import { ClosingSection } from './form-sections/ClosingSection';
+import { ChecklistSection } from './form-sections/ChecklistSection';
 import { QuickAddModal } from './QuickAddModal';
 import { serviceOrderSchema, ServiceOrderFormData } from '../../schemas/serviceOrderSchema';
 import { format, parseISO } from 'date-fns';
@@ -37,7 +38,7 @@ export const ServiceOrderForm: React.FC = () => {
       customerPassword: '', accessories: '', ramInfo: '', ssdInfo: '',
       arrivalPhotoBase64: '', servicesPerformed: '',
       serviceFee: 0, totalAmount: 0, finalObservations: '',
-      services: [], partsUsed: [],
+      services: [], partsUsed: [], checklistIn: [], checklistOut: [],
     }
   });
 
@@ -137,6 +138,7 @@ export const ServiceOrderForm: React.FC = () => {
         serviceFee: editingOrder.serviceFee || 0, totalAmount: editingOrder.totalAmount || 0,
         finalObservations: editingOrder.finalObservations || '',
         services: editingOrder.services || [], partsUsed: editingOrder.partsUsed || [],
+        checklistIn: editingOrder.checklistIn || [], checklistOut: editingOrder.checklistOut || [],
       });
     } else {
       reset({
@@ -145,7 +147,7 @@ export const ServiceOrderForm: React.FC = () => {
         equipmentSerial: '', reportedProblem: '', technicalAnalysis: '', priority: 'medium',
         status: 'Aguardando Análise', customerPassword: '', accessories: '', ramInfo: '', ssdInfo: '',
         arrivalPhotoBase64: '', servicesPerformed: '', serviceFee: 0, totalAmount: 0,
-        finalObservations: '', services: [], partsUsed: [],
+        finalObservations: '', services: [], partsUsed: [], checklistIn: [], checklistOut: [],
       });
     }
   }, [editingOrder, reset]);
@@ -188,6 +190,8 @@ export const ServiceOrderForm: React.FC = () => {
 
     const orderData = {
       ...data,
+      checklistIn: data.checklistIn ?? [],
+      checklistOut: data.checklistOut ?? [],
       ...(editingOrder ? { updatedBy: currentUser?.id } : { createdBy: currentUser?.id }),
       ...(skipEquipmentValidation && { equipmentType: '', equipmentBrand: '', equipmentModel: '', equipmentColor: '', equipmentSerial: '' }),
     };
@@ -244,6 +248,7 @@ export const ServiceOrderForm: React.FC = () => {
             <CustomerSection isSimplified={isSimplified} setIsSimplified={setIsSimplified} customers={customers} onTriggerAddCustomer={onTriggerAddCustomer} />
             <EquipmentSection skipEquipmentValidation={skipEquipmentValidation} setSkipEquipmentValidation={setSkipEquipmentValidation} isSimplified={isSimplified} equipmentTypes={equipmentTypes} brands={brands} models={models} onAddEquipmentType={onAddEquipmentType} onAddBrand={onAddBrand} onAddModel={onAddModel} setQuickAddModal={setQuickAddModal} showToast={showToast as (msg: string, type: string) => void} watchedArrivalPhotos={watchedArrivalPhotos} addPhoto={addPhoto} removePhoto={removePhoto} />
             <AnalysisSection isSimplified={isSimplified} statuses={statuses} />
+            <ChecklistSection />
             <ServicesAndPartsSection inventoryItems={inventoryItems} serviceFields={serviceFields} watchedServices={watchedServices ?? []} appendService={appendService} removeService={removeService} partFields={partFields} watchedParts={watchedParts ?? []} appendPart={appendPart} removePart={removePart} updatePart={updatePart} />
             <ClosingSection register={register} editingOrder={editingOrder} computedTotal={computedTotal} manuallyEditedFee={manuallyEditedFee} setShowQRCodeModal={setShowQRCodeModal} />
           </div>

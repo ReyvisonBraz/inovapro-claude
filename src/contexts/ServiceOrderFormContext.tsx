@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 import {
   ServiceOrder, Customer, InventoryItem,
-  ServiceOrderStatus, Brand, Model, User,
+  ServiceOrderStatus, Brand, Model, User, ChecklistTemplate,
 } from '../types';
 
 interface ServiceOrderFormContextValue {
@@ -15,6 +15,8 @@ interface ServiceOrderFormContextValue {
   equipmentTypes: { id: number; name: string }[];
   brands: Brand[];
   models: Model[];
+  checklistTemplate: ChecklistTemplate;
+  deductStockStatuses: string[];
   currentUser: User | null;
   onAddOrder: (order: any) => Promise<number | null>;
   onUpdateOrder: (id: number, order: any, version?: number) => Promise<boolean>;

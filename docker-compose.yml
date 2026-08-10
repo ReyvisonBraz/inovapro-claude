@@ -1,0 +1,68 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: inovapro-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inova_local_pw}
+      POSTGRES_DB: inova_pro
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inova_pro"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: inovapro-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: "3000"
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-inova_local_pw}@db:5432/inova_pro
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-inova_local_pw}
+      DB_NAME: inova_pro
+    ports:
+      - "3003:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "npx prisma migrate deploy &&
+             npx tsx scripts/seed-admin.ts &&
+             npx tsx watch --ignore 'dist/**' server.ts"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: inovapro-frontend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      VITE_API_URL: http://localhost:3003
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - api
+    command: npx vite --port 5173 --host 0.0.0.0
+
+volumes:
+  pgdata:

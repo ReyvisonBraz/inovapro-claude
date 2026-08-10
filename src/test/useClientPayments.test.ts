@@ -1,8 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useClientPayments } from '../hooks/useClientPayments';
+import { useAuthStore } from '../store/useAuthStore';
+import type { User } from '../types';
 import { server } from './mocks/server';
 import { http, HttpResponse } from 'msw';
 
@@ -10,6 +12,15 @@ import { http, HttpResponse } from 'msw';
 vi.mock('../components/ui/Toast', () => ({
   useToast: () => ({ showToast: vi.fn() }),
 }));
+
+const authenticatedUser: User = {
+  id: 1,
+  username: 'admin',
+  name: 'Administrador',
+  role: 'owner',
+  permissions: ['manage_payments'],
+  createdAt: '2024-01-01',
+};
 
 function makeWrapper() {
   const queryClient = new QueryClient({
@@ -20,6 +31,24 @@ function makeWrapper() {
 }
 
 describe('useClientPayments', () => {
+  beforeEach(() => {
+    useAuthStore.setState({
+      isAuthenticated: true,
+      currentUser: authenticatedUser,
+      users: [],
+      auditLogs: [],
+    });
+  });
+
+  afterEach(() => {
+    useAuthStore.setState({
+      isAuthenticated: false,
+      currentUser: null,
+      users: [],
+      auditLogs: [],
+    });
+  });
+
   it('busca pagamentos com sucesso', async () => {
     const { result } = renderHook(() => useClientPayments(), {
       wrapper: makeWrapper(),

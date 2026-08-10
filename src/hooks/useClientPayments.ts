@@ -4,6 +4,7 @@ import api from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { useDataStore } from '../store/useDataStore';
 import { useFilterStore } from '../store/useFilterStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { useCrudApi } from './useCrudApi';
 import { mergeSavedRecord, upsertCachedRecord } from '../lib/query-cache';
 
@@ -12,6 +13,7 @@ export function useClientPayments() {
   const queryClient = useQueryClient();
   const { clientPaymentsPage: paymentsPage, setClientPaymentsPage: setPaymentsPage } = useDataStore();
   const { paymentSearchTerm } = useFilterStore();
+  const { isAuthenticated } = useAuthStore();
 
   const fetchClientPayments = async (page: number, searchTerm: string = '') => {
     const res = await api.get(`/client-payments?page=${page}&limit=20&search=${searchTerm}`);
@@ -21,6 +23,7 @@ export function useClientPayments() {
   const clientPaymentsQuery = useQuery({
     queryKey: ['clientPayments', paymentsPage, paymentSearchTerm],
     staleTime: 30_000,
+    enabled: isAuthenticated,
     queryFn: () => fetchClientPayments(paymentsPage, paymentSearchTerm),
   });
 

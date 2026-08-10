@@ -7,6 +7,8 @@ import { ClientPaymentsPage } from '../pages/ClientPaymentsPage';
 import { useAppStore } from '../store/useAppStore';
 import { useFilterStore } from '../store/useFilterStore';
 import { useModalStore } from '../store/useModalStore';
+import { useAuthStore } from '../store/useAuthStore';
+import type { User } from '../types';
 
 /**
  * Teste de caracterização da página de Pagamentos (Fase 6·02 — prop drilling).
@@ -38,6 +40,12 @@ beforeEach(() => {
   useModalStore.setState({ isAddingClientPayment: false });
   useFilterStore.setState({ paymentSearchTerm: '', paymentFilterStatus: 'all', paymentSortMode: 'date' });
   useModalStore.setState({ isRecordingPayment: null });
+  useAuthStore.setState({
+    isAuthenticated: true,
+    currentUser: { id: 1, username: 'admin', name: 'Administrador', role: 'owner', permissions: ['manage_payments'], createdAt: '2024-01-01' } as User,
+    users: [],
+    auditLogs: [],
+  });
 });
 
 describe('ClientPaymentsPage — comportamento (caracterização)', () => {

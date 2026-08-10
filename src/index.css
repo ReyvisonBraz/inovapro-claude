@@ -47,7 +47,6 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-family: "Sora", ui-sans-serif, system-ui, sans-serif;
-    overscroll-behavior: none;
     min-width: 320px;
     min-height: 100dvh;
     overflow-x: hidden;

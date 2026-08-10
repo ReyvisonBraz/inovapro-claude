@@ -131,7 +131,15 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
   
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    const saved = localStorage.getItem('os-view-mode');
+    return saved === 'list' || saved === 'grid' ? saved : 'grid';
+  });
+
+  const persistViewMode = (mode: 'grid' | 'list') => {
+    localStorage.setItem('os-view-mode', mode);
+    setViewMode(mode);
+  };
   const [showColumnConfig, setShowColumnConfig] = useState(false);
   const [showFiltersExpanded, setShowFiltersExpanded] = useState(true);
   const [visibleColumns, setVisibleColumns] = useState({
@@ -278,7 +286,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
         setSortBy={onSortByChange}
         statuses={statuses}
         viewMode={viewMode}
-        setViewMode={setViewMode}
+        setViewMode={persistViewMode}
         showColumnConfig={showColumnConfig}
         setShowColumnConfig={setShowColumnConfig}
         visibleColumns={visibleColumns}
@@ -331,6 +339,8 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
         equipmentTypes,
         brands,
         models,
+        checklistTemplate: settings?.checklistTemplate ?? { entrada: [], saida: [] },
+        deductStockStatuses: settings?.deductStockStatuses ?? ['Concluído', 'Entregue', 'Pronto'],
         currentUser,
         onAddOrder,
         onUpdateOrder,

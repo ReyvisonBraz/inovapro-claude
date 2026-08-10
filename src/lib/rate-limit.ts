@@ -40,13 +40,18 @@ export function makeLoginLimiter() {
 }
 
 /**
- * Rate limiter geral da API: 100 req/min por IP em rotas autenticadas.
+ * Rate limiter geral da API: 300 req/min por IP em rotas autenticadas.
  * Protege contra abuso/DoS de baixo orçamento sem sufocar uso legítimo.
+ *
+ * 100/min se mostrou apertado: cada carregamento de página dispara ~14
+ * requisições legítimas (+7 pré-login que retornam 401 sem retry), então
+ * navegar por algumas telas em menos de um minuto estourava o teto e as
+ * listas passavam a falhar com 429.
  */
 export function makeApiLimiter() {
   return withStore({
     windowMs: 60 * 1000,
-    max: 100,
+    max: 300,
     message: { error: 'Limite de requisições atingido. Aguarde um minuto.' },
     standardHeaders: true,
     legacyHeaders: false,

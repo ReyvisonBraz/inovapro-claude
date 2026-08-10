@@ -3,9 +3,10 @@ import { motion } from 'motion/react';
 import {
   Settings as SettingsIcon, User, Shield,
   Database, Palette, Plus, Trash2, Edit2, Key,
-  MessageSquare, Send, RefreshCw, Github, Laptop, FileText
+  MessageSquare, Send, RefreshCw, Github, Laptop, FileText, ClipboardCheck
 } from 'lucide-react';
 import { OSTemplateEditor } from './OSTemplateEditor';
+import { ChecklistSettings } from './ChecklistSettings';
 import { cn } from '../../lib/utils';
 import { AppSettings, Category, User as UserType, Brand, Model, EquipmentType } from '../../types';
 import AuditLogs from '../audit/AuditLogs';
@@ -83,6 +84,7 @@ const Settings: React.FC<SettingsProps> = ({
     { id: 'general', label: 'Geral', icon: SettingsIcon },
     { id: 'categories', label: 'Categorias', icon: Palette },
     { id: 'equipment', label: 'Equipamentos', icon: Laptop },
+    { id: 'os-checklist', label: 'Checklist OS', icon: ClipboardCheck },
     { id: 'os-template', label: 'Template OS', icon: FileText },
     { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
     { id: 'users', label: 'Usuários', icon: User },
@@ -276,6 +278,10 @@ const Settings: React.FC<SettingsProps> = ({
 
             {activeTab === 'os-template' && (
               <OSTemplateEditor settings={settings} onUpdateSettings={onUpdateSettings} />
+            )}
+
+            {activeTab === 'os-checklist' && (
+              <ChecklistSettings settings={settings} onUpdateSettings={onUpdateSettings} />
             )}
 
             {activeTab === 'whatsapp' && (

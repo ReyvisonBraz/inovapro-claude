@@ -2,8 +2,10 @@ import { prisma } from '../lib/prisma.js';
 import { Prisma } from '@prisma/client';
 import type { ServiceOrderFormData } from '../schemas/index.js';
 import { uploadPhotoToStorage, isStorageConfigured } from '../lib/storage.js';
-import { ConflictError, NotFoundError } from '../lib/errors.js';
+import { BusinessError, ConflictError, NotFoundError } from '../lib/errors.js';
 import { toPrismaDate } from '../lib/prisma-helpers.js';
+
+const DEFAULT_DEDUCT_STATUSES = ['Concluído', 'Entregue', 'Pronto'];
 
 const safeParseJSON = (str: string | null | undefined, fallback: unknown = []) => {
   try { return str ? JSON.parse(str) : fallback; }
@@ -27,6 +29,44 @@ async function migratePhotosToStorage(
   } catch {
     return null;
   }
+}
+
+async function getDeductStatuses(tx: Prisma.TransactionClient = prisma as unknown as Prisma.TransactionClient): Promise<string[]> {
+  try {
+    const settings = await tx.settings.findUnique({ where: { id: 1 } });
+    const raw = (settings as any)?.deductStockStatuses;
+    if (Array.isArray(raw) && raw.length) return raw.filter((s): s is string => typeof s === 'string');
+    if (typeof raw === 'string') {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length) return parsed.filter((s): s is string => typeof s === 'string');
+    }
+  } catch {
+    /* ignore */
+  }
+  return DEFAULT_DEDUCT_STATUSES;
+}
+
+function aggregateParts(parts: unknown): Array<{ id: number; quantity: number }> {
+  const amounts = new Map<number, number>();
+  if (Array.isArray(parts)) {
+    for (const p of parts as any[]) {
+      const id = p?.id;
+      const quantity = Number(p?.quantity) || 0;
+      if (typeof id === 'number' && quantity > 0) {
+        amounts.set(id, (amounts.get(id) ?? 0) + quantity);
+      }
+    }
+  }
+  return Array.from(amounts, ([id, quantity]) => ({ id, quantity }));
+}
+
+async function stockShouldDeduct(
+  oldStatus: string,
+  newStatus: string,
+  tx: Prisma.TransactionClient
+): Promise<boolean> {
+  const deduct = await getDeductStatuses(tx);
+  return deduct.includes(newStatus) && !deduct.includes(oldStatus);
 }
 
 export class ServiceOrderService {
@@ -126,7 +166,8 @@ export class ServiceOrderService {
       customerId, equipmentType, equipmentBrand, equipmentModel, equipmentColor, equipmentSerial,
       reportedProblem, arrivalPhotoUrl, arrivalPhotoBase64, status, entryDate, analysisPrediction,
       customerPassword, accessories, ramInfo, ssdInfo, priority, createdBy, technicalAnalysis,
-      servicesPerformed, services, partsUsed, serviceFee, totalAmount, finalObservations
+      servicesPerformed, services, partsUsed, serviceFee, totalAmount, finalObservations,
+      checklistIn, checklistOut
     } = data;
 
     const customer = await prisma.customer.findUnique({ where: { id: customerId } });
@@ -150,6 +191,8 @@ export class ServiceOrderService {
         analysisPrediction,
         customerPassword,
         accessories,
+        checklistIn: checklistIn ?? [],
+        checklistOut: checklistOut ?? [],
         ramInfo,
         ssdInfo,
         priority: priority || 'medium',
@@ -183,23 +226,24 @@ export class ServiceOrderService {
       'serviceFee', 'totalAmount', 'finalObservations', 'entryDate', 'analysisPrediction',
       'customerPassword', 'accessories', 'ramInfo', 'ssdInfo', 'priority', 'equipmentType',
       'equipmentBrand', 'equipmentModel', 'equipmentColor', 'equipmentSerial', 'arrivalPhotoBase64',
-      'reportedProblem', 'updatedBy', 'firstName', 'lastName', 'phone'
+      'reportedProblem', 'updatedBy', 'firstName', 'lastName', 'phone',
+      'checklistIn', 'checklistOut'
     ] as const;
-    
+
     const updateData: Record<string, unknown> = {};
-    
+
     for (const field of fields) {
       const value = (data as any)[field];
       if (value !== undefined) {
-        if (field === 'services' || field === 'partsUsed') {
+        if (field === 'services' || field === 'partsUsed' || field === 'checklistIn' || field === 'checklistOut') {
           updateData[field] = value ?? [];
         } else if (
-          typeof value === 'string' && 
-          value === '' && 
+          typeof value === 'string' &&
+          value === '' &&
           [
-            'equipmentType', 'equipmentBrand', 'equipmentModel', 'equipmentColor', 
-            'equipmentSerial', 'reportedProblem', 'technicalAnalysis', 'arrivalPhotoBase64', 
-            'customerPassword', 'accessories', 'ramInfo', 'ssdInfo', 'servicesPerformed', 
+            'equipmentType', 'equipmentBrand', 'equipmentModel', 'equipmentColor',
+            'equipmentSerial', 'reportedProblem', 'technicalAnalysis', 'arrivalPhotoBase64',
+            'customerPassword', 'accessories', 'ramInfo', 'ssdInfo', 'servicesPerformed',
             'finalObservations', 'analysisPrediction'
           ].includes(field)
         ) {
@@ -211,7 +255,7 @@ export class ServiceOrderService {
         }
       }
     }
-    
+
     if (Object.keys(updateData).length === 0) {
       throw new Error('Nenhum campo para atualizar');
     }
@@ -224,21 +268,57 @@ export class ServiceOrderService {
       }
     }
 
-    // Update condicional atômico: o WHERE inclui a versão que o cliente
-    // conhecia. Se outro usuário salvou nesse meio-tempo, count === 0 e
-    // nada é sobrescrito (lock otimista sem janela de corrida).
+    // Update condicional atômico + baixa de estoque na MESMA transação.
+    // Se houver transição para um status conclusivo, baixa as peças com
+    // guarda contra negativo; se faltar estoque, a transação aborta e o
+    // status da OS permanece inalterado.
     updateData.version = { increment: 1 };
 
-    const result = await prisma.serviceOrder.updateMany({
-      where: expectedVersion !== undefined ? { id, version: expectedVersion } : { id },
-      data: updateData as Prisma.ServiceOrderUncheckedUpdateInput,
-    });
+    const result = await prisma.$transaction(async (tx) => {
+      const previous = await tx.serviceOrder.findUnique({
+        where: { id },
+        select: { status: true, partsUsed: true },
+      });
 
-    if (result.count === 0) {
-      const exists = await prisma.serviceOrder.findUnique({ where: { id }, select: { id: true } });
-      if (!exists) throw new NotFoundError('Ordem de serviço não encontrada');
-      throw new ConflictError();
-    }
+      const updateManyResult = await tx.serviceOrder.updateMany({
+        where: expectedVersion !== undefined ? { id, version: expectedVersion } : { id },
+        data: updateData as Prisma.ServiceOrderUncheckedUpdateInput,
+      });
+
+      if (updateManyResult.count === 0) {
+        const exists = await tx.serviceOrder.findUnique({ where: { id }, select: { id: true } });
+        if (!exists) throw new NotFoundError('Ordem de serviço não encontrada');
+        throw new ConflictError();
+      }
+
+      const newStatus = String(updateData.status ?? previous?.status ?? '');
+      const oldStatus = previous?.status ?? '';
+
+      if (
+        updateData.status !== undefined &&
+        oldStatus !== newStatus &&
+        (await stockShouldDeduct(oldStatus, newStatus, tx))
+      ) {
+        const parts = aggregateParts(previous?.partsUsed ?? updateData.partsUsed ?? []);
+        for (const part of parts) {
+          const stock = await tx.inventoryItem.updateMany({
+            where: { id: part.id, quantity: { gte: part.quantity } },
+            data: {
+              quantity: { decrement: part.quantity },
+              stockLevel: { decrement: part.quantity },
+              version: { increment: 1 },
+            },
+          });
+          if (stock.count === 0) {
+            throw new BusinessError(
+              `Estoque insuficiente para a peça #${part.id} (solicitado ${part.quantity})`
+            );
+          }
+        }
+      }
+
+      return updateManyResult;
+    });
 
     const updated = await prisma.serviceOrder.findUniqueOrThrow({ where: { id } });
 

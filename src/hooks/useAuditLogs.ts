@@ -1,10 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { useToast } from '../components/ui/Toast';
+import { useAuthStore } from '../store/useAuthStore';
 
 export const useAuditLogs = () => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuthStore();
 
   const fetchAuditLogs = async () => {
     const res = await api.get('/audit-logs');
@@ -15,6 +17,7 @@ export const useAuditLogs = () => {
     return useQuery({
       queryKey: ['audit-logs'],
       queryFn: fetchAuditLogs,
+      enabled: isAuthenticated,
     });
   };
 

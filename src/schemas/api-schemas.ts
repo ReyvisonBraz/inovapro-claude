@@ -59,6 +59,17 @@ export const SettingsSchema = z.object({
   showWarnings: z.boolean().optional(),
   hiddenColumns: z.array(z.string()).optional(),
   initialBalance: z.coerce.number().optional(),
+  checklistTemplate: z.object({
+    entrada: z.array(z.object({
+      label: z.string(),
+      defaultValue: z.boolean().optional().default(false),
+    })).optional().default([]),
+    saida: z.array(z.object({
+      label: z.string(),
+      defaultValue: z.boolean().optional().default(false),
+    })).optional().default([]),
+  }).optional(),
+  deductStockStatuses: z.array(z.string()).optional(),
 }).passthrough();
 
 export const CategorySchema = z.object({

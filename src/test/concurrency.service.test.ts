@@ -19,6 +19,9 @@ const prismaMock = vi.hoisted(() => ({
   customer: {
     findUnique: vi.fn(),
   },
+  settings: {
+    findUnique: vi.fn(),
+  },
   clientPayment: {
     updateMany: vi.fn(),
     findUnique: vi.fn(),
@@ -51,6 +54,12 @@ import { ConflictError, NotFoundError, BusinessError } from '../lib/errors';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Por padrão, o $transaction invoca o callback com o próprio prismaMock
+  // (tx delega para os mesmos mocks), e as settings não têm status conclusivos
+  // customizados -> usa a lista default. Testes específicos podem sobrescrever
+  // a implementação do $transaction com o próprio tx (runInTx / delete).
+  prismaMock.settings.findUnique.mockResolvedValue(null);
+  prismaMock.$transaction.mockImplementation(async (fn: any) => fn(prismaMock as any));
 });
 
 describe('ServiceOrderService - datas do formulario', () => {

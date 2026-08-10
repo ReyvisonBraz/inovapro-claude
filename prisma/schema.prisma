@@ -59,6 +59,8 @@ model Settings {
   sendPulseClientSecret    String?
   sendPulseTemplateId      String?
   osPrintConfig            String?
+  checklistTemplate        Json?    @default("{\"entrada\":[],\"saida\":[]}")
+  deductStockStatuses      Json?    @default("[\"Concluído\",\"Entregue\",\"Pronto\"]")
   version                  Int     @default(0)
 }
 
@@ -207,6 +209,8 @@ model ServiceOrder {
   analysisPrediction String?
   customerPassword   String?
   accessories        String?
+  checklistIn        Json?
+  checklistOut       Json?
   ramInfo            String?
   ssdInfo            String?
   priority           String?  @default("medium")

@@ -35,6 +35,16 @@ export const serviceOrderSchema = z.object({
     unitPrice: z.coerce.number(),
     subtotal: z.coerce.number()
   })).optional(),
+  checklistIn: z.array(z.object({
+    label: z.string(),
+    value: z.string().nullable().optional(),
+    done: z.boolean().optional()
+  })).optional(),
+  checklistOut: z.array(z.object({
+    label: z.string(),
+    value: z.string().nullable().optional(),
+    done: z.boolean().optional()
+  })).optional(),
   createdBy: z.coerce.number().optional(),
   updatedBy: z.coerce.number().optional(),
   arrivalPhotoUrls: z.string().optional().nullable(),

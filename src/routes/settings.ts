@@ -13,10 +13,12 @@ router.get('/', asyncHandler(async (_req: Request, res: Response) => {
   if (settings) {
     const { settingsPassword, sendPulseClientSecret, ...safeSettings } = settings;
     const hiddenCols: string[] = Array.isArray(settings.hiddenColumns) ? settings.hiddenColumns as string[] : [];
+    const deductStatuses: string[] = Array.isArray(settings.deductStockStatuses) ? settings.deductStockStatuses as string[] : [];
     res.json({
       ...safeSettings,
       showWarnings: settings.showWarnings ? true : false,
       hiddenColumns: hiddenCols,
+      deductStockStatuses: deductStatuses,
     });
   } else {
     res.json(null);
@@ -40,6 +42,8 @@ router.post('/', validate(SettingsSchema), asyncHandler(async (req: Request, res
     shopWhatsapp: shopWhatsapp ?? undefined,
     sendPulseClientId, sendPulseTemplateId,
     osPrintConfig: req.body.osPrintConfig ?? undefined,
+    checklistTemplate: req.body.checklistTemplate ?? undefined,
+    deductStockStatuses: req.body.deductStockStatuses ?? undefined,
   };
 
   if (req.body.settingsPassword) updateData.settingsPassword = await hashPassword(req.body.settingsPassword);

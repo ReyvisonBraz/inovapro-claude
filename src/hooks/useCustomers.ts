@@ -4,17 +4,20 @@ import { Customer } from '../types';
 import { useToast } from '../components/ui/Toast';
 import { useDataStore } from '../store/useDataStore';
 import { useFilterStore } from '../store/useFilterStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { useCrudApi } from './useCrudApi';
 
 export const useCustomers = () => {
   const { customersPage, setCustomersPage } = useDataStore();
   const { customerSearchTerm, setCustomerSearchTerm } = useFilterStore();
   const { showToast } = useToast();
+  const { isAuthenticated } = useAuthStore();
 
   // Query para buscar clientes
   const { data: customersData, isLoading, isError, refetch } = useQuery({
     queryKey: ['customers', customersPage, customerSearchTerm],
     staleTime: 30_000,
+    enabled: isAuthenticated,
     queryFn: async () => {
       const { data } = await api.get(`/customers?page=${customersPage}&limit=20&search=${customerSearchTerm}`);
       return data;
@@ -24,6 +27,7 @@ export const useCustomers = () => {
   const { data: allCustomersData } = useQuery({
     queryKey: ['customers', 'all'],
     staleTime: 60_000,
+    enabled: isAuthenticated,
     queryFn: async () => {
       const { data } = await api.get('/customers?page=1&limit=9999');
       return data;

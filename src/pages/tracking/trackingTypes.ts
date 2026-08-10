@@ -1,3 +1,5 @@
+import type { ChecklistItem } from '../../types';
+
 export type TrackingData = {
   id: number;
   status: string;
@@ -10,6 +12,8 @@ export type TrackingData = {
   entryDate: string | null;
   analysisPrediction: string | null;
   arrivalPhotos: (string | { base64: string; timestamp: string })[];
+  checklistIn?: ChecklistItem[] | null;
+  checklistOut?: ChecklistItem[] | null;
   totalAmount: number | null;
   serviceFee: number | null;
   shopWhatsapp: string | null;

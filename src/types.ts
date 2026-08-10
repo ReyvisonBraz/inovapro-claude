@@ -144,6 +144,8 @@ export interface AppSettings {
   sendPulseClientSecret?: string;
   sendPulseTemplateId?: string;
   osPrintConfig?: string;
+  checklistTemplate?: ChecklistTemplate;
+  deductStockStatuses?: string[];
 }
 
 export interface OSSection {
@@ -213,6 +215,17 @@ export interface ServiceOrderItem {
   price: number;
 }
 
+export interface ChecklistItem {
+  label: string;
+  value?: string | null;
+  done?: boolean;
+}
+
+export interface ChecklistTemplate {
+  entrada: { label: string; defaultValue?: boolean }[];
+  saida: { label: string; defaultValue?: boolean }[];
+}
+
 export interface ServiceOrder {
   id: number;
   customerId: number;
@@ -240,6 +253,8 @@ export interface ServiceOrder {
   analysisPrediction?: string;
   customerPassword?: string;
   accessories?: string;
+  checklistIn?: ChecklistItem[];
+  checklistOut?: ChecklistItem[];
   ramInfo?: string;
   ssdInfo?: string;
   priority?: 'low' | 'medium' | 'high';

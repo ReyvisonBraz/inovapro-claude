@@ -29,6 +29,14 @@ const SAMPLE: PrintData = {
     reportedProblem: 'Tela quebrada e não liga após queda acidental. Cliente relata que o aparelho parou de funcionar completamente após a queda.',
     technicalAnalysis: 'Verificado dano no conector de carga e trinca na tela. Placa aparentemente íntegra após teste de bancada.',
     servicesPerformed: 'Substituição do display original (AMOLED) + troca do conector de carga USB-C + limpeza interna.',
+    checklistIn: [
+      { label: 'Tela sem avarias adicionais', done: true },
+      { label: 'Acessórios recebidos', value: 'Capinha e carregador', done: true },
+    ],
+    checklistOut: [
+      { label: 'Carregamento testado', done: true },
+      { label: 'Teste final do aparelho', value: 'Aprovado', done: true },
+    ],
     partsUsed: [
       { name: 'Display Samsung Galaxy S22 AMOLED', quantity: 1, unitPrice: 420, subtotal: 420 },
       { name: 'Conector de carga USB-C', quantity: 1, unitPrice: 35, subtotal: 35 },
