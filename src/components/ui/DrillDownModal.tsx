@@ -250,7 +250,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
                   ))}
                 </div>
               ) : currentEntry.level === 1 && sortedTransactions.length > 0 ? (
-                <div className="glass-card overflow-hidden">
+                <div className="glass-card overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-white/5 border-b border-white/5">
@@ -331,7 +331,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
               )}
 
               {currentEntry.level > 1 && sortedTransactions.length > 0 && (
-                <div className="glass-card overflow-hidden mt-6">
+                <div className="glass-card overflow-x-auto mt-6">
                   <div className="p-4 border-b border-white/5">
                     <h4 className="text-sm font-bold">Transações Detalhadas</h4>
                   </div>
