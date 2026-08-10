@@ -98,6 +98,47 @@ router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
     monthOSCount += row._count;
   }
 
+  const conclusive = ['Concluído', 'Cancelado', 'Entregue'];
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 7);
+  const cutoffStr = cutoff.toISOString().split('T')[0] ?? '';
+
+  const [osByPriorityData, repairTimeData, stuckOS, techData] = await Promise.all([
+    monthRange ? prisma.serviceOrder.groupBy({
+      by: ['priority'],
+      where: { entryDate: monthRange },
+      _count: true,
+    }).catch(() => [] as never) : Promise.resolve([]),
+    prisma.$queryRaw<Array<{ avg_days: number | null }>>`
+      SELECT AVG(EXTRACT(EPOCH FROM ("completedAt" - "entryDate")) / 86400.0)::float as avg_days
+      FROM "ServiceOrder"
+      WHERE "completedAt" IS NOT NULL
+        AND ${monthRange ? `"completedAt" >= ${monthStart}` : '1=1'}::date
+        AND ${monthRange ? `"completedAt" < ${monthEnd}` : '1=1'}::date
+    `.catch(() => [{ avg_days: null }] as never),
+    monthRange ? prisma.serviceOrder.count({
+      where: { entryDate: { lt: toPrismaDate(cutoffStr) }, NOT: { status: { in: conclusive } } },
+    }).catch(() => 0) : Promise.resolve(0),
+    prisma.$queryRaw<Array<{ userId: number; name: string; total: number; concluded: number }>>`
+      SELECT "createdBy" as "userId", COALESCE(u."name", 'Sem técnico') as name,
+        COUNT(*)::int as total,
+        COUNT(*) FILTER (WHERE "status" IN ('Concluído', 'Entregue'))::int as concluded
+      FROM "ServiceOrder" so
+      LEFT JOIN "User" u ON u."id" = so."createdBy"
+      WHERE so."createdBy" IS NOT NULL
+        AND ${monthRange ? `so."entryDate" >= ${monthStart}` : '1=1'}::date
+        AND ${monthRange ? `so."entryDate" < ${monthEnd}` : '1=1'}::date
+      GROUP BY "createdBy", u."name"
+      ORDER BY concluded DESC, total DESC
+      LIMIT 8
+    `.catch(() => [] as never),
+  ]);
+
+  const osByPriority: Record<string, number> = {};
+  for (const row of osByPriorityData as Array<{ priority: string | null; _count: number }>) {
+    osByPriority[row.priority || 'sem-prioridade'] = row._count;
+  }
+
   res.json({
     totalIncome: Number(totalIncome._sum.amount || 0),
     totalExpenses: Number(totalExpenses._sum.amount || 0),
@@ -115,6 +156,10 @@ router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
     monthOSCount,
     osStatusCount,
     topProducts: topProductsData,
+    osByPriority,
+    avgRepairDays: Number(repairTimeData[0]?.avg_days) || 0,
+    stuckOS,
+    techProductivity: techData as Array<{ userId: number; name: string; total: number; concluded: number }>,
   });
 }));
 

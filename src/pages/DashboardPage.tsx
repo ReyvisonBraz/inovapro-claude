@@ -30,6 +30,10 @@ export const DashboardPage: React.FC = () => {
         monthOSCount={stats.monthOSCount ?? 0}
         osStatusCount={stats.osStatusCount ?? {}}
         topProducts={stats.topProducts ?? []}
+        osByPriority={stats.osByPriority ?? {}}
+        avgRepairDays={stats.avgRepairDays ?? 0}
+        stuckOS={stats.stuckOS ?? 0}
+        techProductivity={stats.techProductivity ?? []}
       />
       <DrillDownModal
         isOpen={drillDownModal.isOpen}

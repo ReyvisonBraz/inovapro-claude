@@ -216,6 +216,7 @@ model ServiceOrder {
   ssdInfo            String?
   priority           String?  @default("medium")
   warrantyReturn     Boolean? @default(false)
+  completedAt        DateTime?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @default(now()) @updatedAt
   createdBy          Int?

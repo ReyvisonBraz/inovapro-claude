@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import {
   TrendingUp, TrendingDown, Wallet, Wrench, Package,
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Plus,
+  Activity, AlertTriangle, Clock3, Users,
 } from 'lucide-react';
 import { AreaChart, Area, CartesianGrid, XAxis, Tooltip, BarChart, Bar } from 'recharts';
 import { StatCard } from '../ui/StatCard';
@@ -24,6 +25,10 @@ interface DashboardProps {
   monthIncome: number; monthExpenses: number; monthNet: number;
   monthOSCount: number; osStatusCount: Record<string, number>;
   topProducts: { name: string; qty: number; revenue: number }[];
+  osByPriority: Record<string, number>;
+  avgRepairDays: number;
+  stuckOS: number;
+  techProductivity: { userId: number; name: string; total: number; concluded: number }[];
 }
 
 export const Dashboard = ({
@@ -34,6 +39,7 @@ export const Dashboard = ({
   monthIncome, monthExpenses, monthNet,
   monthOSCount, osStatusCount,
   topProducts,
+  osByPriority, avgRepairDays, stuckOS, techProductivity,
 }: DashboardProps) => {
   const { settings } = useSettingsStore();
   const { fontSize } = useAppStore();
@@ -57,6 +63,28 @@ export const Dashboard = ({
   const netColor = monthNet >= 0 ? 'text-emerald-400' : 'text-rose-400';
   const netBg = monthNet >= 0 ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20';
   const netIcon = monthNet >= 0 ? TrendingUp : TrendingDown;
+  const priorityLabels: Record<string, string> = {
+    low: 'Baixa',
+    medium: 'Média',
+    high: 'Alta',
+    'sem-prioridade': 'Sem prioridade',
+  };
+  const fallbackPriorityStyle = { dot: 'bg-slate-500', bar: 'bg-slate-500' };
+  const priorityStyles: Record<string, { dot: string; bar: string }> = {
+    low: { dot: 'bg-emerald-500', bar: 'bg-emerald-500' },
+    medium: { dot: 'bg-amber-500', bar: 'bg-amber-500' },
+    high: { dot: 'bg-rose-500', bar: 'bg-rose-500' },
+    'sem-prioridade': fallbackPriorityStyle,
+  };
+  const priorityEntries = Object.entries(osByPriority)
+    .sort(([a], [b]) => {
+      const order: Record<string, number> = { high: 0, medium: 1, low: 2, 'sem-prioridade': 3 };
+      return (order[a] ?? 4) - (order[b] ?? 4);
+    });
+  const priorityTotal = priorityEntries.reduce((total, [, count]) => total + count, 0);
+  const repairDaysLabel = Number.isInteger(avgRepairDays)
+    ? avgRepairDays.toFixed(0)
+    : avgRepairDays.toFixed(1);
 
   const initialCards = React.useMemo(() => [
     { id: 'income', content: <StatCard title="Renda Total" value={totalIncome} change="Acumulado" trend="up" icon={TrendingUp} /> },
@@ -250,6 +278,145 @@ export const Dashboard = ({
           </div>
         </motion.div>
       </div>
+
+      <motion.section
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-5"
+      >
+        <div className="flex items-center gap-3 px-1">
+          <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
+            <Activity size={20} />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white">Assistência</h3>
+            <p className="text-[11px] text-slate-500 font-medium">Indicadores de {formatMonthYear(dashboardMonth)}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {[
+            {
+              icon: Clock3,
+              label: 'Tempo Médio de Reparo',
+              value: `${repairDaysLabel} dias`,
+              iconClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+              valueClass: 'text-cyan-400',
+            },
+            {
+              icon: AlertTriangle,
+              label: 'OS Paradas (+7d)',
+              value: stuckOS,
+              iconClass: stuckOS > 0 ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+              valueClass: stuckOS > 0 ? 'text-rose-400' : 'text-slate-300',
+            },
+            {
+              icon: Wrench,
+              label: 'Total no Mês',
+              value: monthOSCount,
+              iconClass: 'bg-primary/10 text-primary border-primary/20',
+              valueClass: 'text-white',
+            },
+            {
+              icon: Activity,
+              label: 'Ativas',
+              value: activeOS,
+              iconClass: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
+              valueClass: 'text-violet-400',
+            },
+          ].map(({ icon: Icon, label, value, iconClass, valueClass }) => (
+            <div key={label} className="glass-card p-4 sm:p-5 min-w-0">
+              <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center mb-3', iconClass)}>
+                <Icon size={17} />
+              </div>
+              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-500 leading-relaxed">{label}</p>
+              <p className={cn('text-xl sm:text-2xl font-black font-display mt-1 truncate', valueClass)}>{value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="glass-card p-5 md:p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">OS por Prioridade</h3>
+                <p className="text-[11px] text-slate-500 font-medium">Distribuição no período</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {priorityEntries.length === 0 ? (
+                <p className="text-center text-slate-500 text-sm italic py-8">Nenhuma OS no período.</p>
+              ) : (
+                priorityEntries.map(([priority, count]) => {
+                  const style = priorityStyles[priority] ?? fallbackPriorityStyle;
+                  const percentage = priorityTotal > 0 ? Math.min(100, (count / priorityTotal) * 100) : 0;
+                  return (
+                    <div key={priority} className="px-3 py-2.5 rounded-xl bg-white/[0.02]">
+                      <div className="flex items-center gap-3">
+                        <div className={cn('w-2.5 h-2.5 rounded-full shrink-0', style.dot)} />
+                        <span className="text-sm font-medium text-slate-300 flex-1">{priorityLabels[priority] ?? priority}</span>
+                        <span className="text-sm font-black text-white">{count}</span>
+                      </div>
+                      <div className="h-1.5 bg-white/[0.04] rounded-full mt-2 overflow-hidden">
+                        <div className={cn('h-full rounded-full', style.bar)} style={{ width: `${percentage}%` }} />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          <div className="glass-card p-5 md:p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                <Users size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Produção por Técnico</h3>
+                <p className="text-[11px] text-slate-500 font-medium">Atendimentos no período</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {techProductivity.length === 0 ? (
+                <p className="text-center text-slate-500 text-sm italic py-8">Nenhuma OS atribuída no período.</p>
+              ) : (
+                techProductivity.map((tech) => {
+                  const percentage = tech.total > 0 ? Math.min(100, (tech.concluded / tech.total) * 100) : 0;
+                  const isComplete = tech.total > 0 && tech.concluded === tech.total;
+                  return (
+                    <div key={tech.userId} className="px-3 py-3 rounded-xl bg-white/[0.02]">
+                      <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xs font-black shrink-0">
+                          {tech.name.trim().charAt(0).toUpperCase() || '?'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-slate-200 truncate flex-1">{tech.name}</span>
+                            {isComplete && (
+                              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">Completo</span>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between gap-3 mt-1">
+                            <span className="text-[10px] font-bold text-slate-500">{tech.total} OS</span>
+                            <span className="text-[10px] font-bold text-emerald-400">{tech.concluded} concluída{tech.concluded === 1 ? '' : 's'}</span>
+                          </div>
+                          <div className="h-1.5 bg-white/[0.04] rounded-full mt-2 overflow-hidden">
+                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${percentage}%` }} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.section>
 
       {/* ═══ MOSTRAR MAIS (tudo abaixo fica oculto) ═══ */}
       <motion.button

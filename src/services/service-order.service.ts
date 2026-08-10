@@ -326,6 +326,17 @@ export class ServiceOrderService {
         select: { status: true, partsUsed: true, services: true },
       });
 
+      const newStatus = String(updateData.status ?? previous?.status ?? '');
+      const oldStatus = previous?.status ?? '';
+      const didConclude =
+        updateData.status !== undefined &&
+        oldStatus !== newStatus &&
+        (await stockShouldDeduct(oldStatus, newStatus, tx));
+
+      if (didConclude && updateData.completedAt === undefined) {
+        updateData.completedAt = new Date();
+      }
+
       const updateManyResult = await tx.serviceOrder.updateMany({
         where: expectedVersion !== undefined ? { id, version: expectedVersion } : { id },
         data: updateData as Prisma.ServiceOrderUncheckedUpdateInput,
@@ -336,13 +347,6 @@ export class ServiceOrderService {
         if (!exists) throw new NotFoundError('Ordem de serviço não encontrada');
         throw new ConflictError();
       }
-
-      const newStatus = String(updateData.status ?? previous?.status ?? '');
-      const oldStatus = previous?.status ?? '';
-      const didConclude =
-        updateData.status !== undefined &&
-        oldStatus !== newStatus &&
-        (await stockShouldDeduct(oldStatus, newStatus, tx));
 
       if (didConclude) {
         const parts = aggregateParts(previous?.partsUsed ?? updateData.partsUsed ?? []);
