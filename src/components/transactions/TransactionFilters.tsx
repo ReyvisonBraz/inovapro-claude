@@ -150,25 +150,27 @@ export const TransactionFilters = ({
           >
             <div className="inline-flex items-center gap-4 p-2 bg-primary/5 border border-primary/10 rounded-[2rem] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)]">
               {dateFilterMode === 'day' && (
-                <div className="flex items-center gap-4 px-6 py-3">
-                  <div className="p-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
-                    <Calendar size={20} />
+                <div className="flex flex-col gap-4 p-3 sm:p-6 w-[calc(100vw-2rem)] max-w-[320px]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
+                        <Calendar size={18} />
+                      </div>
+                      <span className="text-sm font-black uppercase tracking-widest text-primary">Data Selecionada</span>
+                    </div>
+                    <button
+                      onClick={() => onSelectedDateChange(format(new Date(), 'yyyy-MM-dd'))}
+                      className="px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-xs font-black uppercase tracking-widest text-primary transition-all border border-primary/10"
+                    >
+                      Hoje
+                    </button>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-black uppercase tracking-widest text-primary/60">Data Selecionada</span>
-                    <input 
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => onSelectedDateChange(e.target.value)}
-                      className="bg-transparent border-none outline-none text-lg font-black text-slate-100 cursor-pointer [color-scheme:dark] focus:ring-0"
-                    />
-                  </div>
-                  <button 
-                    onClick={() => onSelectedDateChange(format(new Date(), 'yyyy-MM-dd'))}
-                    className="ml-4 px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-xs font-black uppercase tracking-widest text-primary transition-all border border-primary/10"
-                  >
-                    Hoje
-                  </button>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => onSelectedDateChange(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-base font-black text-slate-100 cursor-pointer [color-scheme:dark] focus:ring-1 focus:ring-primary outline-none transition-all"
+                  />
                 </div>
               )}
 
@@ -228,38 +230,34 @@ export const TransactionFilters = ({
               )}
 
               {dateFilterMode === 'range' && (
-                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 px-6 py-4">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
-                      <Calendar size={20} />
+                <div className="flex flex-col gap-4 p-3 sm:p-6 w-[calc(100vw-2rem)] max-w-[420px]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
+                        <Calendar size={18} />
+                      </div>
+                      <span className="text-sm font-black uppercase tracking-widest text-primary">Período</span>
                     </div>
-                    <div className="flex flex-col">
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label className="flex flex-col gap-1.5 min-w-0">
                       <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Início</span>
                       <input
                         type="date"
                         value={startDate}
                         onChange={(e) => onStartDateChange(e.target.value)}
-                        className="bg-transparent border-none outline-none text-base font-black text-slate-100 cursor-pointer [color-scheme:dark] focus:ring-0 w-36"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-base font-black text-slate-100 cursor-pointer [color-scheme:dark] focus:ring-1 focus:ring-primary outline-none transition-all"
                       />
-                    </div>
-                  </div>
-
-                  <div className="hidden sm:block h-10 w-px bg-primary/20" />
-                  <div className="sm:hidden w-full h-px bg-primary/20" />
-
-                  <div className="flex items-center gap-4">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-primary/60 text-right">Fim</span>
-                      <input 
+                    </label>
+                    <label className="flex flex-col gap-1.5 min-w-0">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Fim</span>
+                      <input
                         type="date"
                         value={endDate}
                         onChange={(e) => onEndDateChange(e.target.value)}
-                        className="bg-transparent border-none outline-none text-base font-black text-slate-100 cursor-pointer [color-scheme:dark] focus:ring-0 w-36 text-right"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-base font-black text-slate-100 cursor-pointer [color-scheme:dark] focus:ring-1 focus:ring-primary outline-none transition-all"
                       />
-                    </div>
-                    <div className="p-3 rounded-xl bg-primary/10 text-primary border border-primary/10">
-                      <Calendar size={20} />
-                    </div>
+                    </label>
                   </div>
                 </div>
               )}
