@@ -10,6 +10,7 @@ interface ServiceOrderFormContextValue {
   editingOrder: ServiceOrder | null;
   setEditingOrder: (order: ServiceOrder | null) => void;
   customers: Customer[];
+  customersLoading: boolean;
   inventoryItems: InventoryItem[];
   statuses: ServiceOrderStatus[];
   equipmentTypes: { id: number; name: string }[];

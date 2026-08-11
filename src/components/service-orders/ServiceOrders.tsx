@@ -33,6 +33,7 @@ interface ServiceOrdersProps {
   orders: { data: ServiceOrder[], meta: any };
   customers: { data: Customer[], meta: any };
   allCustomers?: Customer[];
+  allCustomersLoading?: boolean;
   inventoryItems: InventoryItem[];
   statuses: ServiceOrderStatus[];
   equipmentTypes: EquipmentType[];
@@ -81,6 +82,7 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
   orders,
   customers,
   allCustomers,
+  allCustomersLoading,
   inventoryItems,
   statuses,
   equipmentTypes,
@@ -333,7 +335,8 @@ export const ServiceOrders: React.FC<ServiceOrdersProps> = ({
         setIsAdding,
         editingOrder,
         setEditingOrder,
-        customers: allCustomers ?? customers.data,
+        customers: allCustomers ?? [],
+        customersLoading: allCustomersLoading ?? false,
         inventoryItems,
         statuses,
         equipmentTypes,

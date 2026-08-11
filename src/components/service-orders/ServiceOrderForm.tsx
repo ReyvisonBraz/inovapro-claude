@@ -23,7 +23,7 @@ import { compressImage } from '../../lib/photoUtils';
 export const ServiceOrderForm: React.FC = () => {
   const {
     isAdding, setIsAdding, editingOrder, setEditingOrder,
-    customers, inventoryItems, statuses, equipmentTypes, brands, models,
+    customers, customersLoading, inventoryItems, statuses, equipmentTypes, brands, models,
     currentUser, onAddOrder, onUpdateOrder, onAddEquipmentType, onAddBrand, onAddModel,
     onTriggerAddCustomer, showToast, onOpenConfirm, setSelectedOrder,
     setShowWhatsAppModal, setShowQRCodeModal, onGeneratePayment,
@@ -248,7 +248,7 @@ export const ServiceOrderForm: React.FC = () => {
           </div>
 
           <div id="os-form-body" className="p-4 sm:p-6 md:p-8 space-y-6 md:space-y-8 overflow-y-auto flex-1 custom-scrollbar">
-            <CustomerSection isSimplified={isSimplified} setIsSimplified={setIsSimplified} customers={customers} onTriggerAddCustomer={onTriggerAddCustomer} />
+            <CustomerSection isSimplified={isSimplified} setIsSimplified={setIsSimplified} customers={customers} customersLoading={customersLoading} onTriggerAddCustomer={onTriggerAddCustomer} />
             <EquipmentSection skipEquipmentValidation={skipEquipmentValidation} setSkipEquipmentValidation={setSkipEquipmentValidation} isSimplified={isSimplified} equipmentTypes={equipmentTypes} brands={brands} models={models} onAddEquipmentType={onAddEquipmentType} onAddBrand={onAddBrand} onAddModel={onAddModel} setQuickAddModal={setQuickAddModal} showToast={showToast as (msg: string, type: string) => void} watchedArrivalPhotos={watchedArrivalPhotos} addPhoto={addPhoto} removePhoto={removePhoto} />
             <AnalysisSection isSimplified={isSimplified} statuses={statuses} />
             <ChecklistSection />

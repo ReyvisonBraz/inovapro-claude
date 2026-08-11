@@ -9,6 +9,7 @@ interface CustomerSectionProps {
   isSimplified: boolean;
   setIsSimplified: (val: boolean) => void;
   customers: Customer[];
+  customersLoading?: boolean;
   onTriggerAddCustomer: () => void;
 }
 
@@ -16,6 +17,7 @@ export const CustomerSection: React.FC<CustomerSectionProps> = ({
   isSimplified,
   setIsSimplified,
   customers,
+  customersLoading,
   onTriggerAddCustomer
 }) => {
   const { register, setValue, watch, formState: { errors } } = useFormContext<ServiceOrderFormData>();
@@ -49,6 +51,7 @@ export const CustomerSection: React.FC<CustomerSectionProps> = ({
           <div className="flex gap-2">
             <CustomerSearchSelect 
               customers={customers}
+              loading={customersLoading}
               selectedId={watchedCustomerId}
               onSelect={(id) => setValue('customerId', id)}
               className="flex-1"

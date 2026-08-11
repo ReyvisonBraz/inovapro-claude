@@ -10,6 +10,7 @@ interface CustomerSearchSelectProps {
   onSelect: (id: number) => void;
   placeholder?: string;
   className?: string;
+  loading?: boolean;
 }
 
 export function CustomerSearchSelect({ 
@@ -17,7 +18,8 @@ export function CustomerSearchSelect({
   selectedId, 
   onSelect, 
   placeholder = "Selecionar Cliente",
-  className
+  className,
+  loading = false
 }: CustomerSearchSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -155,6 +157,10 @@ export function CustomerSearchSelect({
                     )}
                   </div>
                 ))
+              ) : loading ? (
+                <div className="p-8 text-center">
+                  <p className="text-xs text-slate-500 font-medium">Carregando clientes...</p>
+                </div>
               ) : (
                 <div className="p-8 text-center">
                   <p className="text-xs text-slate-500 font-medium">Nenhum cliente encontrado.</p>

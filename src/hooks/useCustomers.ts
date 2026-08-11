@@ -33,6 +33,7 @@ export const useCustomers = () => {
       return data;
     },
   });
+  const allCustomersLoading = allCustomersData === undefined;
 
   const { saveMutation, deleteMutation } = useCrudApi({
     baseKey: 'customers',
@@ -51,6 +52,7 @@ export const useCustomers = () => {
   return {
     customers: customersData || { data: [], meta: { total: 0, page: 1, totalPages: 1, limit: 20 } },
     allCustomers: (allCustomersData?.data || []) as Customer[],
+    allCustomersLoading,
     customersPage,
     setCustomersPage,
     customerSearchTerm,
