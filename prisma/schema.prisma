@@ -82,6 +82,9 @@ model Customer {
   ClientPayments ClientPayment[]
   ServiceOrders  ServiceOrder[]
   Transactions   Transaction[]
+
+  @@index([phone])
+  @@index([firstName, lastName])
 }
 
 model ClientPayment {
@@ -230,6 +233,11 @@ model ServiceOrder {
   @@index([status])
   @@index([createdAt])
   @@index([status, createdAt])
+  @@index([entryDate])
+  @@index([createdBy, entryDate])
+  @@index([status, entryDate])
+  @@index([priority])
+  @@index([updatedAt])
 }
 
 model Warranty {
