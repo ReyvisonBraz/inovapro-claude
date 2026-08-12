@@ -51,7 +51,7 @@ export const Customers = ({
         </button>
       </div>
 
-      {isLoading ? (
+      {isLoading && customers.data.length === 0 ? (
         <LoadingState className="py-20" />
       ) : (
         <CustomerList 

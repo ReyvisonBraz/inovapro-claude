@@ -51,7 +51,20 @@ export function useCrudApi({
     mutationFn: async (id: number) => {
       await api.delete(`${endpoint}/${id}`);
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
+      queryClient.setQueriesData({ queryKey: [baseKey] }, current => {
+        if (current == null) return current;
+        if (Array.isArray(current)) return current.filter((record: any) => record.id !== id);
+        if (typeof current === 'object' && Array.isArray((current as any).data)) {
+          const { data, meta } = current as { data: any[]; meta?: any };
+          return {
+            ...current,
+            data: data.filter(record => record.id !== id),
+            meta: meta ? { ...meta, total: Math.max(0, Number(meta.total ?? data.length) - 1) } : meta,
+          };
+        }
+        return current;
+      });
       queryClient.invalidateQueries({ queryKey: [baseKey] });
       extraInvalidations?.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
       showToast(deleteSuccessMessage, 'success');

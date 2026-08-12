@@ -80,13 +80,6 @@ export const ServiceOrderForm: React.FC = () => {
 
   const { newServiceOrder, setNewServiceOrder } = useFormStore();
 
-  useEffect(() => {
-    if (!editingOrder && (newServiceOrder as any)?.customerId) {
-      setValue('customerId', (newServiceOrder as any).customerId);
-      setNewServiceOrder(null);
-    }
-  }, [editingOrder, newServiceOrder, setNewServiceOrder, setValue]);
-
   const [isSimplified, setIsSimplified] = useState(false);
   const [skipEquipmentValidation, setSkipEquipmentValidation] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -153,6 +146,15 @@ export const ServiceOrderForm: React.FC = () => {
       });
     }
   }, [editingOrder, reset]);
+
+  // Aplica o cliente vindo de "Cadastrar cliente" na tela de OS (deve rodar DEPOIS
+  // do reset do editingOrder acima, senão o customerId recém-setado era zerado).
+  useEffect(() => {
+    if (!editingOrder && (newServiceOrder as any)?.customerId) {
+      setValue('customerId', (newServiceOrder as any).customerId);
+      setNewServiceOrder(null);
+    }
+  }, [editingOrder, newServiceOrder, setNewServiceOrder, setValue]);
 
   useEffect(() => {
     if (isSimplified) clearErrors(['equipmentType', 'equipmentBrand', 'equipmentModel', 'reportedProblem']);

@@ -72,7 +72,9 @@ export function CustomerSearchSelect({
           )}>
             {selectedCustomer 
               ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}${selectedCustomer.nickname ? ` (${selectedCustomer.nickname})` : ''}`
-              : placeholder
+              : selectedId !== 0
+                ? 'Cliente selecionado'
+                : placeholder
             }
           </span>
         </div>

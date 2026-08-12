@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import api from '../lib/api';
 import { Customer } from '../types';
 import { useToast } from '../components/ui/Toast';
@@ -17,6 +17,7 @@ export const useCustomers = () => {
   const { data: customersData, isLoading, isError, refetch } = useQuery({
     queryKey: ['customers', customersPage, customerSearchTerm],
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
     enabled: isAuthenticated,
     queryFn: async () => {
       const { data } = await api.get(`/customers?page=${customersPage}&limit=20&search=${customerSearchTerm}`);
