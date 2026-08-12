@@ -6,6 +6,7 @@ import App from './App.tsx';
 import './index.css';
 import { ToastProvider } from './components/ui/Toast.tsx';
 import { ErrorBoundary } from './components/ui/ErrorBoundary.tsx';
+import { PwaUpdatePrompt } from './components/ui/PwaUpdatePrompt.tsx';
 import './lib/logger.ts'; // Initialize logger
 
 const queryClient = new QueryClient({
@@ -28,6 +29,7 @@ createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
+          <PwaUpdatePrompt />
           <BrowserRouter>
             <App />
           </BrowserRouter>

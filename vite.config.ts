@@ -10,7 +10,10 @@ export default defineConfig(() => {
       react(),
       tailwindcss(),
       VitePWA({
-        registerType: 'autoUpdate',
+        // A atualização é controlada pela interface da aplicação. Isso evita que
+        // uma aba continue executando um bundle antigo sem avisar o usuário.
+        registerType: 'prompt',
+        injectRegister: false,
         includeAssets: ['icons/*.svg'],
         manifest: {
           name: 'INOVA PRO',
@@ -28,17 +31,15 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
+          skipWaiting: true,
+          clientsClaim: true,
+          cleanupOutdatedCaches: true,
           globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
           runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/[a-z0-9-]+\.vercel\.app\/api\/.*/i,
-              handler: 'StaleWhileRevalidate',
-              options: {
-                cacheName: 'api-cache',
-                expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 },
-                backgroundSync: { name: 'api-sync' },
-              },
-            },
+            // Dados operacionais (OS, clientes, estoque e pagamentos) não devem
+            // ser armazenados pelo service worker. O React Query já mantém um
+            // cache curto em memória; um cache persistente aqui pode mostrar uma
+            // lista antiga após uma gravação ou entre versões do aplicativo.
             {
               urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
               handler: 'CacheFirst',
