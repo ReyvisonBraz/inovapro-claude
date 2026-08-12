@@ -10,6 +10,7 @@ const JWT_ACCESS_EXPIRES_IN = '15m';
 const JWT_REFRESH_EXPIRES_IN = '7d';
 
 export interface AuthRequest extends Request {
+  requestId?: string;
   user?: {
     userId: number;
     username: string;

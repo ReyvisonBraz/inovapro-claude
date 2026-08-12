@@ -5,6 +5,7 @@ import { useUsers } from '../hooks/useUsers';
 import { useAuditLogs } from '../hooks/useAuditLogs';
 import { useServiceOrders } from '../hooks/useServiceOrders';
 import { useToast } from '../components/ui/Toast';
+import { useSystemErrors } from '../hooks/useSystemErrors';
 
 export const SettingsPage: React.FC = () => {
   const { showToast } = useToast();
@@ -27,6 +28,7 @@ export const SettingsPage: React.FC = () => {
 
   const usersQuery = useUsersQuery();
   const auditLogsQuery = useAuditLogsQuery();
+  const { errors: systemErrors, resolveError } = useSystemErrors();
 
   if (!settings) {
     return <div className="p-10 text-center text-slate-400 font-medium">Carregando configurações…</div>;
@@ -44,6 +46,8 @@ export const SettingsPage: React.FC = () => {
       onUpdateUser={(id, user) => updateUserMutation.mutate({ id, user })}
       onDeleteUser={(id) => deleteUserMutation.mutate(id)}
       auditLogs={auditLogsQuery.data || []}
+      systemErrors={systemErrors}
+      onResolveSystemError={resolveError}
       brands={brands || []}
       models={models || []}
       equipmentTypes={equipmentTypes || []}

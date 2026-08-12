@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../lib/errors.js';
+import { sanitizeDiagnosticDetails } from './audit.js';
 
 export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 
@@ -100,19 +101,41 @@ export function clearLogs(): void {
   logs.length = 0;
 }
 
+export async function persistFatalError(message: string, err: unknown): Promise<void> {
+  try {
+    const { prisma } = await import('./prisma.js');
+    await prisma.systemError.create({
+      data: {
+        source: 'server',
+        severity: 'critical',
+        operation: 'process.fatal',
+        message,
+        stack: err instanceof Error ? err.stack?.slice(0, 20_000) : undefined,
+        details: sanitizeDiagnosticDetails({ reason: err instanceof Error ? err.message : String(err) }),
+      },
+    });
+  } catch (persistenceError) {
+    console.error('[OBSERVABILITY] Falha ao persistir erro fatal', persistenceError);
+  }
+}
+
 export function requestLogger(req: Request, _res: Response, next: NextFunction): void {
   const requestId = randomUUID().slice(0, 8);
-  (req as any).requestId = requestId;
-  info(`${req.method} ${req.path}`, {
+  (req as Request & { requestId?: string }).requestId = requestId;
+  const startedAt = Date.now();
+  _res.setHeader('X-Request-Id', requestId);
+  _res.on('finish', () => info(`${req.method} ${req.path}`, {
     requestId,
     route: req.path,
     method: req.method,
-  });
+    statusCode: _res.statusCode,
+    duration: Date.now() - startedAt,
+  }));
   next();
 }
 
-export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
-  const requestId = (req as any).requestId || randomUUID().slice(0, 8);
+export async function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): Promise<void> {
+  const requestId = (req as Request & { requestId?: string }).requestId || randomUUID().slice(0, 8);
   const userId = (req as any).user?.userId;
   const username = (req as any).user?.username;
 
@@ -132,6 +155,31 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
       params: req.params,
     },
   });
+
+  if (statusCode >= 500 || statusCode === 409) {
+    try {
+      const { prisma } = await import('./prisma.js');
+      await prisma.systemError.create({
+        data: {
+          source: 'server',
+          severity: statusCode >= 500 ? 'critical' : 'error',
+          operation: `${req.method.toLowerCase()} ${req.path}`,
+          message: err.message,
+          requestId,
+          route: req.originalUrl,
+          method: req.method,
+          userId,
+          username,
+          statusCode,
+          stack: err.stack?.slice(0, 20_000),
+          details: sanitizeDiagnosticDetails({ body: req.body, query: req.query, params: req.params }),
+        },
+      });
+    } catch (persistenceError) {
+      console.error('[OBSERVABILITY] Falha ao persistir erro', persistenceError);
+    }
+  }
+
   res.status(statusCode).json({
     error: process.env.NODE_ENV === 'production' && !isAppError
       ? 'Erro interno do servidor'
@@ -142,7 +190,7 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
 
 function sanitizeBody(body: Record<string, unknown>): Record<string, unknown> | undefined {
   if (!body || typeof body !== 'object') return undefined;
-  const sensitiveKeys = ['password', 'token', 'authorization', 'secret', 'key'];
+  const sensitiveKeys = ['password', 'senha', 'token', 'authorization', 'secret', 'key', 'base64', 'photo', 'cpf'];
   const sanitized: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(body)) {
     sanitized[key] = sensitiveKeys.some(sk => key.toLowerCase().includes(sk))

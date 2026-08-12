@@ -1,4 +1,5 @@
 import axios, { InternalAxiosRequestConfig } from 'axios';
+import { createErrorId, reportClientError } from './error-reporting';
 
 const api = axios.create({
   baseURL: (import.meta.env.VITE_API_URL?.replace(/\/$/, '') || '') + '/api',
@@ -64,6 +65,31 @@ api.interceptors.response.use(
 
     if (error.response?.status !== 401) {
       console.error('API Error:', error.response?.data || error.message);
+      const requestId = error.response?.data?.requestId || error.response?.headers?.['x-request-id'];
+      const apiCode = error.response?.data?.error;
+      const shouldReport = !error.response || error.response.status >= 500 || (error.response.status === 409 && apiCode !== 'duplicate_phone');
+      if (shouldReport) {
+        const supportId = createErrorId();
+        error.supportCode = supportId;
+        if (!error.response) error.message = `${error.message || 'Falha de rede'} (Código: ${supportId})`;
+        if (error.response?.data && typeof error.response.data === 'object') {
+          error.response.data.supportCode = supportId;
+          const apiMessage = error.response.data.error;
+          if (typeof apiMessage === 'string' && !/^[a-z0-9_]+$/.test(apiMessage)) {
+            error.response.data.error = `${apiMessage} (Código: ${supportId})`;
+          }
+        }
+        void reportClientError({
+          severity: error.response?.status >= 500 || !error.response ? 'critical' : 'warning',
+          operation: `${String(original?.method || 'request').toUpperCase()} ${original?.url || 'unknown'}`,
+          message: error.response?.data?.error || error.message || 'Falha de comunicação com a API',
+          route: original?.url,
+          method: original?.method?.toUpperCase(),
+          statusCode: error.response?.status,
+          requestId,
+          details: { networkError: !error.response },
+        }, supportId);
+      }
     }
     return Promise.reject(error);
   }

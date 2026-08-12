@@ -5,6 +5,8 @@ import { SettingsSchema } from '../schemas/index.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { hashPassword, verifyPassword } from '../lib/password.js';
 import { encrypt } from '../lib/crypto-util.js';
+import { AuthRequest } from '../middleware/auth.js';
+import { writeAudit } from '../lib/audit.js';
 
 const router = Router();
 
@@ -25,7 +27,7 @@ router.get('/', asyncHandler(async (_req: Request, res: Response) => {
   }
 }));
 
-router.post('/', validate(SettingsSchema), asyncHandler(async (req: Request, res: Response) => {
+router.post('/', validate(SettingsSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   const {
     appName, appVersion, fiscalYear, primaryColor, categories,
     incomeCategories, expenseCategories, profileName, profileAvatar, initialBalance,
@@ -56,6 +58,7 @@ router.post('/', validate(SettingsSchema), asyncHandler(async (req: Request, res
     where: { id: 1 },
     data: updateData,
   });
+  await writeAudit(req, 'settings-update', 'settings', 1, { fields: Object.keys(req.body) });
   res.json({ success: true });
 }));
 

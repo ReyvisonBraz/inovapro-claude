@@ -167,6 +167,29 @@ model AuditLog {
   @@index([entity, entityId])
 }
 
+model SystemError {
+  id         String   @id @default(uuid())
+  timestamp  DateTime @default(now())
+  source     String
+  severity   String   @default("error")
+  operation  String?
+  message    String
+  requestId  String?
+  route      String?
+  method     String?
+  userId     Int?
+  username   String?
+  statusCode Int?
+  stack      String?
+  details    Json?
+  resolved   Boolean  @default(false)
+
+  @@index([timestamp])
+  @@index([severity, resolved])
+  @@index([requestId])
+  @@index([operation])
+}
+
 model InventoryItem {
   id          Int      @id @default(autoincrement())
   name        String

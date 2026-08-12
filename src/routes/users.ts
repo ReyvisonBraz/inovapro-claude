@@ -8,6 +8,7 @@ import { AuthRequest } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { BusinessError } from '../lib/errors.js';
 import { isPrismaUniqueConstraintError } from '../lib/prisma-error.js';
+import { writeAudit } from '../lib/audit.js';
 
 const router = Router();
 
@@ -30,6 +31,7 @@ router.post('/', validate(UserCreateSchema), asyncHandler(async (req: AuthReques
     const user = await prisma.user.create({
       data: { username, password: hashedPassword, role, name, permissions: permissions || [] },
     });
+    await writeAudit(req, 'create', 'user', user.id, { username, role });
     info('Usuário criado', { details: { username, role } });
     res.status(201).json({ id: user.id });
   } catch (err: unknown) {
@@ -52,6 +54,7 @@ router.put('/:id', validate(UserUpdateSchema), asyncHandler(async (req: AuthRequ
     updateData.tokenVersion = { increment: 1 };
   }
   await prisma.user.update({ where: { id: userId }, data: updateData as Record<string, unknown> });
+  await writeAudit(req, 'update', 'user', userId, { fields: Object.keys(req.body) });
   info('Usuário atualizado', { details: { id: userId, name } });
   res.json({ success: true });
 }));
@@ -59,6 +62,7 @@ router.put('/:id', validate(UserUpdateSchema), asyncHandler(async (req: AuthRequ
 router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = parseInt(req.params.id ?? '');
   if (isNaN(userId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+  await writeAudit(req, 'delete', 'user', userId);
   await prisma.auditLog.updateMany({ where: { userId }, data: { userId: null } });
   await prisma.user.delete({ where: { id: userId } });
   info('Usuário excluído', { details: { id: userId } });

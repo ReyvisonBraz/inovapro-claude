@@ -8,6 +8,7 @@ import { AuthRequest } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { BusinessError, NotFoundError } from '../lib/errors.js';
 import { isPrismaUniqueConstraintError } from '../lib/prisma-error.js';
+import { writeAudit } from '../lib/audit.js';
 
 function parseIdOrReject(params: Record<string, string | undefined>, name: string): number {
   const raw = params[name];
@@ -32,6 +33,7 @@ router.post('/service-order-statuses', validate(ServiceOrderStatusSchema), async
   const { name, color, priority, isDefault } = req.body;
   try {
     const status = await prisma.serviceOrderStatus.create({ data: { name, color, priority, isDefault } });
+    await writeAudit(req, 'create', 'service-order-status', status.id, { name });
     info('Status de OS criado', { details: { id: status.id, name } });
     res.status(201).json(status);
   } catch (err: unknown) {
@@ -47,11 +49,14 @@ router.put('/service-order-statuses/:id', asyncHandler(async (req: AuthRequest, 
     where: { id },
     data: { name, color, priority, isDefault },
   });
+  await writeAudit(req, 'update', 'service-order-status', id, { fields: Object.keys(req.body) });
   res.json({ success: true });
 }));
 
 router.delete('/service-order-statuses/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
-  await prisma.serviceOrderStatus.delete({ where: { id: parseIdOrReject(req.params, 'id') } });
+  const id = parseIdOrReject(req.params, 'id');
+  await prisma.serviceOrderStatus.delete({ where: { id } });
+  await writeAudit(req, 'delete', 'service-order-status', id);
   res.status(204).end();
 }));
 
@@ -66,6 +71,7 @@ router.post('/brands', validate(BrandSchema), asyncHandler(async (req: AuthReque
   const { name, equipmentType } = req.body;
   try {
     const brand = await prisma.brand.create({ data: { name, equipmentType } });
+    await writeAudit(req, 'create', 'brand', brand.id, { name, equipmentType });
     res.status(201).json({ ...brand, Models: [] });
   } catch (err: unknown) {
     if (isPrismaUniqueConstraintError(err)) throw new BusinessError(`Marca "${name}" já existe.`);
@@ -77,6 +83,7 @@ router.put('/brands/:id', asyncHandler(async (req: AuthRequest, res: Response) =
   const id = parseIdOrReject(req.params, 'id');
   const { name, equipmentType } = req.body;
   await prisma.brand.update({ where: { id }, data: { name, equipmentType } });
+  await writeAudit(req, 'update', 'brand', id, { name, equipmentType });
   res.json({ success: true });
 }));
 
@@ -92,6 +99,7 @@ router.delete('/brands/:id', asyncHandler(async (req: AuthRequest, res: Response
     );
   }
   await prisma.brand.delete({ where: { id } });
+  await writeAudit(req, 'delete', 'brand', id);
   res.status(204).end();
 }));
 
@@ -106,6 +114,7 @@ router.post('/models', validate(ModelSchema), asyncHandler(async (req: AuthReque
   const { brandId, name } = req.body;
   try {
     const model = await prisma.model.create({ data: { brandId, name } });
+    await writeAudit(req, 'create', 'model', model.id, { brandId, name });
     res.status(201).json(model);
   } catch (err: unknown) {
     if (isPrismaUniqueConstraintError(err)) throw new BusinessError(`Modelo "${name}" já existe nesta marca.`);
@@ -117,6 +126,7 @@ router.put('/models/:id', asyncHandler(async (req: AuthRequest, res: Response) =
   const id = parseIdOrReject(req.params, 'id');
   const { brandId, name } = req.body;
   await prisma.model.update({ where: { id }, data: { brandId, name } });
+  await writeAudit(req, 'update', 'model', id, { brandId, name });
   res.json({ success: true });
 }));
 
@@ -132,6 +142,7 @@ router.delete('/models/:id', asyncHandler(async (req: AuthRequest, res: Response
     );
   }
   await prisma.model.delete({ where: { id } });
+  await writeAudit(req, 'delete', 'model', id);
   res.status(204).end();
 }));
 
@@ -146,6 +157,7 @@ router.post('/equipment-types', validate(EquipmentTypeSchema), asyncHandler(asyn
   const { name, icon } = req.body;
   try {
     const type = await prisma.equipmentType.create({ data: { name, icon } });
+    await writeAudit(req, 'create', 'equipment-type', type.id, { name });
     res.status(201).json(type);
   } catch (err: unknown) {
     if (isPrismaUniqueConstraintError(err)) throw new BusinessError(`Tipo "${name}" já existe.`);
@@ -162,11 +174,14 @@ router.put('/equipment-types/:id', asyncHandler(async (req: AuthRequest, res: Re
     await prisma.serviceOrder.updateMany({ where: { equipmentType: oldType.name }, data: { equipmentType: name } });
     await prisma.brand.updateMany({ where: { equipmentType: oldType.name }, data: { equipmentType: name } });
   }
+  await writeAudit(req, 'update', 'equipment-type', id, { name });
   res.json({ success: true });
 }));
 
 router.delete('/equipment-types/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
-  await prisma.equipmentType.delete({ where: { id: parseIdOrReject(req.params, 'id') } });
+  const id = parseIdOrReject(req.params, 'id');
+  await prisma.equipmentType.delete({ where: { id } });
+  await writeAudit(req, 'delete', 'equipment-type', id);
   res.status(204).end();
 }));
 

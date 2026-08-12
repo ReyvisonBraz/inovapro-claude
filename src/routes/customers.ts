@@ -6,6 +6,7 @@ import { validate } from '../middleware/validate.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { parseQueryParam, parseQueryInt } from '../lib/query-params.js';
+import { writeAudit } from '../lib/audit.js';
 
 const router = Router();
 
@@ -37,6 +38,7 @@ router.post('/', validate(CustomerSchema), asyncHandler(async (req: AuthRequest,
   }
 
   const customer = await customerService.create(customerData);
+  await writeAudit(req, 'create', 'customer', customer.id);
   info('Cliente criado', { details: { id: customer.id, name: `${customer.firstName} ${customer.lastName}` } });
   res.status(201).json(customer);
 }));
@@ -48,6 +50,7 @@ router.put('/:id', validate(CustomerSchema.partial()), asyncHandler(async (req: 
   const expectedVersion = typeof req.body.version === 'number' ? req.body.version : undefined;
   const { version: _version, forceCreate: _forceCreate, ...rest } = req.body;
   const customer = await customerService.update(customerId, { ...rest, updatedBy: req.user.userId }, expectedVersion);
+  await writeAudit(req, 'update', 'customer', customerId, { fields: Object.keys(rest) });
 
   info('Cliente atualizado', { details: { id: customerId, name: `${req.body.firstName ?? ''} ${req.body.lastName ?? ''}` } });
   res.json({ ...customer, cascadeUpdated: true });
@@ -61,6 +64,7 @@ router.get('/:id/payments', asyncHandler(async (req: AuthRequest, res: Response)
 router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const customerId = parseInt(req.params.id ?? '');
   await customerService.delete(customerId);
+  await writeAudit(req, 'delete', 'customer', customerId);
 
   info('Cliente excluído com dados relacionados', { details: { id: customerId } });
   res.status(204).end();

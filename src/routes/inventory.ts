@@ -6,6 +6,7 @@ import { AuthRequest } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { InventoryItemSchema } from '../schemas/index.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import { writeAudit } from '../lib/audit.js';
 
 const router = Router();
 
@@ -32,6 +33,7 @@ router.post('/', validate(InventoryItemSchema), asyncHandler(async (req: AuthReq
       createdBy: req.user.userId,
     },
   });
+  await writeAudit(req, 'create', 'inventory-item', item.id, { category, quantity: pStockLevel });
   info('Item de inventário criado', { details: { id: item.id, name } });
   res.status(201).json(item);
 }));
@@ -55,6 +57,7 @@ router.put('/:id', validate(InventoryItemSchema), asyncHandler(async (req: AuthR
     unitPrice: pUnitPrice, stockLevel: pStockLevel,
     updatedBy: req.user.userId,
   }, expectedVersion);
+  await writeAudit(req, 'update', 'inventory-item', id, { fields: Object.keys(req.body) });
   res.json(item);
 }));
 
@@ -65,6 +68,7 @@ router.patch('/:id/stock', asyncHandler(async (req: AuthRequest, res: Response) 
   if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return; }
 
   const item = await inventoryService.adjustStock(id, delta, req.user.userId);
+  await writeAudit(req, 'stock-adjust', 'inventory-item', id, { delta, quantity: item.quantity });
 
   info('Estoque ajustado', { details: { id: item.id, delta, quantity: item.quantity } });
   res.json({ success: true, quantity: item.quantity, version: item.version });
@@ -74,6 +78,7 @@ router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const id = parseInt(req.params.id ?? '');
   if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return; }
   await prisma.inventoryItem.delete({ where: { id } });
+  await writeAudit(req, 'delete', 'inventory-item', id);
   info('Item de inventário excluído', { details: { id } });
   res.status(204).end();
 }));

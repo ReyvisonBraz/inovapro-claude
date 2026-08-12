@@ -7,6 +7,7 @@ import { AuthRequest } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { BusinessError, NotFoundError } from '../lib/errors.js';
 import { isPrismaUniqueConstraintError } from '../lib/prisma-error.js';
+import { writeAudit } from '../lib/audit.js';
 
 const router = Router();
 
@@ -19,6 +20,7 @@ router.post('/', requireRole('owner', 'manager'), validate(CategorySchema), asyn
   const { name, type } = req.body;
   try {
     const category = await prisma.category.create({ data: { name, type } });
+    await writeAudit(req, 'create', 'category', category.id, { name, type });
     res.status(201).json({ id: category.id });
   } catch (err: unknown) {
     if (isPrismaUniqueConstraintError(err)) throw new BusinessError(`Categoria "${name}" já existe.`);
@@ -41,6 +43,7 @@ router.delete('/:id', requireRole('owner', 'manager'), asyncHandler(async (req: 
   }
 
   await prisma.category.delete({ where: { id } });
+  await writeAudit(req, 'delete', 'category', id, { name: category.name });
   res.status(204).end();
 }));
 

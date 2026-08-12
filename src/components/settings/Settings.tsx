@@ -3,16 +3,17 @@ import { motion } from 'motion/react';
 import {
   Settings as SettingsIcon, User, Shield,
   Database, Palette, Plus, Trash2, Edit2, Key,
-  MessageSquare, Send, RefreshCw, Github, Laptop, FileText, ClipboardCheck, ShieldCheck
+  MessageSquare, Send, RefreshCw, Github, Laptop, FileText, ClipboardCheck, ShieldCheck, AlertTriangle
 } from 'lucide-react';
 import { OSTemplateEditor } from './OSTemplateEditor';
 import { ChecklistSettings } from './ChecklistSettings';
 import { WarrantySettings } from './WarrantySettings';
 import { cn } from '../../lib/utils';
-import { AppSettings, Category, User as UserType, Brand, Model, EquipmentType } from '../../types';
+import { AppSettings, Category, User as UserType, Brand, Model, EquipmentType, SystemError } from '../../types';
 import AuditLogs from '../audit/AuditLogs';
 import { EquipmentSettings } from './EquipmentSettings';
 import { useToast } from '../ui/Toast';
+import { SystemErrorsPanel } from './SystemErrorsPanel';
 
 import { AVAILABLE_PERMISSIONS } from '../../constants/permissions';
 
@@ -27,6 +28,8 @@ interface SettingsProps {
   onUpdateUser: (id: number, user: Partial<UserType>) => void;
   onDeleteUser: (id: number) => void;
   auditLogs: any[];
+  systemErrors: SystemError[];
+  onResolveSystemError: (id: string) => void;
   brands?: Brand[];
   models?: Model[];
   equipmentTypes?: EquipmentType[];
@@ -52,6 +55,8 @@ const Settings: React.FC<SettingsProps> = ({
   onUpdateUser,
   onDeleteUser,
   auditLogs,
+  systemErrors,
+  onResolveSystemError,
   brands = [],
   models = [],
   equipmentTypes = [],
@@ -93,6 +98,7 @@ const Settings: React.FC<SettingsProps> = ({
     { id: 'security', label: 'Segurança', icon: Shield },
     { id: 'updates', label: 'Atualizações', icon: RefreshCw },
     { id: 'audit', label: 'Auditoria', icon: Database },
+    { id: 'errors', label: 'Erros', icon: AlertTriangle },
   ];
 
   const handleUpdatePassword = () => {
@@ -541,6 +547,10 @@ const Settings: React.FC<SettingsProps> = ({
 
             {activeTab === 'audit' && (
               <AuditLogs auditLogs={auditLogs} />
+            )}
+
+            {activeTab === 'errors' && (
+              <SystemErrorsPanel errors={systemErrors} onResolve={onResolveSystemError} />
             )}
           </motion.div>
         </div>

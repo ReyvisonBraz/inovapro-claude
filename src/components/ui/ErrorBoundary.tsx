@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { reportClientError } from '../../lib/error-reporting';
 
 interface Props {
   children: ReactNode;
@@ -9,24 +10,32 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  errorId: string | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
-    error: null
+    error: null,
+    errorId: null,
   };
 
   public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, errorId: null };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
+    void reportClientError({
+      severity: 'critical',
+      operation: 'react.render',
+      message: error.message,
+      stack: `${error.stack || ''}\n${errorInfo.componentStack || ''}`,
+    }).then(errorId => this.setState({ errorId }));
   }
 
   private handleReset = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, errorId: null });
     window.location.href = '/';
   };
 
@@ -46,8 +55,13 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="space-y-2">
               <h1 className="text-2xl font-bold tracking-tight text-slate-100">Ops! Algo deu errado</h1>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Ocorreu um erro inesperado na aplicação. Nossa equipe técnica já foi notificada (simulação).
+                Ocorreu um erro inesperado. Você pode tentar novamente sem perder os dados já confirmados pelo servidor.
               </p>
+              {this.state.errorId && (
+                <p className="text-xs font-bold text-amber-400">
+                  Código para suporte: {this.state.errorId}
+                </p>
+              )}
             </div>
 
             {process.env.NODE_ENV === 'development' && this.state.error && (

@@ -14,6 +14,7 @@ import aiRoutes from './ai.js';
 import exportRoutes from './export.js';
 import auditLogRoutes from './audit-logs.js';
 import debugRoutes from './debug.js';
+import systemErrorsRoutes from './system-errors.js';
 import { requireRole, requirePermission } from '../middleware/roles.js';
 import { makeAiLimiter } from '../lib/rate-limit.js';
 
@@ -31,6 +32,7 @@ router.use('/users', requireRole('owner'), usersRoutes);
 router.use('/settings', requireRole('owner'), settingsRoutes);
 router.use('/audit-logs', requireRole('owner'), auditLogRoutes);
 router.use('/debug', requireRole('owner'), debugRoutes);
+router.use('/system-errors', systemErrorsRoutes);
 
 // Features — por permissão de role
 router.use('/transactions', requirePermission('manage_transactions'), transactionsRoutes);

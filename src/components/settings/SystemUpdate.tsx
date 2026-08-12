@@ -8,35 +8,26 @@ export const SystemUpdate: React.FC = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<{type: 'idle' | 'checking' | 'updating' | 'success' | 'error', message: string}>({
     type: 'idle',
-    message: 'Sistema atualizado. Nenhuma ação necessária no momento.'
+    message: 'Use a verificação para consultar a versão publicada.'
   });
   const { showToast } = useToast();
 
   const handleCheckUpdate = async () => {
-    setUpdateStatus({ type: 'checking', message: 'Verificando atualizações no GitHub...' });
+    setUpdateStatus({ type: 'checking', message: 'Consultando a versão publicada...' });
     setIsUpdating(true);
     
     try {
-      // Aqui você pode conectar com seu backend que fará o "git pull"
-      // Exemplo: await fetch('/api/system/update', { method: 'POST' });
-      
-      setTimeout(() => {
-        setUpdateStatus({ type: 'updating', message: 'Baixando nova versão e aplicando (git pull)...' });
-        
-        setTimeout(() => {
-          setUpdateStatus({ type: 'success', message: 'Sistema atualizado com sucesso! Recarregando...' });
-          showToast('Sistema atualizado com sucesso!', 'success');
-          
-          setTimeout(() => {
-            setIsUpdating(false);
-            window.location.reload();
-          }, 3000);
-        }, 2500);
-      }, 1500);
-    } catch (error) {
-      setUpdateStatus({ type: 'error', message: 'Erro ao tentar atualizar o sistema.' });
+      const registration = await navigator.serviceWorker?.getRegistration();
+      if (!registration) throw new Error('Atualização automática não está disponível neste navegador.');
+      await registration.update();
+      setUpdateStatus({ type: 'success', message: 'Verificação concluída. Se houver uma nova versão, o aviso para atualizar aparecerá na tela.' });
+      showToast('Verificação de atualização concluída.', 'success');
       setIsUpdating(false);
-      showToast('Erro ao atualizar', 'error');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao verificar a versão publicada.';
+      setUpdateStatus({ type: 'error', message });
+      setIsUpdating(false);
+      showToast('Não foi possível verificar atualizações.', 'error');
     }
   };
 
@@ -54,7 +45,7 @@ export const SystemUpdate: React.FC = () => {
           </div>
           <div>
             <h4 className="text-lg font-bold text-white tracking-tight">Atualização do Sistema</h4>
-            <p className="text-sm text-slate-400">Sincronize com o repositório do GitHub para obter as últimas melhorias.</p>
+            <p className="text-sm text-slate-400">Consulte o service worker para detectar uma versão já publicada.</p>
           </div>
         </div>
 
@@ -89,15 +80,10 @@ export const SystemUpdate: React.FC = () => {
               )}
             >
               <RefreshCw size={18} className={cn(isUpdating && "animate-spin")} />
-              {isUpdating ? 'Atualizando...' : 'Buscar Atualizações'}
+              {isUpdating ? 'Verificando...' : 'Verificar Atualizações'}
             </button>
           </div>
 
-          <div className="mt-6 p-4 rounded-xl bg-slate-900/50 border border-white/5">
-            <p className="text-xs text-slate-400 leading-relaxed">
-              <strong className="text-slate-300">Nota para desenvolvedores:</strong> Este botão simula a interface de atualização. Para que ele realmente execute um <code className="bg-black/30 px-1 py-0.5 rounded text-primary">git pull</code> e atualize o sistema, você precisará conectar a função <code className="bg-black/30 px-1 py-0.5 rounded text-primary">handleCheckUpdate</code> (no arquivo SystemUpdate.tsx) a um endpoint do seu servidor backend (ex: Node.js, PHP, Python) que tenha permissão para executar comandos no terminal do servidor.
-            </p>
-          </div>
         </div>
       </div>
 

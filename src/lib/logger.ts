@@ -1,4 +1,5 @@
 export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+import { reportClientError } from './error-reporting';
 
 export interface LogEntry {
   timestamp: string;
@@ -98,8 +99,22 @@ window.addEventListener('error', (event) => {
     colno: event.colno,
     error: event.error ? event.error.stack : null
   });
+  void reportClientError({
+    severity: 'critical',
+    operation: 'window.error',
+    message: event.message || 'Erro global não tratado',
+    stack: event.error?.stack,
+    details: { filename: event.filename, line: event.lineno, column: event.colno },
+  });
 });
 
 window.addEventListener('unhandledrejection', (event) => {
   logger.addLog('error', `Unhandled Promise Rejection: ${event.reason}`);
+  const reason = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
+  void reportClientError({
+    severity: 'critical',
+    operation: 'window.unhandledrejection',
+    message: reason.message,
+    stack: reason.stack,
+  });
 });

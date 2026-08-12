@@ -18,6 +18,24 @@ export interface AuditLog {
   timestamp: string;
 }
 
+export interface SystemError {
+  id: string;
+  timestamp: string;
+  source: 'client' | 'server';
+  severity: 'warning' | 'error' | 'critical';
+  operation?: string;
+  message: string;
+  requestId?: string;
+  route?: string;
+  method?: string;
+  userId?: number;
+  username?: string;
+  statusCode?: number;
+  stack?: string;
+  details?: unknown;
+  resolved: boolean;
+}
+
 export interface Transaction {
   id: number;
   description: string;

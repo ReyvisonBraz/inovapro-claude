@@ -20,7 +20,7 @@ import publicRoutes from './src/routes/public.js';
 import protectedRoutes from './src/routes/index.js';
 import meRoutes from './src/routes/me.js';
 import healthRoutes from './src/routes/health.js';
-import { requestLogger, errorHandler, error, info } from './src/lib/server-logger.js';
+import { requestLogger, errorHandler, error, info, persistFatalError } from './src/lib/server-logger.js';
 import { makeApiLimiter } from './src/lib/rate-limit.js';
 import { isOriginAllowed } from './src/lib/cors.js';
 
@@ -30,13 +30,15 @@ const __dirname = path.dirname(__filename);
 /*
  * Handlers de erros não capturados no nível do Node.js.
  */
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', async (err) => {
   error('[FATAL] Exceção não capturada', err);
+  await persistFatalError('Exceção não capturada no processo', err);
   if (!process.env.VERCEL) process.exit(1);
 });
 
-process.on('unhandledRejection', (reason) => {
+process.on('unhandledRejection', async (reason) => {
   error('[FATAL] Rejeição não tratada', reason);
+  await persistFatalError('Rejeição não tratada no processo', reason);
   if (!process.env.VERCEL) process.exit(1);
 });
 

@@ -6,6 +6,7 @@ import { validate } from '../middleware/validate.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { parseQueryParam, parseQueryInt, parseQueryFloat } from '../lib/query-params.js';
+import { writeAudit } from '../lib/audit.js';
 
 const router = Router();
 
@@ -30,6 +31,7 @@ router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
 router.post('/', validate(TransactionSchema), asyncHandler(async (req: AuthRequest, res: Response) => {
   if (!req.user) { res.status(401).json({ error: 'Não autenticado' }); return; }
   const transaction = await transactionService.create({ ...req.body, createdBy: req.user.userId });
+  await writeAudit(req, 'create', 'transaction', transaction.id, { type: transaction.type, amount: transaction.amount });
 
   info('Transação criada', { details: { id: transaction.id, description: transaction.description, type: transaction.type, amount: transaction.amount, date: transaction.date } });
   res.status(201).json({ id: transaction.id });
@@ -41,6 +43,7 @@ router.put('/:id', validate(TransactionSchema), asyncHandler(async (req: AuthReq
   if (isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return; }
   const expectedVersion = typeof req.body.version === 'number' ? req.body.version : undefined;
   await transactionService.update(id, { ...req.body, updatedBy: req.user.userId }, expectedVersion);
+  await writeAudit(req, 'update', 'transaction', id, { fields: Object.keys(req.body) });
 
   res.json({ success: true });
 }));
@@ -48,6 +51,7 @@ router.put('/:id', validate(TransactionSchema), asyncHandler(async (req: AuthReq
 router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const txId = parseInt(req.params.id ?? '');
   const tx = await transactionService.delete(txId);
+  await writeAudit(req, 'delete', 'transaction', txId, { linkedPaymentId: tx?.paymentId });
 
   if (tx?.paymentId) {
     info('Transação excluída — valor ajustado no pagamento vinculado', { details: { id: txId, paymentId: tx.paymentId } });
