@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User } from '../types';
 import api from '../lib/api';
+import { scheduleInvalidate } from '../lib/query-cache';
 import { useToast } from '../components/ui/Toast';
 import { useAuthStore } from '../store/useAuthStore';
 
@@ -28,7 +29,7 @@ export const useUsers = () => {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      scheduleInvalidate(queryClient, 'users');
       showToast('Usuário adicionado com sucesso!', 'success');
     },
     onError: (error: any) => {
@@ -43,7 +44,7 @@ export const useUsers = () => {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      scheduleInvalidate(queryClient, 'users');
       showToast('Usuário atualizado com sucesso!', 'success');
     },
     onError: (error: any) => {
@@ -57,7 +58,7 @@ export const useUsers = () => {
       await api.delete(`/users/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      scheduleInvalidate(queryClient, 'users');
       showToast('Usuário excluído com sucesso!', 'success');
     },
     onError: (error: any) => {

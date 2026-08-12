@@ -6,7 +6,7 @@ import { useDataStore } from '../store/useDataStore';
 import { useFilterStore } from '../store/useFilterStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCrudApi } from './useCrudApi';
-import { mergeSavedRecord, upsertCachedRecord } from '../lib/query-cache';
+import { mergeSavedRecord, upsertCachedRecord, scheduleInvalidate } from '../lib/query-cache';
 
 export function useClientPayments() {
   const { showToast } = useToast();
@@ -38,7 +38,7 @@ export function useClientPayments() {
         { queryKey: ['clientPayments'] },
         current => upsertCachedRecord(current, saved),
       );
-      queryClient.invalidateQueries({ queryKey: ['clientPayments'] });
+      scheduleInvalidate(queryClient, 'clientPayments');
       showToast('Pagamento salvo com sucesso!', 'success');
     },
     onError: (error: any) => {
@@ -69,7 +69,7 @@ export function useClientPayments() {
           status: data.newStatus,
         }),
       );
-      queryClient.invalidateQueries({ queryKey: ['clientPayments'] });
+      scheduleInvalidate(queryClient, 'clientPayments');
       showToast('Pagamento registrado com sucesso!', 'success');
     },
     onError: (error: any) => {

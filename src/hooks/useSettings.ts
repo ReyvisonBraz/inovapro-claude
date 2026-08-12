@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 import { AppSettings, Category } from '../types';
+import { scheduleInvalidate } from '../lib/query-cache';
 import { useSettingsStore } from '../store/useSettingsStore';
 
 export function useSettings(
@@ -38,7 +39,7 @@ export function useSettings(
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['settings'] });
+      scheduleInvalidate(queryClient, 'settings');
       setSettings(data);
       showToast('Configurações salvas com sucesso!', 'success');
     },

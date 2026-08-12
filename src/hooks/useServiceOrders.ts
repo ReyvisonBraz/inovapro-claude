@@ -4,7 +4,7 @@ import type { ServiceOrderFormData } from '../schemas/index.js';
 import { useDataStore } from '../store/useDataStore';
 import { useFilterStore } from '../store/useFilterStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { mergeSavedRecord, upsertCachedRecord } from '../lib/query-cache';
+import { mergeSavedRecord, upsertCachedRecord, scheduleInvalidate } from '../lib/query-cache';
 
 export const useServiceOrders = (showToast?: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void) => {
   const queryClient = useQueryClient();
@@ -107,7 +107,7 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
         { queryKey: ['service-orders'] },
         current => upsertCachedRecord(current, saved),
       );
-      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      scheduleInvalidate(queryClient, 'service-orders');
     },
     onError: (error: any) => {
       console.error('Failed to save service order', error);
@@ -128,7 +128,7 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
       await api.delete(`/service-orders/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      scheduleInvalidate(queryClient, 'service-orders');
       if (showToast) showToast('Ordem de serviço excluída com sucesso!', 'success');
     },
     onError: (error: any) => {
@@ -143,7 +143,7 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
     onSuccess: (data, status) => {
       const saved = mergeSavedRecord(status, data);
       queryClient.setQueryData(['service-order-statuses'], current => upsertCachedRecord(current, saved, false));
-      queryClient.invalidateQueries({ queryKey: ['service-order-statuses'] });
+      scheduleInvalidate(queryClient, 'service-order-statuses');
     },
     onError: (error: any) => {
       console.error('Failed to add status', error);
@@ -153,7 +153,7 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
 
   const deleteStatusMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/service-order-statuses/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['service-order-statuses'] }),
+    onSuccess: () => scheduleInvalidate(queryClient, 'service-order-statuses'),
     onError: (error: any) => {
       console.error('Failed to delete status', error);
       if (showToast) showToast('Erro ao excluir status.', 'error');
@@ -165,7 +165,7 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
     onSuccess: (data, type) => {
       const saved = mergeSavedRecord(type, data);
       queryClient.setQueryData(['equipment-types'], current => upsertCachedRecord(current, saved, false));
-      queryClient.invalidateQueries({ queryKey: ['equipment-types'] });
+      scheduleInvalidate(queryClient, 'equipment-types');
     },
     onError: (error: any) => {
       console.error('Failed to add equipment type', error);
@@ -175,7 +175,7 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
 
   const deleteEquipmentTypeMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/equipment-types/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment-types'] }),
+    onSuccess: () => scheduleInvalidate(queryClient, 'equipment-types'),
     onError: (error: any) => {
       console.error('Failed to delete equipment type', error);
       if (showToast) showToast('Erro ao excluir tipo de equipamento.', 'error');
@@ -187,7 +187,7 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
     onSuccess: (data, brand) => {
       const saved = mergeSavedRecord({ ...brand, Models: [] }, data);
       queryClient.setQueryData(['brands'], current => upsertCachedRecord(current, saved, false));
-      queryClient.invalidateQueries({ queryKey: ['brands'] });
+      scheduleInvalidate(queryClient, 'brands');
     },
     onError: (error: any) => {
       console.error('Failed to add brand', error);
@@ -197,7 +197,7 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
 
   const deleteBrandMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/brands/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['brands'] }),
+    onSuccess: () => scheduleInvalidate(queryClient, 'brands'),
     onError: (error: any) => {
       console.error('Failed to delete brand', error);
       if (showToast) showToast('Erro ao excluir marca.', 'error');
@@ -209,7 +209,7 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
     onSuccess: (data, model) => {
       const saved = mergeSavedRecord(model, data);
       queryClient.setQueryData(['models'], current => upsertCachedRecord(current, saved, false));
-      queryClient.invalidateQueries({ queryKey: ['models'] });
+      scheduleInvalidate(queryClient, 'models');
     },
     onError: (error: any) => {
       console.error('Failed to add model', error);
@@ -220,8 +220,8 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
   const updateModelMutation = useMutation({
     mutationFn: ({ id, model }: { id: number; model: { brandId: number; name: string } }) => api.put(`/models/${id}`, model),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['models'] });
-      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      scheduleInvalidate(queryClient, 'models');
+      scheduleInvalidate(queryClient, 'service-orders');
     },
     onError: (error: any) => {
       console.error('Failed to update model', error);
@@ -231,7 +231,7 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
 
   const deleteModelMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/models/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['models'] }),
+    onSuccess: () => scheduleInvalidate(queryClient, 'models'),
     onError: (error: any) => {
       console.error('Failed to delete model', error);
       if (showToast) showToast('Erro ao excluir modelo.', 'error');
@@ -241,9 +241,9 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
   const updateEquipmentTypeMutation = useMutation({
     mutationFn: ({ id, type }: { id: number; type: { name: string; icon?: string } }) => api.put(`/equipment-types/${id}`, type),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['equipment-types'] });
-      queryClient.invalidateQueries({ queryKey: ['brands'] });
-      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      scheduleInvalidate(queryClient, 'equipment-types');
+      scheduleInvalidate(queryClient, 'brands');
+      scheduleInvalidate(queryClient, 'service-orders');
     },
     onError: (error: any) => {
       console.error('Failed to update equipment type', error);
@@ -254,9 +254,9 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
   const updateBrandMutation = useMutation({
     mutationFn: ({ id, brand }: { id: number; brand: { name: string; equipmentType: string } }) => api.put(`/brands/${id}`, brand),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['brands'] });
-      queryClient.invalidateQueries({ queryKey: ['models'] });
-      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      scheduleInvalidate(queryClient, 'brands');
+      scheduleInvalidate(queryClient, 'models');
+      scheduleInvalidate(queryClient, 'service-orders');
     },
     onError: (error: any) => {
       console.error('Failed to update brand', error);

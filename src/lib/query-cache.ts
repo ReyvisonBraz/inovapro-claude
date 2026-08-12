@@ -64,3 +64,20 @@ export function upsertCachedRecord(
 
   return current;
 }
+
+/**
+ * Adia a invalidação de queries após uma escrita. Refetch imediato pode
+ * capturar um snapshot anterior à propagação do commit no pooler do Supabase
+ * (leitura-após-escrita) e sobrescrever o upsert otimista que acabamos de
+ * aplicar — o registro recém-criado/removido some até um F5. O upsert otimista
+ * já reflete o dado na hora; esta invalidação adiada apenas reconcilia
+ * ordenação/contagens em background depois que o banco alcança consistência.
+ */
+export function scheduleInvalidate(
+  queryClient: { invalidateQueries: (options: { queryKey: string[] }) => unknown },
+  key: string | string[],
+  delay = 8000,
+): void {
+  const queryKey = Array.isArray(key) ? key : [key];
+  setTimeout(() => queryClient.invalidateQueries({ queryKey }), delay);
+}
