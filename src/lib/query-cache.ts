@@ -65,6 +65,43 @@ export function upsertCachedRecord(
   return current;
 }
 
+/** Remove um registro da lista exibida imediatamente após uma exclusão confirmada. */
+export function removeCachedRecord(current: unknown, id: number): unknown {
+  if (current == null) return current;
+
+  if (Array.isArray(current)) {
+    return current.filter(record => record.id !== id);
+  }
+
+  if (typeof current !== 'object' || !Array.isArray((current as PaginatedCache).data)) {
+    return current;
+  }
+
+  const cache = current as PaginatedCache;
+  const removed = cache.data.find(record => record.id === id);
+  if (!removed) return current;
+
+  const nextMeta: Record<string, unknown> | undefined = cache.meta
+    ? { ...cache.meta, total: Math.max(0, Number(cache.meta.total ?? cache.data.length) - 1) }
+    : cache.meta;
+
+  const status = typeof removed.status === 'string' ? removed.status : undefined;
+  const statusCounts = nextMeta?.statusCounts;
+  if (status && statusCounts && typeof statusCounts === 'object' && !Array.isArray(statusCounts)) {
+    const counts = statusCounts as Record<string, unknown>;
+    nextMeta.statusCounts = {
+      ...counts,
+      [status]: Math.max(0, Number(counts[status] ?? 0) - 1),
+    };
+  }
+
+  return {
+    ...cache,
+    data: cache.data.filter(record => record.id !== id),
+    meta: nextMeta,
+  };
+}
+
 /**
  * Adia a invalidação de queries após uma escrita. Refetch imediato pode
  * capturar um snapshot anterior à propagação do commit no pooler do Supabase

@@ -4,7 +4,7 @@ import type { ServiceOrderFormData } from '../schemas/index.js';
 import { useDataStore } from '../store/useDataStore';
 import { useFilterStore } from '../store/useFilterStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { mergeSavedRecord, upsertCachedRecord, scheduleInvalidate } from '../lib/query-cache';
+import { mergeSavedRecord, removeCachedRecord, scheduleInvalidate, upsertCachedRecord } from '../lib/query-cache';
 
 export const useServiceOrders = (showToast?: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void) => {
   const queryClient = useQueryClient();
@@ -127,7 +127,13 @@ export const useServiceOrders = (showToast?: (message: string, type?: 'success' 
     mutationFn: async (id: number) => {
       await api.delete(`/service-orders/${id}`);
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
+      // A API já confirmou a exclusão; atualiza a tela na mesma interação, sem
+      // depender do refetch que reconcilia a lista em segundo plano.
+      queryClient.setQueriesData(
+        { queryKey: ['service-orders'] },
+        current => removeCachedRecord(current, id),
+      );
       scheduleInvalidate(queryClient, 'service-orders');
       if (showToast) showToast('Ordem de serviço excluída com sucesso!', 'success');
     },

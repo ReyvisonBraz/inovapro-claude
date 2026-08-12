@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeSavedRecord, upsertCachedRecord } from '../lib/query-cache';
+import { mergeSavedRecord, removeCachedRecord, upsertCachedRecord } from '../lib/query-cache';
 
 describe('cache de mutacoes', () => {
   it('combina o payload enviado com o id retornado pela API', () => {
@@ -39,5 +39,18 @@ describe('cache de mutacoes', () => {
       [{ id: 1, name: 'Antigo' }],
       { id: 1, name: 'Novo' },
     )).toEqual([{ id: 1, name: 'Novo' }]);
+  });
+
+  it('remove uma OS da lista e atualiza totais imediatamente', () => {
+    expect(removeCachedRecord(
+      {
+        data: [{ id: 9, status: 'Aguardando Análise' }, { id: 8, status: 'Concluído' }],
+        meta: { total: 2, statusCounts: { 'Aguardando Análise': 1, Concluído: 1 } },
+      },
+      9,
+    )).toEqual({
+      data: [{ id: 8, status: 'Concluído' }],
+      meta: { total: 1, statusCounts: { 'Aguardando Análise': 0, Concluído: 1 } },
+    });
   });
 });
