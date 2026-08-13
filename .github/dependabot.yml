@@ -1,0 +1,49 @@
+# Dependabot — atualizações automáticas e seguras de dependências.
+# npm: versões de runtime e tooling. github-actions: manter actions com patch mínimo.
+# O padrão do GitHub abre PRs no dia 1 de cada mês; o CI (lint/tsc/testes/build/audit/e2e)
+# é o gate de qualidade que valida antes de qualquer merge.
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: monthly
+      day: monday
+      time: "08:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 5
+    versioning-strategy: increase-if-necessary
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "deps"
+      include: scope
+    groups:
+      react-query:
+        patterns:
+          - "@tanstack/*"
+      prisma:
+        patterns:
+          - "prisma"
+          - "@prisma/*"
+      eslint-and-typescript:
+        patterns:
+          - "eslint"
+          - "typescript"
+          - "typescript-eslint"
+          - "@eslint/*"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+      day: monday
+      time: "08:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "ci"
+      include: scope

@@ -6,22 +6,38 @@ on:
   pull_request:
     branches: [main]
 
+# Mínimo de privilégio: apenas leitura do conteúdo do repo (a action do gitleaks
+# roda no checkout atual e publica como annotation). Nenhum deploy acontece aqui.
+permissions:
+  contents: read
+
+env:
+  DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+  JWT_SECRET: "ci-test-secret-32chars-minimum!!"
+  ENCRYPTION_KEY: "ci-encryption-key-32chars-minimum!!"
+
 jobs:
   verify:
     name: Lint + Typecheck + Tests
     runs-on: ubuntu-latest
 
-    env:
-      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
-      JWT_SECRET: "ci-test-secret-32chars-minimum!!"
-
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Histórico completo para o scan de segredos (gitleaks) varrer commits
+          # além do diff do PR — segredos podem ter sido commitados antes.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+
+      - name: Scan de segredos (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: "" # licença de uso aberto (sem key comercial)
 
       - name: Install dependencies
         run: npm ci
@@ -56,6 +72,78 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  security:
+    name: Security audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Gate: falha se houver vulnerabilidade HIGH ou CRITICAL nas dependências
+      # de produção. Moderate/low ficam em acompanhamento pelo Dependabot (que
+      # abre PR quando versões corrigidas existem), sem quebrar o pipeline.
+      - name: Auditoria de dependências (produção)
+        run: npx npm audit --omit=dev --audit-level=high
+
+  e2e:
+    name: E2E smoke
+    runs-on: ubuntu-latest
+    needs: verify
+
+    services:
+      postgres:
+        image: postgres:16-alpine
         env:
-          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
-          JWT_SECRET: "ci-test-secret-32chars-minimum!!"
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+      JWT_SECRET: "ci-test-secret-32chars-minimum!!"
+      ENCRYPTION_KEY: "ci-encryption-key-32chars-minimum!!"
+      # Base de teste descartável (criada só para o job). Se algum dia houver
+      # um secret E2E_PASS no repo, ele sobrepõe este default.
+      E2E_PASS: ${{ secrets.E2E_PASS || 'ci-e2e-password' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: Seed usuário de teste
+        run: npx tsx scripts/seed-admin.ts
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E smoke
+        run: npm run e2e

@@ -20,7 +20,7 @@ import publicRoutes from './src/routes/public.js';
 import protectedRoutes from './src/routes/index.js';
 import meRoutes from './src/routes/me.js';
 import healthRoutes from './src/routes/health.js';
-import { requestLogger, errorHandler, error, info, persistFatalError } from './src/lib/server-logger.js';
+import { requestLogger, errorHandler, error, warn, info, persistFatalError } from './src/lib/server-logger.js';
 import { makeApiLimiter } from './src/lib/rate-limit.js';
 import { isOriginAllowed } from './src/lib/cors.js';
 
@@ -103,6 +103,15 @@ app.use('/api', healthRoutes); // /api/ping (compatibilidade), sem env
  * ─── Rotas ───
  */
 const apiLimiter = makeApiLimiter();
+
+/*
+ * Aviso de configuração (causa + consequência), não de erro:
+ * sem REDIS_URL o rate-limit vira memória por instância serverless — cada
+ * instância tem seu contador, então brute-force/abuso de larga escala passa.
+ */
+if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
+  warn('[STARTUP] REDIS_URL ausente em produção — rate-limit de login/API opera em memória (não compartilhado entre instâncias serverless). Provisione o Redis e defina REDIS_URL (docs/REDIS-SETUP.md) para proteção real contra brute-force.');
+}
 
 app.use('/api', idempotencyMiddleware);
 app.use('/api', authRoutes);
