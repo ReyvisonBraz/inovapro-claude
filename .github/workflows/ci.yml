@@ -121,6 +121,9 @@ jobs:
       # Base de teste descartável (criada só para o job). Se algum dia houver
       # um secret E2E_PASS no repo, ele sobrepõe este default.
       E2E_PASS: ${{ secrets.E2E_PASS || 'ci-e2e-password' }}
+      # Seed e teste usam a MESMA senha: sem isto, o admin era criado com o
+      # fallback 'admin2021' e o login (ci-e2e-password) falhava no smoke.
+      SEED_ADMIN_PASSWORD: ${{ secrets.E2E_PASS || 'ci-e2e-password' }}
 
     steps:
       - uses: actions/checkout@v4
