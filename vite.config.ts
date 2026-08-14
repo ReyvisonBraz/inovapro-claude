@@ -78,6 +78,18 @@ export default defineConfig(() => {
       hmr: {
         overlay: false,
       },
+      /*
+       * Espelha produção (front e API no MESMO domínio, chamadas a `/api`):
+       * sem proxy, o Vite dev server responde 404 para `/api` quando
+       * VITE_API_URL está vazio — o que quebraria o E2E na CI. Em dev Docker,
+       * VITE_API_URL (absoluto, ex.: :3003) tem prioridade e o proxy é ignorado.
+       */
+      proxy: {
+        '/api': {
+          target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3001',
+          changeOrigin: true,
+        },
+      },
     },
   };
 });

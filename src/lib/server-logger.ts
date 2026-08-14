@@ -56,11 +56,36 @@ export function warn(message: string, meta?: Partial<ServerLogEntry>): void {
   console.warn(`[WARN] [${entry.requestId || '-'}] ${message}${meta?.details ? ' ' + JSON.stringify(meta.details) : ''}`);
 }
 
+/**
+ * Descreve um erro para registro persistido/visualização.
+ *
+ * Além de nome/mensagem, captura o `code` (ex.: P2002 do Prisma) e a cadeia de
+ * causas (`cause chain`) — útil quando um erro envolve outro (Prisma -> driver ->
+ * rede/banco). É isso que explica o "porquê" de uma falha, não só a mensagem final.
+ */
+function describeError(err: unknown, causeDepth = 3): Record<string, unknown> {
+  if (!(err instanceof Error)) return { raw: String(err) };
+
+  const description: Record<string, unknown> = { name: err.name, message: err.message };
+  const code = (err as Error & { code?: unknown }).code;
+  if (typeof code === 'string' && code) description.code = code;
+
+  const causes: Array<{ name: string; message: string }> = [];
+  let current: unknown = err;
+  for (let depth = 0; depth < causeDepth; depth++) {
+    const cause = (current as Error & { cause?: unknown }).cause;
+    if (!(cause instanceof Error)) break;
+    causes.push({ name: cause.name, message: cause.message });
+    current = cause;
+  }
+  if (causes.length > 0) description.cause = causes;
+
+  return description;
+}
+
 export function error(message: string, err?: unknown, meta?: Partial<ServerLogEntry>): void {
   const stack = err instanceof Error ? err.stack : undefined;
-  const details = err instanceof Error
-    ? { name: err.name, message: err.message }
-    : { raw: String(err) };
+  const details = describeError(err);
 
   const entry: ServerLogEntry = {
     id: randomUUID(),
@@ -172,7 +197,12 @@ export async function errorHandler(err: Error, req: Request, res: Response, _nex
           username,
           statusCode,
           stack: err.stack?.slice(0, 20_000),
-          details: sanitizeDiagnosticDetails({ body: req.body, query: req.query, params: req.params }),
+          details: sanitizeDiagnosticDetails({
+            description: describeError(err),
+            body: req.body,
+            query: req.query,
+            params: req.params,
+          }),
         },
       });
     } catch (persistenceError) {
