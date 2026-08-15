@@ -27,7 +27,20 @@ Recomendadas/opcionais:
 
 ## Migrations
 
-`npx prisma migrate deploy` deve rodar contra a `DATABASE_URL` de produção ao publicar mudanças de schema. Como funções serverless não têm um passo de "start", rode as migrations manualmente (localmente com a `DATABASE_URL` de prod) ou num passo de CI antes do deploy.
+Mudanças de schema nunca chegam "antes da coluna": o workflow **Apply migrations**
+(GitHub Actions, `workflow_dispatch`) aplica `prisma migrate deploy` contra a
+`DATABASE_URL` de produção usando o schema do commit atual da `main`:
+
+1. No PR, o check **Migrations drift (prod)** falha se houver migrations deste
+   commit ainda não aplicadas em produção (requer o secret
+   `PRODUCTION_DATABASE_URL` — mesma URL do `DATABASE_URL` da Vercel, via conexão
+   **direta porta 5432**, não o pooler).
+2. Para destravar, rodar **Actions → Apply migrations → Run workflow**.
+3. Depois do merge, o deploy da Vercel já encontra o schema pronto.
+
+> Alternativa manual (não recomendada): rodar localmente `npx prisma migrate deploy`
+> com a `DATABASE_URL` de produção. Sempre usar a conexão direta (5432) para
+> migrations/dumps.
 
 ## Cookies de sessão (JWT httpOnly)
 

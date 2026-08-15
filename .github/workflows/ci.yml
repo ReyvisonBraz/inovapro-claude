@@ -150,3 +150,46 @@ jobs:
 
       - name: E2E smoke
         run: npm run e2e
+
+  migrations:
+    name: Migrations drift (prod)
+    runs-on: ubuntu-latest
+    needs: verify
+    # Inerte até existir o secret. Ao configurá-lo, adicione este check à
+    # proteção da `main` (Settings → Branches → main → Require status checks).
+    if: ${{ secrets.PRODUCTION_DATABASE_URL != '' }}
+
+    env:
+      DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      # Leitura apenas (prisma migrate status nunca aplica nada). Falha se o
+      # schema deste commit tem migrations que ainda não subiram em produção —
+      # forçando o workflow "Apply migrations" antes do merge, de forma que o
+      # deploy nunca chega antes da coluna existir.
+      - name: Verificar drift de schema
+        run: |
+          set +e
+          OUTPUT=$(npx prisma migrate status 2>&1)
+          echo "$OUTPUT"
+          if echo "$OUTPUT" | grep -qE "not yet been applied|pending"; then
+            echo "::error::Há migrations pendentes em produção. Rode Actions → 'Apply migrations' (main) antes de mergear."
+            exit 1
+          fi
+          if echo "$OUTPUT" | grep -qiE "database not reachable|error: |Access denied|P1001|P1003"; then
+            echo "::warning::Produção indisponível na consulta — verifique o secret e a rede antes de publicar."
+            exit 1
+          fi
