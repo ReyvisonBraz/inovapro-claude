@@ -157,23 +157,33 @@ jobs:
     needs: verify
     # Inerte até existir o secret. Ao configurá-lo, adicione este check à
     # proteção da `main` (Settings → Branches → main → Require status checks).
-    if: ${{ secrets.PRODUCTION_DATABASE_URL != '' }}
-
     env:
       DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
 
     steps:
+      - name: Check inativo (sem secret)
+        if: ${{ env.DATABASE_URL == '' }}
+        run: echo "Secret PRODUCTION_DATABASE_URL não configurado — check inativo."
+
+      - name: Preparar base de verificação
+        if: ${{ env.DATABASE_URL != '' }}
+        run: echo "Rodando contra a base de produção."
+
       - uses: actions/checkout@v4
+        if: ${{ env.DATABASE_URL != '' }}
 
       - uses: actions/setup-node@v4
+        if: ${{ env.DATABASE_URL != '' }}
         with:
           node-version: 22
           cache: npm
 
       - name: Install dependencies
+        if: ${{ env.DATABASE_URL != '' }}
         run: npm ci
 
       - name: Generate Prisma client
+        if: ${{ env.DATABASE_URL != '' }}
         run: npx prisma generate
 
       # Leitura apenas (prisma migrate status nunca aplica nada). Falha se o
@@ -181,6 +191,7 @@ jobs:
       # forçando o workflow "Apply migrations" antes do merge, de forma que o
       # deploy nunca chega antes da coluna existir.
       - name: Verificar drift de schema
+        if: ${{ env.DATABASE_URL != '' }}
         run: |
           set +e
           OUTPUT=$(npx prisma migrate status 2>&1)
