@@ -46,8 +46,9 @@ A auditoria registra usuário, ação, entidade, identificador, horário, rota e
 
 - Se o próprio banco estiver indisponível, o erro não poderá ser salvo em
   `SystemError`; ele continuará disponível nos logs da plataforma/servidor.
-- Alertas externos ainda exigem configurar um provedor (por exemplo, Sentry) e
-  suas credenciais. Até isso ocorrer, o sistema não afirma que a equipe foi avisada.
+- Alertas externos **ainda não estão ativos** (ex.: Sentry). O monitor de uptime
+  em `/health` cobre indisponibilidade básica — ver `UPTIME.md`. Sem um provedor
+  de alerta configurado, o sistema não afirma que a equipe foi avisada.
 - Stacks do frontend apontam para o bundle de produção. Um provedor com source maps
   melhora a localização exata no código-fonte.
 
