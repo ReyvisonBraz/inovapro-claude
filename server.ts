@@ -2,30 +2,13 @@
  * ============================================================================
  * INOVA PRO — Servidor Principal (Express + Prisma + PostgreSQL)
  * ============================================================================
+ * Boot: handlers de processo, montagem do app (src/app.ts), teste de conexão e
+ * listen. A Vercel consome o default export (o app montado).
  */
 
-import express from 'express';
-import 'dotenv/config';
-import './src/lib/serialize.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import cors from 'cors';
-import helmet from 'helmet';
-import cookieParser from 'cookie-parser';
-import { requireAuth } from './src/middleware/auth.js';
-import { idempotencyMiddleware } from './src/middleware/idempotency.js';
+import { createApp } from './src/app.js';
 import { testConnection } from './src/lib/prisma.js';
-import authRoutes from './src/routes/auth.js';
-import publicRoutes from './src/routes/public.js';
-import protectedRoutes from './src/routes/index.js';
-import meRoutes from './src/routes/me.js';
-import healthRoutes from './src/routes/health.js';
-import { requestLogger, errorHandler, error, warn, info, persistFatalError } from './src/lib/server-logger.js';
-import { makeApiLimiter } from './src/lib/rate-limit.js';
-import { isOriginAllowed } from './src/lib/cors.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { error, info, persistFatalError } from './src/lib/server-logger.js';
 
 /*
  * Handlers de erros não capturados no nível do Node.js.
@@ -42,106 +25,12 @@ process.on('unhandledRejection', async (reason) => {
   if (!process.env.VERCEL) process.exit(1);
 });
 
-const app = express();
+const app = createApp();
 
-/*
- * ─── Middleware Global ───
- */
-
-// Helmet com CSP explícita (antes estava desligada).
-// Origem da API quando o front está em domínio separado (opcional).
-const apiOrigin = process.env.PUBLIC_API_ORIGIN;
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],       // estilos injetados (motion/inline)
-      imgSrc: ["'self'", 'data:', 'https:'],           // avatares/QR/base64/storage
-      connectSrc: ["'self'", ...(apiOrigin ? [apiOrigin] : [])],
-      fontSrc: ["'self'", 'data:'],
-      objectSrc: ["'none'"],
-      frameAncestors: ["'self'"],
-    },
-  },
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
-  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
-}));
-
-// CORS: decisão isolada e testável em src/lib/cors.ts.
-// Origem desconhecida é REJEITADA (antes o código liberava tudo em produção).
-app.use(cors({
-  origin: (origin, callback) => {
-    if (isOriginAllowed(origin, process.env.NODE_ENV)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Origem não permitida pelo CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-Idempotency-Key'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
-}));
-
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ limit: '5mb', extended: true }));
-app.use(cookieParser());
-
-// Logger de requisições
-app.use(requestLogger);
-
-/*
- * ─── Health Check (sem vazar ambiente) ───
- * /health e /ping minimalistas. Os antigos /api/ping (vazava DB_HOST/env) e
- * /api/db-test (vazava version() e stack) foram removidos.
- */
-app.use(healthRoutes);        // /health, /ping
-app.use('/api', healthRoutes); // /api/ping (compatibilidade), sem env
-
-/*
- * ─── Rotas ───
- */
-const apiLimiter = makeApiLimiter();
-
-/*
- * Aviso de configuração (causa + consequência), não de erro:
- * sem REDIS_URL o rate-limit vira memória por instância serverless — cada
- * instância tem seu contador, então brute-force/abuso de larga escala passa.
- */
-if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
-  warn('[STARTUP] REDIS_URL ausente em produção — rate-limit de login/API opera em memória (não compartilhado entre instâncias serverless). Provisione o Redis e defina REDIS_URL (docs/REDIS-SETUP.md) para proteção real contra brute-force.');
-}
-
-app.use('/api', idempotencyMiddleware);
-app.use('/api', authRoutes);
-app.use('/api', publicRoutes);
-app.use('/api', apiLimiter, requireAuth, meRoutes);
-app.use('/api', apiLimiter, requireAuth, protectedRoutes);
-
-/*
- * ─── Servir Frontend em Produção ───
- */
-if (process.env.NODE_ENV === 'production' || process.env.SERVE_STATIC === 'true') {
-  const distPath = path.join(__dirname, 'dist');
-  app.use(express.static(distPath));
-  app.get('*', (_req, res) => {
-    if (!_req.path.startsWith('/api')) {
-      res.sendFile(path.join(distPath, 'index.html'));
-    }
-  });
-}
-
-/*
- * ─── Handler de Erros Global ───
- */
-app.use(errorHandler);
+export default app;
 
 // Teste de conexão (não bloqueante)
 testConnection().catch(err => error('[STARTUP] Falha na conexão com banco de dados', err));
-
-// Exporta o app para a Vercel
-export default app;
 
 // Inicia o servidor apenas se não estiver em ambiente de função serverless (Vercel)
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
