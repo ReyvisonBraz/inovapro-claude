@@ -24,6 +24,8 @@ import healthRoutes from './routes/health.js';
 import { requestLogger, errorHandler, warn } from './lib/server-logger.js';
 import { makeApiLimiter } from './lib/rate-limit.js';
 import { isOriginAllowed } from './lib/cors.js';
+import { csrfProtection } from './middleware/csrf.js';
+import { AppError } from './lib/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -62,7 +64,7 @@ export function createApp(): Express {
       if (isOriginAllowed(origin, process.env.NODE_ENV)) {
         callback(null, true);
       } else {
-        callback(new Error('Origem não permitida pelo CORS'));
+        callback(new AppError('Origem não permitida pelo CORS', 403));
       }
     },
     credentials: true,
@@ -100,6 +102,7 @@ export function createApp(): Express {
     warn('[STARTUP] REDIS_URL ausente em produção — rate-limit de login/API opera em memória (não compartilhado entre instâncias serverless). Provisione o Redis e defina REDIS_URL (docs/REDIS-SETUP.md) para proteção real contra brute-force.');
   }
 
+  app.use('/api', csrfProtection);
   app.use('/api', idempotencyMiddleware);
   app.use('/api', authRoutes);
   app.use('/api', publicRoutes);
