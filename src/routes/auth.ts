@@ -7,16 +7,10 @@ import { makeLoginLimiter } from '../lib/rate-limit.js';
 import { error, info } from '../lib/server-logger.js';
 import { OWNER_PERMISSIONS } from '../constants/permissions.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import { getSessionCookieOptions, SESSION_COOKIES } from '../lib/session-security.js';
 
 const router = Router();
 
-const ACCESS_COOKIE = 'token';
-const REFRESH_COOKIE = 'refreshToken';
-const authCookieOptions = () => ({
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
-});
 const refreshMs = 7 * 24 * 60 * 60 * 1000;
 const accessMs = 15 * 60 * 1000;
 
@@ -41,8 +35,8 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
     const { password: _, ...userWithoutPassword } = user;
-    res.cookie(ACCESS_COOKIE, accessToken, { ...authCookieOptions(), maxAge: accessMs });
-    res.cookie(REFRESH_COOKIE, refreshToken, { ...authCookieOptions(), maxAge: refreshMs });
+    res.cookie(SESSION_COOKIES.access, accessToken, { ...getSessionCookieOptions(), maxAge: accessMs });
+    res.cookie(SESSION_COOKIES.refresh, refreshToken, { ...getSessionCookieOptions(), maxAge: refreshMs });
     info('Login bem-sucedido', { details: { username, role: user.role } });
     res.json({ token: accessToken, user: { ...userWithoutPassword, permissions } });
   } catch (err) {
@@ -52,7 +46,7 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
 });
 
 router.post('/refresh', asyncHandler(async (req: Request, res: Response) => {
-  const refreshToken = (req as Request & { cookies?: Record<string, string> }).cookies?.[REFRESH_COOKIE];
+  const refreshToken = (req as Request & { cookies?: Record<string, string> }).cookies?.[SESSION_COOKIES.refresh];
   if (!refreshToken) {
     return res.status(401).json({ error: 'Refresh token necessário' });
   }
@@ -81,7 +75,7 @@ router.post('/refresh', asyncHandler(async (req: Request, res: Response) => {
       role: user.role,
       tokenVersion: user.tokenVersion,
     });
-    res.cookie(ACCESS_COOKIE, accessToken, { ...authCookieOptions(), maxAge: accessMs });
+    res.cookie(SESSION_COOKIES.access, accessToken, { ...getSessionCookieOptions(), maxAge: accessMs });
     return res.json({ success: true });
   } catch {
     return res.status(401).json({ error: 'Refresh token inválido ou expirado' });
@@ -89,8 +83,8 @@ router.post('/refresh', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 router.post('/logout', (_req: Request, res: Response) => {
-  res.clearCookie(ACCESS_COOKIE, authCookieOptions());
-  res.clearCookie(REFRESH_COOKIE, authCookieOptions());
+  res.clearCookie(SESSION_COOKIES.access, getSessionCookieOptions());
+  res.clearCookie(SESSION_COOKIES.refresh, getSessionCookieOptions());
   res.json({ success: true });
 });
 

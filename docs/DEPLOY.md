@@ -15,11 +15,13 @@ Obrigatórias:
 - `DATABASE_URL` — Postgres (Supabase pooler).
 - `JWT_SECRET` — segredo de assinatura do JWT.
 - `ENCRYPTION_KEY` — chave de criptografia AES-256 para credenciais no banco (sendPulseClientSecret). Mínimo 32 caracteres.
+- `APP_URL` — origem exata do frontend principal (scheme + host) para CORS/CSRF.
 - `NODE_ENV=production` (a Vercel já define).
 
 Recomendadas/opcionais:
 - `GEMINI_API_KEY` — rota de IA.
 - `PUBLIC_API_ORIGIN` — só se o front e a API ficarem em domínios diferentes (aqui é o mesmo, então dispensável) — usada na CSP.
+- `CORS_ALLOWED_ORIGINS` — lista separada por vírgula de origens adicionais exatas (staging/previews aprovados). Wildcards não são aceitos.
 - `SENDPULSE_CLIENT_ID` / `SENDPULSE_CLIENT_SECRET` / `SENDPULSE_TEMPLATE_ID` — WhatsApp.
 - `REDIS_URL` — **recomendado** (ver "Serverless" abaixo). Passo a passo: [`REDIS-SETUP.md`](./REDIS-SETUP.md).
 
@@ -44,7 +46,9 @@ Mudanças de schema nunca chegam "antes da coluna": o workflow **Apply migration
 
 ## Cookies de sessão (JWT httpOnly)
 
-O login seta um cookie `httpOnly` + `Secure` + `SameSite=None` em produção. Como front e API estão no **mesmo domínio** Vercel (HTTPS), o cookie funciona. Se um dia separar o front da API em domínios distintos, `SameSite=None`+`Secure` continua necessário e o CORS precisa listar o domínio do front (já com `credentials: true`).
+O login seta cookies `httpOnly` + `Secure` + `SameSite=Lax` em produção. Front e API estão no **mesmo domínio** Vercel (HTTPS), portanto cookies cross-site não são necessários. Além de `SameSite`, toda mutação autenticada por cookie exige uma `Origin` da allowlist exata (ou `Sec-Fetch-Site: same-origin` quando `Origin` estiver ausente) e bloqueia contexto cross-site. Clientes não-browser devem usar Bearer ou enviar a origem exata.
+
+Se um dia front e API forem separados em sites distintos, essa arquitetura precisa de uma decisão explícita antes do deploy: alterar `SameSite`, manter `Secure`, listar apenas a origem exata do frontend e adotar um token CSRF. Não habilite `SameSite=None` isoladamente.
 
 ## ⚠️ Serverless: implicações (importante)
 
