@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Histórico completo para o scan de segredos (gitleaks) varrer commits
           # além do diff do PR — segredos podem ter sido commitados antes.
@@ -60,7 +60,7 @@ jobs:
     needs: verify
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -121,7 +121,7 @@ jobs:
       SEED_ADMIN_PASSWORD: "admin2021"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -177,7 +177,7 @@ jobs:
       SEED_ADMIN_PASSWORD: ${{ secrets.E2E_PASS || 'ci-e2e-password' }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -220,7 +220,7 @@ jobs:
         if: ${{ env.DATABASE_URL != '' }}
         run: echo "Rodando contra a base de produção."
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: ${{ env.DATABASE_URL != '' }}
 
       - uses: actions/setup-node@v4
