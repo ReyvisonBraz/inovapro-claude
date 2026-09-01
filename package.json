@@ -51,7 +51,7 @@
     "motion": "^12.23.24",
     "pg": "^8.20.0",
     "qrcode.react": "^4.2.0",
-    "rate-limit-redis": "^5.0.0",
+    "rate-limit-redis": "^6.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.72.1",
